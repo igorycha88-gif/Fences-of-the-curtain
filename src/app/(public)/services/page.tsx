@@ -1,180 +1,292 @@
+'use client';
+
 import Link from 'next/link';
-import { Calculator, Shield, Clock, Award } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { AnimatedSection } from '@/hooks/useScrollReveal';
+import { 
+  Calculator, 
+  Shield, 
+  Clock, 
+  Award,
+  ArrowRight,
+  CheckCircle2,
+  Zap,
+  Users,
+  Star
+} from 'lucide-react';
+
+const fenceServices = [
+  {
+    title: 'Забор из профнастила',
+    description: 'Практичное и надежное решение. Широкий выбор цветов и покрытий. Устойчив к коррозии и механическим повреждениям.',
+    price: 'от 3 500 ₽/м²',
+    warranty: '10 лет',
+    features: ['Быстрый монтаж', 'Шумоизоляция', 'Долговечность'],
+  },
+  {
+    title: 'Евроштакетник',
+    description: 'Стильный и современный забор с эстетичным внешним видом. Возможность выбора расстояния между штакетинами.',
+    price: 'от 4 200 ₽/м²',
+    warranty: '15 лет',
+    features: ['Вентиляция', 'Эстетика', 'Проветривание'],
+  },
+  {
+    title: 'Сетка-рабица',
+    description: 'Экономичный вариант ограждения. Пропускает свет, хорошо просматривается, не затеняет участок.',
+    price: 'от 1 200 ₽/м²',
+    warranty: '5 лет',
+    features: ['Экономичность', 'Простота', 'Лёгкость'],
+  },
+  {
+    title: '3D-панели',
+    description: 'Современный дизайн и высокая прочность. Идеальное решение для частных домов и коммерческих объектов.',
+    price: 'от 3 800 ₽/м²',
+    warranty: '20 лет',
+    features: ['Прочность', 'Дизайн', 'Надёжность'],
+  },
+];
+
+const canopyServices = [
+  {
+    title: 'Навес под автомобиль',
+    description: 'Защита автомобиля от солнца, дождя и снега. Различные конструкции: односкатные, двускатные и арочные.',
+    price: 'от 35 000 ₽',
+    warranty: '10 лет',
+    features: ['Защита авто', 'Любой размер', 'Прочность'],
+  },
+  {
+    title: 'Беседка',
+    description: 'Уютное место для отдыха на свежем воздухе. Возможность установки барбекю, освещения и мебели.',
+    price: 'от 45 000 ₽',
+    warranty: '10 лет',
+    features: ['Отдых', 'Комфорт', 'Уют'],
+  },
+  {
+    title: 'Навес-терраса',
+    description: 'Расширение жилого пространства. Отличное решение для летних вечеров и семейных обедов.',
+    price: 'от 55 000 ₽',
+    warranty: '10 лет',
+    features: ['Пространство', 'Стиль', 'Функциональность'],
+  },
+  {
+    title: 'Хозблок',
+    description: 'Практичное решение для хранения инструментов и инвентаря. Может использоваться как гараж для мотоцикла.',
+    price: 'от 40 000 ₽',
+    warranty: '10 лет',
+    features: ['Хранение', 'Защита', 'Практичность'],
+  },
+];
+
+const advantages = [
+  { icon: Calculator, title: 'Точный расчёт', description: 'Онлайн-калькулятор за несколько секунд' },
+  { icon: Shield, title: 'Гарантия качества', description: 'На все работы до 20 лет гарантии' },
+  { icon: Clock, title: 'Быстрый монтаж', description: 'Установка в кратчайшие сроки' },
+  { icon: Award, title: 'Опыт работы', description: 'Более 10 лет на рынке' },
+];
 
 export default function ServicesPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-16">
-        <h1 className="text-5xl font-bold text-center mb-4 text-gray-900">Наши услуги</h1>
-        <p className="text-xl text-gray-600 text-center mb-16 max-w-2xl mx-auto">
-          Профессиональные решения для ограждения территории и защиты от солнца и осадков
-        </p>
+      <main className="pt-24">
+        <section className="py-16 px-4 relative overflow-hidden">
+          <div className="absolute inset-0 gradient-mesh opacity-50" />
+          <div className="container mx-auto relative z-10">
+            <AnimatedSection animation="fade-in-up" className="text-center mb-16">
+              <h1 className="section-title mb-4">Наши услуги</h1>
+              <p className="section-subtitle">
+                Профессиональные решения для ограждения территории и защиты от солнца и осадков
+              </p>
+            </AnimatedSection>
+          </div>
+        </section>
 
-        <div className="grid md:grid-cols-2 gap-12 mb-20">
-          <div>
-            <h2 className="text-3xl font-bold mb-6 text-gray-900">Заборы</h2>
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">Забор из профнастила</h3>
-                <p className="text-gray-600 mb-4">
-                  Практичное и надежное решение. Широкий выбор цветов и покрытий. Устойчив к коррозии и механическим повреждениям.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 3 500 ₽/м²</span>
-                  <span>•</span>
-                  <span>Гарантия 10 лет</span>
+        <section className="py-16 px-4">
+          <div className="container mx-auto">
+            <AnimatedSection animation="fade-in-up" className="mb-12">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-primary" />
                 </div>
+                <h2 className="text-3xl font-bold">Заборы</h2>
               </div>
+              <p className="text-muted-foreground max-w-2xl">
+                Надёжные ограждения для вашего участка с гарантией качества
+              </p>
+            </AnimatedSection>
 
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">Евроштакетник</h3>
-                <p className="text-gray-600 mb-4">
-                  Стильный и современный забор с эстетичным внешним видом. Возможность выбора расстояния между штакетинами.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 4 200 ₽/м²</span>
-                  <span>•</span>
-                  <span>Гарантия 15 лет</span>
-                </div>
-              </div>
+            <div className="grid md:grid-cols-2 gap-6 mb-20">
+              {fenceServices.map((service, index) => (
+                <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
+                  <div className="card-modern p-6 h-full hover-lift group">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
+                        {service.title}
+                      </h3>
+                      <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                        {service.warranty}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground mb-4">{service.description}</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {service.features.map((feature, i) => (
+                        <span key={i} className="text-xs bg-secondary px-3 py-1 rounded-full">
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                      <span className="text-2xl font-bold text-primary">{service.price}</span>
+                      <Link
+                        href="/calculator/fence"
+                        className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"
+                      >
+                        Рассчитать
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </AnimatedSection>
+              ))}
+            </div>
 
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">Сетка-рабица</h3>
-                <p className="text-gray-600 mb-4">
-                  Экономичный вариант ограждения. Пропускает свет, хорошо просматривается, не затеняет участок.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 1 200 ₽/м²</span>
-                  <span>•</span>
-                  <span>Гарантия 5 лет</span>
+            <AnimatedSection animation="fade-in-up" className="mb-12">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-primary" />
                 </div>
+                <h2 className="text-3xl font-bold">Навесы</h2>
               </div>
+              <p className="text-muted-foreground max-w-2xl">
+                Защита от солнца и осадков для вашего комфорта
+              </p>
+            </AnimatedSection>
 
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">3D-панели</h3>
-                <p className="text-gray-600 mb-4">
-                  Современный дизайн и высокая прочность. Идеальное решение для ограждения частных домов и коммерческих объектов.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 3 800 ₽/м²</span>
-                  <span>•</span>
-                  <span>Гарантия 20 лет</span>
-                </div>
-              </div>
+            <div className="grid md:grid-cols-2 gap-6 mb-20">
+              {canopyServices.map((service, index) => (
+                <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
+                  <div className="card-modern p-6 h-full hover-lift group">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
+                        {service.title}
+                      </h3>
+                      <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                        {service.warranty}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground mb-4">{service.description}</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {service.features.map((feature, i) => (
+                        <span key={i} className="text-xs bg-secondary px-3 py-1 rounded-full">
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                      <span className="text-2xl font-bold text-primary">{service.price}</span>
+                      <Link
+                        href="/calculator/canopy"
+                        className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"
+                      >
+                        Рассчитать
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </AnimatedSection>
+              ))}
             </div>
           </div>
+        </section>
 
-          <div>
-            <h2 className="text-3xl font-bold mb-6 text-gray-900">Навесы</h2>
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">Навес под автомобиль</h3>
-                <p className="text-gray-600 mb-4">
-                  Защита автомобиля от солнца, дождя и снега. Различные конструкции: односкатные, двускатные и арочные.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 35 000 ₽</span>
-                  <span>•</span>
-                  <span>Гарантия 10 лет</span>
-                </div>
-              </div>
+        <section className="py-16 px-4 bg-secondary/30">
+          <div className="container mx-auto">
+            <AnimatedSection animation="fade-in-up" className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Почему выбирают нас</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Мы создаём не просто заборы, а надёжную защиту вашего дома
+              </p>
+            </AnimatedSection>
 
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">Беседка</h3>
-                <p className="text-gray-600 mb-4">
-                  Уютное место для отдыха на свежем воздухе. Возможность установки барбекю, освещения и мебели.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 45 000 ₽</span>
-                  <span>•</span>
-                  <span>Гарантия 10 лет</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">Навес-терраса</h3>
-                <p className="text-gray-600 mb-4">
-                  Расширение жилого пространства. Отличное решение для летних вечеров и семейных обедов на открытом воздухе.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 55 000 ₽</span>
-                  <span>•</span>
-                  <span>Гарантия 10 лет</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-md border hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold mb-3">Хозблок</h3>
-                <p className="text-gray-600 mb-4">
-                  Практичное решение для хранения инструментов и инвентаря. Может быть использован как гараж для мотоцикла.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>от 40 000 ₽</span>
-                  <span>•</span>
-                  <span>Гарантия 10 лет</span>
-                </div>
-              </div>
+            <div className="grid md:grid-cols-4 gap-6">
+              {advantages.map((adv, index) => (
+                <AnimatedSection key={index} animation="scale-in" delay={index * 100}>
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 hover:bg-primary group transition-colors">
+                      <adv.icon className="w-8 h-8 text-primary group-hover:text-white transition-colors" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">{adv.title}</h3>
+                    <p className="text-muted-foreground text-sm">{adv.description}</p>
+                  </div>
+                </AnimatedSection>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="bg-white rounded-xl p-10 shadow-lg mb-20">
-          <h2 className="text-3xl font-bold text-center mb-10 text-gray-900">Почему выбирают нас</h2>
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calculator className="w-8 h-8 text-primary" />
+        <section className="py-16 px-4 bg-primary text-primary-foreground">
+          <div className="container mx-auto">
+            <AnimatedSection animation="scale-in" className="max-w-3xl mx-auto text-center">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Star className="w-6 h-6 fill-current" />
+                <Star className="w-6 h-6 fill-current" />
+                <Star className="w-6 h-6 fill-current" />
+                <Star className="w-6 h-6 fill-current" />
+                <Star className="w-6 h-6 fill-current" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Точный расчет</h3>
-              <p className="text-gray-600">Онлайн-калькулятор за несколько секунд</p>
-            </div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Готовы начать?
+              </h2>
+              <p className="text-xl opacity-90 mb-8">
+                Рассчитайте стоимость прямо сейчас — это бесплатно и займёт всего минуту
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/calculator/fence"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-semibold hover:bg-white/90 transition-colors"
+                >
+                  <Calculator className="w-5 h-5" />
+                  Рассчитать забор
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/calculator/canopy"
+                  className="inline-flex items-center justify-center gap-2 bg-white/20 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/30 transition-colors border border-white/30"
+                >
+                  Рассчитать навес
+                </Link>
+              </div>
+            </AnimatedSection>
+          </div>
+        </section>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Гарантия качества</h3>
-              <p className="text-gray-600">На все работы до 20 лет гарантии</p>
-            </div>
+        <section className="py-16 px-4">
+          <div className="container mx-auto">
+            <AnimatedSection animation="fade-in-up" className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Что вы получаете</h2>
+            </AnimatedSection>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Быстрый монтаж</h3>
-              <p className="text-gray-600">Установка в кратчайшие сроки</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Award className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Опыт работы</h3>
-              <p className="text-gray-600">Более 10 лет на рынке</p>
+            <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+              {[
+                'Бесплатный замер и консультацию',
+                'Гарантию на все работы',
+                'Честную цену без скрытых платежей',
+                'Качественные материалы',
+                'Опытных мастеров',
+                'Соблюдение сроков',
+              ].map((item, index) => (
+                <AnimatedSection key={index} animation="fade-in" delay={index * 50}>
+                  <div className="flex items-center gap-3 p-4 bg-secondary/50 rounded-xl">
+                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                    <span className="font-medium">{item}</span>
+                  </div>
+                </AnimatedSection>
+              ))}
             </div>
           </div>
-        </div>
-
-        <div className="text-center">
-          <Link
-            href="/calculator/fence"
-            className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl"
-          >
-            <Calculator className="w-5 h-5" />
-            Рассчитать стоимость
-          </Link>
-        </div>
+        </section>
       </main>
-
-      <footer className="bg-gray-900 text-white py-10">
-        <div className="container mx-auto px-4 text-center">
-          <p className="mb-2">© 2026 Заборы и Навесы. Все права защищены.</p>
-          <p className="text-gray-400">+7 (900) 123-45-67 | info@fences.ru</p>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
-import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
-import { PurchasePriceSection } from '@/components/admin/References/PurchasePriceSection';
-import { AvailableLengthsSection } from '@/components/admin/References/AvailableLengthsSection';
+import { SimplifiedPurchasePriceInput } from '@/components/admin/References/SimplifiedPurchasePriceInput';
+import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
+import { formatDimension, formatPrice, formatSection } from '@/lib/utils/formatters';
+import { POSTS_COLUMN_TOOLTIPS } from '@/lib/constants/columnTooltips';
+import { ColumnHeaderWithTooltip } from '@/components/admin/References/ColumnHeaderWithTooltip';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 
@@ -17,17 +19,12 @@ interface PostType {
   sectionHeight: number;
   wallThickness: number;
   pricePerMeter: number;
-  availableLengths: Array<{
-    length: number;
-    pricePerMeter: number;
-  }> | null;
-  purchasePrices: Array<{
-    length: number;
-    purchasePrice: number | null;
-  }> | null;
+  length: number;
+  purchasePricePerMeter: number | null;
   image: string | null;
   active: boolean;
-  sortOrder: number;
+  validFrom: string | null;
+  expirationDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,16 +36,46 @@ interface SessionUser {
   role: 'ADMIN' | 'MANAGER' | 'CONTENT_MANAGER';
 }
 
+interface DuplicateWarning {
+  type: string;
+  message: string;
+  duplicates: Array<{
+    id: string;
+    name: string;
+    pricePerMeter: number;
+    validFrom: string | null;
+    expirationDate: string | null;
+    active: boolean;
+  }>;
+  suggestions: {
+    setExpirationForExisting: string | null;
+  };
+}
+
+const formatDate = (date: string | Date | null): string => {
+  if (!date) return 'Бессрочно';
+  const d = new Date(date);
+  return d.toLocaleDateString('ru-RU');
+};
+
+const formatValidFrom = (date: string | Date | null): string => {
+  if (!date) return 'С момента добавления';
+  const d = new Date(date);
+  return d.toLocaleDateString('ru-RU');
+};
+
 export default function PostsPage() {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [validityFilter, setValidityFilter] = useState<'all' | 'active' | 'expired' | 'expiring_soon'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<PostType | null>(null);
-  const [formValues, setFormValues] = useState<Partial<PostType>>({});
+  const [formValues, setFormValues] = useState<Partial<PostType> & { confirmDuplicate?: boolean; updateExistingExpiration?: string }>({});
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null);
 
   const pageSize = 20;
 
@@ -69,6 +96,7 @@ export default function PostsPage() {
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
+        validityFilter,
         ...(search && { search }),
       });
 
@@ -90,10 +118,11 @@ export default function PostsPage() {
 
   useEffect(() => {
     fetchPosts();
-  }, [page, search]);
+  }, [page, search, validityFilter]);
 
   const handleAdd = () => {
     setEditingPost(null);
+    setDuplicateWarning(null);
     setFormValues({
       name: '',
       description: '',
@@ -101,16 +130,18 @@ export default function PostsPage() {
       sectionHeight: 60,
       wallThickness: 2.5,
       pricePerMeter: 300,
+      length: 2.5,
+      purchasePricePerMeter: null,
       active: true,
-      sortOrder: 0,
-      availableLengths: [],
-      purchasePrices: [],
+      validFrom: null,
+      expirationDate: null,
     });
     setIsModalOpen(true);
   };
 
   const handleEdit = (post: PostType) => {
     setEditingPost(post);
+    setDuplicateWarning(null);
     setFormValues({
       name: post.name,
       description: post.description || '',
@@ -118,10 +149,11 @@ export default function PostsPage() {
       sectionHeight: post.sectionHeight,
       wallThickness: post.wallThickness,
       pricePerMeter: post.pricePerMeter,
+      length: post.length,
+      purchasePricePerMeter: post.purchasePricePerMeter,
       active: post.active,
-      sortOrder: post.sortOrder,
-      availableLengths: post.availableLengths || [],
-      purchasePrices: post.purchasePrices || [],
+      validFrom: post.validFrom,
+      expirationDate: post.expirationDate,
     });
     setIsModalOpen(true);
   };
@@ -170,48 +202,47 @@ export default function PostsPage() {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAvailableLengthsChange = (availableLengths: any[]) => {
-    setFormValues((prev) => ({ ...prev, availableLengths }));
+  const handlePurchasePriceChange = (value: number | null) => {
+    setFormValues((prev) => ({ ...prev, purchasePricePerMeter: value }));
   };
 
-  const handlePurchasePricesChange = (purchasePrices: Array<{ length: number; purchasePrice: number | null }>) => {
-    setFormValues((prev) => ({ ...prev, purchasePrices }));
+  const handleConfirmDuplicate = () => {
+    if (duplicateWarning?.duplicates[0]) {
+      setFormValues((prev) => ({
+        ...prev,
+        confirmDuplicate: true,
+        updateExistingExpiration: duplicateWarning.duplicates[0].id,
+      }));
+      setDuplicateWarning(null);
+    }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('[POSTS PAGE] Form submitted');
-    console.log('[POSTS PAGE] Form values:', JSON.stringify(formValues, null, 2));
-    console.log('[POSTS PAGE] Editing post:', editingPost ? editingPost.id : 'new');
 
     try {
       const url = editingPost
         ? `/api/admin/post-types/${editingPost.id}`
         : '/api/admin/post-types';
       const method = editingPost ? 'PUT' : 'POST';
-      
-      console.log('[POSTS PAGE] Sending request:', method, url);
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
       });
-      
-      console.log('[POSTS PAGE] Response status:', response.status);
+
+      const data = await response.json();
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('[POSTS PAGE] Success response:', data);
+        if (data.warning) {
+          setDuplicateWarning(data.warning);
+          return;
+        }
         toast.success(editingPost ? 'Столб успешно обновлен' : 'Столб успешно создан');
         setIsModalOpen(false);
         fetchPosts();
       } else {
-        const data = await response.json();
-        console.error('[POSTS PAGE] Error response:', data);
-        
-        // Handle validation errors
         if (Array.isArray(data.error)) {
           const errorMessages = data.error.map((err: any) => {
             const field = err.path?.join('.') || 'field';
@@ -223,84 +254,125 @@ export default function PostsPage() {
         }
       }
     } catch (error) {
-      console.error('[POSTS PAGE] Exception:', error);
+      console.error('Exception:', error);
       toast.error('Ошибка сохранения');
     }
   };
 
+  const isAdmin = currentUser?.role === 'ADMIN';
+
   const columns = [
     { key: 'name', label: 'Название' },
-    { key: 'description', label: 'Описание' },
     {
-      key: 'sectionWidth',
-      label: 'Ширина сечения (мм)',
-      render: (post: PostType) => post.sectionWidth.toFixed(0),
-    },
-    {
-      key: 'sectionHeight',
-      label: 'Высота сечения (мм)',
-      render: (post: PostType) => post.sectionHeight.toFixed(0),
+      key: 'section',
+      label: <ColumnHeaderWithTooltip title="Сечение (мм)" tooltip={POSTS_COLUMN_TOOLTIPS.sectionWidth} />,
+      render: (post: PostType) => (
+        <span>{formatSection(post.sectionWidth, post.sectionHeight)} мм</span>
+      ),
     },
     {
       key: 'wallThickness',
-      label: 'Толщина стенки (мм)',
-      render: (post: PostType) => post.wallThickness.toFixed(1),
+      label: <ColumnHeaderWithTooltip title="Толщина металла (мм)" tooltip={POSTS_COLUMN_TOOLTIPS.wallThickness} />,
+      render: (post: PostType) => formatDimension(post.wallThickness),
     },
     {
       key: 'pricePerMeter',
-      label: 'Цена за м.п. (руб)',
-      render: (post: PostType) => post.pricePerMeter.toFixed(2),
+      label: <ColumnHeaderWithTooltip title="Розничная стоимость (₽)" tooltip={POSTS_COLUMN_TOOLTIPS.pricePerMeter} />,
+      render: (post: PostType) => formatPrice(post.pricePerMeter),
     },
-    { key: 'sortOrder', label: 'Порядок' },
-    { key: 'active', label: 'Активен' },
+    {
+      key: 'validFrom',
+      label: 'Дата начала',
+      render: (post: PostType) => (
+        <span className={post.validFrom ? '' : 'text-gray-400'}>
+          {formatValidFrom(post.validFrom)}
+        </span>
+      ),
+    },
+    {
+      key: 'expirationDate',
+      label: 'Срок действия',
+      render: (post: PostType) => {
+        const isExpired = post.expirationDate && new Date(post.expirationDate) < new Date();
+        const isExpiringSoon = post.expirationDate && !isExpired &&
+          new Date(post.expirationDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        return (
+          <span className={
+            isExpired ? 'text-red-500' :
+            isExpiringSoon ? 'text-yellow-600' :
+            !post.expirationDate ? 'text-gray-400' : ''
+          }>
+            {formatDate(post.expirationDate)}
+          </span>
+        );
+      },
+    },
+    ...(isAdmin ? [{
+      key: 'purchasePricePerMeter',
+      label: <ColumnHeaderWithTooltip title="Цена закупки за ед. (₽)" tooltip="Цена закупки за метр погонный" />,
+      render: (post: PostType) => {
+        const margin = calculateMargin(post.pricePerMeter, post.purchasePricePerMeter);
+        const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
+        const priceText = post.purchasePricePerMeter 
+          ? `${formatPrice(post.purchasePricePerMeter)} ${marginEmoji}`
+          : `Не указана ${marginEmoji}`;
+        return (
+          <span 
+            className="cursor-help"
+            title={margin 
+              ? `Маржа: ${margin.marginPercent.toFixed(1)}% (${margin.marginAbsolute.toFixed(2)} ₽)`
+              : 'Цена закупки не указана'
+            }
+          >
+            {priceText}
+          </span>
+        );
+      },
+    }] : []),
+    {
+      key: 'active',
+      label: 'Активен',
+      render: (post: PostType) => (
+        <button
+          onClick={() => handleToggleActive(post)}
+          className="cursor-pointer hover:scale-110 transition-transform duration-200 inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
+          title="Нажмите, чтобы изменить статус"
+        >
+          {post.active ? (
+            <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          )}
+        </button>
+      )
+    },
   ];
 
-  const formFields = [
-    { name: 'name', label: 'Название', type: 'text' as const, required: true },
-    { name: 'description', label: 'Описание', type: 'textarea' as const },
-    {
-      name: 'sectionWidth',
-      label: 'Ширина сечения (мм)',
-      type: 'number' as const,
-      required: true,
-      min: 40,
-      max: 120,
-      step: 1,
-    },
-    {
-      name: 'sectionHeight',
-      label: 'Высота сечения (мм)',
-      type: 'number' as const,
-      required: true,
-      min: 40,
-      max: 120,
-      step: 1,
-    },
-    {
-      name: 'wallThickness',
-      label: 'Толщина стенки (мм)',
-      type: 'number' as const,
-      required: true,
-      min: 1.5,
-      max: 5.0,
-      step: 0.1,
-    },
-    {
-      name: 'pricePerMeter',
-      label: 'Базовая цена за метр погонный (руб)',
-      type: 'number' as const,
-      required: true,
-      min: 0,
-      step: 0.01,
-    },
-    { name: 'sortOrder', label: 'Порядок сортировки', type: 'number' as const },
-    { name: 'active', label: 'Активен', type: 'checkbox' as const },
+  const filterOptions = [
+    { value: 'all', label: 'Все' },
+    { value: 'active', label: 'Активные' },
+    { value: 'expired', label: 'Истек срок' },
+    { value: 'expiring_soon', label: 'Истекает скоро (7 дней)' },
   ];
-
-  const isAdmin = currentUser?.role === 'ADMIN';
 
   return (
     <div className="container mx-auto py-8">
+      <div className="mb-4 flex gap-4 items-center">
+        <select
+          value={validityFilter}
+          onChange={(e) => setValidityFilter(e.target.value as any)}
+          className="border rounded px-3 py-2"
+        >
+          {filterOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
       <DataTable
         title="Столбы"
         columns={columns}
@@ -320,50 +392,196 @@ export default function PostsPage() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setDuplicateWarning(null); }}
         title={editingPost ? 'Редактировать столб' : 'Создать столб'}
       >
-        <form onSubmit={handleFormSubmit} className="space-y-4">
-          <ReferenceForm
-            fields={formFields}
-            values={formValues}
-            onChange={handleFormChange}
-            onSubmit={handleFormSubmit}
-            onCancel={() => setIsModalOpen(false)}
-            submitLabel={editingPost ? 'Обновить' : 'Создать'}
-            renderForm={false}
-            showButtons={false}
-          />
-
-          <div className="mt-6">
-            <AvailableLengthsSection
-              type="posts"
-              availableLengths={formValues.availableLengths || []}
-              basePrice={formValues.pricePerMeter || 0}
-              onChange={handleAvailableLengthsChange}
-            />
+        {duplicateWarning ? (
+          <div className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
+              <h3 className="font-semibold text-yellow-800 mb-2">Столб с такими параметрами уже существует</h3>
+              {duplicateWarning.duplicates.map((dup) => (
+                <div key={dup.id} className="bg-white p-3 rounded mb-2 text-sm">
+                  <div className="font-medium">{dup.name || 'Без названия'}</div>
+                  <div>Цена: {dup.pricePerMeter} ₽</div>
+                  <div>Период: {formatValidFrom(dup.validFrom)} - {formatDate(dup.expirationDate)}</div>
+                  <div>Статус: {dup.active ? 'Активен' : 'Неактивен'}</div>
+                </div>
+              ))}
+              <p className="text-sm text-yellow-700 mt-2">
+                Для создания новой номенклатуры цена должна отличаться и период не должен пересекаться.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setDuplicateWarning(null); setIsModalOpen(false); }}>
+                Отмена
+              </Button>
+              <Button onClick={handleConfirmDuplicate}>
+                Автоматически установить срок действия для существующей
+              </Button>
+            </div>
           </div>
-
-          {isAdmin && (
-            <div className="mt-6">
-              <PurchasePriceSection
-                availableLengths={formValues.availableLengths || []}
-                purchasePrices={formValues.purchasePrices || []}
-                basePrice={formValues.pricePerMeter || 0}
-                onChange={handlePurchasePricesChange}
+        ) : (
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Название *</label>
+              <input
+                type="text"
+                value={formValues.name || ''}
+                onChange={(e) => handleFormChange('name', e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                required
               />
             </div>
-          )}
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-              Отмена
-            </Button>
-            <Button type="submit">
-              {editingPost ? 'Обновить' : 'Создать'}
-            </Button>
-          </div>
-        </form>
+            <div>
+              <label className="block text-sm font-medium mb-1">Описание</label>
+              <textarea
+                value={formValues.description || ''}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                rows={2}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Ширина сечения (мм) *</label>
+                <input
+                  type="number"
+                  value={formValues.sectionWidth || ''}
+                  onChange={(e) => handleFormChange('sectionWidth', parseFloat(e.target.value))}
+                  className="w-full border rounded px-3 py-2"
+                  min={40}
+                  max={120}
+                  step={1}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Высота сечения (мм) *</label>
+                <input
+                  type="number"
+                  value={formValues.sectionHeight || ''}
+                  onChange={(e) => handleFormChange('sectionHeight', parseFloat(e.target.value))}
+                  className="w-full border rounded px-3 py-2"
+                  min={40}
+                  max={120}
+                  step={1}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Толщина стенки (мм) *</label>
+                <input
+                  type="number"
+                  value={formValues.wallThickness || ''}
+                  onChange={(e) => handleFormChange('wallThickness', parseFloat(e.target.value))}
+                  className="w-full border rounded px-3 py-2"
+                  min={1.5}
+                  max={5.0}
+                  step={0.1}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Длина (м) *
+                <span 
+                  className="ml-1 text-gray-400 cursor-help" 
+                  title="Стандартные длины: 2.5м, 3.0м"
+                >
+                  ℹ️
+                </span>
+              </label>
+              <input
+                type="number"
+                value={formValues.length || ''}
+                onChange={(e) => handleFormChange('length', parseFloat(e.target.value))}
+                className="w-full border rounded px-3 py-2"
+                min={1.5}
+                max={6.0}
+                step={0.1}
+                placeholder="2.5, 3.0, 3.5"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Стандартные длины: 2.5м, 3.0м</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Розничная стоимость (₽) *</label>
+              <input
+                type="number"
+                value={formValues.pricePerMeter || ''}
+                onChange={(e) => handleFormChange('pricePerMeter', parseFloat(e.target.value))}
+                className="w-full border rounded px-3 py-2"
+                min={0}
+                step={0.01}
+                required
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-3">Период действия (опционально)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Дата начала действия</label>
+                  <input
+                    type="date"
+                    value={formValues.validFrom ? new Date(formValues.validFrom).toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleFormChange('validFrom', e.target.value ? new Date(e.target.value) : null)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Пусто = с момента добавления</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Срок действия</label>
+                  <input
+                    type="date"
+                    value={formValues.expirationDate ? new Date(formValues.expirationDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleFormChange('expirationDate', e.target.value ? new Date(e.target.value) : null)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Пусто = бессрочно</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Если указать срок, номенклатура автоматически деактивируется в 01:00 следующего дня
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="active"
+                checked={formValues.active ?? true}
+                onChange={(e) => handleFormChange('active', e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="active" className="text-sm font-medium">Активен</label>
+            </div>
+
+            {isAdmin && (
+              <div className="mt-4">
+                <SimplifiedPurchasePriceInput
+                  purchasePricePerMeter={formValues.purchasePricePerMeter ?? null}
+                  basePricePerMeter={formValues.pricePerMeter || 0}
+                  onChange={handlePurchasePriceChange}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                Отмена
+              </Button>
+              <Button type="submit">
+                {editingPost ? 'Обновить' : 'Создать'}
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

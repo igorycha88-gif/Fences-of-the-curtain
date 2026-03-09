@@ -2,6 +2,32 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { PostTypeInput, PostTypeUpdate } from '@/lib/validators/postType';
 
+export interface PostDuplicate {
+  id: string;
+  name: string;
+  pricePerMeter: number;
+  validFrom: Date | null;
+  expirationDate: Date | null;
+  active: boolean;
+}
+
+export function checkPeriodOverlap(
+  newValidFrom: Date | null,
+  newExpirationDate: Date | null,
+  existingValidFrom: Date | null,
+  existingExpirationDate: Date | null
+): boolean {
+  const farFuture = new Date('2099-12-31');
+  const farPast = new Date(0);
+
+  const newStart = newValidFrom || farPast;
+  const newEnd = newExpirationDate || farFuture;
+  const existingStart = existingValidFrom || farPast;
+  const existingEnd = existingExpirationDate || farFuture;
+
+  return !(newStart >= existingEnd || newEnd <= existingStart);
+}
+
 export class PostTypeService {
   async getAll(params: {
     active?: boolean;
@@ -10,9 +36,19 @@ export class PostTypeService {
     maxThickness?: number;
     page?: number;
     pageSize?: number;
+    validityFilter?: 'all' | 'active' | 'expired' | 'expiring_soon';
   }) {
-    const { active, search, minThickness, maxThickness, page = 1, pageSize = 20 } = params;
+    const { 
+      active, 
+      search, 
+      minThickness, 
+      maxThickness, 
+      page = 1, 
+      pageSize = 20,
+      validityFilter = 'all'
+    } = params;
     const skip = (page - 1) * pageSize;
+    const now = new Date();
 
     const where: Prisma.PostTypeWhereInput = {};
 
@@ -34,12 +70,28 @@ export class PostTypeService {
       };
     }
 
+    if (validityFilter === 'expired') {
+      where.expirationDate = { lt: now };
+    } else if (validityFilter === 'expiring_soon') {
+      const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      where.expirationDate = {
+        gt: now,
+        lte: sevenDaysLater,
+      };
+    } else if (validityFilter === 'active') {
+      where.active = true;
+      where.OR = [
+        { expirationDate: null },
+        { expirationDate: { gt: now } },
+      ];
+    }
+
     const [posts, total] = await Promise.all([
       prisma.postType.findMany({
         where,
         skip,
         take: pageSize,
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { name: 'asc' },
       }),
       prisma.postType.count({ where }),
     ]);
@@ -59,21 +111,92 @@ export class PostTypeService {
     });
   }
 
-  async create(data: PostTypeInput, userId: string) {
-    const existingPost = await prisma.postType.findFirst({
+  async findDuplicates(params: {
+    sectionWidth: number;
+    sectionHeight: number;
+    wallThickness: number;
+    excludeId?: string;
+  }): Promise<PostDuplicate[]> {
+    const posts = await prisma.postType.findMany({
       where: {
-        sectionWidth: data.sectionWidth,
-        sectionHeight: data.sectionHeight,
-        wallThickness: data.wallThickness,
+        sectionWidth: params.sectionWidth,
+        sectionHeight: params.sectionHeight,
+        wallThickness: params.wallThickness,
+        ...(params.excludeId && { id: { not: params.excludeId } }),
+      },
+      select: {
+        id: true,
+        name: true,
+        pricePerMeter: true,
+        validFrom: true,
+        expirationDate: true,
+        active: true,
       },
     });
 
-    if (existingPost) {
-      throw new Error('Столб с такими параметрами уже существует');
+    return posts;
+  }
+
+  async create(data: PostTypeInput, userId: string) {
+    const duplicates = await this.findDuplicates({
+      sectionWidth: data.sectionWidth,
+      sectionHeight: data.sectionHeight,
+      wallThickness: data.wallThickness,
+    });
+
+    if (duplicates.length > 0 && !data.confirmDuplicate) {
+      const newValidFrom = data.validFrom || null;
+      const newExpirationDate = data.expirationDate || null;
+
+      for (const dup of duplicates) {
+        if (dup.pricePerMeter === data.pricePerMeter) {
+          throw new Error('Цена должна отличаться от существующих столбов с такими же параметрами');
+        }
+
+        if (checkPeriodOverlap(newValidFrom, newExpirationDate, dup.validFrom, dup.expirationDate)) {
+          return {
+            warning: {
+              type: 'duplicate_params',
+              message: 'Столб с такими параметрами уже существует',
+              duplicates: duplicates.map((d) => ({
+                id: d.id,
+                name: d.name,
+                pricePerMeter: d.pricePerMeter,
+                validFrom: d.validFrom,
+                expirationDate: d.expirationDate,
+                active: d.active,
+              })),
+              suggestions: {
+                setExpirationForExisting: data.validFrom
+                  ? new Date(data.validFrom.getTime() - 24 * 60 * 60 * 1000)
+                  : null,
+              },
+            },
+            canProceed: true,
+          };
+        }
+      }
     }
 
+    if (data.confirmDuplicate && data.updateExistingExpiration) {
+      const existingPost = await prisma.postType.findUnique({
+        where: { id: data.updateExistingExpiration },
+      });
+
+      if (existingPost && data.validFrom) {
+        const newExpiration = new Date(data.validFrom);
+        newExpiration.setDate(newExpiration.getDate() - 1);
+
+        await prisma.postType.update({
+          where: { id: data.updateExistingExpiration },
+          data: { expirationDate: newExpiration },
+        });
+      }
+    }
+
+    const { confirmDuplicate, updateExistingExpiration, ...postData } = data as any;
     const post = await prisma.postType.create({
-      data,
+      data: postData,
     });
 
     await this.logChange(post.id, 'CREATE', null, post, userId);
@@ -113,9 +236,10 @@ export class PostTypeService {
       }
     }
 
+    const { confirmDuplicate, updateExistingExpiration, ...postData } = data as any;
     const post = await prisma.postType.update({
       where: { id },
-      data,
+      data: postData,
     });
 
     await this.logChange(id, 'UPDATE', oldPost, post, userId);
@@ -158,6 +282,21 @@ export class PostTypeService {
     return post;
   }
 
+  async deactivateExpired() {
+    const now = new Date();
+
+    const result = await prisma.postType.updateMany({
+      where: {
+        expirationDate: { lt: now },
+        active: true,
+      },
+      data: { active: false },
+    });
+
+    console.log(`[CRON] Deactivated ${result.count} expired posts`);
+    return result.count;
+  }
+
   private async logChange(
     entityId: string,
     action: string,
@@ -173,7 +312,7 @@ export class PostTypeService {
 
     if (oldValue && newValue) {
       const fields = Object.keys(newValue) as Array<keyof typeof newValue>;
-      
+
       for (const field of fields) {
         if (oldValue[field] !== newValue[field]) {
           changes.push({

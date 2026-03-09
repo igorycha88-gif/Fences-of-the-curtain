@@ -99,14 +99,25 @@ export function ReferenceForm({
 
       case 'checkbox':
         return (
-          <input
-            type="checkbox"
-            name={field.name}
-            checked={value}
-            onChange={(e) => onChange(field.name, e.target.checked)}
-            disabled={isDisabled}
-            className="h-4 w-4 rounded border-gray-300"
-          />
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name={field.name}
+              id={field.name}
+              checked={value}
+              onChange={(e) => onChange(field.name, e.target.checked)}
+              disabled={isDisabled}
+              title="Нажмите, чтобы изменить статус активности"
+              className="h-5 w-5 rounded border-gray-300 cursor-pointer transition-all duration-200 accent-green-600 hover:accent-green-500 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            />
+            <label 
+              htmlFor={field.name}
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+          </div>
         );
 
       default:
@@ -116,15 +127,20 @@ export function ReferenceForm({
 
   const fieldsContent = (
     <>
-      {fields.map((field) => (
-        <div key={field.name} className="space-y-2">
-          <Label htmlFor={field.name}>
-            {field.label}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
-          </Label>
-          {renderField(field)}
-        </div>
-      ))}
+      {fields.map((field) => {
+        if (field.type === 'checkbox') {
+          return <div key={field.name}>{renderField(field)}</div>;
+        }
+        return (
+          <div key={field.name} className="space-y-2">
+            <Label htmlFor={field.name}>
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {renderField(field)}
+          </div>
+        );
+      })}
     </>
   );
 

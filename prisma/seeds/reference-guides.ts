@@ -18,7 +18,6 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 2,
         active: true,
-        sortOrder: 1,
       },
     }),
     prisma.fenceType.upsert({
@@ -32,7 +31,6 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 2,
         active: true,
-        sortOrder: 2,
       },
     }),
     prisma.fenceType.upsert({
@@ -46,7 +44,6 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 1,
         active: true,
-        sortOrder: 3,
       },
     }),
     prisma.fenceType.upsert({
@@ -60,7 +57,6 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 2,
         active: true,
-        sortOrder: 4,
       },
     }),
   ]);
@@ -79,7 +75,6 @@ async function main() {
         baseCost: 0,
         markupCoef: 1.0,
         active: true,
-        sortOrder: 1,
       },
     }),
     prisma.coatingType.upsert({
@@ -92,7 +87,6 @@ async function main() {
         baseCost: 50,
         markupCoef: 1.15,
         active: true,
-        sortOrder: 2,
       },
     }),
     prisma.coatingType.upsert({
@@ -105,7 +99,6 @@ async function main() {
         baseCost: 80,
         markupCoef: 1.25,
         active: true,
-        sortOrder: 3,
       },
     }),
   ]);
@@ -128,7 +121,6 @@ async function main() {
         length: 2.5,
         purchasePricePerMeter: 120,
         active: true,
-        sortOrder: 1,
       },
     }),
     prisma.lagType.upsert({
@@ -145,7 +137,6 @@ async function main() {
         length: 2.5,
         purchasePricePerMeter: 95,
         active: true,
-        sortOrder: 2,
       },
     }),
     prisma.lagType.upsert({
@@ -162,7 +153,6 @@ async function main() {
         length: 2.5,
         purchasePricePerMeter: 160,
         active: true,
-        sortOrder: 3,
       },
     }),
   ]);
@@ -182,16 +172,9 @@ async function main() {
         sectionHeight: 60,
         wallThickness: 2.0,
         pricePerMeter: 300,
-        availableLengths: [
-          { length: 2.5, pricePerMeter: 300 },
-          { length: 3.0, pricePerMeter: 360 },
-        ],
-        purchasePrices: [
-          { length: 2.5, purchasePrice: 240 },
-          { length: 3.0, purchasePrice: 290 },
-        ],
+        length: 2.5,
+        purchasePricePerMeter: 240,
         active: true,
-        sortOrder: 1,
       },
     }),
     prisma.postType.upsert({
@@ -205,16 +188,9 @@ async function main() {
         sectionHeight: 60,
         wallThickness: 2.5,
         pricePerMeter: 350,
-        availableLengths: [
-          { length: 2.5, pricePerMeter: 350 },
-          { length: 3.0, pricePerMeter: 420 },
-        ],
-        purchasePrices: [
-          { length: 2.5, purchasePrice: 280 },
-          { length: 3.0, purchasePrice: 340 },
-        ],
+        length: 2.5,
+        purchasePricePerMeter: 280,
         active: true,
-        sortOrder: 2,
       },
     }),
     prisma.postType.upsert({
@@ -228,16 +204,9 @@ async function main() {
         sectionHeight: 80,
         wallThickness: 2.5,
         pricePerMeter: 450,
-        availableLengths: [
-          { length: 2.5, pricePerMeter: 450 },
-          { length: 3.0, pricePerMeter: 540 },
-        ],
-        purchasePrices: [
-          { length: 2.5, purchasePrice: 360 },
-          { length: 3.0, purchasePrice: 435 },
-        ],
+        length: 2.5,
+        purchasePricePerMeter: 360,
         active: true,
-        sortOrder: 3,
       },
     }),
   ]);

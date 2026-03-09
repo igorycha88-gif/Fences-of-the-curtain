@@ -131,7 +131,7 @@ export function AvailableLengthsSection({
               <tr className="border-b bg-white">
                 <th className="text-left p-2">Длина (м)</th>
                 {type === 'posts' && <th className="text-left p-2">Цена за м.п. (₽)</th>}
-                <th className="text-left p-2">Цена продажи (₽/м.п.)</th>
+                <th className="text-left p-2">Цена продажи (₽)</th>
                 <th className="text-left p-2">Действия</th>
               </tr>
             </thead>

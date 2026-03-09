@@ -79,8 +79,8 @@ export function PurchasePriceSection({
           <thead>
             <tr className="border-b">
               <th className="text-left p-2">Длина (м)</th>
-              <th className="text-left p-2">Цена продажи (₽/м.п.)</th>
-              <th className="text-left p-2">Цена закупки (₽/м.п.)</th>
+              <th className="text-left p-2">Цена продажи (₽)</th>
+              <th className="text-left p-2">Цена закупки (₽)</th>
               <th className="text-left p-2">Маржа (%)</th>
               <th className="text-left p-2">Маржа (₽)</th>
             </tr>

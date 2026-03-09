@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { AnimatedSection } from '@/hooks/useScrollReveal';
 
 export default function ContactsPage() {
   const [formData, setFormData] = useState({
@@ -50,173 +51,195 @@ export default function ContactsPage() {
     return value;
   };
 
+  const contactInfo = [
+    {
+      icon: MapPin,
+      title: 'Адрес',
+      content: 'г. Москва, ул. Строительная, д. 15',
+      href: null,
+    },
+    {
+      icon: Phone,
+      title: 'Телефон',
+      content: '+7 (900) 123-45-67',
+      href: 'tel:+79001234567',
+    },
+    {
+      icon: Mail,
+      title: 'Email',
+      content: 'info@fences.ru',
+      href: 'mailto:info@fences.ru',
+    },
+    {
+      icon: Clock,
+      title: 'Режим работы',
+      content: 'Пн-Пт: 9:00 - 18:00\nСб: 10:00 - 16:00',
+      href: null,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-16">
-        <h1 className="text-5xl font-bold text-center mb-4 text-gray-900">Контакты</h1>
-        <p className="text-xl text-gray-600 text-center mb-16 max-w-2xl mx-auto">
-          Свяжитесь с нами для получения консультации и расчета стоимости
-        </p>
-
-        <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          <div className="space-y-8">
-            <div className="bg-white rounded-xl p-8 shadow-md border">
-              <h2 className="text-2xl font-semibold mb-6">Отправить заявку</h2>
-
-              {success && (
-                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
-                  Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Имя *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Ваше имя"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Телефон *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="+7 (___) ___-__-__"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="email@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Сообщение *
-                  </label>
-                  <textarea
-                    required
-                    rows={5}
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                    placeholder="Опишите ваш вопрос или задачу"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Отправка...' : 'Отправить заявку'}
-                </button>
-              </form>
-            </div>
+      <main className="pt-24 pb-16">
+        <section className="py-16 px-4 relative overflow-hidden">
+          <div className="absolute inset-0 gradient-mesh opacity-50" />
+          <div className="container mx-auto relative z-10">
+            <AnimatedSection animation="fade-in-up" className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+                <MessageSquare className="w-4 h-4" />
+                Свяжитесь с нами
+              </div>
+              <h1 className="section-title mb-4">Контакты</h1>
+              <p className="section-subtitle">
+                Свяжитесь с нами для получения консультации и расчета стоимости
+              </p>
+            </AnimatedSection>
           </div>
+        </section>
 
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl p-8 shadow-md border">
-              <h2 className="text-2xl font-semibold mb-6">Контактная информация</h2>
-
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-6 h-6 text-primary" />
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <AnimatedSection animation="fade-in-right">
+              <div className="card-modern p-8">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <Send className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Адрес</h3>
-                    <p className="text-gray-600">
-                      г. Москва, ул. Строительная, д. 15
-                    </p>
+                    <h2 className="text-xl font-bold">Отправить заявку</h2>
+                    <p className="text-muted-foreground text-sm">Мы ответим в течение часа</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-6 h-6 text-primary" />
+                {success && (
+                  <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 text-primary px-4 py-4 rounded-xl mb-6">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.</span>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Телефон</h3>
-                    <a
-                      href="tel:+79001234567"
-                      className="text-gray-600 hover:text-primary transition-colors"
-                    >
-                      +7 (900) 123-45-67
-                    </a>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-6 h-6 text-primary" />
-                  </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                    <a
-                      href="mailto:info@fences.ru"
-                      className="text-gray-600 hover:text-primary transition-colors"
-                    >
-                      info@fences.ru
-                    </a>
+                    <label className="block text-sm font-medium mb-2">Имя *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="input-modern"
+                      placeholder="Ваше имя"
+                    />
                   </div>
-                </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 text-primary" />
-                  </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Режим работы</h3>
-                    <p className="text-gray-600">
-                      Пн-Пт: 9:00 - 18:00<br />
-                      Сб: 10:00 - 16:00<br />
-                      Вс: Выходной
-                    </p>
+                    <label className="block text-sm font-medium mb-2">Телефон *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
+                      className="input-modern"
+                      placeholder="+7 (___) ___-__-__"
+                    />
                   </div>
-                </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Email</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="input-modern"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Сообщение *</label>
+                    <textarea
+                      required
+                      rows={5}
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="input-modern resize-none"
+                      placeholder="Опишите ваш вопрос или задачу"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full btn-primary py-4 flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    {loading ? 'Отправка...' : 'Отправить заявку'}
+                  </button>
+                </form>
               </div>
-            </div>
+            </AnimatedSection>
 
-            <div className="bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-8 shadow-md border h-80 flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Карта загружается...</p>
-              </div>
+            <div className="space-y-6">
+              <AnimatedSection animation="fade-in-left">
+                <div className="card-modern p-8">
+                  <h2 className="text-xl font-bold mb-6">Контактная информация</h2>
+
+                  <div className="space-y-4">
+                    {contactInfo.map((item, index) => (
+                      <div key={index} className="flex items-start gap-4 p-4 rounded-xl hover:bg-secondary/50 transition-colors group">
+                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-primary transition-colors">
+                          <item.icon className="w-6 h-6 text-primary group-hover:text-white transition-colors" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-1">{item.title}</h3>
+                          {item.href ? (
+                            <a
+                              href={item.href}
+                              className="text-muted-foreground hover:text-primary transition-colors whitespace-pre-line"
+                            >
+                              {item.content}
+                            </a>
+                          ) : (
+                            <p className="text-muted-foreground whitespace-pre-line">{item.content}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </AnimatedSection>
+
+              <AnimatedSection animation="scale-in" delay={200}>
+                <div className="card-modern overflow-hidden h-64">
+                  <div className="w-full h-full bg-secondary/50 flex items-center justify-center">
+                    <div className="text-center">
+                      <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground">Карта</p>
+                    </div>
+                  </div>
+                </div>
+              </AnimatedSection>
+
+              <AnimatedSection animation="fade-in-up" delay={300}>
+                <div className="bg-primary text-primary-foreground p-6 rounded-2xl">
+                  <h3 className="font-bold text-lg mb-2">Бесплатная консультация</h3>
+                  <p className="opacity-90 text-sm mb-4">
+                    Позвоните нам или оставьте заявку — мы поможем подобрать оптимальное решение
+                  </p>
+                  <a
+                    href="tel:+79001234567"
+                    className="inline-flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-xl font-semibold hover:bg-white/90 transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                    +7 (900) 123-45-67
+                  </a>
+                </div>
+              </AnimatedSection>
             </div>
           </div>
         </div>
       </main>
-
-      <footer className="bg-gray-900 text-white py-10">
-        <div className="container mx-auto px-4 text-center">
-          <p className="mb-2">© 2026 Заборы и Навесы. Все права защищены.</p>
-          <p className="text-gray-400">+7 (900) 123-45-67 | info@fences.ru</p>
-        </div>
-      </footer>
     </div>
   );
 }
