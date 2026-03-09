@@ -22,6 +22,13 @@ export async function GET(
       return NextResponse.json({ error: 'Лага не найдена' }, { status: 404 });
     }
 
+    const isAdmin = session.user.role === 'ADMIN';
+    
+    if (!isAdmin) {
+      const { purchasePricePerMeter, ...lagWithoutPurchasePrice } = lag;
+      return NextResponse.json(lagWithoutPurchasePrice);
+    }
+
     return NextResponse.json(lag);
   } catch (error) {
     console.error('Error fetching lag type:', error);
@@ -34,26 +41,45 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('[LAG-TYPES PUT] Starting update lag type, id:', params.id);
+    
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
+      console.log('[LAG-TYPES PUT] Unauthorized - no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!hasPermission(session.user.role as any, 'materials')) {
+      console.log('[LAG-TYPES PUT] Forbidden - no permission, role:', session.user.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
+    console.log('[LAG-TYPES PUT] Request body:', JSON.stringify(body, null, 2));
+    
+    const isAdmin = session.user.role === 'ADMIN';
+
+    if (!isAdmin && body.purchasePricePerMeter !== undefined) {
+      console.log('[LAG-TYPES PUT] Forbidden - non-admin trying to modify purchase prices');
+      return NextResponse.json(
+        { error: 'Only ADMIN can modify purchase prices' },
+        { status: 403 }
+      );
+    }
+
     const validatedData = lagTypeUpdateSchema.parse(body);
+    console.log('[LAG-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
     await lagTypeService.update(params.id, validatedData, session.user.id);
+    console.log('[LAG-TYPES PUT] Updated successfully');
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error updating lag type:', error);
+    console.error('[LAG-TYPES PUT] Error updating lag type:', error);
     
     if (error.name === 'ZodError') {
+      console.error('[LAG-TYPES PUT] Validation errors:', error.errors);
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     

@@ -1,15 +1,5 @@
 import { z } from 'zod';
 
-export const lengthOptionSchema = z.object({
-  length: z.number()
-    .min(1.5, 'Длина должна быть не менее 1.5 метров')
-    .max(6.0, 'Длина не должна превышать 6.0 метров'),
-  priceCoef: z.number()
-    .min(0.5, 'Коэффициент цены должен быть не менее 0.5')
-    .max(3.0, 'Коэффициент цены не должен превышать 3.0')
-    .default(1.0),
-});
-
 export const lagTypeSchema = z.object({
   name: z.string()
     .min(2, 'Название должно содержать минимум 2 символа')
@@ -27,8 +17,14 @@ export const lagTypeSchema = z.object({
     .min(1.0, 'Толщина металла должна быть не менее 1.0 мм')
     .max(5.0, 'Толщина металла не должна превышать 5.0 мм'),
   basePricePerMeter: z.number()
-    .min(0, 'Базовая цена должна быть не менее 0'),
-  availableLengths: z.array(lengthOptionSchema).optional(),
+    .min(0, 'Розничная стоимость должна быть не менее 0'),
+  length: z.number()
+    .min(1.5, 'Длина должна быть не менее 1.5 метров')
+    .max(6.0, 'Длина не должна превышать 6.0 метров'),
+  purchasePricePerMeter: z.number()
+    .min(0, 'Цена закупки должна быть не менее 0')
+    .nullable()
+    .optional(),
   image: z.string().optional(),
   active: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
@@ -36,6 +32,5 @@ export const lagTypeSchema = z.object({
 
 export const lagTypeUpdateSchema = lagTypeSchema.partial();
 
-export type LengthOption = z.infer<typeof lengthOptionSchema>;
 export type LagTypeInput = z.infer<typeof lagTypeSchema>;
 export type LagTypeUpdate = z.infer<typeof lagTypeUpdateSchema>;

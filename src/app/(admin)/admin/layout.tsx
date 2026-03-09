@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 
 export default function AdminLayout({
   children,
@@ -41,6 +42,26 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            style: {
+              background: '#22c55e',
+            },
+          },
+          error: {
+            style: {
+              background: '#ef4444',
+            },
+          },
+        }}
+      />
       <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg border-r">
         <div className="p-6">
           <h1 className="text-xl font-bold text-gray-900">Админ-панель</h1>

@@ -30,6 +30,15 @@ export async function GET(request: NextRequest) {
       pageSize,
     });
 
+    const isAdmin = session.user.role === 'ADMIN';
+    
+    if (!isAdmin && result.lags) {
+      result.lags = result.lags.map((lag: any) => {
+        const { purchasePricePerMeter, ...lagWithoutPurchasePrice } = lag;
+        return lagWithoutPurchasePrice;
+      });
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching lag types:', error);
@@ -39,30 +48,40 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[LAG-TYPES POST] Starting create lag type...');
+    
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
+      console.log('[LAG-TYPES POST] Unauthorized - no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (session.user.role !== 'ADMIN') {
+      console.log('[LAG-TYPES POST] Forbidden - not admin, role:', session.user.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
+    console.log('[LAG-TYPES POST] Request body:', JSON.stringify(body, null, 2));
+    
     const validatedData = lagTypeSchema.parse(body);
+    console.log('[LAG-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
     const lag = await lagTypeService.create(validatedData, session.user.id);
+    console.log('[LAG-TYPES POST] Created lag with id:', lag.id);
 
     return NextResponse.json({ id: lag.id }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating lag type:', error);
+    console.error('[LAG-TYPES POST] Error creating lag type:', error);
     
     if (error.name === 'ZodError') {
+      console.error('[LAG-TYPES POST] Validation errors:', error.errors);
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     
     if (error.message.includes('уже существует')) {
+      console.error('[LAG-TYPES POST] Duplicate lag type');
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     

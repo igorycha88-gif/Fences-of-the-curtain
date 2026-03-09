@@ -22,6 +22,13 @@ export async function GET(
       return NextResponse.json({ error: 'Столб не найден' }, { status: 404 });
     }
 
+    const isAdmin = session.user.role === 'ADMIN';
+    
+    if (!isAdmin) {
+      const { purchasePrices, ...postWithoutPurchasePrices } = post;
+      return NextResponse.json(postWithoutPurchasePrices);
+    }
+
     return NextResponse.json(post);
   } catch (error) {
     console.error('Error fetching post type:', error);
@@ -34,26 +41,45 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('[POST-TYPES PUT] Starting update post type, id:', params.id);
+    
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
+      console.log('[POST-TYPES PUT] Unauthorized - no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!hasPermission(session.user.role as any, 'materials')) {
+      console.log('[POST-TYPES PUT] Forbidden - no permission, role:', session.user.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
+    console.log('[POST-TYPES PUT] Request body:', JSON.stringify(body, null, 2));
+    
+    const isAdmin = session.user.role === 'ADMIN';
+
+    if (!isAdmin && body.purchasePrices !== undefined) {
+      console.log('[POST-TYPES PUT] Forbidden - non-admin trying to modify purchase prices');
+      return NextResponse.json(
+        { error: 'Only ADMIN can modify purchase prices' },
+        { status: 403 }
+      );
+    }
+
     const validatedData = postTypeUpdateSchema.parse(body);
+    console.log('[POST-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
     await postTypeService.update(params.id, validatedData, session.user.id);
+    console.log('[POST-TYPES PUT] Updated successfully');
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error updating post type:', error);
+    console.error('[POST-TYPES PUT] Error updating post type:', error);
     
     if (error.name === 'ZodError') {
+      console.error('[POST-TYPES PUT] Validation errors:', JSON.stringify(error.errors, null, 2));
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     

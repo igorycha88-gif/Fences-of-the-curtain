@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
 import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
+import toast from 'react-hot-toast';
 
 interface Material {
   id: string;
@@ -102,14 +103,15 @@ export default function HeightsPage() {
       );
 
       if (response.ok) {
+        toast.success('Высота успешно удалена');
         fetchMaterials();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка удаления');
+        toast.error(data.error || 'Ошибка удаления');
       }
     } catch (error) {
       console.error('Error deleting height:', error);
-      alert('Ошибка удаления');
+      toast.error('Ошибка удаления');
     }
   };
 
@@ -145,15 +147,16 @@ export default function HeightsPage() {
       });
 
       if (response.ok) {
+        toast.success(isEditing ? 'Высота успешно обновлена' : 'Высота успешно добавлена');
         setIsModalOpen(false);
         fetchMaterials();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка сохранения');
+        toast.error(data.error || 'Ошибка сохранения');
       }
     } catch (error) {
       console.error('Error saving height:', error);
-      alert('Ошибка сохранения');
+      toast.error('Ошибка сохранения');
     }
   };
 

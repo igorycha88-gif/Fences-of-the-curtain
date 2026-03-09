@@ -131,8 +131,8 @@ model PostType {
   sectionHeight         Float
   wallThickness         Float
   pricePerMeter         Float
-  priceWithConcrete     Float?
   availableLengths      Json?
+  purchasePrices        Json?
   image                 String?
   active                Boolean  @default(true)
   sortOrder             Int      @default(0)
@@ -141,7 +141,6 @@ model PostType {
   
   @@index([active])
   @@index([sortOrder])
-  @@unique([sectionWidth, sectionHeight, wallThickness])
 }
 
 model SoilType {
@@ -177,7 +176,8 @@ model LagType {
   height                Float
   metalThickness        Float
   basePricePerMeter     Float
-  availableLengths      Json?
+  length                Float
+  purchasePricePerMeter Float?
   image                 String?
   active                Boolean  @default(true)
   sortOrder             Int      @default(0)
@@ -186,7 +186,7 @@ model LagType {
   
   @@index([active])
   @@index([sortOrder])
-  @@unique([width, height, metalThickness])
+  @@index([length])
 }
 
 model CanopyType {

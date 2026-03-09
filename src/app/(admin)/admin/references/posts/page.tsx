@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
 import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
+import { PurchasePriceSection } from '@/components/admin/References/PurchasePriceSection';
+import { AvailableLengthsSection } from '@/components/admin/References/AvailableLengthsSection';
+import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
 
 interface PostType {
   id: string;
@@ -13,17 +17,26 @@ interface PostType {
   sectionHeight: number;
   wallThickness: number;
   pricePerMeter: number;
-  priceWithConcrete: number | null;
   availableLengths: Array<{
     length: number;
     pricePerMeter: number;
-    priceWithConcrete: number | null;
+  }> | null;
+  purchasePrices: Array<{
+    length: number;
+    purchasePrice: number | null;
   }> | null;
   image: string | null;
   active: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+interface SessionUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: 'ADMIN' | 'MANAGER' | 'CONTENT_MANAGER';
 }
 
 export default function PostsPage() {
@@ -35,8 +48,20 @@ export default function PostsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<PostType | null>(null);
   const [formValues, setFormValues] = useState<Partial<PostType>>({});
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
 
   const pageSize = 20;
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch((err) => console.error('Error fetching session:', err));
+  }, []);
 
   const fetchPosts = async () => {
     setIsLoading(true);
@@ -75,10 +100,11 @@ export default function PostsPage() {
       sectionWidth: 60,
       sectionHeight: 60,
       wallThickness: 2.5,
-      pricePerMeter: 0,
-      priceWithConcrete: null,
+      pricePerMeter: 300,
       active: true,
       sortOrder: 0,
+      availableLengths: [],
+      purchasePrices: [],
     });
     setIsModalOpen(true);
   };
@@ -92,9 +118,10 @@ export default function PostsPage() {
       sectionHeight: post.sectionHeight,
       wallThickness: post.wallThickness,
       pricePerMeter: post.pricePerMeter,
-      priceWithConcrete: post.priceWithConcrete,
       active: post.active,
       sortOrder: post.sortOrder,
+      availableLengths: post.availableLengths || [],
+      purchasePrices: post.purchasePrices || [],
     });
     setIsModalOpen(true);
   };
@@ -108,14 +135,15 @@ export default function PostsPage() {
       });
 
       if (response.ok) {
+        toast.success('Столб успешно удален');
         fetchPosts();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка удаления');
+        toast.error(data.error || 'Ошибка удаления');
       }
     } catch (error) {
       console.error('Error deleting post type:', error);
-      alert('Ошибка удаления');
+      toast.error('Ошибка удаления');
     }
   };
 
@@ -126,14 +154,15 @@ export default function PostsPage() {
       });
 
       if (response.ok) {
+        toast.success('Статус изменен');
         fetchPosts();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка изменения статуса');
+        toast.error(data.error || 'Ошибка изменения статуса');
       }
     } catch (error) {
       console.error('Error toggling post type:', error);
-      alert('Ошибка изменения статуса');
+      toast.error('Ошибка изменения статуса');
     }
   };
 
@@ -141,31 +170,61 @@ export default function PostsPage() {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleAvailableLengthsChange = (availableLengths: any[]) => {
+    setFormValues((prev) => ({ ...prev, availableLengths }));
+  };
+
+  const handlePurchasePricesChange = (purchasePrices: Array<{ length: number; purchasePrice: number | null }>) => {
+    setFormValues((prev) => ({ ...prev, purchasePrices }));
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('[POSTS PAGE] Form submitted');
+    console.log('[POSTS PAGE] Form values:', JSON.stringify(formValues, null, 2));
+    console.log('[POSTS PAGE] Editing post:', editingPost ? editingPost.id : 'new');
 
     try {
       const url = editingPost
         ? `/api/admin/post-types/${editingPost.id}`
         : '/api/admin/post-types';
       const method = editingPost ? 'PUT' : 'POST';
+      
+      console.log('[POSTS PAGE] Sending request:', method, url);
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
       });
+      
+      console.log('[POSTS PAGE] Response status:', response.status);
 
       if (response.ok) {
+        const data = await response.json();
+        console.log('[POSTS PAGE] Success response:', data);
+        toast.success(editingPost ? 'Столб успешно обновлен' : 'Столб успешно создан');
         setIsModalOpen(false);
         fetchPosts();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка сохранения');
+        console.error('[POSTS PAGE] Error response:', data);
+        
+        // Handle validation errors
+        if (Array.isArray(data.error)) {
+          const errorMessages = data.error.map((err: any) => {
+            const field = err.path?.join('.') || 'field';
+            return `${field}: ${err.message}`;
+          }).join(', ');
+          toast.error(`Ошибка валидации: ${errorMessages}`);
+        } else {
+          toast.error(data.error || 'Ошибка сохранения');
+        }
       }
     } catch (error) {
-      console.error('Error saving post type:', error);
-      alert('Ошибка сохранения');
+      console.error('[POSTS PAGE] Exception:', error);
+      toast.error('Ошибка сохранения');
     }
   };
 
@@ -191,12 +250,6 @@ export default function PostsPage() {
       key: 'pricePerMeter',
       label: 'Цена за м.п. (руб)',
       render: (post: PostType) => post.pricePerMeter.toFixed(2),
-    },
-    {
-      key: 'priceWithConcrete',
-      label: 'Цена с бетонированием (руб/шт)',
-      render: (post: PostType) =>
-        post.priceWithConcrete ? post.priceWithConcrete.toFixed(2) : '-',
     },
     { key: 'sortOrder', label: 'Порядок' },
     { key: 'active', label: 'Активен' },
@@ -240,16 +293,11 @@ export default function PostsPage() {
       min: 0,
       step: 0.01,
     },
-    {
-      name: 'priceWithConcrete',
-      label: 'Цена с бетонированием (руб/шт)',
-      type: 'number' as const,
-      min: 0,
-      step: 0.01,
-    },
     { name: 'sortOrder', label: 'Порядок сортировки', type: 'number' as const },
     { name: 'active', label: 'Активен', type: 'checkbox' as const },
   ];
+
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   return (
     <div className="container mx-auto py-8">
@@ -275,14 +323,47 @@ export default function PostsPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingPost ? 'Редактировать столб' : 'Создать столб'}
       >
-        <ReferenceForm
-          fields={formFields}
-          values={formValues}
-          onChange={handleFormChange}
-          onSubmit={handleFormSubmit}
-          onCancel={() => setIsModalOpen(false)}
-          submitLabel={editingPost ? 'Обновить' : 'Создать'}
-        />
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          <ReferenceForm
+            fields={formFields}
+            values={formValues}
+            onChange={handleFormChange}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setIsModalOpen(false)}
+            submitLabel={editingPost ? 'Обновить' : 'Создать'}
+            renderForm={false}
+            showButtons={false}
+          />
+
+          <div className="mt-6">
+            <AvailableLengthsSection
+              type="posts"
+              availableLengths={formValues.availableLengths || []}
+              basePrice={formValues.pricePerMeter || 0}
+              onChange={handleAvailableLengthsChange}
+            />
+          </div>
+
+          {isAdmin && (
+            <div className="mt-6">
+              <PurchasePriceSection
+                availableLengths={formValues.availableLengths || []}
+                purchasePrices={formValues.purchasePrices || []}
+                basePrice={formValues.pricePerMeter || 0}
+                onChange={handlePurchasePricesChange}
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+              Отмена
+            </Button>
+            <Button type="submit">
+              {editingPost ? 'Обновить' : 'Создать'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

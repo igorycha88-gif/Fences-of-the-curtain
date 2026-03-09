@@ -6,8 +6,15 @@ export const postLengthOptionSchema = z.object({
     .max(5.0, 'Длина не должна превышать 5.0 метров'),
   pricePerMeter: z.number()
     .min(0, 'Цена за метр должна быть не менее 0'),
-  priceWithConcrete: z.number()
-    .min(0, 'Цена с бетонированием должна быть не менее 0')
+});
+
+export const postPurchasePriceSchema = z.object({
+  length: z.number()
+    .min(1.5, 'Длина должна быть не менее 1.5 метров')
+    .max(5.0, 'Длина не должна превышать 5.0 метров'),
+  purchasePrice: z.number()
+    .min(0, 'Цена закупки должна быть не менее 0')
+    .nullable()
     .optional(),
 });
 
@@ -29,10 +36,8 @@ export const postTypeSchema = z.object({
     .max(5.0, 'Толщина стенки не должна превышать 5.0 мм'),
   pricePerMeter: z.number()
     .min(0, 'Цена за метр должна быть не менее 0'),
-  priceWithConcrete: z.number()
-    .min(0, 'Цена с бетонированием должна быть не менее 0')
-    .optional(),
   availableLengths: z.array(postLengthOptionSchema).optional(),
+  purchasePrices: z.array(postPurchasePriceSchema).optional(),
   image: z.string().optional(),
   active: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
@@ -41,5 +46,6 @@ export const postTypeSchema = z.object({
 export const postTypeUpdateSchema = postTypeSchema.partial();
 
 export type PostLengthOption = z.infer<typeof postLengthOptionSchema>;
+export type PostPurchasePriceOption = z.infer<typeof postPurchasePriceSchema>;
 export type PostTypeInput = z.infer<typeof postTypeSchema>;
 export type PostTypeUpdate = z.infer<typeof postTypeUpdateSchema>;

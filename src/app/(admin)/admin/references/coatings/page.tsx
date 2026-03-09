@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
 import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
+import toast from 'react-hot-toast';
 
 interface CoatingType {
   id: string;
@@ -94,14 +95,15 @@ export default function CoatingsPage() {
       });
 
       if (response.ok) {
+        toast.success('Тип покрытия успешно удален');
         fetchCoatings();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка удаления');
+        toast.error(data.error || 'Ошибка удаления');
       }
     } catch (error) {
       console.error('Error deleting coating type:', error);
-      alert('Ошибка удаления');
+      toast.error('Ошибка удаления');
     }
   };
 
@@ -112,14 +114,15 @@ export default function CoatingsPage() {
       });
 
       if (response.ok) {
+        toast.success('Статус изменен');
         fetchCoatings();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка изменения статуса');
+        toast.error(data.error || 'Ошибка изменения статуса');
       }
     } catch (error) {
       console.error('Error toggling coating type:', error);
-      alert('Ошибка изменения статуса');
+      toast.error('Ошибка изменения статуса');
     }
   };
 
@@ -143,15 +146,16 @@ export default function CoatingsPage() {
       });
 
       if (response.ok) {
+        toast.success(editingCoating ? 'Тип покрытия успешно обновлен' : 'Тип покрытия успешно создан');
         setIsModalOpen(false);
         fetchCoatings();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка сохранения');
+        toast.error(data.error || 'Ошибка сохранения');
       }
     } catch (error) {
       console.error('Error saving coating type:', error);
-      alert('Ошибка сохранения');
+      toast.error('Ошибка сохранения');
     }
   };
 

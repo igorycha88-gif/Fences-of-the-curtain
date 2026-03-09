@@ -60,21 +60,24 @@ export class LagTypeService {
   }
 
   async create(data: LagTypeInput, userId: string) {
-    const existingLag = await prisma.lagType.findFirst({
+    console.log('[LAG SERVICE] Creating lag with data:', JSON.stringify(data, null, 2));
+    
+    // Check if lag with same name already exists
+    const existingLagByName = await prisma.lagType.findFirst({
       where: {
-        width: data.width,
-        height: data.height,
-        metalThickness: data.metalThickness,
+        name: data.name,
       },
     });
 
-    if (existingLag) {
-      throw new Error('Лага с такими параметрами уже существует');
+    if (existingLagByName) {
+      throw new Error('Лага с таким названием уже существует');
     }
 
     const lag = await prisma.lagType.create({
       data,
     });
+
+    console.log('[LAG SERVICE] Created lag:', lag.id);
 
     await this.logChange(lag.id, 'CREATE', null, lag, userId);
 
@@ -82,6 +85,8 @@ export class LagTypeService {
   }
 
   async update(id: string, data: LagTypeUpdate, userId: string) {
+    console.log('[LAG SERVICE] Updating lag:', id, 'data:', JSON.stringify(data, null, 2));
+    
     const oldLag = await prisma.lagType.findUnique({
       where: { id },
     });
@@ -90,22 +95,17 @@ export class LagTypeService {
       throw new Error('Лага не найдена');
     }
 
-    if (data.width !== undefined || data.height !== undefined || data.metalThickness !== undefined) {
-      const width = data.width ?? oldLag.width;
-      const height = data.height ?? oldLag.height;
-      const thickness = data.metalThickness ?? oldLag.metalThickness;
-
-      const existingLag = await prisma.lagType.findFirst({
+    // Check if name is being changed and if it already exists
+    if (data.name && data.name !== oldLag.name) {
+      const existingLagByName = await prisma.lagType.findFirst({
         where: {
-          width,
-          height,
-          metalThickness: thickness,
+          name: data.name,
           id: { not: id },
         },
       });
 
-      if (existingLag) {
-        throw new Error('Лага с такими параметрами уже существует');
+      if (existingLagByName) {
+        throw new Error('Лага с таким названием уже существует');
       }
     }
 
@@ -113,6 +113,8 @@ export class LagTypeService {
       where: { id },
       data,
     });
+
+    console.log('[LAG SERVICE] Updated lag:', lag.id);
 
     await this.logChange(id, 'UPDATE', oldLag, lag, userId);
 

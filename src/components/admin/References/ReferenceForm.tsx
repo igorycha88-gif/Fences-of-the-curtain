@@ -28,6 +28,8 @@ interface ReferenceFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   submitLabel?: string;
+  renderForm?: boolean;
+  showButtons?: boolean;
 }
 
 export function ReferenceForm({
@@ -38,7 +40,17 @@ export function ReferenceForm({
   onCancel,
   isLoading = false,
   submitLabel = 'Сохранить',
+  renderForm = true,
+  showButtons = true,
 }: ReferenceFormProps) {
+  console.log('[REFERENCE FORM] Render, renderForm:', renderForm, 'showButtons:', showButtons);
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    console.log('[REFERENCE FORM] Form submit event triggered');
+    console.log('[REFERENCE FORM] Event target:', e.target);
+    onSubmit(e);
+  };
+
   const renderField = (field: Field) => {
     const value = values[field.name] ?? '';
     const isDisabled = isLoading || field.disabled;
@@ -102,8 +114,8 @@ export function ReferenceForm({
     }
   };
 
-  return (
-    <form onSubmit={onSubmit} className="space-y-4">
+  const fieldsContent = (
+    <>
       {fields.map((field) => (
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>
@@ -113,15 +125,33 @@ export function ReferenceForm({
           {renderField(field)}
         </div>
       ))}
+    </>
+  );
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Отмена
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Сохранение...' : submitLabel}
-        </Button>
-      </div>
-    </form>
+  const buttonsContent = (
+    <div className="flex justify-end gap-2 pt-4">
+      <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+        Отмена
+      </Button>
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? 'Сохранение...' : submitLabel}
+      </Button>
+    </div>
+  );
+
+  if (renderForm) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {fieldsContent}
+        {showButtons && buttonsContent}
+      </form>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {fieldsContent}
+      {showButtons && buttonsContent}
+    </div>
   );
 }

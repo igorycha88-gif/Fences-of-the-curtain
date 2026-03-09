@@ -30,6 +30,15 @@ export async function GET(request: NextRequest) {
       pageSize,
     });
 
+    const isAdmin = session.user.role === 'ADMIN';
+    
+    if (!isAdmin && result.posts) {
+      result.posts = result.posts.map((post: any) => {
+        const { purchasePrices, ...postWithoutPurchasePrices } = post;
+        return postWithoutPurchasePrices;
+      });
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching post types:', error);

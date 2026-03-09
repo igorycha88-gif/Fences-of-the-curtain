@@ -5,6 +5,7 @@ import { DataTable } from '@/components/admin/References/DataTable';
 import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
 import { FenceTypeInput } from '@/lib/validators/fenceType';
+import toast from 'react-hot-toast';
 
 interface FenceType {
   id: string;
@@ -99,14 +100,15 @@ export default function FenceTypesPage() {
       });
 
       if (response.ok) {
+        toast.success('Тип забора успешно удален');
         fetchTypes();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка удаления');
+        toast.error(data.error || 'Ошибка удаления');
       }
     } catch (error) {
       console.error('Error deleting fence type:', error);
-      alert('Ошибка удаления');
+      toast.error('Ошибка удаления');
     }
   };
 
@@ -117,14 +119,15 @@ export default function FenceTypesPage() {
       });
 
       if (response.ok) {
+        toast.success('Статус изменен');
         fetchTypes();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка изменения статуса');
+        toast.error(data.error || 'Ошибка изменения статуса');
       }
     } catch (error) {
       console.error('Error toggling fence type:', error);
-      alert('Ошибка изменения статуса');
+      toast.error('Ошибка изменения статуса');
     }
   };
 
@@ -151,15 +154,16 @@ export default function FenceTypesPage() {
       });
 
       if (response.ok) {
+        toast.success(editingType ? 'Тип забора успешно обновлен' : 'Тип забора успешно создан');
         setIsModalOpen(false);
         fetchTypes();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка сохранения');
+        toast.error(data.error || 'Ошибка сохранения');
       }
     } catch (error) {
       console.error('Error saving fence type:', error);
-      alert('Ошибка сохранения');
+      toast.error('Ошибка сохранения');
     }
   };
 

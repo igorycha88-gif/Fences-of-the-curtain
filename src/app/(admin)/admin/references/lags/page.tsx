@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
 import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
+import { SimplifiedPurchasePriceInput } from '@/components/admin/References/SimplifiedPurchasePriceInput';
+import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
+import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
 
 interface LagType {
   id: string;
@@ -13,15 +17,20 @@ interface LagType {
   height: number;
   metalThickness: number;
   basePricePerMeter: number;
-  availableLengths: Array<{
-    length: number;
-    priceCoef: number;
-  }> | null;
+  length: number;
+  purchasePricePerMeter: number | null;
   image: string | null;
   active: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+interface SessionUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: 'ADMIN' | 'MANAGER' | 'CONTENT_MANAGER';
 }
 
 export default function LagsPage() {
@@ -33,11 +42,25 @@ export default function LagsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLag, setEditingLag] = useState<LagType | null>(null);
   const [formValues, setFormValues] = useState<Partial<LagType>>({});
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
 
   const pageSize = 20;
 
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch((err) => console.error('Error fetching session:', err));
+  }, []);
+
   const fetchLags = async () => {
+    console.log('[LAGS PAGE] Fetching lags, page:', page, 'pageSize:', pageSize);
     setIsLoading(true);
+
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -45,17 +68,23 @@ export default function LagsPage() {
         ...(search && { search }),
       });
 
+      console.log('[LAGS PAGE] Fetch request:', `/api/admin/lag-types?${params}`);
+
       const response = await fetch(`/api/admin/lag-types?${params}`);
       const data = await response.json();
+
+      console.log('[LAGS PAGE] Response status:', response.status);
+      console.log('[LAGS PAGE] Response data:', JSON.stringify(data, null, 2));
 
       if (response.ok) {
         setLags(data.lags);
         setTotal(data.total);
+        console.log('[LAGS PAGE] Set lags:', data.lags.length);
       } else {
-        console.error('Error fetching lag types:', data.error);
+        console.error('[LAGS PAGE] Error fetching lag types:', data.error);
       }
     } catch (error) {
-      console.error('Error fetching lag types:', error);
+      console.error('[LAGS PAGE] Error fetching lag types:', error);
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +102,9 @@ export default function LagsPage() {
       width: 40,
       height: 20,
       metalThickness: 2.0,
-      basePricePerMeter: 0,
+      basePricePerMeter: 150,
+      length: 2.5,
+      purchasePricePerMeter: null,
       active: true,
       sortOrder: 0,
     });
@@ -89,6 +120,8 @@ export default function LagsPage() {
       height: lag.height,
       metalThickness: lag.metalThickness,
       basePricePerMeter: lag.basePricePerMeter,
+      length: lag.length,
+      purchasePricePerMeter: lag.purchasePricePerMeter,
       active: lag.active,
       sortOrder: lag.sortOrder,
     });
@@ -104,14 +137,15 @@ export default function LagsPage() {
       });
 
       if (response.ok) {
+        toast.success('Лага успешно удалена');
         fetchLags();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка удаления');
+        toast.error(data.error || 'Ошибка удаления');
       }
     } catch (error) {
       console.error('Error deleting lag type:', error);
-      alert('Ошибка удаления');
+      toast.error('Ошибка удаления');
     }
   };
 
@@ -122,14 +156,15 @@ export default function LagsPage() {
       });
 
       if (response.ok) {
+        toast.success('Статус изменен');
         fetchLags();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка изменения статуса');
+        toast.error(data.error || 'Ошибка изменения статуса');
       }
     } catch (error) {
       console.error('Error toggling lag type:', error);
-      alert('Ошибка изменения статуса');
+      toast.error('Ошибка изменения статуса');
     }
   };
 
@@ -137,57 +172,108 @@ export default function LagsPage() {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePurchasePriceChange = (value: number | null) => {
+    setFormValues((prev) => ({ ...prev, purchasePricePerMeter: value }));
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
+    console.log('[LAGS PAGE] ========== FORM SUBMIT STARTED ==========');
+    console.log('[LAGS PAGE] Event type:', e.type);
+    console.log('[LAGS PAGE] Event target:', e.target);
+    
     e.preventDefault();
+    console.log('[LAGS PAGE] preventDefault called');
+    
+    console.log('[LAGS PAGE] Form values:', JSON.stringify(formValues, null, 2));
+    console.log('[LAGS PAGE] Editing lag:', editingLag ? editingLag.id : 'new');
 
     try {
       const url = editingLag
         ? `/api/admin/lag-types/${editingLag.id}`
         : '/api/admin/lag-types';
       const method = editingLag ? 'PUT' : 'POST';
+      
+      console.log('[LAGS PAGE] Sending request:', method, url);
+      console.log('[LAGS PAGE] Request body:', JSON.stringify(formValues, null, 2));
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
       });
+      
+      console.log('[LAGS PAGE] Response status:', response.status);
+      console.log('[LAGS PAGE] Response OK:', response.ok);
 
       if (response.ok) {
+        const data = await response.json();
+        console.log('[LAGS PAGE] Success response:', data);
+        toast.success(editingLag ? 'Лага успешно обновлена' : 'Лага успешно создана');
         setIsModalOpen(false);
         fetchLags();
       } else {
         const data = await response.json();
-        alert(data.error || 'Ошибка сохранения');
+        console.error('[LAGS PAGE] Error response:', data);
+        
+        if (Array.isArray(data.error)) {
+          const errorMessages = data.error.map((err: any) => {
+            const field = err.path?.join('.') || 'field';
+            return `${field}: ${err.message}`;
+          }).join(', ');
+          toast.error(`Ошибка валидации: ${errorMessages}`);
+        } else {
+          toast.error(data.error || 'Ошибка сохранения');
+        }
       }
     } catch (error) {
-      console.error('Error saving lag type:', error);
-      alert('Ошибка сохранения');
+      console.error('[LAGS PAGE] Exception:', error);
+      toast.error('Ошибка сохранения');
     }
+    
+    console.log('[LAGS PAGE] ========== FORM SUBMIT ENDED ==========');
   };
+
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const columns = [
     { key: 'name', label: 'Название' },
     { key: 'description', label: 'Описание' },
-    {
-      key: 'width',
-      label: 'Ширина (мм)',
-      render: (lag: LagType) => lag.width.toFixed(0),
+    { 
+      key: 'section', 
+      label: 'Сечение', 
+      render: (lag: LagType) => `${lag.width}x${lag.height} мм`
     },
-    {
-      key: 'height',
-      label: 'Высота (мм)',
-      render: (lag: LagType) => lag.height.toFixed(0),
+    { 
+      key: 'metalThickness', 
+      label: 'Толщина металла', 
+      render: (lag: LagType) => `${lag.metalThickness} мм`
     },
-    {
-      key: 'metalThickness',
-      label: 'Толщина металла (мм)',
-      render: (lag: LagType) => lag.metalThickness.toFixed(1),
+    { 
+      key: 'length', 
+      label: 'Длина', 
+      render: (lag: LagType) => `${lag.length} м`
     },
-    {
-      key: 'basePricePerMeter',
-      label: 'Цена за м.п. (руб)',
-      render: (lag: LagType) => lag.basePricePerMeter.toFixed(2),
+    { 
+      key: 'basePricePerMeter', 
+      label: 'Розничная стоимость', 
+      render: (lag: LagType) => `${lag.basePricePerMeter} ₽/м.п.`
     },
+    ...(isAdmin ? [{
+      key: 'purchasePricePerMeter' as const,
+      label: 'Цена закупки за ед.',
+      render: (lag: LagType) => {
+        if (lag.purchasePricePerMeter === null) {
+          return <span className="text-gray-400">Не указана</span>;
+        }
+        const margin = calculateMargin(lag.basePricePerMeter, lag.purchasePricePerMeter);
+        const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
+        return (
+          <span title={`Цена закупки: ${lag.purchasePricePerMeter} ₽/м.п.\nМаржа: ${margin?.marginPercent.toFixed(1)}%`}>
+            {lag.purchasePricePerMeter} ₽/м.п. {marginEmoji}
+          </span>
+        );
+      }
+    }] : []),
     { key: 'sortOrder', label: 'Порядок' },
     { key: 'active', label: 'Активен' },
   ];
@@ -223,8 +309,17 @@ export default function LagsPage() {
       step: 0.1,
     },
     {
+      name: 'length',
+      label: 'Длина (м)',
+      type: 'number' as const,
+      required: true,
+      min: 1.5,
+      max: 6.0,
+      step: 0.1,
+    },
+    {
       name: 'basePricePerMeter',
-      label: 'Базовая цена за метр погонный (руб)',
+      label: 'Розничная стоимость (руб/м.п.)',
       type: 'number' as const,
       required: true,
       min: 0,
@@ -258,14 +353,49 @@ export default function LagsPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingLag ? 'Редактировать лагу' : 'Создать лагу'}
       >
-        <ReferenceForm
-          fields={formFields}
-          values={formValues}
-          onChange={handleFormChange}
-          onSubmit={handleFormSubmit}
-          onCancel={() => setIsModalOpen(false)}
-          submitLabel={editingLag ? 'Обновить' : 'Создать'}
-        />
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          <ReferenceForm
+            fields={formFields}
+            values={formValues}
+            onChange={handleFormChange}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setIsModalOpen(false)}
+            submitLabel={editingLag ? 'Обновить' : 'Создать'}
+            renderForm={false}
+            showButtons={false}
+          />
+
+          {isAdmin && (
+            <div className="mt-6">
+              <SimplifiedPurchasePriceInput
+                purchasePricePerMeter={formValues.purchasePricePerMeter ?? null}
+                basePricePerMeter={formValues.basePricePerMeter || 0}
+                onChange={handlePurchasePriceChange}
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                console.log('[LAGS PAGE] Cancel button clicked');
+                setIsModalOpen(false);
+              }}
+            >
+              Отмена
+            </Button>
+            <Button 
+              type="submit"
+              onClick={() => {
+                console.log('[LAGS PAGE] Submit button clicked');
+              }}
+            >
+              {editingLag ? 'Обновить' : 'Создать'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

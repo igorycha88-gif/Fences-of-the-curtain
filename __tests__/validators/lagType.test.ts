@@ -1,9 +1,9 @@
 import { describe, it, expect } from '@jest/globals';
 import { lagTypeSchema, lagTypeUpdateSchema } from '@/lib/validators/lagType';
 
-describe('LagType Validators', () => {
+describe('LagType Validators - new structure', () => {
   describe('lagTypeSchema', () => {
-    it('should validate valid lag type data', () => {
+    it('should validate valid lag with new fields', () => {
       const validData = {
         name: 'Профиль 40x20x2.0',
         description: 'Стандартная лага',
@@ -11,10 +11,8 @@ describe('LagType Validators', () => {
         height: 20,
         metalThickness: 2.0,
         basePricePerMeter: 150,
-        availableLengths: [
-          { length: 2.5, priceCoef: 1.0 },
-          { length: 3.0, priceCoef: 1.1 },
-        ],
+        length: 2.5,
+        purchasePricePerMeter: 120,
         active: true,
         sortOrder: 0,
       };
@@ -30,6 +28,7 @@ describe('LagType Validators', () => {
         height: 20,
         metalThickness: 2.0,
         basePricePerMeter: 150,
+        length: 2.5,
       };
 
       const result = lagTypeSchema.safeParse(minimalData);
@@ -47,6 +46,7 @@ describe('LagType Validators', () => {
         height: 20,
         metalThickness: 2.0,
         basePricePerMeter: 150,
+        length: 2.5,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -63,6 +63,7 @@ describe('LagType Validators', () => {
         height: 19,
         metalThickness: 2.0,
         basePricePerMeter: 150,
+        length: 2.5,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -79,6 +80,7 @@ describe('LagType Validators', () => {
         height: 20,
         metalThickness: 0.9,
         basePricePerMeter: 150,
+        length: 2.5,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -95,6 +97,7 @@ describe('LagType Validators', () => {
         height: 20,
         metalThickness: 5.1,
         basePricePerMeter: 150,
+        length: 2.5,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -111,49 +114,118 @@ describe('LagType Validators', () => {
         height: 20,
         metalThickness: 2.0,
         basePricePerMeter: -10,
+        length: 2.5,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
 
-    it('should validate availableLengths', () => {
-      const dataWithLengths = {
+    it('should validate length field', () => {
+      const validData = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
         basePricePerMeter: 150,
-        availableLengths: [
-          { length: 2.5, priceCoef: 1.0 },
-          { length: 3.0, priceCoef: 1.1 },
-        ],
+        length: 3.0,
       };
 
-      const result = lagTypeSchema.safeParse(dataWithLengths);
+      const result = lagTypeSchema.safeParse(validData);
       expect(result.success).toBe(true);
-      if (result.success && result.data.availableLengths) {
-        expect(result.data.availableLengths).toHaveLength(2);
-        expect(result.data.availableLengths![0].priceCoef).toBe(1.0);
-        expect(result.data.availableLengths![1].priceCoef).toBe(1.1);
+      if (result.success) {
+        expect(result.data.length).toBe(3.0);
       }
     });
 
-    it('should reject length outside valid range', () => {
+    it('should reject length < 1.5', () => {
       const invalidData = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
         basePricePerMeter: 150,
-        availableLengths: [
-          { length: 1.4, priceCoef: 1.0 },
-          { length: 6.1, priceCoef: 1.0 },
-        ],
+        length: 1.0,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
+    });
+
+    it('should reject length > 6.0', () => {
+      const invalidData = {
+        name: 'Тестовая лага',
+        width: 40,
+        height: 20,
+        metalThickness: 2.0,
+        basePricePerMeter: 150,
+        length: 7.0,
+      };
+
+      const result = lagTypeSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should allow null purchasePricePerMeter', () => {
+      const dataWithNull = {
+        name: 'Тестовая лага',
+        width: 40,
+        height: 20,
+        metalThickness: 2.0,
+        basePricePerMeter: 150,
+        length: 2.5,
+        purchasePricePerMeter: null,
+      };
+
+      const result = lagTypeSchema.safeParse(dataWithNull);
+      expect(result.success).toBe(true);
+    });
+
+    it('should allow undefined purchasePricePerMeter', () => {
+      const dataWithoutPurchase = {
+        name: 'Тестовая лага',
+        width: 40,
+        height: 20,
+        metalThickness: 2.0,
+        basePricePerMeter: 150,
+        length: 2.5,
+      };
+
+      const result = lagTypeSchema.safeParse(dataWithoutPurchase);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject negative purchasePricePerMeter', () => {
+      const invalidData = {
+        name: 'Тестовая лага',
+        width: 40,
+        height: 20,
+        metalThickness: 2.0,
+        basePricePerMeter: 150,
+        length: 2.5,
+        purchasePricePerMeter: -10,
+      };
+
+      const result = lagTypeSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should validate valid purchasePricePerMeter', () => {
+      const validData = {
+        name: 'Тестовая лага',
+        width: 40,
+        height: 20,
+        metalThickness: 2.0,
+        basePricePerMeter: 150,
+        length: 2.5,
+        purchasePricePerMeter: 120,
+      };
+
+      const result = lagTypeSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.purchasePricePerMeter).toBe(120);
+      }
     });
   });
 
@@ -170,6 +242,33 @@ describe('LagType Validators', () => {
 
     it('should accept empty object', () => {
       const result = lagTypeUpdateSchema.safeParse({});
+      expect(result.success).toBe(true);
+    });
+
+    it('should validate length in updates', () => {
+      const updateData = {
+        length: 3.0,
+      };
+
+      const result = lagTypeUpdateSchema.safeParse(updateData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should validate purchasePricePerMeter in updates', () => {
+      const updateData = {
+        purchasePricePerMeter: 125,
+      };
+
+      const result = lagTypeUpdateSchema.safeParse(updateData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should allow null purchasePricePerMeter in updates', () => {
+      const updateData = {
+        purchasePricePerMeter: null,
+      };
+
+      const result = lagTypeUpdateSchema.safeParse(updateData);
       expect(result.success).toBe(true);
     });
   });
