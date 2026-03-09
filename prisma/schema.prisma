@@ -124,23 +124,27 @@ model FenceType {
 }
 
 model PostType {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   name                  String
   description           String?
   sectionWidth          Float
   sectionHeight         Float
   wallThickness         Float
   pricePerMeter         Float
-  availableLengths      Json?
-  purchasePrices        Json?
+  length                Float
+  purchasePricePerMeter Float?
   image                 String?
-  active                Boolean  @default(true)
-  sortOrder             Int      @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  active                Boolean   @default(true)
+  validFrom             DateTime?
+  expirationDate        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   
   @@index([active])
-  @@index([sortOrder])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([length])
+  @@index([sectionWidth, sectionHeight, wallThickness])
 }
 
 model SoilType {
@@ -169,7 +173,7 @@ model CoatingType {
 }
 
 model LagType {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   name                  String
   description           String?
   width                 Float
@@ -179,14 +183,17 @@ model LagType {
   length                Float
   purchasePricePerMeter Float?
   image                 String?
-  active                Boolean  @default(true)
-  sortOrder             Int      @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  active                Boolean   @default(true)
+  validFrom             DateTime?
+  expirationDate        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   
   @@index([active])
-  @@index([sortOrder])
   @@index([length])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([width, height, metalThickness, length])
 }
 
 model CanopyType {

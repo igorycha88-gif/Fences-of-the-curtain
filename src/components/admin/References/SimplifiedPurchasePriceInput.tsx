@@ -38,7 +38,7 @@ export function SimplifiedPurchasePriceInput({
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            Цена закупки за единицу (₽/м.п.)
+            Цена закупки за единицу (₽)
           </label>
           <input
             type="number"
@@ -57,7 +57,7 @@ export function SimplifiedPurchasePriceInput({
         <div className="p-3 bg-white rounded border">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Цена продажи за единицу:</span>
-            <span className="font-semibold">{basePricePerMeter.toFixed(2)} ₽/м.п.</span>
+            <span className="font-semibold">{basePricePerMeter.toFixed(2)} ₽</span>
           </div>
           
           <div className="flex justify-between items-center mb-2">

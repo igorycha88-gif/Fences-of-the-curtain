@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const maxThickness = searchParams.get('maxThickness');
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const validityFilter = searchParams.get('validityFilter') as 'all' | 'active' | 'expired' | 'expiring_soon' || 'all';
 
     const result = await postTypeService.getAll({
       active: active ? active === 'true' : undefined,
@@ -28,14 +29,15 @@ export async function GET(request: NextRequest) {
       maxThickness: maxThickness ? parseFloat(maxThickness) : undefined,
       page,
       pageSize,
+      validityFilter,
     });
 
     const isAdmin = session.user.role === 'ADMIN';
     
     if (!isAdmin && result.posts) {
       result.posts = result.posts.map((post: any) => {
-        const { purchasePrices, ...postWithoutPurchasePrices } = post;
-        return postWithoutPurchasePrices;
+        const { purchasePricePerMeter, ...postWithoutPurchasePrice } = post;
+        return postWithoutPurchasePrice;
       });
     }
 
@@ -61,9 +63,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = postTypeSchema.parse(body);
 
-    const post = await postTypeService.create(validatedData, session.user.id);
+    const result = await postTypeService.create(validatedData, session.user.id);
+    
+    if (result && 'warning' in result) {
+      return NextResponse.json(result, { status: 200 });
+    }
 
-    return NextResponse.json({ id: post.id }, { status: 201 });
+    return NextResponse.json({ id: (result as any).id }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating post type:', error);
     
@@ -71,7 +77,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     
-    if (error.message.includes('уже существует')) {
+    if (error.message.includes('уже существует') || error.message.includes('должна отличаться')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     

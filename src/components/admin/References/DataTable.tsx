@@ -17,7 +17,7 @@ import { Search, Plus, Edit, Trash2, Power } from 'lucide-react';
 
 interface Column<T> {
   key: keyof T | string;
-  label: string;
+  label: React.ReactNode;
   render?: (item: T) => React.ReactNode;
 }
 

@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const maxThickness = searchParams.get('maxThickness');
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const validityFilter = searchParams.get('validityFilter') as 'all' | 'active' | 'expired' | 'expiring_soon' || 'all';
 
     const result = await lagTypeService.getAll({
       active: active ? active === 'true' : undefined,
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
       maxThickness: maxThickness ? parseFloat(maxThickness) : undefined,
       page,
       pageSize,
+      validityFilter,
     });
 
     const isAdmin = session.user.role === 'ADMIN';
@@ -68,10 +70,16 @@ export async function POST(request: NextRequest) {
     const validatedData = lagTypeSchema.parse(body);
     console.log('[LAG-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const lag = await lagTypeService.create(validatedData, session.user.id);
-    console.log('[LAG-TYPES POST] Created lag with id:', lag.id);
+    const result = await lagTypeService.create(validatedData, session.user.id);
+    
+    if (result && 'warning' in result) {
+      console.log('[LAG-TYPES POST] Returning warning response');
+      return NextResponse.json(result, { status: 200 });
+    }
 
-    return NextResponse.json({ id: lag.id }, { status: 201 });
+    console.log('[LAG-TYPES POST] Created lag with id:', (result as any).id);
+
+    return NextResponse.json({ id: (result as any).id }, { status: 201 });
   } catch (error: any) {
     console.error('[LAG-TYPES POST] Error creating lag type:', error);
     
@@ -80,8 +88,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     
-    if (error.message.includes('уже существует')) {
-      console.error('[LAG-TYPES POST] Duplicate lag type');
+    if (error.message.includes('уже существует') || error.message.includes('должна отличаться')) {
+      console.error('[LAG-TYPES POST] Duplicate/validation error');
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     

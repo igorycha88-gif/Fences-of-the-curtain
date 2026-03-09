@@ -1,10 +1,11 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { LogOut } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -13,6 +14,7 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     console.log('[ADMIN LAYOUT] Session status:', status);
@@ -26,6 +28,10 @@ export default function AdminLayout({
   const handleLogout = async () => {
     console.log('[ADMIN LAYOUT] Logging out...');
     await signOut({ callbackUrl: '/' });
+  };
+
+  const isActive = (path: string) => {
+    return pathname === path || pathname.startsWith(path + '/');
   };
 
   if (status === 'loading') {
@@ -69,22 +75,50 @@ export default function AdminLayout({
         <nav className="mt-6">
           <ul className="space-y-2">
             <li>
-              <a href="/admin/dashboard" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/dashboard" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/dashboard')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Дашборд
               </a>
             </li>
             <li>
-              <a href="/admin/materials" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/materials" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/materials')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Материалы
               </a>
             </li>
             <li>
-              <a href="/admin/orders" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/orders" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/orders')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Заявки
               </a>
             </li>
             <li>
-              <a href="/admin/users" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/users" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/users')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Пользователи
               </a>
             </li>
@@ -94,27 +128,62 @@ export default function AdminLayout({
               </div>
             </li>
             <li>
-              <a href="/admin/references/fence-types" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/references/fence-types" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/fence-types')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Типы заборов
               </a>
             </li>
             <li>
-              <a href="/admin/references/heights" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/references/heights" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/heights')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Высоты материалов
               </a>
             </li>
             <li>
-              <a href="/admin/references/coatings" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/references/coatings" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/coatings')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Типы покрытия
               </a>
             </li>
             <li>
-              <a href="/admin/references/lags" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/references/lags" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/lags')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Лаги
               </a>
             </li>
             <li>
-              <a href="/admin/references/posts" className="block px-6 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+              <a 
+                href="/admin/references/posts" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/posts')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
                 Столбы
               </a>
             </li>
@@ -133,9 +202,11 @@ export default function AdminLayout({
             </div>
             <button
               onClick={handleLogout}
-              className="px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Выйти"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
             >
-              Выйти
+              <LogOut className="w-4 h-4" />
+              <span className="hidden md:inline">Выйти</span>
             </button>
           </div>
         </div>

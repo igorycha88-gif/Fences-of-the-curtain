@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const lagTypeSchema = z.object({
+const lagTypeBaseSchema = z.object({
   name: z.string()
     .min(2, 'Название должно содержать минимум 2 символа')
     .max(100, 'Название не должно превышать 100 символов'),
@@ -27,10 +27,26 @@ export const lagTypeSchema = z.object({
     .optional(),
   image: z.string().optional(),
   active: z.boolean().default(true),
-  sortOrder: z.number().int().default(0),
+  validFrom: z.coerce.date().nullable().optional(),
+  expirationDate: z.coerce.date().nullable().optional(),
+  confirmDuplicate: z.boolean().optional(),
+  updateExistingExpiration: z.string().optional(),
 });
 
-export const lagTypeUpdateSchema = lagTypeSchema.partial();
+export const lagTypeSchema = lagTypeBaseSchema.refine(
+  (data) => {
+    if (data.validFrom && data.expirationDate) {
+      return data.validFrom < data.expirationDate;
+    }
+    return true;
+  },
+  {
+    message: 'Дата окончания должна быть позже даты начала',
+    path: ['expirationDate'],
+  }
+);
+
+export const lagTypeUpdateSchema = lagTypeBaseSchema.partial();
 
 export type LagTypeInput = z.infer<typeof lagTypeSchema>;
 export type LagTypeUpdate = z.infer<typeof lagTypeUpdateSchema>;
