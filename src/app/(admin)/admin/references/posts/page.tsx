@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/modal';
 import { SimplifiedPurchasePriceInput } from '@/components/admin/References/SimplifiedPurchasePriceInput';
 import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
 import { formatDimension, formatPrice, formatSection } from '@/lib/utils/formatters';
-import { POSTS_COLUMN_TOOLTIPS } from '@/lib/constants/columnTooltips';
+import { POSTS_COLUMN_TOOLTIPS, LAGS_COLUMN_TOOLTIPS } from '@/lib/constants/columnTooltips';
 import { ColumnHeaderWithTooltip } from '@/components/admin/References/ColumnHeaderWithTooltip';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -276,6 +276,11 @@ export default function PostsPage() {
       render: (post: PostType) => formatDimension(post.wallThickness),
     },
     {
+      key: 'length',
+      label: <ColumnHeaderWithTooltip title="Высота (мм)" tooltip={LAGS_COLUMN_TOOLTIPS.length} />,
+      render: (post: PostType) => Math.round(post.length * 1000),
+    },
+    {
       key: 'pricePerMeter',
       label: <ColumnHeaderWithTooltip title="Розничная стоимость (₽)" tooltip={POSTS_COLUMN_TOOLTIPS.pricePerMeter} />,
       render: (post: PostType) => formatPrice(post.pricePerMeter),
@@ -443,7 +448,7 @@ export default function PostsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Ширина сечения (мм) *</label>
                 <input
@@ -470,6 +475,9 @@ export default function PostsPage() {
                   required
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Толщина стенки (мм) *</label>
                 <input
@@ -483,30 +491,19 @@ export default function PostsPage() {
                   required
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Длина (м) *
-                <span 
-                  className="ml-1 text-gray-400 cursor-help" 
-                  title="Стандартные длины: 2.5м, 3.0м"
-                >
-                  ℹ️
-                </span>
-              </label>
-              <input
-                type="number"
-                value={formValues.length || ''}
-                onChange={(e) => handleFormChange('length', parseFloat(e.target.value))}
-                className="w-full border rounded px-3 py-2"
-                min={1.5}
-                max={6.0}
-                step={0.1}
-                placeholder="2.5, 3.0, 3.5"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">Стандартные длины: 2.5м, 3.0м</p>
+              <div>
+                <label className="block text-sm font-medium mb-1">Высота (мм) *</label>
+                <input
+                  type="number"
+                  value={formValues.length ? Math.round(formValues.length * 1000) : ''}
+                  onChange={(e) => handleFormChange('length', parseFloat(e.target.value) / 1000)}
+                  className="w-full border rounded px-3 py-2"
+                  min={1500}
+                  max={6000}
+                  step={100}
+                  required
+                />
+              </div>
             </div>
 
             <div>
