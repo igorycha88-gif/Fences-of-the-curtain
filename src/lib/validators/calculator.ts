@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
+export const fenceTypesQuerySchema = z.object({
+  onlyWithMaterials: z.coerce.boolean().optional().default(false),
+});
+
 export const fenceCalculatorSchema = z.object({
-  fenceType: z.enum(['PROFNASTIL', 'SHAKHETNIK', 'MESH', 'PANELS_3D']),
+  fenceTypeId: z.string().min(1),
   length: z.number().min(10).max(1000),
   height: z.number().min(1.5).max(3.5),
   postType: z.string().min(1),
@@ -16,6 +20,8 @@ export const fenceCalculatorSchema = z.object({
   color: z.string().optional(),
   soilType: z.string().min(1),
   region: z.string().optional(),
+  difficultyCoef: z.number().optional(),
+  postSpacing: z.number().optional(),
 }).refine((data) => {
   if (data.hasGate && (!data.gateType || !data.gateWidth)) {
     return false;

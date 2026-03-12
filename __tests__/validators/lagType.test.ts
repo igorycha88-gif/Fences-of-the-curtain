@@ -10,9 +10,9 @@ describe('LagType Validators - new structure', () => {
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
-        purchasePricePerMeter: 120,
+        retailPricePerUnit: 150,
+        length: 2500,
+        purchasePricePerUnit: 120,
         active: true,
         sortOrder: 0,
       };
@@ -27,15 +27,14 @@ describe('LagType Validators - new structure', () => {
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
+        retailPricePerUnit: 150,
+        length: 2500,
       };
 
       const result = lagTypeSchema.safeParse(minimalData);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.active).toBe(true);
-        expect(result.data.sortOrder).toBe(0);
       }
     });
 
@@ -45,8 +44,8 @@ describe('LagType Validators - new structure', () => {
         width: 19,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
+        retailPricePerUnit: 150,
+        length: 2500,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -62,8 +61,8 @@ describe('LagType Validators - new structure', () => {
         width: 40,
         height: 19,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
+        retailPricePerUnit: 150,
+        length: 2500,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -79,8 +78,8 @@ describe('LagType Validators - new structure', () => {
         width: 40,
         height: 20,
         metalThickness: 0.9,
-        basePricePerMeter: 150,
-        length: 2.5,
+        retailPricePerUnit: 150,
+        length: 2500,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -96,8 +95,8 @@ describe('LagType Validators - new structure', () => {
         width: 40,
         height: 20,
         metalThickness: 5.1,
-        basePricePerMeter: 150,
-        length: 2.5,
+        retailPricePerUnit: 150,
+        length: 2500,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -107,14 +106,14 @@ describe('LagType Validators - new structure', () => {
       }
     });
 
-    it('should reject basePricePerMeter negative', () => {
+    it('should reject retailPricePerUnit negative', () => {
       const invalidData = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: -10,
-        length: 2.5,
+        retailPricePerUnit: -10,
+        length: 2500,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
@@ -127,104 +126,121 @@ describe('LagType Validators - new structure', () => {
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 3.0,
+        retailPricePerUnit: 150,
+        length: 3000,
       };
 
       const result = lagTypeSchema.safeParse(validData);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.length).toBe(3.0);
+        expect(result.data.length).toBe(3000);
       }
     });
 
-    it('should reject length < 1.5', () => {
+    it('should reject length < 1500', () => {
       const invalidData = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 1.0,
+        retailPricePerUnit: 150,
+        length: 1000,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
 
-    it('should reject length > 6.0', () => {
+    it('should reject length > 6000', () => {
       const invalidData = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 7.0,
+        retailPricePerUnit: 150,
+        length: 7000,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
 
-    it('should allow null purchasePricePerMeter', () => {
+    it('should reject non-integer length', () => {
+      const invalidData = {
+        name: 'Тестовая лага',
+        width: 40,
+        height: 20,
+        metalThickness: 2.0,
+        retailPricePerUnit: 150,
+        length: 2500.5,
+      };
+
+      const result = lagTypeSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.errors[0].message).toContain('целым числом');
+      }
+    });
+
+    it('should allow null purchasePricePerUnit', () => {
       const dataWithNull = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
-        purchasePricePerMeter: null,
+        retailPricePerUnit: 150,
+        length: 2500,
+        purchasePricePerUnit: null,
       };
 
       const result = lagTypeSchema.safeParse(dataWithNull);
       expect(result.success).toBe(true);
     });
 
-    it('should allow undefined purchasePricePerMeter', () => {
+    it('should allow undefined purchasePricePerUnit', () => {
       const dataWithoutPurchase = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
+        retailPricePerUnit: 150,
+        length: 2500,
       };
 
       const result = lagTypeSchema.safeParse(dataWithoutPurchase);
       expect(result.success).toBe(true);
     });
 
-    it('should reject negative purchasePricePerMeter', () => {
+    it('should reject negative purchasePricePerUnit', () => {
       const invalidData = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
-        purchasePricePerMeter: -10,
+        retailPricePerUnit: 150,
+        length: 2500,
+        purchasePricePerUnit: -10,
       };
 
       const result = lagTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
 
-    it('should validate valid purchasePricePerMeter', () => {
+    it('should validate valid purchasePricePerUnit', () => {
       const validData = {
         name: 'Тестовая лага',
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
-        purchasePricePerMeter: 120,
+        retailPricePerUnit: 150,
+        length: 2500,
+        purchasePricePerUnit: 120,
       };
 
       const result = lagTypeSchema.safeParse(validData);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.purchasePricePerMeter).toBe(120);
+        expect(result.data.purchasePricePerUnit).toBe(120);
       }
     });
   });
@@ -233,7 +249,7 @@ describe('LagType Validators - new structure', () => {
     it('should validate partial updates', () => {
       const partialData = {
         name: 'Обновленная лага',
-        basePricePerMeter: 160,
+        retailPricePerUnit: 160,
       };
 
       const result = lagTypeUpdateSchema.safeParse(partialData);
@@ -247,25 +263,25 @@ describe('LagType Validators - new structure', () => {
 
     it('should validate length in updates', () => {
       const updateData = {
-        length: 3.0,
+        length: 3000,
       };
 
       const result = lagTypeUpdateSchema.safeParse(updateData);
       expect(result.success).toBe(true);
     });
 
-    it('should validate purchasePricePerMeter in updates', () => {
+    it('should validate purchasePricePerUnit in updates', () => {
       const updateData = {
-        purchasePricePerMeter: 125,
+        purchasePricePerUnit: 125,
       };
 
       const result = lagTypeUpdateSchema.safeParse(updateData);
       expect(result.success).toBe(true);
     });
 
-    it('should allow null purchasePricePerMeter in updates', () => {
+    it('should allow null purchasePricePerUnit in updates', () => {
       const updateData = {
-        purchasePricePerMeter: null,
+        purchasePricePerUnit: null,
       };
 
       const result = lagTypeUpdateSchema.safeParse(updateData);

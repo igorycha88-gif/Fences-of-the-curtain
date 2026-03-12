@@ -440,8 +440,12 @@ model Setting {
 **4. Лаги (LagType)**
 - Управление типами лаг (профиль 40x20, 40x40 и т.д.)
 - Характеристики: ширина, высота, толщина металла
-- Базовая цена за метр погонный
-- Доступные длины с коэффициентами цен
+- Розничная цена за метр погонный (retailPricePerMeter)
+- Закупочная цена за метр погонный (purchasePricePerMeter) - для аналитики маржинальности
+- Доступные длины
+- Период действия (validFrom, expirationDate)
+- Приоритет выбора
+- Деактивация вместо удаления
 
 **5. Столбы (PostType)**
 - Управление типами столбов
@@ -494,9 +498,17 @@ totalCost = materialCost + coatingCost
 
 **3. Расчет стоимости лаг:**
 ```typescript
-lagLength = fenceType.postSpacing
-lengthCoef = lag.availableLengths.find(l => l.length === lagLength)?.priceCoef || 1.0
-totalLagCost = lag.basePricePerMeter * lagsCount * lengthCoef
+// Количество лаг в одном ряду
+baseLagsPerRow = roundUp(fenceLengthMm / lagLengthMm)
+
+// Общее количество лаг (+2 на весь забор для компенсации стыков и обрезков)
+totalLags = baseLagsPerRow * lagRows + 2
+
+// Цена за одну лагу
+pricePerUnit = lag.retailPricePerMeter * (lagLengthMm / 1000)
+
+// Общая стоимость лаг
+totalLagCost = totalLags * pricePerUnit
 ```
 
 **4. Расчет стоимости столбов:**

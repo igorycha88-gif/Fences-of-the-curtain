@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     
     if (!isAdmin && result.lags) {
       result.lags = result.lags.map((lag: any) => {
-        const { purchasePricePerMeter, ...lagWithoutPurchasePrice } = lag;
+        const { purchasePricePerUnit, ...lagWithoutPurchasePrice } = lag;
         return lagWithoutPurchasePrice;
       });
     }

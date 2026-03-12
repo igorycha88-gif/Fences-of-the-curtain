@@ -1,11 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { PostTypeInput, PostTypeUpdate } from '@/lib/validators/postType';
+import { getNextPriority } from '@/lib/utils/priorityUtils';
+import { priorityService } from '@/services/admin/priorityService';
 
 export interface PostDuplicate {
   id: string;
   name: string;
-  pricePerMeter: number;
+  retailPricePerUnit: number;
   validFrom: Date | null;
   expirationDate: Date | null;
   active: boolean;
@@ -91,7 +93,7 @@ export class PostTypeService {
         where,
         skip,
         take: pageSize,
-        orderBy: { name: 'asc' },
+        orderBy: { priority: 'asc' },
       }),
       prisma.postType.count({ where }),
     ]);
@@ -115,6 +117,7 @@ export class PostTypeService {
     sectionWidth: number;
     sectionHeight: number;
     wallThickness: number;
+    length: number;
     excludeId?: string;
   }): Promise<PostDuplicate[]> {
     const posts = await prisma.postType.findMany({
@@ -122,12 +125,13 @@ export class PostTypeService {
         sectionWidth: params.sectionWidth,
         sectionHeight: params.sectionHeight,
         wallThickness: params.wallThickness,
+        length: params.length,
         ...(params.excludeId && { id: { not: params.excludeId } }),
       },
       select: {
         id: true,
         name: true,
-        pricePerMeter: true,
+        retailPricePerUnit: true,
         validFrom: true,
         expirationDate: true,
         active: true,
@@ -142,6 +146,7 @@ export class PostTypeService {
       sectionWidth: data.sectionWidth,
       sectionHeight: data.sectionHeight,
       wallThickness: data.wallThickness,
+      length: data.length,
     });
 
     if (duplicates.length > 0 && !data.confirmDuplicate) {
@@ -149,7 +154,7 @@ export class PostTypeService {
       const newExpirationDate = data.expirationDate || null;
 
       for (const dup of duplicates) {
-        if (dup.pricePerMeter === data.pricePerMeter) {
+        if (dup.retailPricePerUnit === data.retailPricePerUnit) {
           throw new Error('Цена должна отличаться от существующих столбов с такими же параметрами');
         }
 
@@ -161,7 +166,7 @@ export class PostTypeService {
               duplicates: duplicates.map((d) => ({
                 id: d.id,
                 name: d.name,
-                pricePerMeter: d.pricePerMeter,
+                retailPricePerUnit: d.retailPricePerUnit,
                 validFrom: d.validFrom,
                 expirationDate: d.expirationDate,
                 active: d.active,
@@ -195,11 +200,29 @@ export class PostTypeService {
     }
 
     const { confirmDuplicate, updateExistingExpiration, ...postData } = data as any;
+    
+    const allItems = await prisma.postType.findMany({
+      select: { id: true, priority: true },
+    });
+    const nextPriority = getNextPriority(allItems as any);
+
     const post = await prisma.postType.create({
-      data: postData,
+      data: {
+        ...postData,
+        priority: nextPriority,
+      },
     });
 
-    await this.logChange(post.id, 'CREATE', null, post, userId);
+    await prisma.referenceChangeLog.create({
+      data: {
+        entityType: 'PostType',
+        entityId: post.id,
+        fieldName: 'priority',
+        oldValue: undefined,
+        newValue: post.priority,
+        changedBy: userId,
+      },
+    });
 
     return post;
   }
@@ -260,7 +283,22 @@ export class PostTypeService {
       where: { id },
     });
 
-    await this.logChange(id, 'DELETE', oldPost, null, userId);
+    await prisma.referenceChangeLog.create({
+      data: {
+        entityType: 'PostType',
+        entityId: id,
+        fieldName: 'deleted',
+        oldValue: {
+          id: oldPost.id,
+          name: oldPost.name,
+          priority: oldPost.priority,
+        },
+        newValue: undefined,
+        changedBy: userId,
+      },
+    });
+
+    await priorityService.recalculateAfterDelete('postType', userId);
   }
 
   async toggleActive(id: string, userId: string) {

@@ -1,11 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { LagTypeInput, LagTypeUpdate } from '@/lib/validators/lagType';
+import { getNextPriority } from '@/lib/utils/priorityUtils';
+import { priorityService } from '@/services/admin/priorityService';
 
 export interface LagDuplicate {
   id: string;
   name: string;
-  basePricePerMeter: number;
+  retailPricePerUnit: number;
   validFrom: Date | null;
   expirationDate: Date | null;
   active: boolean;
@@ -91,7 +93,7 @@ export class LagTypeService {
         where,
         skip,
         take: pageSize,
-        orderBy: { name: 'asc' },
+        orderBy: { priority: 'asc' },
       }),
       prisma.lagType.count({ where }),
     ]);
@@ -129,7 +131,7 @@ export class LagTypeService {
       select: {
         id: true,
         name: true,
-        basePricePerMeter: true,
+        retailPricePerUnit: true,
         validFrom: true,
         expirationDate: true,
         active: true,
@@ -154,7 +156,7 @@ export class LagTypeService {
       const newExpirationDate = data.expirationDate || null;
 
       for (const dup of duplicates) {
-        if (dup.basePricePerMeter === data.basePricePerMeter) {
+        if (dup.retailPricePerUnit === data.retailPricePerUnit) {
           throw new Error('Розничная цена должна отличаться от существующих номенклатур с такими же параметрами');
         }
 
@@ -166,7 +168,7 @@ export class LagTypeService {
               duplicates: duplicates.map((d) => ({
                 id: d.id,
                 name: duplicates.find((x) => x.id === d.id)?.name || '',
-                basePricePerMeter: d.basePricePerMeter,
+                retailPricePerUnit: d.retailPricePerUnit,
                 validFrom: d.validFrom,
                 expirationDate: d.expirationDate,
                 active: d.active,
@@ -200,13 +202,31 @@ export class LagTypeService {
     }
 
     const { confirmDuplicate, updateExistingExpiration, ...lagData } = data as any;
+    
+    const allItems = await prisma.lagType.findMany({
+      select: { id: true, priority: true },
+    }) as any;
+    const nextPriority = getNextPriority(allItems);
+
     const lag = await prisma.lagType.create({
-      data: lagData,
+      data: {
+        ...lagData,
+        priority: nextPriority,
+      },
     });
 
     console.log('[LAG SERVICE] Created lag:', lag.id);
 
-    await this.logChange(lag.id, 'CREATE', null, lag, userId);
+    await prisma.referenceChangeLog.create({
+      data: {
+        entityType: 'LagType',
+        entityId: lag.id,
+        fieldName: 'priority',
+        oldValue: undefined,
+        newValue: lag.priority,
+        changedBy: userId,
+      },
+    });
 
     return lag;
   }
@@ -261,7 +281,22 @@ export class LagTypeService {
       where: { id },
     });
 
-    await this.logChange(id, 'DELETE', oldLag, null, userId);
+    await prisma.referenceChangeLog.create({
+      data: {
+        entityType: 'LagType',
+        entityId: id,
+        fieldName: 'deleted',
+        oldValue: {
+          id: oldLag.id,
+          name: oldLag.name,
+          priority: oldLag.priority,
+        },
+        newValue: undefined,
+        changedBy: userId,
+      },
+    });
+
+    await priorityService.recalculateAfterDelete('lagType', userId);
   }
 
   async toggleActive(id: string, userId: string) {

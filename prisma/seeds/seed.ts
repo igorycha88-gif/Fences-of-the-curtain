@@ -236,6 +236,72 @@ async function main() {
     skipDuplicates: true,
   });
 
+  await prisma.wicketType.createMany({
+    data: [
+      {
+        name: 'Калитка стандартная 1.0м',
+        description: 'Стандартная калитка для загородного дома',
+        metalThickness: 2.0,
+        sectionWidth: 40,
+        sectionHeight: 40,
+        wicketHeight: 2000,
+        wicketLength: 1000,
+        retailPrice: 12000,
+        purchasePrice: 8000,
+        active: true,
+      },
+      {
+        name: 'Калитка стандартная 0.9м',
+        description: 'Компактная калитка для прохода',
+        metalThickness: 2.0,
+        sectionWidth: 40,
+        sectionHeight: 40,
+        wicketHeight: 2000,
+        wicketLength: 900,
+        retailPrice: 11000,
+        purchasePrice: 7500,
+        active: true,
+      },
+      {
+        name: 'Калитка усиленная 1.2м',
+        description: 'Усиленная калитка с увеличенной толщиной металла',
+        metalThickness: 3.0,
+        sectionWidth: 60,
+        sectionHeight: 40,
+        wicketHeight: 2200,
+        wicketLength: 1200,
+        retailPrice: 18000,
+        purchasePrice: 12000,
+        active: true,
+      },
+      {
+        name: 'Калитка низкая 0.8м',
+        description: 'Низкая калитка для детских площадок',
+        metalThickness: 1.5,
+        sectionWidth: 40,
+        sectionHeight: 20,
+        wicketHeight: 1200,
+        wicketLength: 800,
+        retailPrice: 8000,
+        purchasePrice: 5500,
+        active: true,
+      },
+      {
+        name: 'Калитка высокая 2.2м',
+        description: 'Высокая калитка для промышленных объектов',
+        metalThickness: 2.5,
+        sectionWidth: 50,
+        sectionHeight: 50,
+        wicketHeight: 2200,
+        wicketLength: 1000,
+        retailPrice: 15000,
+        purchasePrice: 10000,
+        active: true,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
   console.log('Database seeded successfully!');
 }
 

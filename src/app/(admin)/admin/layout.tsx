@@ -27,7 +27,9 @@ export default function AdminLayout({
 
   const handleLogout = async () => {
     console.log('[ADMIN LAYOUT] Logging out...');
-    await signOut({ callbackUrl: '/' });
+    await signOut({ redirect: false });
+    router.push('/');
+    router.refresh();
   };
 
   const isActive = (path: string) => {
@@ -88,18 +90,6 @@ export default function AdminLayout({
             </li>
             <li>
               <a 
-                href="/admin/materials" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/materials')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Материалы
-              </a>
-            </li>
-            <li>
-              <a 
                 href="/admin/orders" 
                 className={`block px-6 py-3 rounded-lg transition-colors ${
                   isActive('/admin/orders')
@@ -141,30 +131,6 @@ export default function AdminLayout({
             </li>
             <li>
               <a 
-                href="/admin/references/heights" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/heights')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Высоты материалов
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/coatings" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/coatings')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Типы покрытия
-              </a>
-            </li>
-            <li>
-              <a 
                 href="/admin/references/lags" 
                 className={`block px-6 py-3 rounded-lg transition-colors ${
                   isActive('/admin/references/lags')
@@ -185,6 +151,54 @@ export default function AdminLayout({
                 }`}
               >
                 Столбы
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/admin/references/profnastil" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/profnastil')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Профнастил
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/admin/references/picket" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/picket')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Евроштакетник
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/admin/references/gates" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/gates')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Ворота
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/admin/references/wickets" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/wickets')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Калитки
               </a>
             </li>
           </ul>

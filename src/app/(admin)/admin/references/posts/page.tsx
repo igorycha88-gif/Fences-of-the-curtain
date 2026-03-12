@@ -8,6 +8,7 @@ import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
 import { formatDimension, formatPrice, formatSection } from '@/lib/utils/formatters';
 import { POSTS_COLUMN_TOOLTIPS, LAGS_COLUMN_TOOLTIPS } from '@/lib/constants/columnTooltips';
 import { ColumnHeaderWithTooltip } from '@/components/admin/References/ColumnHeaderWithTooltip';
+import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 
@@ -20,11 +21,13 @@ interface PostType {
   wallThickness: number;
   pricePerMeter: number;
   length: number;
-  purchasePricePerMeter: number | null;
+  retailPricePerUnit: number;
+  purchasePricePerUnit: number | null;
   image: string | null;
   active: boolean;
   validFrom: string | null;
   expirationDate: string | null;
+  priority: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,7 +45,7 @@ interface DuplicateWarning {
   duplicates: Array<{
     id: string;
     name: string;
-    pricePerMeter: number;
+    retailPricePerUnit: number;
     validFrom: string | null;
     expirationDate: string | null;
     active: boolean;
@@ -131,7 +134,8 @@ export default function PostsPage() {
       wallThickness: 2.5,
       pricePerMeter: 300,
       length: 2.5,
-      purchasePricePerMeter: null,
+      retailPricePerUnit: 750,
+      purchasePricePerUnit: null,
       active: true,
       validFrom: null,
       expirationDate: null,
@@ -150,7 +154,8 @@ export default function PostsPage() {
       wallThickness: post.wallThickness,
       pricePerMeter: post.pricePerMeter,
       length: post.length,
-      purchasePricePerMeter: post.purchasePricePerMeter,
+      retailPricePerUnit: post.retailPricePerUnit,
+      purchasePricePerUnit: post.purchasePricePerUnit,
       active: post.active,
       validFrom: post.validFrom,
       expirationDate: post.expirationDate,
@@ -198,12 +203,27 @@ export default function PostsPage() {
     }
   };
 
+  const handlePriorityChange = async (id: string, newPriority: number) => {
+    const response = await fetch('/api/admin/post-types/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, newPriority }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Ошибка изменения приоритета');
+    }
+
+    fetchPosts();
+  };
+
   const handleFormChange = (name: string, value: any) => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePurchasePriceChange = (value: number | null) => {
-    setFormValues((prev) => ({ ...prev, purchasePricePerMeter: value }));
+    setFormValues((prev) => ({ ...prev, purchasePrice: value }));
   };
 
   const handleConfirmDuplicate = () => {
@@ -281,9 +301,9 @@ export default function PostsPage() {
       render: (post: PostType) => Math.round(post.length * 1000),
     },
     {
-      key: 'pricePerMeter',
-      label: <ColumnHeaderWithTooltip title="Розничная стоимость (₽)" tooltip={POSTS_COLUMN_TOOLTIPS.pricePerMeter} />,
-      render: (post: PostType) => formatPrice(post.pricePerMeter),
+      key: 'retailPricePerUnit',
+      label: <ColumnHeaderWithTooltip title="Розничная стоимость за ед. (₽)" tooltip={POSTS_COLUMN_TOOLTIPS.retailPricePerUnit} />,
+      render: (post: PostType) => formatPrice(post.retailPricePerUnit),
     },
     {
       key: 'validFrom',
@@ -313,13 +333,13 @@ export default function PostsPage() {
       },
     },
     ...(isAdmin ? [{
-      key: 'purchasePricePerMeter',
-      label: <ColumnHeaderWithTooltip title="Цена закупки за ед. (₽)" tooltip="Цена закупки за метр погонный" />,
+      key: 'purchasePricePerUnit',
+      label: <ColumnHeaderWithTooltip title="Цена закупки за ед. (₽)" tooltip="Цена закупки за столб" />,
       render: (post: PostType) => {
-        const margin = calculateMargin(post.pricePerMeter, post.purchasePricePerMeter);
+        const margin = calculateMargin(post.retailPricePerUnit, post.purchasePricePerUnit);
         const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
-        const priceText = post.purchasePricePerMeter 
-          ? `${formatPrice(post.purchasePricePerMeter)} ${marginEmoji}`
+        const priceText = post.purchasePricePerUnit 
+          ? `${formatPrice(post.purchasePricePerUnit)} ${marginEmoji}`
           : `Не указана ${marginEmoji}`;
         return (
           <span 
@@ -334,25 +354,18 @@ export default function PostsPage() {
         );
       },
     }] : []),
-    {
-      key: 'active',
-      label: 'Активен',
+    { 
+      key: 'priority', 
+      label: 'Приоритет',
       render: (post: PostType) => (
-        <button
-          onClick={() => handleToggleActive(post)}
-          className="cursor-pointer hover:scale-110 transition-transform duration-200 inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
-          title="Нажмите, чтобы изменить статус"
-        >
-          {post.active ? (
-            <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          )}
-        </button>
+        <PriorityColumn
+          value={post.priority}
+          totalItems={total}
+          onChange={async (newPriority) => {
+            await handlePriorityChange(post.id, newPriority);
+            toast.success('Приоритет обновлён');
+          }}
+        />
       )
     },
   ];
@@ -407,7 +420,7 @@ export default function PostsPage() {
               {duplicateWarning.duplicates.map((dup) => (
                 <div key={dup.id} className="bg-white p-3 rounded mb-2 text-sm">
                   <div className="font-medium">{dup.name || 'Без названия'}</div>
-                  <div>Цена: {dup.pricePerMeter} ₽</div>
+                  <div>Цена: {dup.retailPricePerUnit} ₽</div>
                   <div>Период: {formatValidFrom(dup.validFrom)} - {formatDate(dup.expirationDate)}</div>
                   <div>Статус: {dup.active ? 'Активен' : 'Неактивен'}</div>
                 </div>
@@ -507,11 +520,11 @@ export default function PostsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Розничная стоимость (₽) *</label>
+              <label className="block text-sm font-medium mb-1">Розничная стоимость за ед. (₽) *</label>
               <input
                 type="number"
-                value={formValues.pricePerMeter || ''}
-                onChange={(e) => handleFormChange('pricePerMeter', parseFloat(e.target.value))}
+                value={formValues.retailPricePerUnit || ''}
+                onChange={(e) => handleFormChange('retailPricePerUnit', parseFloat(e.target.value))}
                 className="w-full border rounded px-3 py-2"
                 min={0}
                 step={0.01}
@@ -562,8 +575,8 @@ export default function PostsPage() {
             {isAdmin && (
               <div className="mt-4">
                 <SimplifiedPurchasePriceInput
-                  purchasePricePerMeter={formValues.purchasePricePerMeter ?? null}
-                  basePricePerMeter={formValues.pricePerMeter || 0}
+                  purchasePrice={formValues.purchasePricePerUnit ?? null}
+                  retailPrice={formValues.retailPricePerUnit || 0}
                   onChange={handlePurchasePriceChange}
                 />
               </div>

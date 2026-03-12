@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
 import { Modal } from '@/components/ui/modal';
 import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
-import { calculatePricePerUnit, calculateProfnastilMargin } from '@/lib/utils/priceCalculator';
 import { formatDimension, formatPrice } from '@/lib/utils/formatters';
 import { COATING_TYPES } from '@/lib/validators/profnastilType';
+import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 
@@ -20,15 +20,13 @@ interface ProfnastilType {
   length: number;
   coating: string;
   color: string | null;
-  purchasePricePerMeter: number | null;
-  retailPricePerMeter: number;
-  purchasePricePerUnit?: number | null;
-  retailPricePerUnit?: number | null;
+  purchasePricePerUnit: number | null;
+  retailPricePerUnit: number;
   validFrom: string | null;
   validUntil: string | null;
   active: boolean;
   image: string | null;
-  sortOrder: number;
+  priority: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -121,8 +119,8 @@ export default function ProfnastilPage() {
       length: 2000,
       coating: '',
       color: '',
-      purchasePricePerMeter: null,
-      retailPricePerMeter: 0,
+      purchasePricePerUnit: null,
+      retailPricePerUnit: 0,
       active: true,
       validFrom: null,
       validUntil: null,
@@ -141,8 +139,8 @@ export default function ProfnastilPage() {
       length: item.length,
       coating: item.coating,
       color: item.color || '',
-      purchasePricePerMeter: item.purchasePricePerMeter,
-      retailPricePerMeter: item.retailPricePerMeter,
+      purchasePricePerUnit: item.purchasePricePerUnit,
+      retailPricePerUnit: item.retailPricePerUnit,
       active: item.active,
       validFrom: item.validFrom,
       validUntil: item.validUntil,
@@ -190,6 +188,21 @@ export default function ProfnastilPage() {
     }
   };
 
+  const handlePriorityChange = async (id: string, newPriority: number) => {
+    const response = await fetch('/api/admin/profnastil-types/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, newPriority }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Ошибка изменения приоритета');
+    }
+
+    fetchProfnastil();
+  };
+
   const handleFormChange = (name: string, value: any) => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
@@ -234,21 +247,8 @@ export default function ProfnastilPage() {
 
   const isAdmin = currentUser?.role === 'ADMIN';
 
-  const calculatedPurchasePricePerUnit = formValues.usefulWidth && formValues.length && formValues.purchasePricePerMeter
-    ? calculatePricePerUnit(formValues.usefulWidth, formValues.length, formValues.purchasePricePerMeter)
-    : null;
-
-  const calculatedRetailPricePerUnit = formValues.usefulWidth && formValues.length && formValues.retailPricePerMeter
-    ? calculatePricePerUnit(formValues.usefulWidth, formValues.length, formValues.retailPricePerMeter)
-    : null;
-
-  const marginInfo = formValues.usefulWidth && formValues.length && formValues.retailPricePerMeter
-    ? calculateProfnastilMargin(
-        formValues.retailPricePerMeter,
-        formValues.purchasePricePerMeter,
-        formValues.usefulWidth,
-        formValues.length
-      )
+  const marginInfo = formValues.retailPricePerUnit && formValues.purchasePricePerUnit
+    ? calculateMargin(formValues.retailPricePerUnit, formValues.purchasePricePerUnit)
     : null;
 
   const columns = [
@@ -273,10 +273,7 @@ export default function ProfnastilPage() {
     {
       key: 'retailPricePerUnit',
       label: 'Розница за ед. (₽)',
-      render: (item: ProfnastilType) => {
-        const price = item.retailPricePerUnit ?? calculatePricePerUnit(item.usefulWidth, item.length, item.retailPricePerMeter);
-        return price !== null ? formatPrice(price) : '-';
-      }
+      render: (item: ProfnastilType) => formatPrice(item.retailPricePerUnit)
     },
     {
       key: 'validUntil',
@@ -300,38 +297,30 @@ export default function ProfnastilPage() {
       key: 'purchasePricePerUnit' as const,
       label: 'Закупка за ед. (₽)',
       render: (item: ProfnastilType) => {
-        const price = item.purchasePricePerUnit ?? calculatePricePerUnit(item.usefulWidth, item.length, item.purchasePricePerMeter);
-        if (price === null) {
+        if (item.purchasePricePerUnit === null) {
           return <span className="text-gray-400">Не указана</span>;
         }
-        const margin = calculateMargin(item.retailPricePerMeter, item.purchasePricePerMeter);
+        const margin = calculateMargin(item.retailPricePerUnit, item.purchasePricePerUnit);
         const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
         return (
-          <span title={`Цена закупки: ${price} ₽\nМаржа: ${margin?.marginPercent.toFixed(1)}%`}>
-            {formatPrice(price)} {marginEmoji}
+          <span title={`Цена закупки: ${item.purchasePricePerUnit} ₽\nМаржа: ${margin?.marginPercent.toFixed(1)}%`}>
+            {formatPrice(item.purchasePricePerUnit)} {marginEmoji}
           </span>
         );
       }
     }] : []),
     { 
-      key: 'active', 
-      label: 'Активен',
+      key: 'priority', 
+      label: 'Приоритет',
       render: (item: ProfnastilType) => (
-        <button
-          onClick={() => handleToggleActive(item)}
-          className="cursor-pointer hover:scale-110 transition-transform duration-200 inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
-          title="Нажмите, чтобы изменить статус"
-        >
-          {item.active ? (
-            <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          )}
-        </button>
+        <PriorityColumn
+          value={item.priority}
+          totalItems={total}
+          onChange={async (newPriority) => {
+            await handlePriorityChange(item.id, newPriority);
+            toast.success('Приоритет обновлён');
+          }}
+        />
       )
     },
   ];
@@ -505,58 +494,43 @@ export default function ProfnastilPage() {
             
             {isAdmin && (
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Цена за м.п. закупка (₽)</label>
+                <label className="block text-sm font-medium mb-1">Цена закупки за ед. (₽)</label>
                 <input
                   type="number"
-                  value={formValues.purchasePricePerMeter ?? ''}
-                  onChange={(e) => handleFormChange('purchasePricePerMeter', e.target.value ? parseFloat(e.target.value) : null)}
+                  value={formValues.purchasePricePerUnit ?? ''}
+                  onChange={(e) => handleFormChange('purchasePricePerUnit', e.target.value ? parseFloat(e.target.value) : null)}
                   className="w-full border rounded px-3 py-2"
                   min={0}
                   step={0.01}
                 />
-                <div className="text-sm text-gray-500 mt-1">
-                  ↳ Цена закупки за ед.: {calculatedPurchasePricePerUnit !== null ? `${formatPrice(calculatedPurchasePricePerUnit)} ₽` : 'Не указана'}
-                </div>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium mb-1">Розничная стоимость за м.п. (₽) *</label>
+              <label className="block text-sm font-medium mb-1">Розничная стоимость за ед. (₽) *</label>
               <input
                 type="number"
-                value={formValues.retailPricePerMeter || ''}
-                onChange={(e) => handleFormChange('retailPricePerMeter', parseFloat(e.target.value))}
+                value={formValues.retailPricePerUnit || ''}
+                onChange={(e) => handleFormChange('retailPricePerUnit', parseFloat(e.target.value))}
                 className="w-full border rounded px-3 py-2"
                 min={0}
                 step={0.01}
                 required
               />
-              <div className="text-sm text-gray-500 mt-1">
-                ↳ Розничная стоимость за ед.: {calculatedRetailPricePerUnit !== null ? `${formatPrice(calculatedRetailPricePerUnit)} ₽` : '-'}
-              </div>
             </div>
 
-            {isAdmin && marginInfo && marginInfo.marginPerMeterPercent !== null && (
+            {isAdmin && marginInfo && marginInfo.marginPercent !== null && (
               <div className="mt-4 p-4 bg-gray-50 rounded border">
                 <h5 className="font-medium mb-2">Расчет маржи</h5>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-gray-600">За метр погонный:</span>
-                    <div className="ml-4">
-                      Маржа: {marginInfo.marginPerMeterPercent.toFixed(1)}% {getMarginEmoji(marginInfo.marginPerMeterPercent)}
-                      <span className="ml-2 text-gray-500">
-                        ({marginInfo.marginPerMeterAbsolute?.toFixed(2)} ₽/м.п.)
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">За единицу (лист):</span>
-                    <div className="ml-4">
-                      Маржа: {marginInfo.marginPerUnitPercent?.toFixed(1)}% {getMarginEmoji(marginInfo.marginPerUnitPercent)}
-                      <span className="ml-2 text-gray-500">
-                        ({marginInfo.marginPerUnitAbsolute?.toFixed(2)} ₽/лист)
-                      </span>
-                    </div>
+                    <span className="text-gray-600">Маржа:</span>
+                    <span className="ml-2">
+                      {marginInfo.marginPercent.toFixed(1)}% {getMarginEmoji(marginInfo.marginPercent)}
+                    </span>
+                    <span className="ml-2 text-gray-500">
+                      ({marginInfo.marginAbsolute?.toFixed(2)} ₽/ед.)
+                    </span>
                   </div>
                   <div className="text-xs text-gray-400 mt-2">
                     🟢 Маржа ≥ 30% | 🟡 10-30% | 🔴 &lt; 10% | ⚪ Не указана

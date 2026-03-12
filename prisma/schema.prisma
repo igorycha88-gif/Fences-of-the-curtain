@@ -110,17 +110,18 @@ model FenceType {
   description           String?
   image                 String?
   difficultyCoef        Float    @default(1.0)
-  postSpacing           Float    @default(2.5)
+  postSpacing           Int      @default(2500)
   defaultLagRows        Int      @default(2)
   active                Boolean  @default(true)
-  sortOrder             Int      @default(0)
+  priority              Int      @default(0)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   
   materials             FenceMaterial[]
+  estimates             FenceEstimate[]
   
   @@index([active])
-  @@index([sortOrder])
+  @@index([priority])
 }
 
 model PostType {
@@ -132,9 +133,11 @@ model PostType {
   wallThickness         Float
   pricePerMeter         Float
   length                Float
-  purchasePricePerMeter Float?
+  retailPricePerUnit    Float
+  purchasePricePerUnit  Float?
   image                 String?
   active                Boolean   @default(true)
+  priority              Int       @default(0)
   validFrom             DateTime?
   expirationDate        DateTime?
   createdAt             DateTime  @default(now())
@@ -144,6 +147,7 @@ model PostType {
   @@index([validFrom])
   @@index([expirationDate])
   @@index([length])
+  @@index([priority])
   @@index([sectionWidth, sectionHeight, wallThickness])
 }
 
@@ -156,22 +160,6 @@ model SoilType {
   updatedAt         DateTime @updatedAt
 }
 
-model CoatingType {
-  id                    String   @id @default(cuid())
-  name                  String
-  description           String?
-  baseCost              Float
-  markupCoef            Float    @default(1.0)
-  image                 String?
-  active                Boolean  @default(true)
-  sortOrder             Int      @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  @@index([active])
-  @@index([sortOrder])
-}
-
 model LagType {
   id                    String    @id @default(cuid())
   name                  String
@@ -179,11 +167,12 @@ model LagType {
   width                 Float
   height                Float
   metalThickness        Float
-  basePricePerMeter     Float
-  length                Float
-  purchasePricePerMeter Float?
+  retailPricePerUnit    Float
+  length                Int
+  purchasePricePerUnit  Float?
   image                 String?
   active                Boolean   @default(true)
+  priority              Int       @default(0)
   validFrom             DateTime?
   expirationDate        DateTime?
   createdAt             DateTime  @default(now())
@@ -193,6 +182,7 @@ model LagType {
   @@index([length])
   @@index([validFrom])
   @@index([expirationDate])
+  @@index([priority])
   @@index([width, height, metalThickness, length])
 }
 
@@ -335,4 +325,139 @@ model UserNotificationSettings {
   notifyAssignment      Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model ProfnastilType {
+  id                      String    @id @default(cuid())
+  name                    String
+  description             String?
+  metalThickness          Float
+  fullWidth               Int
+  usefulWidth             Int
+  length                  Int
+  coating                 String
+  color                   String?
+  purchasePricePerUnit    Float?
+  retailPricePerUnit      Float
+  validFrom               DateTime?
+  validUntil              DateTime?
+  active                  Boolean   @default(true)
+  image                   String?
+  priority                Int       @default(0)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([active])
+  @@index([validUntil])
+  @@index([coating])
+  @@index([name])
+  @@index([priority])
+  @@unique([name, metalThickness, coating, color], name: "profnastil_unique_combination")
+}
+
+model PicketType {
+  id                      String    @id @default(cuid())
+  name                    String
+  description             String?
+  metalThickness          Float
+  width                   Int
+  length                  Int
+  coating                 String
+  color                   String?
+  purchasePricePerMeter   Float?
+  retailPricePerMeter     Float
+  validFrom               DateTime?
+  validUntil              DateTime?
+  active                  Boolean   @default(true)
+  image                   String?
+  priority                Int       @default(0)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([active])
+  @@index([validUntil])
+  @@index([coating])
+  @@index([name])
+  @@index([priority])
+  @@unique([name, metalThickness, coating, color], name: "picket_unique_combination")
+}
+
+model GateType {
+  id                    String    @id @default(cuid())
+  name                  String
+  description           String?
+  type                  String
+  metalThickness        Float
+  sectionWidth          Float
+  sectionHeight         Float
+  gateHeight            Float
+  gateLength            Float
+  retailPrice           Float
+  purchasePrice         Float?
+  image                 String?
+  active                Boolean   @default(true)
+  priority              Int       @default(0)
+  validFrom             DateTime?
+  expirationDate        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([active])
+  @@index([type])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([priority])
+  @@index([sectionWidth, sectionHeight, metalThickness, gateLength])
+}
+
+model WicketType {
+  id                    String    @id @default(cuid())
+  name                  String
+  description           String?
+  metalThickness        Float
+  sectionWidth          Float
+  sectionHeight         Float
+  wicketHeight          Float
+  wicketLength          Float
+  retailPrice           Float
+  purchasePrice         Float?
+  image                 String?
+  active                Boolean   @default(true)
+  priority              Int       @default(0)
+  validFrom             DateTime?
+  expirationDate        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([active])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([priority])
+  @@index([sectionWidth, sectionHeight, metalThickness, wicketLength])
+}
+
+model FenceEstimate {
+  id                String    @id @default(cuid())
+  fenceTypeId       String
+  fenceType         FenceType @relation(fields: [fenceTypeId], references: [id])
+  length            Float
+  height            Float
+  lagRows           Int
+  postsTotal        Float
+  lagsTotal         Float
+  profnastilTotal   Float
+  installationTotal Float
+  materialsTotal    Float
+  grandTotal        Float
+  items             Json
+  userId            String?
+  sessionId         String?
+  userAgent         String?
+  ipAddress         String?
+  createdAt         DateTime  @default(now())
+
+  @@index([fenceTypeId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([sessionId])
 }

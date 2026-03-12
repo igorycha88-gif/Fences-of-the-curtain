@@ -1,13 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-import { Calculator, Download, Send, Zap, Shield, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calculator, Download, Send, Zap, Shield, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 
+interface FenceType {
+  id: string;
+  name: string;
+  description?: string;
+  image?: string;
+  difficultyCoef: number;
+  postSpacing: number;
+  defaultLagRows: number;
+  materialsCount: number;
+}
+
 interface FenceCalculatorForm {
-  fenceType: 'PROFNASTIL' | 'SHAKHETNIK' | 'MESH' | 'PANELS_3D';
+  fenceTypeId: string;
   length: number;
   height: number;
   postType: string;
@@ -21,32 +32,43 @@ interface FenceCalculatorForm {
   coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   color: string;
   soilType: string;
+  difficultyCoef?: number;
+  postSpacing?: number;
 }
 
 interface CalculatorResult {
-  materials: Array<{
-    name: string;
+  estimateId: string;
+  items: Array<{
+    category: string;
+    nomenclatureId: string | null;
+    nomenclatureName: string;
     quantity: number;
     unit: string;
     pricePerUnit: number;
-    total: number;
+    totalPrice: number;
   }>;
-  works: Array<{
-    name: string;
-    quantity: number;
-    unit: string;
-    pricePerUnit: number;
-    total: number;
-  }>;
-  materialsTotal: number;
-  worksTotal: number;
-  soilSurcharge: number;
-  grandTotal: number;
+  totals: {
+    materials: number;
+    installation: number;
+    grandTotal: number;
+  };
+  parameters: {
+    fenceTypeId: string;
+    fenceTypeName: string;
+    length: number;
+    height: number;
+    lagRows: number;
+  };
+  calculatedAt: string;
 }
 
 export default function FenceCalculatorPage() {
+  const [fenceTypes, setFenceTypes] = useState<FenceType[]>([]);
+  const [fenceTypesLoading, setFenceTypesLoading] = useState(true);
+  const [fenceTypesError, setFenceTypesError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<FenceCalculatorForm>({
-    fenceType: 'PROFNASTIL',
+    fenceTypeId: '',
     length: 50,
     height: 2.0,
     postType: 'standard',
@@ -65,21 +87,79 @@ export default function FenceCalculatorPage() {
   const [result, setResult] = useState<CalculatorResult | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const fetchFenceTypes = async () => {
+      try {
+        setFenceTypesLoading(true);
+        setFenceTypesError(null);
+        const response = await fetch('/api/calculator/fence-types');
+        
+        if (!response.ok) {
+          throw new Error('Не удалось загрузить типы заборов');
+        }
+        
+        const data = await response.json();
+        setFenceTypes(data.types);
+
+        if (data.types.length > 0 && !formData.fenceTypeId) {
+          const firstType = data.types[0];
+          setFormData(prev => ({
+            ...prev,
+            fenceTypeId: firstType.id,
+            lagRows: String(firstType.defaultLagRows) as '2' | '3',
+            difficultyCoef: firstType.difficultyCoef,
+            postSpacing: firstType.postSpacing,
+          }));
+        }
+      } catch (error) {
+        setFenceTypesError('Не удалось загрузить типы заборов. Попробуйте обновить страницу.');
+      } finally {
+        setFenceTypesLoading(false);
+      }
+    };
+
+    fetchFenceTypes();
+  }, []);
+
+  const handleFenceTypeSelect = (fenceType: FenceType) => {
+    setFormData(prev => ({
+      ...prev,
+      fenceTypeId: fenceType.id,
+      lagRows: String(fenceType.defaultLagRows) as '2' | '3',
+      difficultyCoef: fenceType.difficultyCoef,
+      postSpacing: fenceType.postSpacing,
+    }));
+  };
+
   const calculate = async () => {
+    if (!formData.fenceTypeId) {
+      alert('Выберите тип забора');
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await fetch('/api/calculator/fence', {
+      const response = await fetch('/api/calculator/fence/estimate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          fenceTypeId: formData.fenceTypeId,
+          length: formData.length,
+          height: formData.height,
+          lagRows: parseInt(formData.lagRows) as 2 | 3,
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setResult(data);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || errorData.error || 'Ошибка расчета');
       }
     } catch (error) {
       console.error('Calculation error:', error);
+      alert('Ошибка расчета');
     } finally {
       setLoading(false);
     }
@@ -92,13 +172,6 @@ export default function FenceCalculatorPage() {
       maximumFractionDigits: 0,
     }).format(value);
   };
-
-  const fenceTypes = [
-    { value: 'PROFNASTIL', label: 'Профнастил' },
-    { value: 'SHAKHETNIK', label: 'Евроштакетник' },
-    { value: 'MESH', label: 'Сетка-рабица' },
-    { value: 'PANELS_3D', label: '3D-панели' },
-  ];
 
   const coatings = [
     { value: 'GALVANIZED', label: 'Оцинковка' },
@@ -146,19 +219,43 @@ export default function FenceCalculatorPage() {
                     </div>
 
                     <div className="space-y-6">
+                      {fenceTypesError && (
+                        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-destructive">Ошибка загрузки</p>
+                            <p className="text-sm text-muted-foreground mt-1">{fenceTypesError}</p>
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-sm font-medium mb-2">Тип забора</label>
-                        <select
-                          value={formData.fenceType}
-                          onChange={(e) => setFormData({ ...formData, fenceType: e.target.value as any })}
-                          className="select-modern"
-                        >
-                          {fenceTypes.map((type) => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </select>
+                        {fenceTypesLoading ? (
+                          <div className="h-12 bg-secondary/50 rounded-xl animate-pulse" />
+                        ) : fenceTypes.length > 0 ? (
+                          <select
+                            value={formData.fenceTypeId}
+                            onChange={(e) => {
+                              const selectedType = fenceTypes.find(t => t.id === e.target.value);
+                              if (selectedType) {
+                                handleFenceTypeSelect(selectedType);
+                              }
+                            }}
+                            className="select-modern"
+                          >
+                            <option value="" disabled>Выберите тип забора</option>
+                            {fenceTypes.map((type) => (
+                              <option key={type.id} value={type.id}>
+                                {type.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="text-center py-3 text-muted-foreground border border-border rounded-xl">
+                            Нет доступных типов заборов
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -299,8 +396,8 @@ export default function FenceCalculatorPage() {
 
                       <button
                         onClick={calculate}
-                        disabled={loading}
-                        className="w-full btn-primary py-4 text-lg flex items-center justify-center gap-2"
+                        disabled={loading || !formData.fenceTypeId}
+                        className="w-full btn-primary py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Calculator className="w-5 h-5" />
                         {loading ? 'Расчёт...' : 'Рассчитать стоимость'}
@@ -319,52 +416,37 @@ export default function FenceCalculatorPage() {
                       <div className="space-y-4 mb-6">
                         <div>
                           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                            Материалы
+                            Смета
                           </h3>
                           <div className="space-y-2">
-                            {result.materials.map((item, index) => (
+                            {result.items.map((item, index) => (
                               <div key={index} className="flex justify-between items-center py-2 border-b border-border/50 text-sm">
-                                <span className="text-muted-foreground">{item.name}</span>
-                                <span className="font-medium">{formatCurrency(item.total)}</span>
+                                <div>
+                                  <span className="text-muted-foreground">{item.nomenclatureName}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">({item.quantity} {item.unit})</span>
+                                </div>
+                                <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
                               </div>
                             ))}
                           </div>
-                          <div className="flex justify-between items-center py-2 font-semibold">
-                            <span>Итого материалы</span>
-                            <span className="text-primary">{formatCurrency(result.materialsTotal)}</span>
-                          </div>
                         </div>
 
-                        <div>
-                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                            Работы
-                          </h3>
-                          <div className="space-y-2">
-                            {result.works.map((item, index) => (
-                              <div key={index} className="flex justify-between items-center py-2 border-b border-border/50 text-sm">
-                                <span className="text-muted-foreground">{item.name}</span>
-                                <span className="font-medium">{formatCurrency(item.total)}</span>
-                              </div>
-                            ))}
+                        <div className="pt-4 space-y-2">
+                          <div className="flex justify-between items-center py-2 font-semibold">
+                            <span>Материалы</span>
+                            <span className="text-primary">{formatCurrency(result.totals.materials)}</span>
                           </div>
                           <div className="flex justify-between items-center py-2 font-semibold">
-                            <span>Итого работы</span>
-                            <span className="text-primary">{formatCurrency(result.worksTotal)}</span>
+                            <span>Монтаж</span>
+                            <span className="text-primary">{formatCurrency(result.totals.installation)}</span>
                           </div>
                         </div>
-
-                        {result.soilSurcharge > 0 && (
-                          <div className="flex justify-between items-center py-2 text-sm">
-                            <span className="text-muted-foreground">Наценка за грунт</span>
-                            <span className="font-medium">{formatCurrency(result.soilSurcharge)}</span>
-                          </div>
-                        )}
                       </div>
 
                       <div className="bg-primary/5 p-6 rounded-xl mb-6">
                         <div className="flex justify-between items-center">
                           <span className="text-lg font-bold">Итого</span>
-                          <span className="text-3xl font-bold text-primary">{formatCurrency(result.grandTotal)}</span>
+                          <span className="text-3xl font-bold text-primary">{formatCurrency(result.totals.grandTotal)}</span>
                         </div>
                       </div>
 

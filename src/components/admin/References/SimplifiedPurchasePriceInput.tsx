@@ -4,17 +4,17 @@ import React from 'react';
 import { calculateMargin, getMarginColor, getMarginEmoji } from '@/lib/utils/marginCalculator';
 
 interface SimplifiedPurchasePriceInputProps {
-  purchasePricePerMeter: number | null;
-  basePricePerMeter: number;
+  purchasePrice: number | null;
+  retailPrice: number;
   onChange: (value: number | null) => void;
 }
 
 export function SimplifiedPurchasePriceInput({
-  purchasePricePerMeter,
-  basePricePerMeter,
+  purchasePrice,
+  retailPrice,
   onChange,
 }: SimplifiedPurchasePriceInputProps) {
-  const margin = calculateMargin(basePricePerMeter, purchasePricePerMeter);
+  const margin = calculateMargin(retailPrice, purchasePrice);
   const marginColor = getMarginColor(margin?.marginPercent ?? null);
   const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
 
@@ -44,20 +44,20 @@ export function SimplifiedPurchasePriceInput({
             type="number"
             min="0"
             step="0.01"
-            value={purchasePricePerMeter ?? ''}
+            value={purchasePrice ?? ''}
             onChange={handleChange}
             placeholder="Не указана"
             className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Цена закупки за один метр погонный
+            Цена закупки за единицу
           </p>
         </div>
 
         <div className="p-3 bg-white rounded border">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Цена продажи за единицу:</span>
-            <span className="font-semibold">{basePricePerMeter.toFixed(2)} ₽</span>
+            <span className="font-semibold">{retailPrice.toFixed(2)} ₽</span>
           </div>
           
           <div className="flex justify-between items-center mb-2">
