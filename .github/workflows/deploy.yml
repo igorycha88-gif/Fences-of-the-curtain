@@ -38,7 +38,7 @@ jobs:
             npm run build --legacy-peer-deps
             
             # Push schema changes to database
-            npx prisma@5.10.0 db push
+            npx prisma@5.22.0 db push
             
             # Restart application with PM2
             pm2 restart fences-app || pm2 start npm --name "fences-app" -- start
