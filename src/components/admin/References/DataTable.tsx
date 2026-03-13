@@ -14,11 +14,25 @@ import {
 } from '../../ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Search, Plus, Edit, Trash2, Power } from 'lucide-react';
+import { Select } from '../../ui/select';
 
 interface Column<T> {
   key: keyof T | string;
   label: React.ReactNode;
   render?: (item: T) => React.ReactNode;
+}
+
+interface FilterOption {
+  value: string;
+  label: string;
+}
+
+interface Filter {
+  key: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: FilterOption[];
 }
 
 interface DataTableProps<T> {
@@ -31,11 +45,12 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   onSearch: (search: string) => void;
   onPageChange: (page: number) => void;
-  onAdd: () => void;
-  onEdit: (item: T) => void;
-  onDelete: (item: T) => void;
+  onAdd?: () => void;
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
   onToggleActive?: (item: T) => void;
   isLoading?: boolean;
+  filters?: Filter[];
 }
 
 export function DataTable<T extends { id: string; active?: boolean }>({
@@ -53,6 +68,7 @@ export function DataTable<T extends { id: string; active?: boolean }>({
   onDelete,
   onToggleActive,
   isLoading = false,
+  filters,
 }: DataTableProps<T>) {
   const [searchValue, setSearchValue] = useState('');
 
@@ -99,25 +115,44 @@ export function DataTable<T extends { id: string; active?: boolean }>({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{title}</CardTitle>
-          <Button onClick={onAdd}>
-            <Plus className="mr-2 h-4 w-4" />
-            Создать
-          </Button>
+          {onAdd && (
+            <Button onClick={onAdd}>
+              <Plus className="mr-2 h-4 w-4" />
+              Создать
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSearch} className="mb-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              className="max-w-sm"
-            />
-            <Button type="submit" variant="secondary">
-              <Search className="mr-2 h-4 w-4" />
-              Найти
-            </Button>
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                className="max-w-sm"
+              />
+              <Button type="submit" variant="secondary">
+                <Search className="mr-2 h-4 w-4" />
+                Найти
+              </Button>
+            </div>
+            {filters && filters.length > 0 && (
+              <div className="flex gap-4">
+                {filters.map((filter) => (
+                  <div key={filter.key} className="flex items-center gap-2">
+                    <label className="text-sm font-medium">{filter.label}:</label>
+                    <Select
+                      options={filter.options}
+                      value={filter.value}
+                      onChange={(e) => filter.onChange(e.target.value)}
+                      className="max-w-xs"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </form>
 
@@ -168,20 +203,24 @@ export function DataTable<T extends { id: string; active?: boolean }>({
                               />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onEdit(item)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onDelete(item)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
+                          {onEdit && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onEdit(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDelete(item)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
