@@ -11,6 +11,7 @@ import { ColumnHeaderWithTooltip } from '@/components/admin/References/ColumnHea
 import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 
 interface PostType {
   id: string;
@@ -580,6 +581,13 @@ export default function PostsPage() {
                   onChange={handlePurchasePriceChange}
                 />
               </div>
+            )}
+
+            {isAdmin && editingPost && (
+              <RelatedMountingHardware
+                referenceType="POST"
+                referenceId={editingPost.id}
+              />
             )}
 
             <div className="flex justify-end gap-2 pt-4">

@@ -8,6 +8,458 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                   String                    @id @default(cuid())
+  email                String                    @unique
+  name                 String?
+  password             String
+  role                 Role                      @default(MANAGER)
+  phone                String?
+  active               Boolean                   @default(true)
+  lastLoginAt          DateTime?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  actionLogs           AdminActionLog[]
+  ordersAssigned       Order[]                   @relation("AssignedOrders")
+  priceHistory         PriceHistory[]
+  referenceChangeLogs  ReferenceChangeLog[]
+  notificationSettings UserNotificationSettings?
+}
+
+model FenceMaterial {
+  id                   String                @id @default(cuid())
+  name                 String
+  category             FenceMaterialCategory
+  unit                 String
+  basePrice            Float
+  description          String?
+  image                String?
+  thickness            Float?
+  width                Float?
+  height               Float?
+  coating              String?
+  availableHeights     Json?
+  availableThicknesses Float[]
+  thicknessPrices      Json?
+  active               Boolean               @default(true)
+  sortOrder            Int                   @default(0)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  fenceTypeId          String?
+  fenceType            FenceType?            @relation(fields: [fenceTypeId], references: [id])
+
+  @@index([category])
+  @@index([active])
+  @@index([fenceTypeId])
+}
+
+model CanopyMaterial {
+  id        String                 @id @default(cuid())
+  name      String
+  category  CanopyMaterialCategory
+  unit      String
+  basePrice Float
+  thickness Float?
+  color     String?
+  image     String?
+  active    Boolean                @default(true)
+  sortOrder Int                    @default(0)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+}
+
+model FenceType {
+  id             String          @id @default(cuid())
+  name           String
+  description    String?
+  image          String?
+  difficultyCoef Float           @default(1.0)
+  postSpacing    Int             @default(2500)
+  defaultLagRows Int             @default(2)
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  priority       Int             @default(0)
+  estimates      FenceEstimate[]
+  materials      FenceMaterial[]
+
+  @@index([active])
+  @@index([priority])
+}
+
+model PostType {
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?
+  sectionWidth         Float
+  sectionHeight        Float
+  wallThickness        Float
+  pricePerMeter        Float
+  image                String?
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  expirationDate       DateTime?
+  validFrom            DateTime?
+  length               Float
+  priority             Int       @default(0)
+  retailPricePerUnit   Float
+  purchasePricePerUnit Float?
+
+  @@index([active])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([length])
+  @@index([priority])
+  @@index([sectionWidth, sectionHeight, wallThickness])
+}
+
+model SoilType {
+  id            String   @id @default(cuid())
+  name          String
+  surchargeCoef Float
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model LagType {
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?
+  width                Float
+  height               Float
+  metalThickness       Float
+  retailPricePerUnit   Float
+  purchasePricePerUnit Float?
+  image                String?
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  expirationDate       DateTime?
+  validFrom            DateTime?
+  priority             Int       @default(0)
+  length               Int
+
+  @@index([active])
+  @@index([length])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([priority])
+  @@index([width, height, metalThickness, length])
+}
+
+model CanopyType {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  image        String?
+  areaCoef     Float    @default(1.0)
+  materialCoef Float    @default(1.0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model WorkPrice {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  pricePerUnit Float
+  unit         String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  clientName     String
+  phone          String
+  email          String?
+  serviceType    String
+  parameters     Json
+  calculatedCost Float
+  status         OrderStatus @default(NEW)
+  managerComment String?
+  assignedTo     String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  statusHistory  Json?
+  assignedUser   User?       @relation("AssignedOrders", fields: [assignedTo], references: [id])
+}
+
+model PortfolioItem {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  type        String?
+  description String?
+  images      Json
+  cost        Float?
+  showCost    Boolean  @default(false)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  name      String
+  text      String
+  rating    Int
+  image     String?
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PageContent {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  content        Json
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  fieldName  String
+  oldValue   String
+  newValue   String
+  changedBy  String
+  changedAt  DateTime @default(now())
+  user       User     @relation(fields: [changedBy], references: [id])
+}
+
+model AdminActionLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String?
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model ReferenceChangeLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  fieldName  String
+  oldValue   Json?
+  newValue   Json?
+  changedBy  String
+  changedAt  DateTime @default(now())
+  user       User     @relation(fields: [changedBy], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([changedAt])
+}
+
+model UserNotificationSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  emailNotifications    Boolean  @default(true)
+  telegramNotifications Boolean  @default(false)
+  telegramChatId        String?
+  notifyNewOrder        Boolean  @default(true)
+  notifyStatusChange    Boolean  @default(true)
+  notifyAssignment      Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id])
+}
+
+model ProfnastilType {
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?
+  metalThickness       Float
+  fullWidth            Int
+  usefulWidth          Int
+  length               Int
+  coating              String
+  color                String?
+  purchasePricePerUnit Float?
+  retailPricePerUnit   Float
+  validFrom            DateTime?
+  validUntil           DateTime?
+  active               Boolean   @default(true)
+  image                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  priority             Int       @default(0)
+
+  @@unique([name, metalThickness, coating, color], name: "profnastil_unique_combination")
+  @@index([active])
+  @@index([validUntil])
+  @@index([coating])
+  @@index([name])
+  @@index([priority])
+}
+
+model PicketType {
+  id                    String    @id @default(cuid())
+  name                  String
+  description           String?
+  metalThickness        Float
+  width                 Int
+  length                Int
+  coating               String
+  color                 String?
+  purchasePricePerMeter Float?
+  retailPricePerMeter   Float
+  validFrom             DateTime?
+  validUntil            DateTime?
+  active                Boolean   @default(true)
+  image                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  priority              Int       @default(0)
+
+  @@unique([name, metalThickness, coating, color], name: "picket_unique_combination")
+  @@index([active])
+  @@index([validUntil])
+  @@index([coating])
+  @@index([name])
+  @@index([priority])
+}
+
+model GateType {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  type           String
+  metalThickness Float
+  sectionWidth   Float
+  sectionHeight  Float
+  gateHeight     Float
+  gateLength     Float
+  retailPrice    Float
+  purchasePrice  Float?
+  image          String?
+  active         Boolean   @default(true)
+  validFrom      DateTime?
+  expirationDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  priority       Int       @default(0)
+
+  @@index([active])
+  @@index([type])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([priority])
+  @@index([sectionWidth, sectionHeight, metalThickness, gateLength])
+}
+
+model WicketType {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  metalThickness Float
+  sectionWidth   Float
+  sectionHeight  Float
+  wicketHeight   Float
+  wicketLength   Float
+  retailPrice    Float
+  purchasePrice  Float?
+  image          String?
+  active         Boolean   @default(true)
+  validFrom      DateTime?
+  expirationDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  priority       Int       @default(0)
+
+  @@index([active])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([priority])
+  @@index([sectionWidth, sectionHeight, metalThickness, wicketLength])
+}
+
+model FenceEstimate {
+  id                    String    @id @default(cuid())
+  fenceTypeId           String
+  length                Float
+  height                Float
+  lagRows               Int
+  postsTotal            Float
+  lagsTotal             Float
+  profnastilTotal       Float
+  installationTotal     Float
+  materialsTotal        Float
+  grandTotal            Float
+  items                 Json
+  userId                String?
+  sessionId             String?
+  userAgent             String?
+  ipAddress             String?
+  createdAt             DateTime  @default(now())
+  mountingHardwareTotal Float     @default(0)
+  fenceType             FenceType @relation(fields: [fenceTypeId], references: [id])
+
+  @@index([fenceTypeId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([sessionId])
+}
+
+model MountingHardware {
+  id                String                     @id @default(cuid())
+  name              String
+  description       String?
+  purchasePrice     Float
+  retailPrice       Float
+  validUntil        DateTime?
+  active            Boolean                    @default(true)
+  sortOrder         Int                        @default(0)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  calculationMethod String?
+  calculationValue  Float?
+  useInCalculator   Boolean                    @default(false)
+  relations         MountingHardwareRelation[]
+
+  @@index([active])
+  @@index([validUntil])
+  @@index([sortOrder])
+  @@index([useInCalculator])
+}
+
+model MountingHardwareRelation {
+  id                 String           @id @default(cuid())
+  mountingHardwareId String
+  referenceType      String
+  referenceId        String
+  createdAt          DateTime         @default(now())
+  mountingHardware   MountingHardware @relation(fields: [mountingHardwareId], references: [id], onDelete: Cascade)
+
+  @@unique([mountingHardwareId, referenceType, referenceId])
+  @@index([referenceType])
+  @@index([referenceId])
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -42,422 +494,35 @@ enum OrderStatus {
   CANCELLED
 }
 
-model User {
-  id                    String   @id @default(cuid())
-  email                 String   @unique
-  name                  String?
-  password              String
-  role                  Role     @default(MANAGER)
-  phone                 String?
-  active                Boolean  @default(true)
-  lastLoginAt           DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+model Work {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  category        String
+  unit            String
+  price           Float
+  useInCalculator Boolean        @default(false)
+  sortOrder       Int            @default(0)
+  active          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  priceHistory          PriceHistory[]
-  actionLogs            AdminActionLog[]
-  referenceChangeLogs   ReferenceChangeLog[]
-  notificationSettings  UserNotificationSettings?
-  ordersAssigned        Order[]  @relation("AssignedOrders")
-}
+  relations       WorkRelation[]
 
-model FenceMaterial {
-  id                    String                  @id @default(cuid())
-  name                  String
-  category              FenceMaterialCategory
-  unit                  String
-  basePrice             Float
-  description           String?
-  image                 String?
-  thickness             Float?
-  width                 Float?
-  height                Float?
-  coating               String?
-  availableHeights      Json?
-  availableThicknesses  Float[]
-  thicknessPrices       Json?
-  active                Boolean                 @default(true)
-  sortOrder             Int                     @default(0)
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  
-  fenceType             FenceType?              @relation(fields: [fenceTypeId], references: [id])
-  fenceTypeId           String?
-  
+  @@index([active])
+  @@index([useInCalculator])
   @@index([category])
-  @@index([active])
-  @@index([fenceTypeId])
+  @@index([sortOrder])
 }
 
-model CanopyMaterial {
-  id          String                    @id @default(cuid())
-  name        String
-  category    CanopyMaterialCategory
-  unit        String
-  basePrice   Float
-  thickness   Float?
-  color       String?
-  image       String?
-  active      Boolean                   @default(true)
-  sortOrder   Int                       @default(0)
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
-}
-
-model FenceType {
-  id                    String   @id @default(cuid())
-  name                  String
-  description           String?
-  image                 String?
-  difficultyCoef        Float    @default(1.0)
-  postSpacing           Int      @default(2500)
-  defaultLagRows        Int      @default(2)
-  active                Boolean  @default(true)
-  priority              Int      @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  materials             FenceMaterial[]
-  estimates             FenceEstimate[]
-  
-  @@index([active])
-  @@index([priority])
-}
-
-model PostType {
-  id                    String    @id @default(cuid())
-  name                  String
-  description           String?
-  sectionWidth          Float
-  sectionHeight         Float
-  wallThickness         Float
-  pricePerMeter         Float
-  length                Float
-  retailPricePerUnit    Float
-  purchasePricePerUnit  Float?
-  image                 String?
-  active                Boolean   @default(true)
-  priority              Int       @default(0)
-  validFrom             DateTime?
-  expirationDate        DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
-  @@index([active])
-  @@index([validFrom])
-  @@index([expirationDate])
-  @@index([length])
-  @@index([priority])
-  @@index([sectionWidth, sectionHeight, wallThickness])
-}
-
-model SoilType {
-  id                String   @id @default(cuid())
-  name              String
-  surchargeCoef     Float
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-}
-
-model LagType {
-  id                    String    @id @default(cuid())
-  name                  String
-  description           String?
-  width                 Float
-  height                Float
-  metalThickness        Float
-  retailPricePerUnit    Float
-  length                Int
-  purchasePricePerUnit  Float?
-  image                 String?
-  active                Boolean   @default(true)
-  priority              Int       @default(0)
-  validFrom             DateTime?
-  expirationDate        DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
-  @@index([active])
-  @@index([length])
-  @@index([validFrom])
-  @@index([expirationDate])
-  @@index([priority])
-  @@index([width, height, metalThickness, length])
-}
-
-model CanopyType {
-  id                String   @id @default(cuid())
-  name              String
-  description       String?
-  image             String?
-  areaCoef          Float    @default(1.0)
-  materialCoef      Float    @default(1.0)
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-}
-
-model WorkPrice {
-  id          String   @id @default(cuid())
-  name        String
-  category    String
-  pricePerUnit Float
-  unit        String
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Order {
-  id              String       @id @default(cuid())
-  clientName      String
-  phone           String
-  email           String?
-  serviceType     String
-  parameters      Json
-  calculatedCost  Float
-  status          OrderStatus  @default(NEW)
-  managerComment  String?
-  assignedTo      String?
-  assignedUser    User?        @relation("AssignedOrders", fields: [assignedTo], references: [id])
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  statusHistory   Json?
-}
-
-model PortfolioItem {
-  id          String   @id @default(cuid())
-  title       String
-  category    String
-  type        String?
-  description String?
-  images      Json
-  cost        Float?
-  showCost    Boolean  @default(false)
-  active      Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Review {
+model WorkRelation {
   id        String   @id @default(cuid())
-  name      String
-  text      String
-  rating    Int
-  image     String?
-  active    Boolean  @default(true)
-  sortOrder Int      @default(0)
+  workId    String
+  fenceType String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
-model PageContent {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  title           String
-  content         Json
-  seoTitle        String?
-  seoDescription  String?
-  seoKeywords     String?
-  updatedAt       DateTime @updatedAt
-  createdAt       DateTime @default(now())
-}
+  work      Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
 
-model Setting {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  value     String
-  updatedAt DateTime @updatedAt
-}
-
-model PriceHistory {
-  id         String   @id @default(cuid())
-  entityType String
-  entityId   String
-  fieldName  String
-  oldValue   String
-  newValue   String
-  changedBy  String
-  changedAt  DateTime @default(now())
-  user       User     @relation(fields: [changedBy], references: [id])
-}
-
-model AdminActionLog {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  action    String
-  entityType String?
-  entityId   String?
-  details    Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-}
-
-model ReferenceChangeLog {
-  id                    String   @id @default(cuid())
-  entityType            String
-  entityId              String
-  fieldName             String
-  oldValue              Json?
-  newValue              Json?
-  changedBy             String
-  changedAt             DateTime @default(now())
-  
-  user                  User     @relation(fields: [changedBy], references: [id])
-  
-  @@index([entityType, entityId])
-  @@index([changedAt])
-}
-
-model UserNotificationSettings {
-  id                    String   @id @default(cuid())
-  userId                String   @unique
-  user                  User     @relation(fields: [userId], references: [id])
-  emailNotifications    Boolean  @default(true)
-  telegramNotifications Boolean  @default(false)
-  telegramChatId        String?
-  notifyNewOrder        Boolean  @default(true)
-  notifyStatusChange    Boolean  @default(true)
-  notifyAssignment      Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-}
-
-model ProfnastilType {
-  id                      String    @id @default(cuid())
-  name                    String
-  description             String?
-  metalThickness          Float
-  fullWidth               Int
-  usefulWidth             Int
-  length                  Int
-  coating                 String
-  color                   String?
-  purchasePricePerUnit    Float?
-  retailPricePerUnit      Float
-  validFrom               DateTime?
-  validUntil              DateTime?
-  active                  Boolean   @default(true)
-  image                   String?
-  priority                Int       @default(0)
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-
-  @@index([active])
-  @@index([validUntil])
-  @@index([coating])
-  @@index([name])
-  @@index([priority])
-  @@unique([name, metalThickness, coating, color], name: "profnastil_unique_combination")
-}
-
-model PicketType {
-  id                      String    @id @default(cuid())
-  name                    String
-  description             String?
-  metalThickness          Float
-  width                   Int
-  length                  Int
-  coating                 String
-  color                   String?
-  purchasePricePerMeter   Float?
-  retailPricePerMeter     Float
-  validFrom               DateTime?
-  validUntil              DateTime?
-  active                  Boolean   @default(true)
-  image                   String?
-  priority                Int       @default(0)
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-
-  @@index([active])
-  @@index([validUntil])
-  @@index([coating])
-  @@index([name])
-  @@index([priority])
-  @@unique([name, metalThickness, coating, color], name: "picket_unique_combination")
-}
-
-model GateType {
-  id                    String    @id @default(cuid())
-  name                  String
-  description           String?
-  type                  String
-  metalThickness        Float
-  sectionWidth          Float
-  sectionHeight         Float
-  gateHeight            Float
-  gateLength            Float
-  retailPrice           Float
-  purchasePrice         Float?
-  image                 String?
-  active                Boolean   @default(true)
-  priority              Int       @default(0)
-  validFrom             DateTime?
-  expirationDate        DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
-  @@index([active])
-  @@index([type])
-  @@index([validFrom])
-  @@index([expirationDate])
-  @@index([priority])
-  @@index([sectionWidth, sectionHeight, metalThickness, gateLength])
-}
-
-model WicketType {
-  id                    String    @id @default(cuid())
-  name                  String
-  description           String?
-  metalThickness        Float
-  sectionWidth          Float
-  sectionHeight         Float
-  wicketHeight          Float
-  wicketLength          Float
-  retailPrice           Float
-  purchasePrice         Float?
-  image                 String?
-  active                Boolean   @default(true)
-  priority              Int       @default(0)
-  validFrom             DateTime?
-  expirationDate        DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
-  @@index([active])
-  @@index([validFrom])
-  @@index([expirationDate])
-  @@index([priority])
-  @@index([sectionWidth, sectionHeight, metalThickness, wicketLength])
-}
-
-model FenceEstimate {
-  id                String    @id @default(cuid())
-  fenceTypeId       String
-  fenceType         FenceType @relation(fields: [fenceTypeId], references: [id])
-  length            Float
-  height            Float
-  lagRows           Int
-  postsTotal        Float
-  lagsTotal         Float
-  profnastilTotal   Float
-  installationTotal Float
-  materialsTotal    Float
-  grandTotal        Float
-  items             Json
-  userId            String?
-  sessionId         String?
-  userAgent         String?
-  ipAddress         String?
-  createdAt         DateTime  @default(now())
-
-  @@index([fenceTypeId])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([sessionId])
+  @@unique([workId, fenceType])
+  @@index([fenceType])
 }

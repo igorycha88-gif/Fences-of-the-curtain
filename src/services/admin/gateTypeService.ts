@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { GateTypeInput, GateTypeUpdate } from '@/lib/validators/gateType';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
+import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 
 export class GateTypeService {
   async getAll(params: {
@@ -170,6 +171,8 @@ export class GateTypeService {
     if (!oldGate) {
       throw new Error('Ворота не найдены');
     }
+
+    await mountingHardwareService.deleteRelationsForReference('GATE', id);
 
     await prisma.gateType.delete({
       where: { id },

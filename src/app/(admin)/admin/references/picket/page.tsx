@@ -10,6 +10,8 @@ import { PICKET_COATING_TYPES } from '@/lib/validators/picketType';
 import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
+import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
 
 interface PicketType {
   id: string;
@@ -577,6 +579,19 @@ export default function PicketPage() {
             />
             <label htmlFor="active" className="text-sm font-medium">Активен</label>
           </div>
+
+          {isAdmin && editingItem && (
+            <RelatedMountingHardware
+              referenceType="PICKET"
+              referenceId={editingItem.id}
+            />
+          )}
+
+          {isAdmin && editingItem && (
+            <RelatedWorks
+              fenceType="PICKET"
+            />
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>

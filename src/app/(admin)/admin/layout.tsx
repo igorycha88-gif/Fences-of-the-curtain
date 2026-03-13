@@ -201,6 +201,30 @@ export default function AdminLayout({
                 Калитки
               </a>
             </li>
+            <li>
+              <a 
+                href="/admin/references/mounting-hardware" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/mounting-hardware')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Монтажная фурнитура
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/admin/references/works" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/references/works')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Работы по монтажу
+              </a>
+            </li>
           </ul>
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t">

@@ -11,6 +11,7 @@ import { ColumnHeaderWithTooltip } from '@/components/admin/References/ColumnHea
 import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 
 interface LagType {
   id: string;
@@ -575,6 +576,13 @@ export default function LagsPage() {
               />
             </div>
           )}
+
+            {isAdmin && editingLag && (
+              <RelatedMountingHardware
+                referenceType="LAG"
+                referenceId={editingLag.id}
+              />
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
