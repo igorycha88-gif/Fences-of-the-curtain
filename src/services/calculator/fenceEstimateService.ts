@@ -4,8 +4,9 @@ import { calculatePosts, PostCalculationResult } from './postCalculator';
 import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculateInstallation, InstallationCalculationResult } from './installationCalculator';
+import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult;
 
 export interface FenceEstimateResult {
   estimateId: string;
@@ -58,14 +59,27 @@ export async function calculateFenceEstimate(
     Promise.resolve(calculateInstallation(length)),
   ]);
 
+  const mountingHardwareResult = await calculateMountingHardware({
+    fenceLengthM: length,
+    fenceHeightM: height,
+    postsCount: postsResult.quantity,
+    lagsCount: lagsResult.quantity,
+    profnastilCount: profnastilResult.quantity,
+    postTypeId: postsResult.nomenclatureId,
+    lagTypeId: lagsResult.nomenclatureId,
+    profnastilTypeId: profnastilResult.nomenclatureId,
+  });
+
   const items: EstimateItem[] = [
     postsResult,
     lagsResult,
     profnastilResult,
     installationResult,
+    ...mountingHardwareResult,
   ];
 
-  const materials = postsResult.totalPrice + lagsResult.totalPrice + profnastilResult.totalPrice;
+  const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
+  const materials = postsResult.totalPrice + lagsResult.totalPrice + profnastilResult.totalPrice + mountingHardwareTotal;
   const installation = installationResult.totalPrice;
   const grandTotal = materials + installation;
 
@@ -78,6 +92,7 @@ export async function calculateFenceEstimate(
       postsTotal: postsResult.totalPrice,
       lagsTotal: lagsResult.totalPrice,
       profnastilTotal: profnastilResult.totalPrice,
+      mountingHardwareTotal,
       installationTotal: installation,
       materialsTotal: materials,
       grandTotal,

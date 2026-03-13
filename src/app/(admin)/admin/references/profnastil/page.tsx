@@ -9,6 +9,8 @@ import { COATING_TYPES } from '@/lib/validators/profnastilType';
 import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
+import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
 
 interface ProfnastilType {
   id: string;
@@ -576,6 +578,19 @@ export default function ProfnastilPage() {
             />
             <label htmlFor="active" className="text-sm font-medium">Активен</label>
           </div>
+
+          {isAdmin && editingItem && (
+            <RelatedMountingHardware
+              referenceType="PROFNASTIL"
+              referenceId={editingItem.id}
+            />
+          )}
+
+          {isAdmin && editingItem && (
+            <RelatedWorks
+              fenceType="PROFNASTIL"
+            />
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>

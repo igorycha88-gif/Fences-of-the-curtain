@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PostTypeInput, PostTypeUpdate } from '@/lib/validators/postType';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
+import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 
 export interface PostDuplicate {
   id: string;
@@ -278,6 +279,8 @@ export class PostTypeService {
     if (!oldPost) {
       throw new Error('Столб не найден');
     }
+
+    await mountingHardwareService.deleteRelationsForReference('POST', id);
 
     await prisma.postType.delete({
       where: { id },

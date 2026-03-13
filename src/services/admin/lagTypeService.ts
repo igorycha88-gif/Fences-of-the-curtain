@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { LagTypeInput, LagTypeUpdate } from '@/lib/validators/lagType';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
+import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 
 export interface LagDuplicate {
   id: string;
@@ -276,6 +277,8 @@ export class LagTypeService {
     if (!oldLag) {
       throw new Error('Лага не найдена');
     }
+
+    await mountingHardwareService.deleteRelationsForReference('LAG', id);
 
     await prisma.lagType.delete({
       where: { id },

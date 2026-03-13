@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { ProfnastilTypeInput, ProfnastilTypeUpdate } from '@/lib/validators/profnastilType';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
+import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 
 export class ProfnastilTypeService {
   async getAll(params: {
@@ -198,6 +199,8 @@ export class ProfnastilTypeService {
     if (!oldItem) {
       throw new Error('Номенклатура не найдена');
     }
+
+    await mountingHardwareService.deleteRelationsForReference('PROFNASTIL', id);
 
     await prisma.profnastilType.delete({
       where: { id },

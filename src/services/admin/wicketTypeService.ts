@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { WicketTypeInput, WicketTypeUpdate } from '@/lib/validators/wicketType';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
+import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 
 export class WicketTypeService {
   async getAll(params: {
@@ -163,6 +164,8 @@ export class WicketTypeService {
     if (!oldWicket) {
       throw new Error('Калитка не найдена');
     }
+
+    await mountingHardwareService.deleteRelationsForReference('WICKET', id);
 
     await prisma.wicketType.delete({
       where: { id },
