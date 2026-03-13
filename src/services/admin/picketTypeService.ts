@@ -4,6 +4,7 @@ import { PicketTypeInput, PicketTypeUpdate } from '@/lib/validators/picketType';
 import { calculatePricePerUnit, calculatePicketMargin } from '@/lib/utils/priceCalculator';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
+import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 
 export class PicketTypeService {
   async getAll(params: {
@@ -210,6 +211,8 @@ export class PicketTypeService {
     if (!oldItem) {
       throw new Error('Номенклатура не найдена');
     }
+
+    await mountingHardwareService.deleteRelationsForReference('PICKET', id);
 
     await prisma.picketType.delete({
       where: { id },

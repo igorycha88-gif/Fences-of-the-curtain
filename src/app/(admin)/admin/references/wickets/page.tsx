@@ -11,6 +11,8 @@ import { ColumnHeaderWithTooltip } from '@/components/admin/References/ColumnHea
 import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
+import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
 
 interface WicketType {
   id: string;
@@ -522,6 +524,19 @@ export default function WicketsPage() {
             />
             <label htmlFor="active" className="text-sm font-medium">Активен</label>
           </div>
+
+          {isAdmin && editingWicket && (
+            <RelatedMountingHardware
+              referenceType="WICKET"
+              referenceId={editingWicket.id}
+            />
+          )}
+
+          {isAdmin && editingWicket && (
+            <RelatedWorks
+              fenceType="WICKET"
+            />
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
