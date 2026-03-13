@@ -16,12 +16,13 @@ const lagTypeBaseSchema = z.object({
   metalThickness: z.number()
     .min(1.0, 'Толщина металла должна быть не менее 1.0 мм')
     .max(5.0, 'Толщина металла не должна превышать 5.0 мм'),
-  basePricePerMeter: z.number()
+  retailPricePerUnit: z.number()
     .min(0, 'Розничная стоимость должна быть не менее 0'),
   length: z.number()
-    .min(1.5, 'Длина должна быть не менее 1.5 метров')
-    .max(6.0, 'Длина не должна превышать 6.0 метров'),
-  purchasePricePerMeter: z.number()
+    .int('Длина должна быть целым числом')
+    .min(1500, 'Длина должна быть не менее 1500 мм')
+    .max(6000, 'Длина не должна превышать 6000 мм'),
+  purchasePricePerUnit: z.number()
     .min(0, 'Цена закупки должна быть не менее 0')
     .nullable()
     .optional(),

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     
     if (!isAdmin && result.posts) {
       result.posts = result.posts.map((post: any) => {
-        const { purchasePricePerMeter, ...postWithoutPurchasePrice } = post;
+        const { purchasePricePerUnit, ...postWithoutPurchasePrice } = post;
         return postWithoutPurchasePrice;
       });
     }

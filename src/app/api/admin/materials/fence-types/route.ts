@@ -35,26 +35,35 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[FENCE-TYPES POST] Starting create fence type...');
+    
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
+      console.log('[FENCE-TYPES POST] Unauthorized - no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!hasPermission(session.user.role as any, 'materials')) {
+      console.log('[FENCE-TYPES POST] Forbidden - no permission, role:', session.user.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
+    console.log('[FENCE-TYPES POST] Request body:', JSON.stringify(body, null, 2));
+
     const validatedData = fenceTypeSchema.parse(body);
+    console.log('[FENCE-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const type = await fenceTypeService.create(validatedData, session.user.id);
+    const result = await fenceTypeService.create(validatedData, session.user.id);
+    console.log('[FENCE-TYPES POST] Created fence type with id:', result.id);
 
-    return NextResponse.json({ id: type.id }, { status: 201 });
+    return NextResponse.json({ id: result.id }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating fence type:', error);
+    console.error('[FENCE-TYPES POST] Error creating fence type:', error);
     
     if (error.name === 'ZodError') {
+      console.error('[FENCE-TYPES POST] Validation errors:', error.errors);
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     

@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { FenceTypeInput, FenceTypeUpdate } from '@/lib/validators/fenceType';
+import { fenceTypeCalculatorService } from '@/services/calculator/fenceTypeCalculatorService';
+import { getNextPriority } from '@/lib/utils/priorityUtils';
+import { priorityService } from '@/services/admin/priorityService';
 
 export class FenceTypeService {
   async getAll(params: {
@@ -30,7 +33,7 @@ export class FenceTypeService {
         where,
         skip,
         take: pageSize,
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { priority: 'asc' },
       }),
       prisma.fenceType.count({ where }),
     ]);
@@ -56,11 +59,30 @@ export class FenceTypeService {
   }
 
   async create(data: FenceTypeInput, userId: string) {
+    const allItems = await prisma.fenceType.findMany({
+      select: { id: true, priority: true },
+    }) as any;
+    const nextPriority = getNextPriority(allItems);
+
     const type = await prisma.fenceType.create({
-      data,
+      data: {
+        ...data,
+        priority: nextPriority,
+      },
     });
 
-    await this.logChange(type.id, 'CREATE', null, type, userId);
+    await prisma.referenceChangeLog.create({
+      data: {
+        entityType: 'FenceType',
+        entityId: type.id,
+        fieldName: 'priority',
+        oldValue: undefined,
+        newValue: type.priority,
+        changedBy: userId,
+      },
+    });
+
+    await fenceTypeCalculatorService.invalidateCache();
 
     return type;
   }
@@ -80,6 +102,7 @@ export class FenceTypeService {
     });
 
     await this.logChange(id, 'UPDATE', oldType, type, userId);
+    await fenceTypeCalculatorService.invalidateCache();
 
     return type;
   }
@@ -103,7 +126,25 @@ export class FenceTypeService {
       where: { id },
     });
 
-    await this.logChange(id, 'DELETE', oldType, null, userId);
+    if (oldType) {
+      await prisma.referenceChangeLog.create({
+        data: {
+          entityType: 'FenceType',
+          entityId: id,
+          fieldName: 'deleted',
+          oldValue: {
+            id: oldType.id,
+            name: oldType.name,
+            priority: oldType.priority,
+          },
+          newValue: undefined,
+          changedBy: userId,
+        },
+      });
+    }
+
+    await priorityService.recalculateAfterDelete('fenceType', userId);
+    await fenceTypeCalculatorService.invalidateCache();
   }
 
   async toggleActive(id: string, userId: string) {
@@ -121,6 +162,7 @@ export class FenceTypeService {
     });
 
     await this.logChange(id, 'TOGGLE_ACTIVE', oldType, type, userId);
+    await fenceTypeCalculatorService.invalidateCache();
 
     return type;
   }

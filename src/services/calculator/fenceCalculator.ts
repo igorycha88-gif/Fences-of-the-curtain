@@ -15,7 +15,7 @@ interface WorkItem {
 }
 
 export interface FenceCalculatorInput {
-  fenceType: 'PROFNASTIL' | 'SHAKHETNIK' | 'MESH' | 'PANELS_3D';
+  fenceTypeId: string;
   length: number;
   height: number;
   postType: string;
@@ -30,6 +30,8 @@ export interface FenceCalculatorInput {
   color?: string;
   soilType: string;
   region?: string;
+  difficultyCoef?: number;
+  postSpacing?: number;
 }
 
 export interface FenceCalculatorResult {
@@ -53,9 +55,12 @@ export async function calculateFence(
     hasWicket,
     wicketWidth = 1,
     soilType,
+    postSpacing = 2500,
+    difficultyCoef = 1.0,
   } = input;
 
-  const postsCount = Math.ceil(length / 2.5) + 1;
+  const postSpacingM = postSpacing / 1000;
+  const postsCount = Math.ceil(length / postSpacingM) + 1;
   const lagsLength = length * lagRows;
   const coverageArea = length * height;
 
@@ -147,7 +152,7 @@ export async function calculateFence(
   });
 
   const materialsTotal = materials.reduce((sum, m) => sum + m.total, 0);
-  const worksTotal = works.reduce((sum, w) => sum + w.total, 0);
+  const worksTotal = works.reduce((sum, w) => sum + w.total, 0) * difficultyCoef;
 
   const soilSurchargeCoef = getSoilSurcharge(soilType);
   const soilSurcharge = (materialsTotal + worksTotal) * (soilSurchargeCoef - 1);

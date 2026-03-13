@@ -8,8 +8,10 @@ import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
 import { formatDimension, formatPrice, formatSection } from '@/lib/utils/formatters';
 import { LAGS_COLUMN_TOOLTIPS } from '@/lib/constants/columnTooltips';
 import { ColumnHeaderWithTooltip } from '@/components/admin/References/ColumnHeaderWithTooltip';
+import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 
 interface LagType {
   id: string;
@@ -18,13 +20,14 @@ interface LagType {
   width: number;
   height: number;
   metalThickness: number;
-  basePricePerMeter: number;
+  retailPricePerUnit: number;
   length: number;
-  purchasePricePerMeter: number | null;
+  purchasePricePerUnit: number | null;
   image: string | null;
   active: boolean;
   validFrom: string | null;
   expirationDate: string | null;
+  priority: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,7 +45,7 @@ interface DuplicateWarning {
   duplicates: Array<{
     id: string;
     name: string;
-    basePricePerMeter: number;
+    retailPricePerUnit: number;
     validFrom: string | null;
     expirationDate: string | null;
     active: boolean;
@@ -130,9 +133,9 @@ export default function LagsPage() {
       width: 40,
       height: 20,
       metalThickness: 2.0,
-      basePricePerMeter: 150,
-      length: 2.5,
-      purchasePricePerMeter: null,
+      retailPricePerUnit: 150,
+      length: 2500,
+      purchasePricePerUnit: null,
       active: true,
       validFrom: null,
       expirationDate: null,
@@ -149,9 +152,9 @@ export default function LagsPage() {
       width: lag.width,
       height: lag.height,
       metalThickness: lag.metalThickness,
-      basePricePerMeter: lag.basePricePerMeter,
+      retailPricePerUnit: lag.retailPricePerUnit,
       length: lag.length,
-      purchasePricePerMeter: lag.purchasePricePerMeter,
+      purchasePricePerUnit: lag.purchasePricePerUnit,
       active: lag.active,
       validFrom: lag.validFrom,
       expirationDate: lag.expirationDate,
@@ -199,12 +202,27 @@ export default function LagsPage() {
     }
   };
 
+  const handlePriorityChange = async (id: string, newPriority: number) => {
+    const response = await fetch('/api/admin/lag-types/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, newPriority }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Ошибка изменения приоритета');
+    }
+
+    fetchLags();
+  };
+
   const handleFormChange = (name: string, value: any) => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePurchasePriceChange = (value: number | null) => {
-    setFormValues((prev) => ({ ...prev, purchasePricePerMeter: value }));
+    setFormValues((prev) => ({ ...prev, purchasePricePerUnit: value }));
   };
 
   const handleConfirmDuplicate = () => {
@@ -227,10 +245,14 @@ export default function LagsPage() {
         : '/api/admin/lag-types';
       const method = editingLag ? 'PUT' : 'POST';
 
+      const submitData = {
+        ...formValues,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formValues),
+        body: JSON.stringify(submitData),
       });
 
       const data = await response.json();
@@ -276,13 +298,13 @@ export default function LagsPage() {
     },
     { 
       key: 'length', 
-      label: <ColumnHeaderWithTooltip title="Длина (м)" tooltip={LAGS_COLUMN_TOOLTIPS.length} />, 
-      render: (lag: LagType) => formatDimension(lag.length)
+      label: <ColumnHeaderWithTooltip title="Длина (мм)" tooltip={LAGS_COLUMN_TOOLTIPS.length} />, 
+      render: (lag: LagType) => `${Math.round(lag.length)} мм`
     },
     { 
-      key: 'basePricePerMeter', 
-      label: <ColumnHeaderWithTooltip title="Розничная стоимость (₽)" tooltip={LAGS_COLUMN_TOOLTIPS.basePricePerMeter} />, 
-      render: (lag: LagType) => formatPrice(lag.basePricePerMeter)
+      key: 'retailPricePerUnit', 
+      label: <ColumnHeaderWithTooltip title="Розничная стоимость (₽)" tooltip={LAGS_COLUMN_TOOLTIPS.retailPricePerUnit} />, 
+      render: (lag: LagType) => formatPrice(lag.retailPricePerUnit)
     },
     {
       key: 'validFrom',
@@ -312,40 +334,33 @@ export default function LagsPage() {
       },
     },
     ...(isAdmin ? [{
-      key: 'purchasePricePerMeter' as const,
-      label: <ColumnHeaderWithTooltip title="Цена закупки за ед. (₽)" tooltip={LAGS_COLUMN_TOOLTIPS.purchasePricePerMeter} />,
+      key: 'purchasePricePerUnit' as const,
+      label: <ColumnHeaderWithTooltip title="Цена закупки за ед. (₽)" tooltip={LAGS_COLUMN_TOOLTIPS.purchasePricePerUnit} />,
       render: (lag: LagType) => {
-        if (lag.purchasePricePerMeter === null) {
+        if (lag.purchasePricePerUnit === null) {
           return <span className="text-gray-400">Не указана</span>;
         }
-        const margin = calculateMargin(lag.basePricePerMeter, lag.purchasePricePerMeter);
+        const margin = calculateMargin(lag.retailPricePerUnit, lag.purchasePricePerUnit);
         const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
         return (
-          <span title={`Цена закупки: ${lag.purchasePricePerMeter} ₽\nМаржа: ${margin?.marginPercent.toFixed(1)}%`}>
-            {formatPrice(lag.purchasePricePerMeter)} {marginEmoji}
+          <span title={`Цена закупки: ${lag.purchasePricePerUnit} ₽\nМаржа: ${margin?.marginPercent.toFixed(1)}%`}>
+            {formatPrice(lag.purchasePricePerUnit)} {marginEmoji}
           </span>
         );
       }
     }] : []),
     { 
-      key: 'active', 
-      label: 'Активен',
+      key: 'priority', 
+      label: 'Приоритет',
       render: (lag: LagType) => (
-        <button
-          onClick={() => handleToggleActive(lag)}
-          className="cursor-pointer hover:scale-110 transition-transform duration-200 inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
-          title="Нажмите, чтобы изменить статус"
-        >
-          {lag.active ? (
-            <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          )}
-        </button>
+        <PriorityColumn
+          value={lag.priority}
+          totalItems={total}
+          onChange={async (newPriority) => {
+            await handlePriorityChange(lag.id, newPriority);
+            toast.success('Приоритет обновлён');
+          }}
+        />
       )
     },
   ];
@@ -400,7 +415,7 @@ export default function LagsPage() {
               {duplicateWarning.duplicates.map((dup) => (
                 <div key={dup.id} className="bg-white p-3 rounded mb-2 text-sm">
                   <div className="font-medium">{dup.name || 'Без названия'}</div>
-                  <div>Розничная цена: {dup.basePricePerMeter} ₽</div>
+                  <div>Розничная цена: {dup.retailPricePerUnit} ₽</div>
                   <div>Период: {formatValidFrom(dup.validFrom)} - {formatDate(dup.expirationDate)}</div>
                   <div>Статус: {dup.active ? 'Активна' : 'Неактивна'}</div>
                 </div>
@@ -485,15 +500,15 @@ export default function LagsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Длина (м) *</label>
+                <label className="block text-sm font-medium mb-1">Длина (мм) *</label>
                 <input
                   type="number"
                   value={formValues.length || ''}
-                  onChange={(e) => handleFormChange('length', parseFloat(e.target.value))}
+                  onChange={(e) => handleFormChange('length', parseInt(e.target.value))}
                   className="w-full border rounded px-3 py-2"
-                  min={1.5}
-                  max={6.0}
-                  step={0.1}
+                  min={1500}
+                  max={6000}
+                  step={1}
                   required
                 />
               </div>
@@ -503,8 +518,8 @@ export default function LagsPage() {
               <label className="block text-sm font-medium mb-1">Розничная стоимость (₽) *</label>
               <input
                 type="number"
-                value={formValues.basePricePerMeter || ''}
-                onChange={(e) => handleFormChange('basePricePerMeter', parseFloat(e.target.value))}
+                value={formValues.retailPricePerUnit || ''}
+                onChange={(e) => handleFormChange('retailPricePerUnit', parseFloat(e.target.value))}
                 className="w-full border rounded px-3 py-2"
                 min={0}
                 step={0.01}
@@ -552,14 +567,21 @@ export default function LagsPage() {
               <label htmlFor="active" className="text-sm font-medium">Активен</label>
             </div>
 
-            {isAdmin && (
-              <div className="mt-4">
-                <SimplifiedPurchasePriceInput
-                  purchasePricePerMeter={formValues.purchasePricePerMeter ?? null}
-                  basePricePerMeter={formValues.basePricePerMeter || 0}
-                  onChange={handlePurchasePriceChange}
-                />
-              </div>
+          {isAdmin && (
+            <div className="mt-4">
+              <SimplifiedPurchasePriceInput
+                purchasePrice={formValues.purchasePricePerUnit ?? null}
+                retailPrice={formValues.retailPricePerUnit || 0}
+                onChange={handlePurchasePriceChange}
+              />
+            </div>
+          )}
+
+            {isAdmin && editingLag && (
+              <RelatedMountingHardware
+                referenceType="LAG"
+                referenceId={editingLag.id}
+              />
             )}
 
             <div className="flex justify-end gap-2 pt-4">

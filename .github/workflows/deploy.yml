@@ -1,0 +1,49 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 37.143.13.196
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            cd /root/Fences-of-the-curtain
+            
+            # Backup current deployment
+            sudo -u postgres pg_dump -U postgres fences > backup_$(date +%Y%m%d_%H%M%S).sql || true
+            
+            # Pull latest changes
+            git fetch origin
+            git reset --hard origin/master
+            
+            # Install dependencies
+            npm install --legacy-peer-deps --silent
+            
+            # Build application
+            npm run build --legacy-peer-deps
+            
+            # Push schema changes to database
+            npx prisma@5.10.0 db push
+            
+            # Restart application with PM2
+            pm2 restart fences-app || pm2 start npm --name "fences-app" -- start
+            pm2 save
+            
+            # Health check
+            sleep 5
+            curl -f http://localhost:3000/ || exit 1

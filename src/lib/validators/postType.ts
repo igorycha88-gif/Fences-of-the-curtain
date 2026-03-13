@@ -21,8 +21,10 @@ const postTypeBaseSchema = z.object({
   length: z.number()
     .min(1.5, 'Длина должна быть не менее 1.5 метров')
     .max(6.0, 'Длина не должна превышать 6.0 метров'),
-  purchasePricePerMeter: z.number()
-    .min(0, 'Цена закупки должна быть не менее 0')
+  retailPricePerUnit: z.number()
+    .min(0, 'Розничная цена за единицу должна быть не менее 0'),
+  purchasePricePerUnit: z.number()
+    .min(0, 'Закупочная цена за единицу должна быть не менее 0')
     .nullable()
     .optional(),
   image: z.string().optional(),

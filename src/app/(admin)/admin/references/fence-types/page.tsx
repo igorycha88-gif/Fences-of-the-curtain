@@ -5,6 +5,7 @@ import { DataTable } from '@/components/admin/References/DataTable';
 import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
 import { FenceTypeInput } from '@/lib/validators/fenceType';
+import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 
 interface FenceType {
@@ -16,7 +17,7 @@ interface FenceType {
   postSpacing: number;
   defaultLagRows: number;
   active: boolean;
-  sortOrder: number;
+  priority: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,10 +69,10 @@ export default function FenceTypesPage() {
       name: '',
       description: '',
       difficultyCoef: 1.0,
-      postSpacing: 2.5,
+      postSpacing: 2500,
       defaultLagRows: 2,
       active: true,
-      sortOrder: 0,
+      priority: 0,
     });
     setIsModalOpen(true);
   };
@@ -86,7 +87,7 @@ export default function FenceTypesPage() {
       postSpacing: type.postSpacing,
       defaultLagRows: (type.defaultLagRows === 2 || type.defaultLagRows === 3 ? type.defaultLagRows : 2) as 2 | 3,
       active: type.active,
-      sortOrder: type.sortOrder,
+      priority: type.priority,
     });
     setIsModalOpen(true);
   };
@@ -129,6 +130,21 @@ export default function FenceTypesPage() {
       console.error('Error toggling fence type:', error);
       toast.error('Ошибка изменения статуса');
     }
+  };
+
+  const handlePriorityChange = async (id: string, newPriority: number) => {
+    const response = await fetch('/api/admin/materials/fence-types/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, newPriority }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Ошибка изменения приоритета');
+    }
+
+    fetchTypes();
   };
 
   const handleFormChange = (name: string, value: any) => {
@@ -177,12 +193,24 @@ export default function FenceTypesPage() {
     },
     {
       key: 'postSpacing',
-      label: 'Шаг столбов (м)',
-      render: (type: FenceType) => type.postSpacing.toFixed(1),
+      label: 'Шаг столбов (мм)',
+      render: (type: FenceType) => type.postSpacing,
     },
     { key: 'defaultLagRows', label: 'Кол-во лаг' },
-    { key: 'sortOrder', label: 'Порядок' },
-    { key: 'active', label: 'Активен' },
+    { 
+      key: 'priority', 
+      label: 'Приоритет',
+      render: (type: FenceType) => (
+        <PriorityColumn
+          value={type.priority}
+          totalItems={total}
+          onChange={async (newPriority) => {
+            await handlePriorityChange(type.id, newPriority);
+            toast.success('Приоритет обновлён');
+          }}
+        />
+      )
+    },
   ];
 
   const formFields = [
@@ -199,12 +227,12 @@ export default function FenceTypesPage() {
     },
     {
       name: 'postSpacing',
-      label: 'Шаг установки столбов (м)',
+      label: 'Шаг установки столбов (мм)',
       type: 'number' as const,
       required: true,
-      min: 1.5,
-      max: 4.0,
-      step: 0.1,
+      min: 1000,
+      max: 5000,
+      step: 50,
     },
     {
       name: 'defaultLagRows',
@@ -216,7 +244,6 @@ export default function FenceTypesPage() {
         { value: '3', label: '3 ряда' },
       ],
     },
-    { name: 'sortOrder', label: 'Порядок сортировки', type: 'number' as const },
     { name: 'active', label: 'Активен', type: 'checkbox' as const },
   ];
 

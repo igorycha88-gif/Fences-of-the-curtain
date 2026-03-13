@@ -2,8 +2,8 @@ export const LAGS_COLUMN_TOOLTIPS = {
   section: 'Размеры поперечного сечения профиля в миллиметрах (ширина x высота)',
   metalThickness: 'Толщина металла стенки профиля в миллиметрах',
   length: 'Длина лаги в метрах',
-  basePricePerMeter: 'Розничная цена за один метр погонный в рублях',
-  purchasePricePerMeter: 'Цена закупки за один метр погонный в рублях (только для ADMIN)',
+  retailPricePerUnit: 'Розничная цена за единицу (целую лагу) в рублях',
+  purchasePricePerUnit: 'Цена закупки за единицу (целую лагу) в рублях (только для ADMIN)',
 } as const;
 
 export const POSTS_COLUMN_TOOLTIPS = {
@@ -11,5 +11,25 @@ export const POSTS_COLUMN_TOOLTIPS = {
   sectionHeight: 'Высота поперечного сечения столба в миллиметрах',
   wallThickness: 'Толщина металла стенки столба в миллиметрах',
   pricePerMeter: 'Розничная цена за один метр погонный столба в рублях',
+  retailPricePerUnit: 'Розничная цена за один столб в рублях',
   purchasePrice: 'Цена закупки за один столб в рублях (только для ADMIN)',
+} as const;
+
+export const GATES_COLUMN_TOOLTIPS = {
+  type: 'Тип ворот: распашные (открываются на петлях) или откатные (отодвигаются в сторону)',
+  metalThickness: 'Толщина металла каркаса ворот в миллиметрах',
+  section: 'Размеры поперечного сечения профиля каркаса в миллиметрах (ширина x высота)',
+  gateHeight: 'Высота ворот в миллиметрах',
+  gateLength: 'Длина/ширина проёма ворот в миллиметрах',
+  retailPrice: 'Розничная стоимость ворот в рублях',
+  purchasePrice: 'Цена закупки за ворота в рублях (только для ADMIN)',
+} as const;
+
+export const WICKETS_COLUMN_TOOLTIPS = {
+  metalThickness: 'Толщина металла каркаса калитки в миллиметрах',
+  section: 'Размеры поперечного сечения профиля каркаса в миллиметрах (ширина x высота)',
+  wicketHeight: 'Высота калитки в миллиметрах',
+  wicketLength: 'Длина/ширина калитки в миллиметрах',
+  retailPrice: 'Розничная стоимость калитки в рублях',
+  purchasePrice: 'Цена закупки за калитку в рублях (только для ADMIN)',
 } as const;

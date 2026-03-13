@@ -63,49 +63,6 @@ async function main() {
 
   console.log(`Created ${fenceTypes.length} fence types`);
 
-  // Coating Types
-  const coatingTypes = await Promise.all([
-    prisma.coatingType.upsert({
-      where: { id: 'coating-galvanized' },
-      update: {},
-      create: {
-        id: 'coating-galvanized',
-        name: 'Оцинковка',
-        description: 'Базовое цинковое покрытие',
-        baseCost: 0,
-        markupCoef: 1.0,
-        active: true,
-      },
-    }),
-    prisma.coatingType.upsert({
-      where: { id: 'coating-polymer-single' },
-      update: {},
-      create: {
-        id: 'coating-polymer-single',
-        name: 'Полимерное одностороннее',
-        description: 'Полимерное покрытие с одной стороны',
-        baseCost: 50,
-        markupCoef: 1.15,
-        active: true,
-      },
-    }),
-    prisma.coatingType.upsert({
-      where: { id: 'coating-polymer-double' },
-      update: {},
-      create: {
-        id: 'coating-polymer-double',
-        name: 'Полимерное двустороннее',
-        description: 'Полимерное покрытие с двух сторон',
-        baseCost: 80,
-        markupCoef: 1.25,
-        active: true,
-      },
-    }),
-  ]);
-
-  console.log(`Created ${coatingTypes.length} coating types`);
-
-  // Lag Types
   const lagTypes = await Promise.all([
     prisma.lagType.upsert({
       where: { id: 'lag-40x20x2.0' },
@@ -117,9 +74,9 @@ async function main() {
         width: 40,
         height: 20,
         metalThickness: 2.0,
-        basePricePerMeter: 150,
-        length: 2.5,
-        purchasePricePerMeter: 120,
+        retailPricePerUnit: 150,
+        length: 2500,
+        purchasePricePerUnit: 120,
         active: true,
       },
     }),
@@ -133,9 +90,9 @@ async function main() {
         width: 40,
         height: 20,
         metalThickness: 1.5,
-        basePricePerMeter: 120,
-        length: 2.5,
-        purchasePricePerMeter: 95,
+        retailPricePerUnit: 120,
+        length: 2500,
+        purchasePricePerUnit: 95,
         active: true,
       },
     }),
@@ -149,9 +106,9 @@ async function main() {
         width: 40,
         height: 40,
         metalThickness: 2.0,
-        basePricePerMeter: 200,
-        length: 2.5,
-        purchasePricePerMeter: 160,
+        retailPricePerUnit: 200,
+        length: 2500,
+        purchasePricePerUnit: 160,
         active: true,
       },
     }),
@@ -173,7 +130,8 @@ async function main() {
         wallThickness: 2.0,
         pricePerMeter: 300,
         length: 2.5,
-        purchasePricePerMeter: 240,
+        retailPricePerUnit: 750,
+        purchasePricePerUnit: 600,
         active: true,
       },
     }),
@@ -189,7 +147,8 @@ async function main() {
         wallThickness: 2.5,
         pricePerMeter: 350,
         length: 2.5,
-        purchasePricePerMeter: 280,
+        retailPricePerUnit: 875,
+        purchasePricePerUnit: 700,
         active: true,
       },
     }),
@@ -205,7 +164,8 @@ async function main() {
         wallThickness: 2.5,
         pricePerMeter: 450,
         length: 2.5,
-        purchasePricePerMeter: 360,
+        retailPricePerUnit: 1125,
+        purchasePricePerUnit: 900,
         active: true,
       },
     }),

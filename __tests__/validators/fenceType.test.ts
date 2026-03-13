@@ -11,7 +11,7 @@ describe('FenceType Validators', () => {
         postSpacing: 2.5,
         defaultLagRows: 2,
         active: true,
-        sortOrder: 0,
+        priority: 0,
       };
 
       const result = fenceTypeSchema.safeParse(validData);
@@ -30,7 +30,7 @@ describe('FenceType Validators', () => {
         expect(result.data.postSpacing).toBe(2.5);
         expect(result.data.defaultLagRows).toBe(2);
         expect(result.data.active).toBe(true);
-        expect(result.data.sortOrder).toBe(0);
+        expect(result.data.priority).toBe(0);
       }
     });
 

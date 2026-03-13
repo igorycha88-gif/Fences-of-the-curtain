@@ -12,7 +12,8 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
-        purchasePricePerMeter: 240,
+        retailPricePerUnit: 750,
+        purchasePricePerUnit: 600,
         active: true,
       };
 
@@ -28,6 +29,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(minimalData);
@@ -45,6 +47,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -62,6 +65,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -79,6 +83,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -96,6 +101,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -113,6 +119,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 1.4,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -130,6 +137,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 5.1,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -147,6 +155,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: -10,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -161,6 +170,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 3.0,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(validData);
@@ -178,6 +188,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 1.0,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
@@ -192,13 +203,14 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 7.0,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
 
-    it('should allow null purchasePricePerMeter', () => {
+    it('should allow null purchasePricePerUnit', () => {
       const dataWithNull = {
         name: 'Тестовый столб',
         sectionWidth: 60,
@@ -206,14 +218,15 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
-        purchasePricePerMeter: null,
+        retailPricePerUnit: 750,
+        purchasePricePerUnit: null,
       };
 
       const result = postTypeSchema.safeParse(dataWithNull);
       expect(result.success).toBe(true);
     });
 
-    it('should allow undefined purchasePricePerMeter', () => {
+    it('should allow undefined purchasePricePerUnit', () => {
       const dataWithoutPurchase = {
         name: 'Тестовый столб',
         sectionWidth: 60,
@@ -221,13 +234,14 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
       };
 
       const result = postTypeSchema.safeParse(dataWithoutPurchase);
       expect(result.success).toBe(true);
     });
 
-    it('should reject negative purchasePricePerMeter', () => {
+    it('should reject negative purchasePricePerUnit', () => {
       const invalidData = {
         name: 'Тестовый столб',
         sectionWidth: 60,
@@ -235,14 +249,15 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
-        purchasePricePerMeter: -10,
+        retailPricePerUnit: 750,
+        purchasePricePerUnit: -10,
       };
 
       const result = postTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
 
-    it('should validate valid purchasePricePerMeter', () => {
+    it('should validate valid purchasePricePerUnit', () => {
       const validData = {
         name: 'Тестовый столб',
         sectionWidth: 60,
@@ -250,13 +265,14 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
-        purchasePricePerMeter: 240,
+        retailPricePerUnit: 750,
+        purchasePricePerUnit: 240,
       };
 
       const result = postTypeSchema.safeParse(validData);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.purchasePricePerMeter).toBe(240);
+        expect(result.data.purchasePricePerUnit).toBe(240);
       }
     });
 
@@ -268,6 +284,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
         availableLengths: [{ length: 2.5, pricePerMeter: 300 }],
       };
 
@@ -286,6 +303,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
         purchasePrices: [{ length: 2.5, purchasePrice: 240 }],
       };
 
@@ -304,6 +322,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
         validFrom: new Date('2026-01-01'),
         expirationDate: new Date('2026-12-31'),
       };
@@ -320,6 +339,7 @@ describe('PostType Validators - new unified structure', () => {
         wallThickness: 2.5,
         pricePerMeter: 300,
         length: 2.5,
+        retailPricePerUnit: 750,
         validFrom: new Date('2026-12-31'),
         expirationDate: new Date('2026-01-01'),
       };
@@ -357,27 +377,27 @@ describe('PostType Validators - new unified structure', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should validate purchasePricePerMeter in updates', () => {
+    it('should validate purchasePricePerUnit in updates', () => {
       const updateData = {
-        purchasePricePerMeter: 250,
+        purchasePricePerUnit: 250,
       };
 
       const result = postTypeUpdateSchema.safeParse(updateData);
       expect(result.success).toBe(true);
     });
 
-    it('should allow null purchasePricePerMeter in updates', () => {
+    it('should allow null purchasePricePerUnit in updates', () => {
       const updateData = {
-        purchasePricePerMeter: null,
+        purchasePricePerUnit: null,
       };
 
       const result = postTypeUpdateSchema.safeParse(updateData);
       expect(result.success).toBe(true);
     });
 
-    it('should reject negative purchasePricePerMeter in updates', () => {
+    it('should reject negative purchasePricePerUnit in updates', () => {
       const updateData = {
-        purchasePricePerMeter: -10,
+        purchasePricePerUnit: -10,
       };
 
       const result = postTypeUpdateSchema.safeParse(updateData);

@@ -25,7 +25,7 @@ export async function GET(
     const isAdmin = session.user.role === 'ADMIN';
     
     if (!isAdmin) {
-      const { purchasePricePerMeter, ...lagWithoutPurchasePrice } = lag;
+      const { purchasePricePerUnit, ...lagWithoutPurchasePrice } = lag;
       return NextResponse.json(lagWithoutPurchasePrice);
     }
 
@@ -60,7 +60,7 @@ export async function PUT(
     
     const isAdmin = session.user.role === 'ADMIN';
 
-    if (!isAdmin && body.purchasePricePerMeter !== undefined) {
+    if (!isAdmin && body.purchasePricePerUnit !== undefined) {
       console.log('[LAG-TYPES PUT] Forbidden - non-admin trying to modify purchase prices');
       return NextResponse.json(
         { error: 'Only ADMIN can modify purchase prices' },

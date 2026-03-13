@@ -16,13 +16,13 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const type = await fenceTypeService.getById(params.id);
+    const fenceType = await fenceTypeService.getById(params.id);
 
-    if (!type) {
+    if (!fenceType) {
       return NextResponse.json({ error: 'Тип забора не найден' }, { status: 404 });
     }
 
-    return NextResponse.json(type);
+    return NextResponse.json(fenceType);
   } catch (error) {
     console.error('Error fetching fence type:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -34,26 +34,35 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('[FENCE-TYPES PUT] Starting update fence type, id:', params.id);
+    
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
+      console.log('[FENCE-TYPES PUT] Unauthorized - no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!hasPermission(session.user.role as any, 'materials')) {
+      console.log('[FENCE-TYPES PUT] Forbidden - no permission, role:', session.user.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
+    console.log('[FENCE-TYPES PUT] Request body:', JSON.stringify(body, null, 2));
+
     const validatedData = fenceTypeUpdateSchema.parse(body);
+    console.log('[FENCE-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
     await fenceTypeService.update(params.id, validatedData, session.user.id);
+    console.log('[FENCE-TYPES PUT] Updated successfully');
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error updating fence type:', error);
+    console.error('[FENCE-TYPES PUT] Error updating fence type:', error);
     
     if (error.name === 'ZodError') {
+      console.error('[FENCE-TYPES PUT] Validation errors:', error.errors);
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     
@@ -113,9 +122,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const type = await fenceTypeService.toggleActive(params.id, session.user.id);
+    const fenceType = await fenceTypeService.toggleActive(params.id, session.user.id);
 
-    return NextResponse.json(type);
+    return NextResponse.json(fenceType);
   } catch (error: any) {
     console.error('Error toggling fence type active status:', error);
     
