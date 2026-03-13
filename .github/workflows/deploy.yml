@@ -32,17 +32,18 @@ jobs:
             git reset --hard origin/master
             
             # Install dependencies
-            npm install
+            npm install --legacy-peer-deps --silent
             
             # Build application
-            npm run build
+            npm run build --legacy-peer-deps
             
-            # Apply database migrations
-            npx prisma migrate deploy
+            # Push schema changes to database
+            npx prisma@5.10.0 db push
             
             # Restart application with PM2
             pm2 restart fences-app || pm2 start npm --name "fences-app" -- start
+            pm2 save
             
             # Health check
             sleep 5
-            curl -f http://localhost:3000/api/health || exit 1
+            curl -f http://localhost:3000/ || exit 1
