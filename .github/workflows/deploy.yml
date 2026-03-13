@@ -1,10 +1,8 @@
 name: Deploy to VPS
 
 on:
-  workflow_run:
-    workflows: ["Bump Version"]
-    types: [completed]
-    branches: [master]
+  repository_dispatch:
+    types: [deploy-triggered]
   workflow_dispatch:
 
 permissions:
