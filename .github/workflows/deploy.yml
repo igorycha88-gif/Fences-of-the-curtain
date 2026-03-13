@@ -1,0 +1,45 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 37.143.13.196
+          username: vps_key
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            
+            # Backup current deployment
+            docker-compose exec -T db pg_dump -U ${{ secrets.DB_USER }} ${{ secrets.DB_NAME }} > backup_$(date +%Y%m%d_%H%M%S).sql || true
+            
+            # Pull latest changes
+            git fetch origin
+            git reset --hard origin/master
+            
+            # Build and restart services
+            docker-compose down
+            docker-compose pull
+            docker-compose build --no-cache
+            docker-compose up -d
+            
+            # Apply database migrations
+            docker-compose exec -T app npx prisma migrate deploy
+            
+            # Health check
+            sleep 10
+            curl -f http://localhost:3000/api/health || exit 1
