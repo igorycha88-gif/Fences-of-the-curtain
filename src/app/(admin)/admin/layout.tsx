@@ -3,9 +3,9 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { LogOut } from 'lucide-react';
+import { LogOut, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -15,6 +15,7 @@ export default function AdminLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
 
   useEffect(() => {
     console.log('[ADMIN LAYOUT] Session status:', status);
@@ -24,6 +25,21 @@ export default function AdminLayout({
       router.push('/login');
     }
   }, [status, router]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('referencesCollapsed');
+    if (saved !== null) {
+      setIsReferencesCollapsed(JSON.parse(saved));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('referencesCollapsed', JSON.stringify(isReferencesCollapsed));
+  }, [isReferencesCollapsed]);
+
+  const toggleReferences = () => {
+    setIsReferencesCollapsed(!isReferencesCollapsed);
+  };
 
   const handleLogout = async () => {
     console.log('[ADMIN LAYOUT] Logging out...');
@@ -81,7 +97,7 @@ export default function AdminLayout({
                 href="/admin/dashboard" 
                 className={`block px-6 py-3 rounded-lg transition-colors ${
                   isActive('/admin/dashboard')
-                    ? 'bg-blue-600 text-white font-semibold'
+                    ? 'bg-primary text-white font-semibold'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -93,138 +109,165 @@ export default function AdminLayout({
                 href="/admin/orders" 
                 className={`block px-6 py-3 rounded-lg transition-colors ${
                   isActive('/admin/orders')
-                    ? 'bg-blue-600 text-white font-semibold'
+                    ? 'bg-primary text-white font-semibold'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 Заявки
               </a>
             </li>
-            <li>
-              <a 
-                href="/admin/users" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/users')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Пользователи
-              </a>
-            </li>
             <li className="pt-4 border-t mt-4">
-              <div className="px-6 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Справочники
+              <button
+                onClick={toggleReferences}
+                className="w-full px-6 py-2 flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  <span>Справочники</span>
+                </div>
+                {isReferencesCollapsed ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+            </li>
+            {!isReferencesCollapsed && (
+              <div className="max-h-[calc(100vh-400px)] overflow-y-auto custom-scrollbar">
+                <li>
+                  <a 
+                    href="/admin/references/fence-types" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/fence-types')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Типы заборов
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/lags" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/lags')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Лаги
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/posts" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/posts')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Столбы
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/profnastil" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/profnastil')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Профнастил
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/picket" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/picket')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Евроштакетник
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/gates" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/gates')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Ворота
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/wickets" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/wickets')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Калитки
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/mounting-hardware" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/mounting-hardware')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Монтажная фурнитура
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/works" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/works')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Работы по монтажу
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/references/contact-info" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/contact-info')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Контактная информация
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/admin/users" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/users')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Пользователи
+                  </a>
+                </li>
               </div>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/fence-types" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/fence-types')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Типы заборов
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/lags" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/lags')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Лаги
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/posts" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/posts')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Столбы
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/profnastil" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/profnastil')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Профнастил
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/picket" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/picket')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Евроштакетник
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/gates" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/gates')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Ворота
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/wickets" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/wickets')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Калитки
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/mounting-hardware" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/mounting-hardware')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Монтажная фурнитура
-              </a>
-            </li>
-            <li>
-              <a 
-                href="/admin/references/works" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/references/works')
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Работы по монтажу
-              </a>
-            </li>
+            )}
           </ul>
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t">

@@ -526,3 +526,15 @@ model WorkRelation {
   @@unique([workId, fenceType])
   @@index([fenceType])
 }
+
+model ContactInfo {
+  id              String   @id @default(cuid())
+  address         String   @default("")
+  phone           String   @default("")
+  email           String   @default("")
+  workHoursMonFri String   @default("")
+  workHoursSat    String   @default("")
+  workHoursSun    String   @default("")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
