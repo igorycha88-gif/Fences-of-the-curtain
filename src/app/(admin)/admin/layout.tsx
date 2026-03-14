@@ -116,6 +116,18 @@ export default function AdminLayout({
                 Заявки
               </a>
             </li>
+            <li>
+              <a 
+                href="/admin/estimates" 
+                className={`block px-6 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/estimates')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Расчеты
+              </a>
+            </li>
             <li className="pt-4 border-t mt-4">
               <button
                 onClick={toggleReferences}

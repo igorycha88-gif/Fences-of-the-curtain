@@ -24,6 +24,7 @@ model User {
   priceHistory         PriceHistory[]
   referenceChangeLogs  ReferenceChangeLog[]
   notificationSettings UserNotificationSettings?
+  estimates            FenceEstimate[]
 }
 
 model FenceMaterial {
@@ -431,12 +432,15 @@ model FenceEstimate {
   wicketNomenclatureName String?
   wicketTotal           Float     @default(0)
   wicketInstallationTotal Float   @default(0)
+  city                  String?
   fenceType             FenceType @relation(fields: [fenceTypeId], references: [id])
+  user                  User?     @relation(fields: [userId], references: [id])
 
   @@index([fenceTypeId])
   @@index([userId])
   @@index([createdAt])
   @@index([sessionId])
+  @@index([city])
 }
 
 model MountingHardware {
