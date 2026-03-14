@@ -1,0 +1,576 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Download, X } from 'lucide-react';
+
+interface Estimate {
+  id: string;
+  createdAt: string;
+  fenceType: { id: string; name: string };
+  length: number;
+  height: number;
+  grandTotal: number;
+  hasGate: boolean;
+  hasWicket: boolean;
+  city: string | null;
+  deviceType: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+}
+
+interface EstimateDetail extends Estimate {
+  lagRows: number;
+  coating: string;
+  gateType: string | null;
+  gateLength: number | null;
+  gateNomenclatureName: string | null;
+  gateTotal: number;
+  gateInstallationTotal: number;
+  wicketWidth: number | null;
+  wicketNomenclatureName: string | null;
+  wicketTotal: number;
+  wicketInstallationTotal: number;
+  postsTotal: number;
+  lagsTotal: number;
+  profnastilTotal: number;
+  mountingHardwareTotal: number;
+  installationTotal: number;
+  materialsTotal: number;
+  items: any[];
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
+interface FenceType {
+  id: string;
+  name: string;
+}
+
+const coatingLabels: Record<string, string> = {
+  GALVANIZED: 'Оцинкованный',
+  POLYMER_SINGLE: 'Односторонний полимер',
+  POLYMER_DOUBLE: 'Двусторонний полимер',
+};
+
+export default function EstimatesPage() {
+  const [estimates, setEstimates] = useState<Estimate[]>([]);
+  const [fenceTypes, setFenceTypes] = useState<FenceType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEstimate, setSelectedEstimate] = useState<EstimateDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  const [filters, setFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    fenceTypeId: '',
+    minCost: '',
+    maxCost: '',
+    hasGate: '',
+    hasWicket: '',
+    deviceType: '',
+    search: '',
+  });
+
+  useEffect(() => {
+    fetchFenceTypes();
+  }, []);
+
+  useEffect(() => {
+    fetchEstimates();
+  }, [page, filters]);
+
+  const fetchFenceTypes = async () => {
+    try {
+      const res = await fetch('/api/admin/fence-types');
+      const data = await res.json();
+      setFenceTypes(data.fenceTypes || data || []);
+    } catch (error) {
+      console.error('Error fetching fence types:', error);
+    }
+  };
+
+  const fetchEstimates = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('pageSize', pageSize.toString());
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+
+      const res = await fetch(`/api/admin/estimates?${params.toString()}`);
+      const data = await res.json();
+      setEstimates(data.estimates || []);
+      setTotal(data.total || 0);
+    } catch (error) {
+      console.error('Error fetching estimates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchEstimateDetail = async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/admin/estimates/${id}`);
+      const data = await res.json();
+      setSelectedEstimate(data);
+    } catch (error) {
+      console.error('Error fetching estimate detail:', error);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value);
+    });
+
+    window.open(`/api/admin/estimates/export?${params.toString()}`, '_blank');
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      dateFrom: '',
+      dateTo: '',
+      fenceTypeId: '',
+      minCost: '',
+      maxCost: '',
+      hasGate: '',
+      hasWicket: '',
+      deviceType: '',
+      search: '',
+    });
+    setPage(1);
+  };
+
+  const totalPages = Math.ceil(total / pageSize);
+
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('ru-RU') + ' ₽';
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Расчеты калькулятора</h1>
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Экспорт в Excel
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md border mb-6">
+        <div className="p-6 space-y-4">
+          <div className="flex gap-4 flex-wrap">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Дата с</label>
+              <input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Дата по</label>
+              <input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Тип забора</label>
+              <select
+                value={filters.fenceTypeId}
+                onChange={(e) => setFilters({ ...filters, fenceTypeId: e.target.value })}
+                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Все</option>
+                {fenceTypes.map((ft) => (
+                  <option key={ft.id} value={ft.id}>{ft.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Стоимость от</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={filters.minCost}
+                onChange={(e) => setFilters({ ...filters, minCost: e.target.value })}
+                className="w-28 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Стоимость до</label>
+              <input
+                type="number"
+                placeholder="999999"
+                value={filters.maxCost}
+                onChange={(e) => setFilters({ ...filters, maxCost: e.target.value })}
+                className="w-28 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          </div>
+          <div className="flex gap-4 flex-wrap">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Ворота</label>
+              <select
+                value={filters.hasGate}
+                onChange={(e) => setFilters({ ...filters, hasGate: e.target.value })}
+                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Все</option>
+                <option value="true">Да</option>
+                <option value="false">Нет</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Калитка</label>
+              <select
+                value={filters.hasWicket}
+                onChange={(e) => setFilters({ ...filters, hasWicket: e.target.value })}
+                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Все</option>
+                <option value="true">Да</option>
+                <option value="false">Нет</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Устройство</label>
+              <select
+                value={filters.deviceType}
+                onChange={(e) => setFilters({ ...filters, deviceType: e.target.value })}
+                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Все</option>
+                <option value="desktop">Десктоп</option>
+                <option value="mobile">Мобильный</option>
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm text-gray-600 mb-1">Поиск</label>
+              <input
+                type="text"
+                placeholder="Город, email..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={resetFilters}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Сбросить
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md border">
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Загрузка...</div>
+        ) : estimates.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">Нет расчетов</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">ID</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Дата</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Тип забора</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Размер</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Стоимость</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Ворота</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Калитка</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Город</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Устройство</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Пользователь</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estimates.map((estimate) => (
+                  <tr
+                    key={estimate.id}
+                    onClick={() => fetchEstimateDetail(estimate.id)}
+                    className="border-b hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="py-3 px-4 text-sm text-gray-600">#{estimate.id.slice(0, 8)}</td>
+                    <td className="py-3 px-4 text-sm">
+                      {new Date(estimate.createdAt).toLocaleDateString('ru-RU')}
+                    </td>
+                    <td className="py-3 px-4">{estimate.fenceType?.name || '-'}</td>
+                    <td className="py-3 px-4">{estimate.length}м × {estimate.height}м</td>
+                    <td className="py-3 px-4 font-medium">{formatPrice(estimate.grandTotal)}</td>
+                    <td className="py-3 px-4">
+                      {estimate.hasGate ? (
+                        <span className="text-green-600">Да</span>
+                      ) : (
+                        <span className="text-gray-400">Нет</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      {estimate.hasWicket ? (
+                        <span className="text-green-600">Да</span>
+                      ) : (
+                        <span className="text-gray-400">Нет</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">{estimate.city || '-'}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        estimate.deviceType === 'mobile'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {estimate.deviceType === 'mobile' ? 'Мобильный' : 'Десктоп'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {estimate.user ? (
+                        <div>
+                          <div className="font-medium">{estimate.user.name || 'Без имени'}</div>
+                          <div className="text-sm text-gray-500">{estimate.user.email}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">Гость</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="text-sm text-gray-500">
+              Показано {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, total)} из {total}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ←
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (page <= 3) {
+                  pageNum = i + 1;
+                } else if (page >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = page - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`px-3 py-1 border rounded ${
+                      page === pageNum
+                        ? 'bg-primary text-white'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {selectedEstimate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold">Расчет #{selectedEstimate.id.slice(0, 8)}</h2>
+              <button
+                onClick={() => setSelectedEstimate(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {detailLoading ? (
+              <div className="p-8 text-center text-gray-500">Загрузка...</div>
+            ) : (
+              <div className="p-6 space-y-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Основные параметры</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Тип забора:</span>
+                      <span className="font-medium">{selectedEstimate.fenceType?.name}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Размер:</span>
+                      <span className="font-medium">{selectedEstimate.length}м × {selectedEstimate.height}м</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Покрытие:</span>
+                      <span className="font-medium">{coatingLabels[selectedEstimate.coating] || selectedEstimate.coating}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Лаги:</span>
+                      <span className="font-medium">{selectedEstimate.lagRows} ряда</span>
+                    </div>
+                  </div>
+                </div>
+
+                {(selectedEstimate.hasGate || selectedEstimate.hasWicket) && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-3">Дополнительно</h3>
+                    <div className="space-y-2 text-sm">
+                      {selectedEstimate.hasGate && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span className="text-gray-600">Ворота:</span>
+                          <span className="font-medium">
+                            {selectedEstimate.gateNomenclatureName || selectedEstimate.gateType || 'Ворота'}
+                            {selectedEstimate.gateLength && ` ${selectedEstimate.gateLength / 1000}м`}
+                            {' — '}{formatPrice(selectedEstimate.gateTotal)}
+                          </span>
+                        </div>
+                      )}
+                      {selectedEstimate.hasWicket && (
+                        <div className="flex justify-between py-2 border-b">
+                          <span className="text-gray-600">Калитка:</span>
+                          <span className="font-medium">
+                            {selectedEstimate.wicketNomenclatureName || 'Калитка'}
+                            {selectedEstimate.wicketWidth && ` ${selectedEstimate.wicketWidth / 1000}м`}
+                            {' — '}{formatPrice(selectedEstimate.wicketTotal)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Стоимость</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Столбы:</span>
+                      <span>{formatPrice(selectedEstimate.postsTotal)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Лаги:</span>
+                      <span>{formatPrice(selectedEstimate.lagsTotal)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Профнастил:</span>
+                      <span>{formatPrice(selectedEstimate.profnastilTotal)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Монтажная фурнитура:</span>
+                      <span>{formatPrice(selectedEstimate.mountingHardwareTotal)}</span>
+                    </div>
+                    {selectedEstimate.hasGate && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-600">Ворота:</span>
+                        <span>{formatPrice(selectedEstimate.gateTotal)}</span>
+                      </div>
+                    )}
+                    {selectedEstimate.hasWicket && (
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-600">Калитка:</span>
+                        <span>{formatPrice(selectedEstimate.wicketTotal)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Работы:</span>
+                      <span>{formatPrice(selectedEstimate.installationTotal)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 font-semibold text-base">
+                      <span>ИТОГО:</span>
+                      <span>{formatPrice(selectedEstimate.grandTotal)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Пользователь</h3>
+                  {selectedEstimate.user ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-600">Имя:</span>
+                        <span>{selectedEstimate.user.name || '-'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-600">Email:</span>
+                        <span>{selectedEstimate.user.email || '-'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-gray-600">Телефон:</span>
+                        <span>{selectedEstimate.user.phone || '-'}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400">Гость</p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Метаданные</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Город:</span>
+                      <span>{selectedEstimate.city || '-'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Устройство:</span>
+                      <span>{selectedEstimate.deviceType === 'mobile' ? 'Мобильный' : 'Десктоп'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">IP:</span>
+                      <span>{selectedEstimate.ipAddress || '-'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Дата:</span>
+                      <span>{new Date(selectedEstimate.createdAt).toLocaleString('ru-RU')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
