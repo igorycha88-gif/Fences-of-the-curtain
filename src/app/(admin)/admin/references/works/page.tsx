@@ -8,10 +8,25 @@ import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import { X, Plus } from 'lucide-react';
 
+interface ReferenceItem {
+  id: string;
+  name: string;
+}
+
+interface ReferenceOption {
+  type: string;
+  name: string;
+  items: ReferenceItem[];
+}
+
 interface Relation {
   id: string;
-  fenceType: string;
+  fenceType?: string | null;
   fenceTypeName?: string;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  referenceTypeName?: string;
+  referenceItemName?: string;
 }
 
 interface Work {
@@ -58,6 +73,12 @@ const UNIT_LABELS: Record<string, string> = {
   M2: 'м²',
 };
 
+interface FormRelation {
+  fenceType?: string;
+  referenceType?: string;
+  referenceId?: string;
+}
+
 export default function WorksPage() {
   const [items, setItems] = useState<Work[]>([]);
   const [total, setTotal] = useState(0);
@@ -69,6 +90,7 @@ export default function WorksPage() {
   const [editingItem, setEditingItem] = useState<Work | null>(null);
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [fenceTypes, setFenceTypes] = useState<FenceType[]>([]);
+  const [referenceOptions, setReferenceOptions] = useState<ReferenceOption[]>([]);
   
   const [formValues, setFormValues] = useState<{
     name: string;
@@ -79,7 +101,7 @@ export default function WorksPage() {
     useInCalculator: boolean;
     sortOrder: number;
     active: boolean;
-    relations: { fenceType: string }[];
+    relations: FormRelation[];
   }>({
     name: '',
     description: '',
@@ -112,6 +134,15 @@ export default function WorksPage() {
         setFenceTypes(data);
       })
       .catch((err) => console.error('Error fetching fence types:', err));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/admin/works/reference-options')
+      .then((res) => res.json())
+      .then((data) => {
+        setReferenceOptions(data.references || []);
+      })
+      .catch((err) => console.error('Error fetching reference options:', err));
   }, []);
 
   const fetchItems = async () => {
@@ -173,7 +204,9 @@ export default function WorksPage() {
       sortOrder: item.sortOrder,
       active: item.active,
       relations: item.relations.map((r) => ({
-        fenceType: r.fenceType,
+        fenceType: r.fenceType || undefined,
+        referenceType: r.referenceType || undefined,
+        referenceId: r.referenceId || undefined,
       })),
     });
     setIsModalOpen(true);
@@ -223,11 +256,20 @@ export default function WorksPage() {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  const addRelation = () => {
+  const addFenceTypeRelation = () => {
     setFormValues((prev) => ({
       ...prev,
       relations: [...prev.relations, { fenceType: 'PROFNASTIL' }],
     }));
+  };
+
+  const addReferenceRelation = () => {
+    if (referenceOptions.length > 0) {
+      setFormValues((prev) => ({
+        ...prev,
+        relations: [...prev.relations, { referenceType: referenceOptions[0].type, referenceId: '' }],
+      }));
+    }
   };
 
   const removeRelation = (index: number) => {
@@ -237,7 +279,7 @@ export default function WorksPage() {
     }));
   };
 
-  const updateRelation = (index: number, fenceType: string) => {
+  const updateFenceTypeRelation = (index: number, fenceType: string) => {
     setFormValues((prev) => {
       const newRelations = [...prev.relations];
       newRelations[index] = { fenceType };
@@ -245,8 +287,24 @@ export default function WorksPage() {
     });
   };
 
+  const updateReferenceRelation = (index: number, field: 'referenceType' | 'referenceId', value: string) => {
+    setFormValues((prev) => {
+      const newRelations = [...prev.relations];
+      if (field === 'referenceType') {
+        newRelations[index] = { referenceType: value, referenceId: '' };
+      } else {
+        newRelations[index] = { ...newRelations[index], referenceId: value };
+      }
+      return { ...prev, relations: newRelations };
+    });
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validRelations = formValues.relations.filter((rel) => 
+      rel.fenceType || (rel.referenceType && rel.referenceId)
+    );
 
     try {
       const url = editingItem
@@ -257,7 +315,10 @@ export default function WorksPage() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formValues),
+        body: JSON.stringify({
+          ...formValues,
+          relations: validRelations,
+        }),
       });
 
       const data = await response.json();
@@ -309,8 +370,18 @@ export default function WorksPage() {
         if (!item.relations || item.relations.length === 0) {
           return <span className="text-gray-400">—</span>;
         }
-        const names = item.relations.map((r) => r.fenceTypeName || r.fenceType);
-        return <span className="text-sm">{names.join(', ')}</span>;
+        
+        const parts: string[] = [];
+        item.relations.forEach((r) => {
+          if (r.fenceType) {
+            parts.push(r.fenceTypeName || r.fenceType);
+          }
+          if (r.referenceType && r.referenceItemName) {
+            parts.push(`${r.referenceTypeName}: ${r.referenceItemName}`);
+          }
+        });
+        
+        return <span className="text-sm">{parts.join(', ')}</span>;
       },
     },
     {
@@ -336,6 +407,11 @@ export default function WorksPage() {
       },
     },
   ];
+
+  const getReferenceItems = (type: string) => {
+    const option = referenceOptions.find((o) => o.type === type);
+    return option?.items || [];
+  };
 
   return (
     <div className="container mx-auto py-8">
@@ -461,43 +537,93 @@ export default function WorksPage() {
           </div>
 
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-3">Привязка к типам заборов</h4>
+            <h4 className="font-medium mb-3">Привязка к номенклатуре</h4>
             
-            <div className="space-y-2 border rounded p-3 bg-gray-50">
-              {formValues.relations.map((rel, index) => (
-                <div key={index} className="flex gap-2 items-center">
-                  <select
-                    value={rel.fenceType}
-                    onChange={(e) => updateRelation(index, e.target.value)}
-                    className="border rounded px-2 py-1 flex-1"
-                  >
-                    {fenceTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeRelation(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+            <div className="space-y-2 border rounded p-3 bg-gray-50 mb-4">
+              <p className="text-xs text-gray-500 mb-2 font-medium">Ворота / Калитки</p>
+              {formValues.relations.filter((r) => r.referenceType).map((rel, idx) => {
+                const actualIndex = formValues.relations.indexOf(rel);
+                return (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <select
+                      value={rel.referenceType || ''}
+                      onChange={(e) => updateReferenceRelation(actualIndex, 'referenceType', e.target.value)}
+                      className="border rounded px-2 py-1 w-32"
+                    >
+                      {referenceOptions.map((opt) => (
+                        <option key={opt.type} value={opt.type}>{opt.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={rel.referenceId || ''}
+                      onChange={(e) => updateReferenceRelation(actualIndex, 'referenceId', e.target.value)}
+                      className="border rounded px-2 py-1 flex-1"
+                    >
+                      <option value="">Выберите позицию</option>
+                      {getReferenceItems(rel.referenceType || '').map((item) => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeRelation(actualIndex)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={addRelation}
+                onClick={addReferenceRelation}
+                className="w-full"
+                disabled={referenceOptions.length === 0}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить привязку к номенклатуре
+              </Button>
+            </div>
+
+            <div className="space-y-2 border rounded p-3 bg-gray-50">
+              <p className="text-xs text-gray-500 mb-2 font-medium">Типы заборов</p>
+              {formValues.relations.filter((r) => r.fenceType).map((rel, idx) => {
+                const actualIndex = formValues.relations.indexOf(rel);
+                return (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <select
+                      value={rel.fenceType || ''}
+                      onChange={(e) => updateFenceTypeRelation(actualIndex, e.target.value)}
+                      className="border rounded px-2 py-1 flex-1"
+                    >
+                      {fenceTypes.map((type) => (
+                        <option key={type.value} value={type.value}>{type.label}</option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeRelation(actualIndex)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addFenceTypeRelation}
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Добавить тип забора
               </Button>
-              <p className="text-xs text-gray-500 mt-2">
-                Привязка устанавливается вручную в карточке работы
-              </p>
             </div>
           </div>
 

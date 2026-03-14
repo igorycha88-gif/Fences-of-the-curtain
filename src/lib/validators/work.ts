@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { WorkCategory, WorkUnit } from '../enums/work';
 
+const relationSchema = z.object({
+  fenceType: z.string().optional(),
+  referenceType: z.enum(['GATE', 'WICKET']).optional(),
+  referenceId: z.string().optional(),
+}).refine(
+  (data) => data.fenceType || (data.referenceType && data.referenceId),
+  { message: 'Необходимо указать либо fenceType, либо referenceType + referenceId' }
+);
+
 export const createWorkSchema = z.object({
   name: z.string().min(2, 'Название должно содержать минимум 2 символа').max(200, 'Название должно содержать максимум 200 символов'),
   description: z.string().max(1000, 'Описание должно содержать максимум 1000 символов').optional(),
@@ -16,9 +25,7 @@ export const createWorkSchema = z.object({
   useInCalculator: z.boolean().default(false),
   sortOrder: z.number().default(0),
   active: z.boolean().default(true),
-  relations: z.array(z.object({
-    fenceType: z.string(),
-  })).optional(),
+  relations: z.array(relationSchema).optional(),
 });
 
 export const updateWorkSchema = z.object({
@@ -30,9 +37,7 @@ export const updateWorkSchema = z.object({
   useInCalculator: z.boolean().optional(),
   sortOrder: z.number().optional(),
   active: z.boolean().optional(),
-  relations: z.array(z.object({
-    fenceType: z.string(),
-  })).optional(),
+  relations: z.array(relationSchema).optional(),
 });
 
 export const workQuerySchema = z.object({
@@ -41,8 +46,11 @@ export const workQuerySchema = z.object({
   active: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   useInCalculator: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   fenceType: z.string().optional(),
+  referenceType: z.enum(['GATE', 'WICKET']).optional(),
+  referenceId: z.string().optional(),
 });
 
 export type CreateWorkInput = z.infer<typeof createWorkSchema>;
 export type UpdateWorkInput = z.infer<typeof updateWorkSchema>;
 export type WorkQueryInput = z.infer<typeof workQuerySchema>;
+export type WorkRelationInput = z.infer<typeof relationSchema>;

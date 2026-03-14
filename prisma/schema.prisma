@@ -524,15 +524,19 @@ model Work {
 }
 
 model WorkRelation {
-  id        String   @id @default(cuid())
-  workId    String
-  fenceType String
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  workId        String
+  fenceType     String?
+  referenceType String?
+  referenceId   String?
+  createdAt     DateTime @default(now())
 
-  work      Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  work          Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
 
-  @@unique([workId, fenceType])
+  @@unique([workId, fenceType, referenceType, referenceId])
   @@index([fenceType])
+  @@index([referenceType])
+  @@index([referenceId])
 }
 
 model ContactInfo {
