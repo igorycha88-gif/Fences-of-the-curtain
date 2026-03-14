@@ -13,7 +13,7 @@ echo "=== Using Fence Type ID: $FIRST_TYPE_ID ==="
 # Делаем тестовый запрос к estimate
 ESTIMATE_RESPONSE=$(curl -s -X POST http://localhost:3001/api/calculator/fence/estimate \
   -H "Content-Type: application/json" \
-  -d "{\"fenceTypeId\":\"$FIRST_TYPE_ID\",\"length\":50,\"height\":2.0,\"lagRows\":2}")
+  -d "{\"fenceTypeId\":\"$FIRST_TYPE_ID\",\"length\":50,\"height\":2.0,\"lagRows\":2,\"coating\":\"POLYMER_SINGLE\"}")
 
 echo ""
 echo "=== Estimate Response ==="
@@ -23,4 +23,4 @@ echo ""
 echo "=== Response Status Code ==="
 curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3001/api/calculator/fence/estimate \
   -H "Content-Type: application/json" \
-  -d "{\"fenceTypeId\":\"$FIRST_TYPE_ID\",\"length\":50,\"height\":2.0,\"lagRows\":2}"
+  -d "{\"fenceTypeId\":\"$FIRST_TYPE_ID\",\"length\":50,\"height\":2.0,\"lagRows\":2,\"coating\":\"POLYMER_SINGLE\"}"

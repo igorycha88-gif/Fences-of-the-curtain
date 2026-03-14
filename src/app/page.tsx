@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
@@ -18,7 +19,31 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+interface ContactInfoData {
+  phone: string;
+  email: string;
+  hasData: boolean;
+}
+
 export default function HomePage() {
+  const [contactInfo, setContactInfo] = useState<ContactInfoData | null>(null);
+
+  useEffect(() => {
+    fetchContactInfo();
+  }, []);
+
+  const fetchContactInfo = async () => {
+    try {
+      const response = await fetch('/api/contact-info');
+      const data = await response.json();
+      if (response.ok) {
+        setContactInfo(data);
+      }
+    } catch (error) {
+      console.error('Error fetching contact info:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -297,8 +322,8 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold mb-4">Контакты</h4>
               <ul className="space-y-2 text-muted-foreground text-sm">
-                <li>+7 (900) 123-45-67</li>
-                <li>info@fences.ru</li>
+                <li>{contactInfo?.phone || 'Данные не указаны'}</li>
+                <li>{contactInfo?.email || 'Данные не указаны'}</li>
                 <li>Пн-Сб: 9:00 - 18:00</li>
               </ul>
             </div>

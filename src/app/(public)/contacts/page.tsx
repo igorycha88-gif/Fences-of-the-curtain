@@ -1,9 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
+
+interface ContactInfoData {
+  address: string;
+  phone: string;
+  email: string;
+  workHours: {
+    monFri: string;
+    sat: string;
+    sun: string;
+  };
+  hasData: boolean;
+}
 
 export default function ContactsPage() {
   const [formData, setFormData] = useState({
@@ -15,6 +27,23 @@ export default function ContactsPage() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [contactInfoData, setContactInfoData] = useState<ContactInfoData | null>(null);
+
+  useEffect(() => {
+    fetchContactInfo();
+  }, []);
+
+  const fetchContactInfo = async () => {
+    try {
+      const response = await fetch('/api/contact-info');
+      const data = await response.json();
+      if (response.ok) {
+        setContactInfoData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching contact info:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,28 +84,34 @@ export default function ContactsPage() {
     {
       icon: MapPin,
       title: 'Адрес',
-      content: 'г. Москва, ул. Строительная, д. 15',
+      content: contactInfoData?.address || 'Данные не указаны',
       href: null,
     },
     {
       icon: Phone,
       title: 'Телефон',
-      content: '+7 (900) 123-45-67',
-      href: 'tel:+79001234567',
+      content: contactInfoData?.phone || 'Данные не указаны',
+      href: contactInfoData?.phone ? `tel:${contactInfoData.phone.replace(/\D/g, '')}` : null,
     },
     {
       icon: Mail,
       title: 'Email',
-      content: 'info@fences.ru',
-      href: 'mailto:info@fences.ru',
+      content: contactInfoData?.email || 'Данные не указаны',
+      href: contactInfoData?.email ? `mailto:${contactInfoData.email}` : null,
     },
     {
       icon: Clock,
       title: 'Режим работы',
-      content: 'Пн-Пт: 9:00 - 18:00\nСб: 10:00 - 16:00',
+      content: contactInfoData?.workHours
+        ? `Пн-Пт: ${contactInfoData.workHours.monFri || 'не указано'}\nСб: ${contactInfoData.workHours.sat || 'не указано'}\nВс: ${contactInfoData.workHours.sun || 'не указано'}`
+        : 'Данные не указаны',
       href: null,
     },
   ];
+
+  const phoneForLink = contactInfoData?.phone
+    ? contactInfoData.phone.replace(/\D/g, '')
+    : '79001234567';
 
   return (
     <div className="min-h-screen bg-background">
@@ -228,11 +263,11 @@ export default function ContactsPage() {
                     Позвоните нам или оставьте заявку — мы поможем подобрать оптимальное решение
                   </p>
                   <a
-                    href="tel:+79001234567"
+                    href={`tel:${phoneForLink}`}
                     className="inline-flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-xl font-semibold hover:bg-white/90 transition-colors"
                   >
                     <Phone className="w-4 h-4" />
-                    +7 (900) 123-45-67
+                    {contactInfoData?.phone || '+7 (900) 123-45-67'}
                   </a>
                 </div>
               </AnimatedSection>

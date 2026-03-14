@@ -22,6 +22,7 @@ export interface FenceEstimateResult {
     length: number;
     height: number;
     lagRows: 2 | 3;
+    coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   };
   calculatedAt: string;
 }
@@ -36,7 +37,7 @@ export async function calculateFenceEstimate(
   input: FenceEstimateInput,
   metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
 ): Promise<FenceEstimateResult> {
-  const { fenceTypeId, length, height, lagRows } = input;
+  const { fenceTypeId, length, height, lagRows, coating } = input;
 
   const fenceType = await prisma.fenceType.findUnique({
     where: { id: fenceTypeId },
@@ -52,34 +53,59 @@ export async function calculateFenceEstimate(
   const postSpacingMm = fenceType.postSpacing;
   const postSpacingM = postSpacingMm / 1000;
 
-  const [postsResult, lagsResult, profnastilResult, installationResult] = await Promise.all([
+  const [postsResult, lagsResult, installationResult] = await Promise.all([
     calculatePosts(length, height, postSpacingM),
     calculateLags(length, lagRows),
-    calculateProfnastil(length, height),
     Promise.resolve(calculateInstallation(length)),
   ]);
+
+  let profnastilResult: ProfnastilCalculationResult | null = null;
+
+  if (fenceType.name === 'Профнастил') {
+    profnastilResult = await calculateProfnastil(length, height, coating);
+  } else if (fenceType.name === 'Евроштакетник') {
+    throw {
+      error: 'CALCULATOR_NOT_IMPLEMENTED',
+      message: 'Расчёт для типа забора "Евроштакетник" пока не реализован',
+    } as CalculationError;
+  } else if (fenceType.name === 'Сетка-рабица') {
+    throw {
+      error: 'CALCULATOR_NOT_IMPLEMENTED',
+      message: 'Расчёт для типа забора "Сетка-рабица" пока не реализован',
+    } as CalculationError;
+  } else if (fenceType.name === '3D -панели') {
+    throw {
+      error: 'CALCULATOR_NOT_IMPLEMENTED',
+      message: 'Расчёт для типа забора "3D -панели" пока не реализован',
+    } as CalculationError;
+  } else {
+    throw {
+      error: 'UNKNOWN_FENCE_TYPE',
+      message: `Неизвестный тип забора: ${fenceType.name}`,
+    } as CalculationError;
+  }
 
   const mountingHardwareResult = await calculateMountingHardware({
     fenceLengthM: length,
     fenceHeightM: height,
     postsCount: postsResult.quantity,
     lagsCount: lagsResult.quantity,
-    profnastilCount: profnastilResult.quantity,
+    profnastilCount: profnastilResult?.quantity || 0,
     postTypeId: postsResult.nomenclatureId,
     lagTypeId: lagsResult.nomenclatureId,
-    profnastilTypeId: profnastilResult.nomenclatureId,
+    profnastilTypeId: profnastilResult?.nomenclatureId || '',
   });
 
   const items: EstimateItem[] = [
     postsResult,
     lagsResult,
-    profnastilResult,
+    ...(profnastilResult ? [profnastilResult] : []),
     installationResult,
     ...mountingHardwareResult,
   ];
 
   const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
-  const materials = postsResult.totalPrice + lagsResult.totalPrice + profnastilResult.totalPrice + mountingHardwareTotal;
+  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + mountingHardwareTotal;
   const installation = installationResult.totalPrice;
   const grandTotal = materials + installation;
 
@@ -89,6 +115,7 @@ export async function calculateFenceEstimate(
       length,
       height,
       lagRows,
+      coating,
       postsTotal: postsResult.totalPrice,
       lagsTotal: lagsResult.totalPrice,
       profnastilTotal: profnastilResult.totalPrice,
@@ -118,6 +145,7 @@ export async function calculateFenceEstimate(
       length,
       height,
       lagRows,
+      coating,
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };
@@ -147,6 +175,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
       length: estimate.length,
       height: estimate.height,
       lagRows: estimate.lagRows as 2 | 3,
+      coating: estimate.coating as 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE',
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };

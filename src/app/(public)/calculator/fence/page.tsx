@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calculator, Download, Send, Zap, Shield, Clock, AlertCircle } from 'lucide-react';
+import { Calculator, Send, Zap, Shield, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
@@ -58,6 +58,7 @@ interface CalculatorResult {
     length: number;
     height: number;
     lagRows: number;
+    coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   };
   calculatedAt: string;
 }
@@ -147,6 +148,7 @@ export default function FenceCalculatorPage() {
           length: formData.length,
           height: formData.height,
           lagRows: parseInt(formData.lagRows) as 2 | 3,
+          coating: formData.coating,
         }),
       });
 
@@ -451,19 +453,12 @@ export default function FenceCalculatorPage() {
                       </div>
 
                       <div className="flex flex-col gap-3">
-                        <button
-                          className="btn-secondary flex items-center justify-center gap-2"
-                          onClick={() => alert('PDF скачивание будет реализовано')}
-                        >
-                          <Download className="w-4 h-4" />
-                          Скачать PDF
-                        </button>
                         <Link
                           href="/contacts"
                           className="btn-primary flex items-center justify-center gap-2"
                         >
                           <Send className="w-4 h-4" />
-                          Заказать расчёт
+                          Оформить заявку
                         </Link>
                       </div>
                     </div>
