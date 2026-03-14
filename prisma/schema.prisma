@@ -404,6 +404,7 @@ model FenceEstimate {
   length                Float
   height                Float
   lagRows               Int
+  coating               String    @default("POLYMER_SINGLE")
   postsTotal            Float
   lagsTotal             Float
   profnastilTotal       Float

@@ -1,6 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { roundUp } from '@/lib/utils/roundUp';
 
+export type CoatingType = 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
+
+const COATING_MAPPING = {
+  'GALVANIZED': 'Оцинковка',
+  'POLYMER_SINGLE': 'Полимерное (одностороннее)',
+  'POLYMER_DOUBLE': 'Полимерное (двустороннее)',
+} as const;
+
 export interface ProfnastilCalculationResult {
   category: 'profnastil';
   nomenclatureId: string;
@@ -9,6 +17,7 @@ export interface ProfnastilCalculationResult {
   unit: 'шт';
   pricePerUnit: number;
   totalPrice: number;
+  coating: string;
 }
 
 export interface ProfnastilCalculationError {
@@ -16,20 +25,24 @@ export interface ProfnastilCalculationError {
   message: string;
   details: {
     requiredHeight: number;
+    coating: string;
     suggestion: string;
   };
 }
 
 export async function calculateProfnastil(
   fenceLengthM: number,
-  fenceHeightM: number
+  fenceHeightM: number,
+  coating: CoatingType
 ): Promise<ProfnastilCalculationResult> {
   const now = new Date();
   const fenceHeightMm = Math.round(fenceHeightM * 1000);
+  const coatingValue = COATING_MAPPING[coating];
   
   const profnastils = await prisma.profnastilType.findMany({
     where: {
       active: true,
+      coating: coatingValue,
       OR: [
         { validUntil: null },
         { validUntil: { gt: now } },
@@ -46,10 +59,11 @@ export async function calculateProfnastil(
   if (matchingProfnastils.length === 0) {
     const error: ProfnastilCalculationError = {
       error: 'NO_PROFNASTIL_FOUND',
-      message: 'Не найден профнастил подходящей высоты',
+      message: 'Не найден профнастил с указанным покрытием и высотой',
       details: {
         requiredHeight: fenceHeightMm,
-        suggestion: 'Свяжитесь с нами для индивидуального расчета',
+        coating: coatingValue,
+        suggestion: 'Попробуйте выбрать другое покрытие или свяжитесь с нами',
       },
     };
     throw error;
@@ -71,5 +85,6 @@ export async function calculateProfnastil(
     unit: 'шт',
     pricePerUnit,
     totalPrice,
+    coating: selectedProfnastil.coating,
   };
 }

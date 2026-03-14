@@ -22,6 +22,7 @@ export interface FenceEstimateResult {
     length: number;
     height: number;
     lagRows: 2 | 3;
+    coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   };
   calculatedAt: string;
 }
@@ -36,7 +37,7 @@ export async function calculateFenceEstimate(
   input: FenceEstimateInput,
   metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
 ): Promise<FenceEstimateResult> {
-  const { fenceTypeId, length, height, lagRows } = input;
+  const { fenceTypeId, length, height, lagRows, coating } = input;
 
   const fenceType = await prisma.fenceType.findUnique({
     where: { id: fenceTypeId },
@@ -55,7 +56,7 @@ export async function calculateFenceEstimate(
   const [postsResult, lagsResult, profnastilResult, installationResult] = await Promise.all([
     calculatePosts(length, height, postSpacingM),
     calculateLags(length, lagRows),
-    calculateProfnastil(length, height),
+    calculateProfnastil(length, height, coating),
     Promise.resolve(calculateInstallation(length)),
   ]);
 
@@ -89,6 +90,7 @@ export async function calculateFenceEstimate(
       length,
       height,
       lagRows,
+      coating,
       postsTotal: postsResult.totalPrice,
       lagsTotal: lagsResult.totalPrice,
       profnastilTotal: profnastilResult.totalPrice,
@@ -118,6 +120,7 @@ export async function calculateFenceEstimate(
       length,
       height,
       lagRows,
+      coating,
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };
@@ -147,6 +150,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
       length: estimate.length,
       height: estimate.height,
       lagRows: estimate.lagRows as 2 | 3,
+      coating: estimate.coating as 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE',
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };

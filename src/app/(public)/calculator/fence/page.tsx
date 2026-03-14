@@ -58,6 +58,7 @@ interface CalculatorResult {
     length: number;
     height: number;
     lagRows: number;
+    coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   };
   calculatedAt: string;
 }
@@ -147,6 +148,7 @@ export default function FenceCalculatorPage() {
           length: formData.length,
           height: formData.height,
           lagRows: parseInt(formData.lagRows) as 2 | 3,
+          coating: formData.coating,
         }),
       });
 
