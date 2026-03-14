@@ -5,8 +5,35 @@ import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculateInstallation, InstallationCalculationResult } from './installationCalculator';
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
+import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult;
+
+export interface GateCalculationResult {
+  category: 'gates';
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+export interface GateInstallationCalculationResult {
+  category: 'installation';
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+export interface GateInfo {
+  type: string;
+  length: number;
+  selectedName: string;
+}
 
 export interface FenceEstimateResult {
   estimateId: string;
@@ -23,6 +50,7 @@ export interface FenceEstimateResult {
     height: number;
     lagRows: 2 | 3;
     coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
+    gate?: GateInfo;
   };
   calculatedAt: string;
 }
@@ -37,7 +65,7 @@ export async function calculateFenceEstimate(
   input: FenceEstimateInput,
   metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
 ): Promise<FenceEstimateResult> {
-  const { fenceTypeId, length, height, lagRows, coating } = input;
+  const { fenceTypeId, length, height, lagRows, coating, hasGate, gateType, gateWidth } = input;
 
   const fenceType = await prisma.fenceType.findUnique({
     where: { id: fenceTypeId },
@@ -50,14 +78,63 @@ export async function calculateFenceEstimate(
     } as CalculationError;
   }
 
+  let correctedLength = length;
+  let gateInfo: GateInfo | undefined;
+  let gateTotal = 0;
+  let gateInstallationTotal = 0;
+
+  console.log('[fenceEstimate] Gate params:', { hasGate, gateType, gateWidth });
+
+  if (hasGate && gateType && gateWidth) {
+    const gateWidthMm = Math.round(gateWidth * 1000);
+    console.log('[fenceEstimate] Calling findGateByTypeAndLength:', { gateType, gateWidthMm });
+    const selectedGate = await findGateByTypeAndLength(gateType as GateTypeValue, gateWidthMm);
+    console.log('[fenceEstimate] Selected gate:', selectedGate);
+
+    const gateLengthMm = selectedGate.gateLength;
+    correctedLength = length - gateLengthMm / 1000;
+
+    if (correctedLength <= 0) {
+      throw {
+        error: 'INVALID_PARAMETERS',
+        message: 'Длина ворот превышает или равна общей длине забора',
+        details: {
+          fenceLength: length,
+          gateLength: gateLengthMm / 1000,
+        },
+      } as CalculationError;
+    }
+
+    gateInfo = {
+      type: selectedGate.type,
+      length: selectedGate.gateLength,
+      selectedName: selectedGate.name,
+    };
+    gateTotal = selectedGate.retailPrice;
+
+    const workRelations = await prisma.workRelation.findMany({
+      where: { fenceType: fenceType.name },
+      include: { work: true },
+    });
+
+    const gateInstallationWork = workRelations
+      .filter((wr) => wr.work.useInCalculator && wr.work.category === 'Монтаж')
+      .sort((a, b) => a.work.sortOrder - b.work.sortOrder)[0];
+
+    if (gateInstallationWork) {
+      gateInstallationTotal = gateInstallationWork.work.price;
+    }
+  }
+
   const postSpacingMm = fenceType.postSpacing;
   const postSpacingM = postSpacingMm / 1000;
 
-  const [postsResult, lagsResult, installationResult] = await Promise.all([
-    calculatePosts(length, height, postSpacingM),
-    calculateLags(length, lagRows),
-    Promise.resolve(calculateInstallation(length)),
+  const [postsResult, lagsResult] = await Promise.all([
+    calculatePosts(correctedLength, height, postSpacingM),
+    calculateLags(correctedLength, lagRows),
   ]);
+
+  const installationBase = calculateInstallation(length);
 
   let profnastilResult: ProfnastilCalculationResult | null = null;
 
@@ -86,7 +163,7 @@ export async function calculateFenceEstimate(
   }
 
   const mountingHardwareResult = await calculateMountingHardware({
-    fenceLengthM: length,
+    fenceLengthM: correctedLength,
     fenceHeightM: height,
     postsCount: postsResult.quantity,
     lagsCount: lagsResult.quantity,
@@ -100,26 +177,61 @@ export async function calculateFenceEstimate(
     postsResult,
     lagsResult,
     ...(profnastilResult ? [profnastilResult] : []),
-    installationResult,
-    ...mountingHardwareResult,
   ];
 
+  if (hasGate && gateInfo) {
+    const gateItem: GateCalculationResult = {
+      category: 'gates',
+      nomenclatureId: gateInfo.selectedName,
+      nomenclatureName: gateInfo.selectedName,
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: gateTotal,
+      totalPrice: gateTotal,
+    };
+    items.push(gateItem);
+  }
+
+  items.push(installationBase);
+
+  if (gateInstallationTotal > 0) {
+    const gateInstallationItem: GateInstallationCalculationResult = {
+      category: 'installation',
+      nomenclatureId: 'gate-installation',
+      nomenclatureName: 'Установка ворот',
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: gateInstallationTotal,
+      totalPrice: gateInstallationTotal,
+    };
+    items.push(gateInstallationItem);
+  }
+
+  items.push(...mountingHardwareResult);
+
   const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
-  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + mountingHardwareTotal;
-  const installation = installationResult.totalPrice;
+  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + gateTotal + mountingHardwareTotal;
+  const installation = installationBase.totalPrice + gateInstallationTotal;
   const grandTotal = materials + installation;
 
   const estimate = await prisma.fenceEstimate.create({
     data: {
       fenceTypeId,
-      length,
+      length: correctedLength,
       height,
       lagRows,
       coating,
+      hasGate: hasGate || false,
+      gateType: gateType || null,
+      gateLength: gateInfo?.length || null,
+      gateNomenclatureId: gateInfo ? gateInfo.selectedName : null,
+      gateNomenclatureName: gateInfo ? gateInfo.selectedName : null,
       postsTotal: postsResult.totalPrice,
       lagsTotal: lagsResult.totalPrice,
       profnastilTotal: profnastilResult.totalPrice,
       mountingHardwareTotal,
+      gateTotal,
+      gateInstallationTotal,
       installationTotal: installation,
       materialsTotal: materials,
       grandTotal,
@@ -146,6 +258,7 @@ export async function calculateFenceEstimate(
       height,
       lagRows,
       coating,
+      ...(gateInfo ? { gate: gateInfo } : {}),
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };
@@ -160,6 +273,14 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
   if (!estimate) {
     return null;
   }
+
+  const gateInfo: GateInfo | undefined = estimate.hasGate && estimate.gateType && estimate.gateLength
+    ? {
+        type: estimate.gateType,
+        length: estimate.gateLength,
+        selectedName: estimate.gateNomenclatureName || 'Ворота',
+      }
+    : undefined;
 
   return {
     estimateId: estimate.id,
@@ -176,6 +297,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
       height: estimate.height,
       lagRows: estimate.lagRows as 2 | 3,
       coating: estimate.coating as 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE',
+      ...(gateInfo ? { gate: gateInfo } : {}),
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };
