@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
+import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface GateType {
   id: string;
@@ -601,6 +602,13 @@ export default function GatesPage() {
           {isAdmin && editingGate && (
             <RelatedWorks
               fenceType="GATE"
+            />
+          )}
+
+          {isAdmin && editingGate && (
+            <RelatedWorksByReference
+              referenceType="GATE"
+              referenceId={editingGate.id}
             />
           )}
 

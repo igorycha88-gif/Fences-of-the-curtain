@@ -6,6 +6,7 @@ import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCa
 import { calculateInstallation, InstallationCalculationResult } from './installationCalculator';
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
+import { workService } from '@/services/admin/workService';
 
 type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult;
 
@@ -112,17 +113,20 @@ export async function calculateFenceEstimate(
     };
     gateTotal = selectedGate.retailPrice;
 
-    const workRelations = await prisma.workRelation.findMany({
-      where: { fenceType: fenceType.name },
-      include: { work: true },
-    });
-
-    const gateInstallationWork = workRelations
-      .filter((wr) => wr.work.useInCalculator && wr.work.category === 'Монтаж')
-      .sort((a, b) => a.work.sortOrder - b.work.sortOrder)[0];
-
-    if (gateInstallationWork) {
-      gateInstallationTotal = gateInstallationWork.work.price;
+    const gateWorks = await workService.getWorksForCalculatorByReference('GATE', selectedGate.id);
+    
+    if (gateWorks.length > 0) {
+      const gateInstallationWork = gateWorks.sort((a, b) => a.sortOrder - b.sortOrder)[0];
+      gateInstallationTotal = gateInstallationWork.price;
+    } else {
+      const fenceTypeWorks = await workService.getWorksForCalculator(fenceType.name);
+      const gateInstallationWork = fenceTypeWorks
+        .filter((w) => w.category === 'MOUNTING')
+        .sort((a, b) => a.sortOrder - b.sortOrder)[0];
+      
+      if (gateInstallationWork) {
+        gateInstallationTotal = gateInstallationWork.price;
+      }
     }
   }
 
