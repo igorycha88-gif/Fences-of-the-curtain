@@ -1,14 +1,18 @@
 name: Deploy to VPS
 
 on:
-  push:
-    branches: [master]
+  repository_dispatch:
+    types: [deploy-triggered]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+    if: github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,11 +38,14 @@ jobs:
             # Install dependencies
             npm install --legacy-peer-deps --silent
             
+            # Generate Prisma Client
+            npx prisma generate
+            
             # Build application
             npm run build --legacy-peer-deps
             
             # Push schema changes to database
-            npx prisma@5.10.0 db push
+            npx prisma db push
             
             # Restart application with PM2
             pm2 restart fences-app || pm2 start npm --name "fences-app" -- start

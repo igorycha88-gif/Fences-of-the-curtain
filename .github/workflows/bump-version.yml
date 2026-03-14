@@ -1,0 +1,116 @@
+name: Bump Version
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Тип изменения версии'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  bump:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+
+      - name: Determine version type
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "type=${{ github.event.inputs.version_type }}" >> $GITHUB_OUTPUT
+          else
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            echo "PR Title: $PR_TITLE"
+
+            if echo "$PR_TITLE" | grep -qi "feat:"; then
+              echo "type=minor" >> $GITHUB_OUTPUT
+            elif echo "$PR_TITLE" | grep -qi "fix:"; then
+              echo "type=patch" >> $GITHUB_OUTPUT
+            elif echo "$PR_TITLE" | grep -qi "feat!:\|BREAKING CHANGE"; then
+              echo "type=major" >> $GITHUB_OUTPUT
+            else
+              echo "type=patch" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Bump version
+        id: bump
+        run: |
+          VERSION_TYPE="${{ steps.version.outputs.type }}"
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          echo "Bumping: $VERSION_TYPE"
+
+          case $VERSION_TYPE in
+            major)
+              npm version major --no-git-tag-version
+              ;;
+            minor)
+              npm version minor --no-git-tag-version
+              ;;
+            patch)
+              npm version patch --no-git-tag-version
+              ;;
+          esac
+
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create git tag and commit
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.version }}"
+          git add package.json
+          git commit -m "chore: bump version to $NEW_VERSION"
+          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
+          git push origin master
+          git push origin "v$NEW_VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: Release v${{ steps.bump.outputs.version }}
+          body: |
+            ## Changes
+            ${{ github.event.pull_request.body || 'Manual release' }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Deploy to VPS
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type":"deploy-triggered"}'
