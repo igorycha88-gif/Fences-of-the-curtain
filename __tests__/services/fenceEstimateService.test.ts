@@ -8,6 +8,7 @@ describe('fenceEstimateService', () => {
   let testLagTypeId: string;
   let testProfnastilTypeId: string;
   let testGateTypeId: string;
+  let testWicketTypeId: string;
 
   beforeAll(async () => {
     const fenceType = await prisma.fenceType.create({
@@ -79,6 +80,21 @@ describe('fenceEstimateService', () => {
       },
     });
     testGateTypeId = gateType.id;
+
+    const wicketType = await prisma.wicketType.create({
+      data: {
+        name: 'Тестовая калитка 1000x2000',
+        wicketLength: 1000,
+        wicketHeight: 2000,
+        metalThickness: 2.0,
+        sectionWidth: 1000,
+        sectionHeight: 2000,
+        retailPrice: 15000,
+        active: true,
+        priority: 0,
+      },
+    });
+    testWicketTypeId = wicketType.id;
   });
 
   afterAll(async () => {
@@ -86,6 +102,7 @@ describe('fenceEstimateService', () => {
       where: { fenceTypeId: testFenceTypeId },
     });
     await prisma.gateType.delete({ where: { id: testGateTypeId } });
+    await prisma.wicketType.delete({ where: { id: testWicketTypeId } });
     await prisma.profnastilType.delete({ where: { id: testProfnastilTypeId } });
     await prisma.lagType.delete({ where: { id: testLagTypeId } });
     await prisma.postType.delete({ where: { id: testPostTypeId } });
@@ -307,5 +324,122 @@ describe('fenceEstimateService', () => {
     
     expect(postsItem!.quantity).toBe(expectedPosts);
     expect(lagsItem!.quantity).toBe(expectedLags);
+  });
+
+  it('should add wicket to estimate when hasWicket is true', async () => {
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: 50,
+      height: 2.0,
+      lagRows: 2 as const,
+      hasWicket: true,
+      wicketWidth: 1.0,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const wicketItem = result.items.find(item => item.category === 'wickets');
+    expect(wicketItem).toBeDefined();
+    expect(wicketItem!.quantity).toBe(1);
+    expect(wicketItem!.totalPrice).toBe(15000);
+  });
+
+  it('should adjust fence length when wicket is present', async () => {
+    const fenceLength = 10;
+    const wicketWidth = 1.0;
+    
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: fenceLength,
+      height: 2.0,
+      lagRows: 2 as const,
+      hasWicket: true,
+      wicketWidth: wicketWidth,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const postsItem = result.items.find(item => item.category === 'posts');
+    const profnastilItem = result.items.find(item => item.category === 'profnastil');
+    
+    const correctedLength = fenceLength - wicketWidth;
+    const postSpacing = 2.5;
+    const expectedPosts = Math.ceil(correctedLength / postSpacing) + 2;
+    
+    expect(postsItem!.quantity).toBe(expectedPosts);
+    expect(result.parameters.length).toBe(fenceLength);
+  });
+
+  it('should calculate fence with both gate and wicket', async () => {
+    const fenceLength = 20;
+    const gateWidth = 4;
+    const wicketWidth = 1.0;
+    
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: fenceLength,
+      height: 2.0,
+      lagRows: 2 as const,
+      hasGate: true,
+      gateType: 'SWING' as const,
+      gateWidth: gateWidth,
+      hasWicket: true,
+      wicketWidth: wicketWidth,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const gateItem = result.items.find(item => item.category === 'gates');
+    const wicketItem = result.items.find(item => item.category === 'wickets');
+    
+    expect(gateItem).toBeDefined();
+    expect(wicketItem).toBeDefined();
+    expect(gateItem!.totalPrice).toBe(45000);
+    expect(wicketItem!.totalPrice).toBe(15000);
+    
+    const postsItem = result.items.find(item => item.category === 'posts');
+    const postSpacing = 2.5;
+    const correctedLength = fenceLength - gateWidth - wicketWidth;
+    const expectedPosts = Math.ceil(correctedLength / postSpacing) + 2;
+    
+    expect(postsItem!.quantity).toBe(expectedPosts);
+  });
+
+  it('should save wicket data to database', async () => {
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: 50,
+      height: 2.0,
+      lagRows: 2 as const,
+      hasWicket: true,
+      wicketWidth: 1.0,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const dbEstimate = await prisma.fenceEstimate.findUnique({
+      where: { id: result.estimateId },
+    });
+
+    expect(dbEstimate).toBeDefined();
+    expect(dbEstimate!.hasWicket).toBe(true);
+    expect(dbEstimate!.wicketWidth).toBe(1000);
+    expect(dbEstimate!.wicketTotal).toBe(15000);
+  });
+
+  it('should throw error when wicket not found in catalog', async () => {
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: 5,
+      height: 2.0,
+      lagRows: 2 as const,
+      hasWicket: true,
+      wicketWidth: 5.0,
+    };
+
+    await expect(calculateFenceEstimate(input)).rejects.toMatchObject({
+      error: 'NO_WICKET_FOUND',
+      message: 'Не найдена калитка с указанными параметрами',
+    });
   });
 });

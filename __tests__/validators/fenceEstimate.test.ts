@@ -8,6 +8,7 @@ describe('fenceEstimateSchema', () => {
       length: 50,
       height: 2.0,
       lagRows: 2,
+      coating: 'POLYMER_SINGLE',
     };
 
     const result = fenceEstimateSchema.safeParse(validInput);
@@ -20,6 +21,7 @@ describe('fenceEstimateSchema', () => {
       length: 50,
       height: 2.0,
       lagRows: 3,
+      coating: 'POLYMER_SINGLE',
     };
 
     const result = fenceEstimateSchema.safeParse(validInput);
@@ -32,6 +34,7 @@ describe('fenceEstimateSchema', () => {
       length: 50,
       height: 2.0,
       lagRows: 4,
+      coating: 'POLYMER_SINGLE',
     };
 
     const result = fenceEstimateSchema.safeParse(invalidInput);
@@ -44,6 +47,7 @@ describe('fenceEstimateSchema', () => {
       length: 0.5,
       height: 2.0,
       lagRows: 2,
+      coating: 'POLYMER_SINGLE',
     };
 
     const result = fenceEstimateSchema.safeParse(invalidInput);
@@ -56,6 +60,7 @@ describe('fenceEstimateSchema', () => {
       length: 1500,
       height: 2.0,
       lagRows: 2,
+      coating: 'POLYMER_SINGLE',
     };
 
     const result = fenceEstimateSchema.safeParse(invalidInput);
@@ -68,6 +73,7 @@ describe('fenceEstimateSchema', () => {
       length: 50,
       height: 1.0,
       lagRows: 2,
+      coating: 'POLYMER_SINGLE',
     };
 
     const result = fenceEstimateSchema.safeParse(invalidInput);
@@ -80,6 +86,7 @@ describe('fenceEstimateSchema', () => {
       length: 50,
       height: 4.0,
       lagRows: 2,
+      coating: 'POLYMER_SINGLE',
     };
 
     const result = fenceEstimateSchema.safeParse(invalidInput);
@@ -92,6 +99,36 @@ describe('fenceEstimateSchema', () => {
       length: 50,
       height: 2.0,
       lagRows: 2,
+      coating: 'POLYMER_SINGLE',
+    };
+
+    const result = fenceEstimateSchema.safeParse(invalidInput);
+    expect(result.success).toBe(false);
+  });
+
+  it('should validate with wicket', () => {
+    const validInput = {
+      fenceTypeId: 'clm123456789',
+      length: 50,
+      height: 2.0,
+      lagRows: 2,
+      coating: 'POLYMER_SINGLE',
+      hasWicket: true,
+      wicketWidth: 1.0,
+    };
+
+    const result = fenceEstimateSchema.safeParse(validInput);
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject wicket without width', () => {
+    const invalidInput = {
+      fenceTypeId: 'clm123456789',
+      length: 50,
+      height: 2.0,
+      lagRows: 2,
+      coating: 'POLYMER_SINGLE',
+      hasWicket: true,
     };
 
     const result = fenceEstimateSchema.safeParse(invalidInput);
