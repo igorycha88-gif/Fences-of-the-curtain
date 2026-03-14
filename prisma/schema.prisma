@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "darwin-arm64"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -405,6 +405,11 @@ model FenceEstimate {
   height                Float
   lagRows               Int
   coating               String    @default("POLYMER_SINGLE")
+  hasGate               Boolean   @default(false)
+  gateType              String?
+  gateLength            Int?
+  gateNomenclatureId    String?
+  gateNomenclatureName  String?
   postsTotal            Float
   lagsTotal             Float
   profnastilTotal       Float
@@ -418,6 +423,8 @@ model FenceEstimate {
   ipAddress             String?
   createdAt             DateTime  @default(now())
   mountingHardwareTotal Float     @default(0)
+  gateTotal             Float     @default(0)
+  gateInstallationTotal Float     @default(0)
   fenceType             FenceType @relation(fields: [fenceTypeId], references: [id])
 
   @@index([fenceTypeId])
