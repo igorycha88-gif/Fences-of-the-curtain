@@ -5,8 +5,62 @@ import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculateInstallation, InstallationCalculationResult } from './installationCalculator';
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
+import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
+import { findWicketByHeightAndWidth } from './wicketLookup';
+import { workService } from '@/services/admin/workService';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
+
+export interface GateCalculationResult {
+  category: 'gates';
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+export interface GateInstallationCalculationResult {
+  category: 'installation';
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+export interface WicketCalculationResult {
+  category: 'wickets';
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+export interface WicketInstallationCalculationResult {
+  category: 'installation';
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+export interface GateInfo {
+  type: string;
+  length: number;
+  selectedName: string;
+}
+
+export interface WicketInfo {
+  width: number;
+  selectedName: string;
+}
 
 export interface FenceEstimateResult {
   estimateId: string;
@@ -23,6 +77,8 @@ export interface FenceEstimateResult {
     height: number;
     lagRows: 2 | 3;
     coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
+    gate?: GateInfo;
+    wicket?: WicketInfo;
   };
   calculatedAt: string;
 }
@@ -37,7 +93,7 @@ export async function calculateFenceEstimate(
   input: FenceEstimateInput,
   metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
 ): Promise<FenceEstimateResult> {
-  const { fenceTypeId, length, height, lagRows, coating } = input;
+  const { fenceTypeId, length, height, lagRows, coating, hasGate, gateType, gateWidth } = input;
 
   const fenceType = await prisma.fenceType.findUnique({
     where: { id: fenceTypeId },
@@ -50,14 +106,113 @@ export async function calculateFenceEstimate(
     } as CalculationError;
   }
 
+  let correctedLength = length;
+  let gateInfo: GateInfo | undefined;
+  let gateTotal = 0;
+  let gateInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
+  let wicketInfo: WicketInfo | undefined;
+  let wicketTotal = 0;
+  let wicketInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
+
+  console.log('[fenceEstimate] Gate params:', { hasGate, gateType, gateWidth });
+
+  if (hasGate && gateType && gateWidth) {
+    const gateWidthMm = Math.round(gateWidth * 1000);
+    console.log('[fenceEstimate] Calling findGateByTypeAndLength:', { gateType, gateWidthMm });
+    const selectedGate = await findGateByTypeAndLength(gateType as GateTypeValue, gateWidthMm);
+    console.log('[fenceEstimate] Selected gate:', selectedGate);
+
+    const gateLengthMm = selectedGate.gateLength;
+    correctedLength = length - gateLengthMm / 1000;
+
+    if (correctedLength <= 0) {
+      throw {
+        error: 'INVALID_PARAMETERS',
+        message: 'Длина ворот превышает или равна общей длине забора',
+        details: {
+          fenceLength: length,
+          gateLength: gateLengthMm / 1000,
+        },
+      } as CalculationError;
+    }
+
+    gateInfo = {
+      type: selectedGate.type,
+      length: selectedGate.gateLength,
+      selectedName: selectedGate.name,
+    };
+    gateTotal = selectedGate.retailPrice;
+
+    const gateWorks = await workService.getWorksForCalculatorByReference('GATE', selectedGate.id);
+    
+    if (gateWorks.length > 0) {
+      gateInstallationWorks = gateWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
+    } else {
+      const fenceTypeWorks = await workService.getWorksForCalculator(fenceType.name);
+      const gateInstallationWorksList = fenceTypeWorks
+        .filter((w) => w.category === 'MOUNTING');
+      
+      if (gateInstallationWorksList.length > 0) {
+        gateInstallationWorks = gateInstallationWorksList.map(w => ({ id: w.id, name: w.name, price: w.price }));
+      }
+    }
+  }
+
+  const { hasWicket, wicketWidth } = input;
+
+  console.log('[fenceEstimate] Wicket params:', { hasWicket, wicketWidth });
+
+  if (hasWicket && wicketWidth) {
+    const heightMm = Math.round(height * 1000);
+    const wicketWidthMm = Math.round(wicketWidth * 1000);
+    console.log('[fenceEstimate] Calling findWicketByHeightAndWidth:', { heightMm, wicketWidthMm });
+    const selectedWicket = await findWicketByHeightAndWidth(heightMm, wicketWidthMm);
+    console.log('[fenceEstimate] Selected wicket:', selectedWicket);
+
+    const wicketLengthMm = selectedWicket.wicketLength;
+    correctedLength = correctedLength - wicketLengthMm / 1000;
+
+    if (correctedLength <= 0) {
+      throw {
+        error: 'INVALID_PARAMETERS',
+        message: 'Ширина калитки превышает или равна скорректированной длине забора',
+        details: {
+          fenceLength: length,
+          wicketLength: wicketLengthMm / 1000,
+        },
+      } as CalculationError;
+    }
+
+    wicketInfo = {
+      width: selectedWicket.wicketLength,
+      selectedName: selectedWicket.name,
+    };
+    wicketTotal = selectedWicket.retailPrice;
+
+    const wicketWorks = await workService.getWorksForCalculatorByReference('WICKET', selectedWicket.id);
+    
+    if (wicketWorks.length > 0) {
+      wicketInstallationWorks = wicketWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
+    } else {
+      const fenceTypeWorks = await workService.getWorksForCalculator(fenceType.name);
+      const wicketInstallationWorksList = fenceTypeWorks
+        .filter((w) => w.category === 'MOUNTING');
+      
+      if (wicketInstallationWorksList.length > 0) {
+        wicketInstallationWorks = wicketInstallationWorksList.map(w => ({ id: w.id, name: w.name, price: w.price }));
+      }
+    }
+  }
+
   const postSpacingMm = fenceType.postSpacing;
   const postSpacingM = postSpacingMm / 1000;
 
-  const [postsResult, lagsResult, installationResult] = await Promise.all([
-    calculatePosts(length, height, postSpacingM),
-    calculateLags(length, lagRows),
-    Promise.resolve(calculateInstallation(length)),
+  const [postsResult, lagsResult] = await Promise.all([
+    calculatePosts(correctedLength, height, postSpacingM),
+    calculateLags(correctedLength, lagRows),
   ]);
+
+  const installationBase = calculateInstallation(length);
 
   let profnastilResult: ProfnastilCalculationResult | null = null;
 
@@ -86,7 +241,7 @@ export async function calculateFenceEstimate(
   }
 
   const mountingHardwareResult = await calculateMountingHardware({
-    fenceLengthM: length,
+    fenceLengthM: correctedLength,
     fenceHeightM: height,
     postsCount: postsResult.quantity,
     lagsCount: lagsResult.quantity,
@@ -100,26 +255,95 @@ export async function calculateFenceEstimate(
     postsResult,
     lagsResult,
     ...(profnastilResult ? [profnastilResult] : []),
-    installationResult,
-    ...mountingHardwareResult,
   ];
 
+  if (hasGate && gateInfo) {
+    const gateItem: GateCalculationResult = {
+      category: 'gates',
+      nomenclatureId: gateInfo.selectedName,
+      nomenclatureName: gateInfo.selectedName,
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: gateTotal,
+      totalPrice: gateTotal,
+    };
+    items.push(gateItem);
+  }
+
+  if (hasWicket && wicketInfo) {
+    const wicketItem: WicketCalculationResult = {
+      category: 'wickets',
+      nomenclatureId: wicketInfo.selectedName,
+      nomenclatureName: wicketInfo.selectedName,
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: wicketTotal,
+      totalPrice: wicketTotal,
+    };
+    items.push(wicketItem);
+  }
+
+  items.push(installationBase);
+
+  for (const work of gateInstallationWorks) {
+    const gateInstallationItem: GateInstallationCalculationResult = {
+      category: 'installation',
+      nomenclatureId: work.id,
+      nomenclatureName: work.name,
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: work.price,
+      totalPrice: work.price,
+    };
+    items.push(gateInstallationItem);
+  }
+
+  for (const work of wicketInstallationWorks) {
+    const wicketInstallationItem: WicketInstallationCalculationResult = {
+      category: 'installation',
+      nomenclatureId: work.id,
+      nomenclatureName: work.name,
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: work.price,
+      totalPrice: work.price,
+    };
+    items.push(wicketInstallationItem);
+  }
+
+  items.push(...mountingHardwareResult);
+
   const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
-  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + mountingHardwareTotal;
-  const installation = installationResult.totalPrice;
+  const gateInstallationTotal = gateInstallationWorks.reduce((sum, work) => sum + work.price, 0);
+  const wicketInstallationTotal = wicketInstallationWorks.reduce((sum, work) => sum + work.price, 0);
+  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
+  const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal;
   const grandTotal = materials + installation;
 
   const estimate = await prisma.fenceEstimate.create({
     data: {
       fenceTypeId,
-      length,
+      length: correctedLength,
       height,
       lagRows,
       coating,
+      hasGate: hasGate || false,
+      gateType: gateType || null,
+      gateLength: gateInfo?.length || null,
+      gateNomenclatureId: gateInfo ? gateInfo.selectedName : null,
+      gateNomenclatureName: gateInfo ? gateInfo.selectedName : null,
       postsTotal: postsResult.totalPrice,
       lagsTotal: lagsResult.totalPrice,
       profnastilTotal: profnastilResult.totalPrice,
       mountingHardwareTotal,
+      gateTotal,
+      gateInstallationTotal,
+      hasWicket: hasWicket || false,
+      wicketWidth: wicketInfo?.width || null,
+      wicketNomenclatureId: wicketInfo ? wicketInfo.selectedName : null,
+      wicketNomenclatureName: wicketInfo ? wicketInfo.selectedName : null,
+      wicketTotal,
+      wicketInstallationTotal,
       installationTotal: installation,
       materialsTotal: materials,
       grandTotal,
@@ -146,6 +370,8 @@ export async function calculateFenceEstimate(
       height,
       lagRows,
       coating,
+      ...(gateInfo ? { gate: gateInfo } : {}),
+      ...(wicketInfo ? { wicket: wicketInfo } : {}),
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };
@@ -160,6 +386,21 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
   if (!estimate) {
     return null;
   }
+
+  const gateInfo: GateInfo | undefined = estimate.hasGate && estimate.gateType && estimate.gateLength
+    ? {
+        type: estimate.gateType,
+        length: estimate.gateLength,
+        selectedName: estimate.gateNomenclatureName || 'Ворота',
+      }
+    : undefined;
+
+  const wicketInfo: WicketInfo | undefined = estimate.hasWicket && estimate.wicketWidth
+    ? {
+        width: estimate.wicketWidth,
+        selectedName: estimate.wicketNomenclatureName || 'Калитка',
+      }
+    : undefined;
 
   return {
     estimateId: estimate.id,
@@ -176,6 +417,8 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
       height: estimate.height,
       lagRows: estimate.lagRows as 2 | 3,
       coating: estimate.coating as 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE',
+      ...(gateInfo ? { gate: gateInfo } : {}),
+      ...(wicketInfo ? { wicket: wicketInfo } : {}),
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };

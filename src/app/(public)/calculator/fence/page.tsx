@@ -59,6 +59,15 @@ interface CalculatorResult {
     height: number;
     lagRows: number;
     coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
+    gate?: {
+      type: string;
+      length: number;
+      selectedName: string;
+    };
+    wicket?: {
+      width: number;
+      selectedName: string;
+    };
   };
   calculatedAt: string;
 }
@@ -87,6 +96,8 @@ export default function FenceCalculatorPage() {
 
   const [result, setResult] = useState<CalculatorResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [gateWarning, setGateWarning] = useState<string | null>(null);
+  const [wicketWarning, setWicketWarning] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFenceTypes = async () => {
@@ -132,28 +143,74 @@ export default function FenceCalculatorPage() {
     }));
   };
 
+  useEffect(() => {
+    if (formData.hasGate && formData.gateWidth >= formData.length) {
+      setGateWarning(`Длина ворот (${formData.gateWidth} м) превышает длину забора (${formData.length} м)`);
+    } else {
+      setGateWarning(null);
+    }
+  }, [formData.hasGate, formData.gateWidth, formData.length]);
+
+  useEffect(() => {
+    const totalOpening = (formData.hasGate ? formData.gateWidth : 0) + (formData.hasWicket ? formData.wicketWidth : 0);
+    if (formData.hasWicket && totalOpening >= formData.length) {
+      setWicketWarning(`Ширина калитки (${formData.wicketWidth} м) + ворот (${formData.hasGate ? formData.gateWidth : 0} м) превышает длину забора (${formData.length} м)`);
+    } else {
+      setWicketWarning(null);
+    }
+  }, [formData.hasWicket, formData.wicketWidth, formData.hasGate, formData.gateWidth, formData.length]);
+
   const calculate = async () => {
     if (!formData.fenceTypeId) {
       alert('Выберите тип забора');
       return;
     }
 
+    if (formData.hasGate && formData.gateWidth >= formData.length) {
+      alert('Длина ворот превышает или равна общей длине забора');
+      return;
+    }
+
+    const totalOpening = (formData.hasGate ? formData.gateWidth : 0) + (formData.hasWicket ? formData.wicketWidth : 0);
+    if (totalOpening >= formData.length) {
+      alert('Суммарная ширина ворот и калитки превышает или равна общей длине забора');
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('[Calculator] Form data before submit:', JSON.stringify(formData, null, 2));
+      
+      const requestBody: Record<string, unknown> = {
+        fenceTypeId: formData.fenceTypeId,
+        length: formData.length,
+        height: formData.height,
+        lagRows: parseInt(formData.lagRows) as 2 | 3,
+        coating: formData.coating,
+      };
+
+      if (formData.hasGate) {
+        requestBody.hasGate = true;
+        requestBody.gateType = formData.gateType || 'SWING';
+        requestBody.gateWidth = formData.gateWidth;
+        console.log('[Calculator] Sending gate params:', { hasGate: true, gateType: requestBody.gateType, gateWidth: requestBody.gateWidth });
+      }
+
+      if (formData.hasWicket) {
+        requestBody.hasWicket = true;
+        requestBody.wicketWidth = formData.wicketWidth;
+        console.log('[Calculator] Sending wicket params:', { hasWicket: true, wicketWidth: requestBody.wicketWidth });
+      }
+
       const response = await fetch('/api/calculator/fence/estimate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fenceTypeId: formData.fenceTypeId,
-          length: formData.length,
-          height: formData.height,
-          lagRows: parseInt(formData.lagRows) as 2 | 3,
-          coating: formData.coating,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
         const data = await response.json();
+        console.log('[Calculator] Received result:', JSON.stringify(data, null, 2));
         setResult(data);
       } else {
         const errorData = await response.json();
@@ -353,6 +410,11 @@ export default function FenceCalculatorPage() {
 
                       {formData.hasGate && (
                         <div className="space-y-4 p-4 bg-secondary/30 rounded-xl border border-border/50">
+                          {gateWarning && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-700">
+                              {gateWarning}
+                            </div>
+                          )}
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium mb-2">Тип ворот</label>
@@ -383,13 +445,18 @@ export default function FenceCalculatorPage() {
 
                       {formData.hasWicket && (
                         <div className="p-4 bg-secondary/30 rounded-xl border border-border/50">
+                          {wicketWarning && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-700 mb-3">
+                              {wicketWarning}
+                            </div>
+                          )}
                           <label className="block text-sm font-medium mb-2">Ширина калитки (м)</label>
                           <input
                             type="number"
                             value={formData.wicketWidth}
                             onChange={(e) => setFormData({ ...formData, wicketWidth: Number(e.target.value) })}
                             min="0.8"
-                            max="1.2"
+                            max="1.5"
                             step="0.1"
                             className="input-modern"
                           />

@@ -27,10 +27,6 @@ services:
     depends_on:
       - db
       - redis
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - fences-network
 
   db:
     image: postgres:16-alpine
@@ -44,17 +40,15 @@ services:
       - POSTGRES_DB=fences
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - fences-network
 
   redis:
     image: redis:7-alpine
     container_name: fences-redis
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - fences-network
 
   nginx:
     image: nginx:alpine
@@ -68,13 +62,7 @@ services:
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
-    networks:
-      - fences-network
 
 volumes:
   postgres_data:
   redis_data:
-
-networks:
-  fences-network:
-    driver: bridge
