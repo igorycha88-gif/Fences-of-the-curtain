@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
+import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface WicketType {
   id: string;
@@ -535,6 +536,13 @@ export default function WicketsPage() {
           {isAdmin && editingWicket && (
             <RelatedWorks
               fenceType="WICKET"
+            />
+          )}
+
+          {isAdmin && editingWicket && (
+            <RelatedWorksByReference
+              referenceType="WICKET"
+              referenceId={editingWicket.id}
             />
           )}
 

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { CreateWorkInput, UpdateWorkInput, WorkQueryInput } from '@/lib/validators/work';
+import { CreateWorkInput, UpdateWorkInput, WorkQueryInput, WorkRelationInput } from '@/lib/validators/work';
 import { WorkCategory, WorkUnit, WorkCategoryNames, WorkUnitNames } from '@/lib/enums/work';
 import { referenceRegistry } from '@/lib/referenceRegistry';
 
@@ -11,10 +11,12 @@ export class WorkService {
     active?: boolean;
     useInCalculator?: boolean;
     fenceType?: string;
+    referenceType?: string;
+    referenceId?: string;
     page?: number;
     pageSize?: number;
   }) {
-    const { search, category, active, useInCalculator, fenceType, page = 1, pageSize = 20 } = params;
+    const { search, category, active, useInCalculator, fenceType, referenceType, referenceId, page = 1, pageSize = 20 } = params;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.WorkWhereInput = {};
@@ -38,9 +40,13 @@ export class WorkService {
       ];
     }
 
-    if (fenceType) {
+    if (fenceType || referenceType || referenceId) {
       where.relations = {
-        some: { fenceType },
+        some: {
+          ...(fenceType && { fenceType }),
+          ...(referenceType && { referenceType }),
+          ...(referenceId && { referenceId }),
+        },
       };
     }
 
@@ -57,15 +63,19 @@ export class WorkService {
       prisma.work.count({ where }),
     ]);
 
-    const itemsWithNames = items.map((item) => ({
+    const itemsWithNames = await Promise.all(items.map(async (item) => ({
       ...item,
       categoryName: WorkCategoryNames[item.category as WorkCategory] || item.category,
       unitName: WorkUnitNames[item.unit as WorkUnit] || item.unit,
-      relations: item.relations.map((rel) => ({
+      relations: await Promise.all(item.relations.map(async (rel) => ({
         ...rel,
-        fenceTypeName: this.getFenceTypeName(rel.fenceType),
-      })),
-    }));
+        fenceTypeName: rel.fenceType ? this.getFenceTypeName(rel.fenceType) : undefined,
+        referenceTypeName: rel.referenceType ? this.getReferenceTypeName(rel.referenceType) : undefined,
+        referenceItemName: rel.referenceType && rel.referenceId 
+          ? await referenceRegistry.getItemName(rel.referenceType, rel.referenceId)
+          : undefined,
+      }))),
+    })));
 
     return {
       items: itemsWithNames,
@@ -90,10 +100,14 @@ export class WorkService {
       ...item,
       categoryName: WorkCategoryNames[item.category as WorkCategory] || item.category,
       unitName: WorkUnitNames[item.unit as WorkUnit] || item.unit,
-      relations: item.relations.map((rel) => ({
+      relations: await Promise.all(item.relations.map(async (rel) => ({
         ...rel,
-        fenceTypeName: this.getFenceTypeName(rel.fenceType),
-      })),
+        fenceTypeName: rel.fenceType ? this.getFenceTypeName(rel.fenceType) : undefined,
+        referenceTypeName: rel.referenceType ? this.getReferenceTypeName(rel.referenceType) : undefined,
+        referenceItemName: rel.referenceType && rel.referenceId 
+          ? await referenceRegistry.getItemName(rel.referenceType, rel.referenceId)
+          : undefined,
+      }))),
     };
   }
 
@@ -121,6 +135,30 @@ export class WorkService {
     }));
   }
 
+  async getByReference(referenceType: string, referenceId: string) {
+    const items = await prisma.work.findMany({
+      where: {
+        active: true,
+        useInCalculator: true,
+        relations: {
+          some: { referenceType, referenceId },
+        },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      categoryName: WorkCategoryNames[item.category as WorkCategory] || item.category,
+      unit: item.unit,
+      unitName: WorkUnitNames[item.unit as WorkUnit] || item.unit,
+      price: item.price,
+      useInCalculator: item.useInCalculator,
+    }));
+  }
+
   private getFenceTypeName(fenceType: string): string {
     const typeMap: Record<string, string> = {
       'PROFNASTIL': 'Профнастил',
@@ -131,6 +169,14 @@ export class WorkService {
     return typeMap[fenceType] || fenceType;
   }
 
+  private getReferenceTypeName(referenceType: string): string {
+    const typeMap: Record<string, string> = {
+      'GATE': 'Ворота',
+      'WICKET': 'Калитки',
+    };
+    return typeMap[referenceType] || referenceType;
+  }
+
   async create(data: CreateWorkInput, userId: string) {
     const { relations, ...workData } = data;
 
@@ -138,9 +184,7 @@ export class WorkService {
       data: {
         ...workData,
         relations: {
-          create: relations?.map((rel) => ({
-            fenceType: rel.fenceType,
-          })) || [],
+          create: relations?.map((rel) => this.prepareRelationData(rel)) || [],
         },
       },
       include: {
@@ -183,7 +227,7 @@ export class WorkService {
         await prisma.workRelation.createMany({
           data: relations.map((rel) => ({
             workId: id,
-            fenceType: rel.fenceType,
+            ...this.prepareRelationData(rel),
           })),
         });
       }
@@ -200,6 +244,14 @@ export class WorkService {
     await this.logChange(id, oldItem, work, userId);
 
     return work;
+  }
+
+  private prepareRelationData(rel: WorkRelationInput) {
+    return {
+      fenceType: rel.fenceType || null,
+      referenceType: rel.referenceType || null,
+      referenceId: rel.referenceId || null,
+    };
   }
 
   async delete(id: string, userId: string) {
@@ -291,6 +343,28 @@ export class WorkService {
     ];
   }
 
+  async getReferenceOptions() {
+    const [gateItems, wicketItems] = await Promise.all([
+      referenceRegistry.getItems('GATE'),
+      referenceRegistry.getItems('WICKET'),
+    ]);
+
+    return {
+      references: [
+        {
+          type: 'GATE',
+          name: 'Ворота',
+          items: gateItems,
+        },
+        {
+          type: 'WICKET',
+          name: 'Калитки',
+          items: wicketItems,
+        },
+      ],
+    };
+  }
+
   async getWorksForCalculator(fenceType?: string) {
     const where: Prisma.WorkWhereInput = {
       active: true,
@@ -309,6 +383,21 @@ export class WorkService {
 
     const works = await prisma.work.findMany({
       where,
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    return works;
+  }
+
+  async getWorksForCalculatorByReference(referenceType: string, referenceId: string) {
+    const works = await prisma.work.findMany({
+      where: {
+        active: true,
+        useInCalculator: true,
+        relations: {
+          some: { referenceType, referenceId },
+        },
+      },
       orderBy: { sortOrder: 'asc' },
     });
 
