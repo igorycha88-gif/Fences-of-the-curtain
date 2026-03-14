@@ -425,6 +425,12 @@ model FenceEstimate {
   mountingHardwareTotal Float     @default(0)
   gateTotal             Float     @default(0)
   gateInstallationTotal Float     @default(0)
+  hasWicket             Boolean   @default(false)
+  wicketWidth           Int?
+  wicketNomenclatureId   String?
+  wicketNomenclatureName String?
+  wicketTotal           Float     @default(0)
+  wicketInstallationTotal Float   @default(0)
   fenceType             FenceType @relation(fields: [fenceTypeId], references: [id])
 
   @@index([fenceTypeId])
