@@ -8,6 +8,7 @@ import { calculateMountingHardware, MountingHardwareCalculationResult } from './
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
 import { findWicketByHeightAndWidth } from './wicketLookup';
 import { workService } from '@/services/admin/workService';
+import { getCityByIP } from '@/services/admin/ipLookupService';
 
 type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
 
@@ -320,6 +321,11 @@ export async function calculateFenceEstimate(
   const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal;
   const grandTotal = materials + installation;
 
+  let city: string | null = null;
+  if (metadata?.ipAddress) {
+    city = await getCityByIP(metadata.ipAddress);
+  }
+
   const estimate = await prisma.fenceEstimate.create({
     data: {
       fenceTypeId,
@@ -352,6 +358,7 @@ export async function calculateFenceEstimate(
       sessionId: metadata?.sessionId,
       userAgent: metadata?.userAgent,
       ipAddress: metadata?.ipAddress,
+      city,
     },
   });
 
@@ -376,6 +383,8 @@ export async function calculateFenceEstimate(
     calculatedAt: estimate.createdAt.toISOString(),
   };
 }
+
+
 
 export async function getFenceEstimateById(id: string): Promise<FenceEstimateResult | null> {
   const estimate = await prisma.fenceEstimate.findUnique({
