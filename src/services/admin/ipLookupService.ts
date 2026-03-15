@@ -5,6 +5,7 @@ const CACHE_TTL = 86400;
 interface GeoLocationResponse {
   status: string;
   city?: string;
+  regionName?: string;
   country?: string;
 }
 
@@ -45,7 +46,7 @@ export async function getCityByIP(ip: string): Promise<string | null> {
   }
 
   try {
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,city,country`, {
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country`, {
       signal: AbortSignal.timeout(3000),
     });
 
@@ -57,15 +58,22 @@ export async function getCityByIP(ip: string): Promise<string | null> {
     const data: GeoLocationResponse = await response.json();
 
     if (data.status === 'success' && data.city) {
-      const city = data.country === 'Russia' ? data.city : `${data.city}, ${data.country}`;
+      let location: string;
+      if (data.country === 'Russia') {
+        location = data.regionName ? `${data.city}, ${data.regionName}` : data.city;
+      } else {
+        location = data.regionName 
+          ? `${data.city}, ${data.regionName}, ${data.country}` 
+          : `${data.city}, ${data.country}`;
+      }
 
       try {
-        await redis.setex(cacheKey, CACHE_TTL, city);
+        await redis.setex(cacheKey, CACHE_TTL, location);
       } catch (error) {
         console.error('[ipLookup] Redis cache error:', error);
       }
 
-      return city;
+      return location;
     }
 
     return null;
