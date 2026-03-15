@@ -20,3 +20,18 @@ export function formatPhoneNumber(phone: string): string {
   }
   return phone;
 }
+
+export function getClientIPFromHeaders(headers: Headers): string | undefined {
+  const cfIP = headers.get('cf-connecting-ip');
+  if (cfIP) return cfIP.trim();
+  
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0]?.trim();
+  }
+  
+  const realIP = headers.get('x-real-ip');
+  if (realIP) return realIP.trim();
+  
+  return undefined;
+}

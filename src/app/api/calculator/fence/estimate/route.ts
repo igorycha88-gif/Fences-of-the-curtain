@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fenceEstimateSchema } from '@/lib/validators/fenceEstimate';
 import { calculateFenceEstimate, CalculationError } from '@/services/calculator/fenceEstimateService';
+import { getClientIPFromHeaders } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,8 +10,7 @@ export async function POST(req: NextRequest) {
 
     const metadata = {
       userAgent: req.headers.get('user-agent') || undefined,
-      ipAddress: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                 req.headers.get('x-real-ip') || undefined,
+      ipAddress: getClientIPFromHeaders(req.headers),
     };
 
     const result = await calculateFenceEstimate(validatedData, metadata);
