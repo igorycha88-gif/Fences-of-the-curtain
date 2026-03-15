@@ -283,25 +283,22 @@ export default function AdminLayout({
           </ul>
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
-                {session.user?.name?.[0] || 'A'}
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">{session.user?.name}</p>
-                <p className="text-sm text-gray-500">{session.user?.email}</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
+              {session.user?.name?.[0] || 'A'}
             </div>
-            <button
-              onClick={handleLogout}
-              title="Выйти"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden md:inline">Выйти</span>
-            </button>
+            <div>
+              <p className="font-medium text-gray-900">{session.user?.name}</p>
+              <p className="text-sm text-gray-500">{session.user?.email}</p>
+            </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Выйти</span>
+          </button>
         </div>
       </aside>
       <main className="ml-64 p-8">
