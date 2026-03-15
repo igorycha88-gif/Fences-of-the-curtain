@@ -8,10 +8,30 @@ interface GeoLocationResponse {
   country?: string;
 }
 
-export async function getCityByIP(ip: string): Promise<string | null> {
-  if (!ip || ip === 'unknown' || ip.startsWith('127.') || ip.startsWith('::1')) {
+function normalizeIP(ip: string): string | null {
+  if (!ip || ip === 'unknown') {
     return null;
   }
+  
+  // Handle IPv6-mapped IPv4 addresses (::ffff:x.x.x.x)
+  if (ip.startsWith('::ffff:')) {
+    ip = ip.substring(7);
+  }
+  
+  // Skip localhost
+  if (ip.startsWith('127.') || ip === '::1') {
+    return null;
+  }
+  
+  return ip;
+}
+
+export async function getCityByIP(ip: string): Promise<string | null> {
+  const normalizedIP = normalizeIP(ip);
+  if (!normalizedIP) {
+    return null;
+  }
+  ip = normalizedIP;
 
   const cacheKey = `geo:${ip}`;
 
