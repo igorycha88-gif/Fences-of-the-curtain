@@ -174,20 +174,25 @@ model WorkPrice {
 }
 
 model Order {
-  id             String      @id @default(cuid())
+  id             String       @id @default(cuid())
   clientName     String
   phone          String
   email          String?
   serviceType    String
   parameters     Json
   calculatedCost Float
-  status         OrderStatus @default(NEW)
+  status         OrderStatus  @default(NEW)
   managerComment String?
   assignedTo     String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   statusHistory  Json?
-  assignedUser   User?       @relation("AssignedOrders", fields: [assignedTo], references: [id])
+  assignedUser   User?        @relation("AssignedOrders", fields: [assignedTo], references: [id])
+  estimateId     String?    @unique
+  estimate       FenceEstimate? @relation(fields: [estimateId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([estimateId])
 }
 
 model PortfolioItem {
@@ -435,6 +440,7 @@ model FenceEstimate {
   city                  String?
   fenceType             FenceType @relation(fields: [fenceTypeId], references: [id])
   user                  User?     @relation(fields: [userId], references: [id])
+  order                 Order?
 
   @@index([fenceTypeId])
   @@index([userId])
@@ -507,7 +513,10 @@ enum CanopyMaterialCategory {
 
 enum OrderStatus {
   NEW
-  IN_PROGRESS
+  ESTIMATE_APPROVAL
+  MEASUREMENT
+  PRODUCTION
+  INSTALLATION
   COMPLETED
   CANCELLED
 }

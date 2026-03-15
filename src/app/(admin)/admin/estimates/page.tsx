@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Download, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Estimate {
   id: string;
@@ -57,6 +59,7 @@ const coatingLabels: Record<string, string> = {
 };
 
 export default function EstimatesPage() {
+  const searchParams = useSearchParams();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [fenceTypes, setFenceTypes] = useState<FenceType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,9 +81,34 @@ export default function EstimatesPage() {
     search: '',
   });
 
+  const fetchEstimateDetail = useCallback(async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/admin/estimates/${id}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast.error('Смета не найдена');
+          return;
+        }
+        throw new Error('Ошибка загрузки');
+      }
+      const data = await res.json();
+      setSelectedEstimate(data);
+    } catch (error) {
+      console.error('Error fetching estimate detail:', error);
+      toast.error('Ошибка загрузки сметы');
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchFenceTypes();
-  }, []);
+    const openEstimateId = searchParams.get('open');
+    if (openEstimateId) {
+      fetchEstimateDetail(openEstimateId);
+    }
+  }, [searchParams, fetchEstimateDetail]);
 
   useEffect(() => {
     fetchEstimates();
@@ -114,19 +142,6 @@ export default function EstimatesPage() {
       console.error('Error fetching estimates:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchEstimateDetail = async (id: string) => {
-    setDetailLoading(true);
-    try {
-      const res = await fetch(`/api/admin/estimates/${id}`);
-      const data = await res.json();
-      setSelectedEstimate(data);
-    } catch (error) {
-      console.error('Error fetching estimate detail:', error);
-    } finally {
-      setDetailLoading(false);
     }
   };
 

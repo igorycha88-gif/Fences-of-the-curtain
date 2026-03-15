@@ -2,15 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fenceEstimateSchema } from '@/lib/validators/fenceEstimate';
 import { calculateFenceEstimate, CalculationError } from '@/services/calculator/fenceEstimateService';
 import { getClientIPFromHeaders } from '@/lib/utils';
+import { getSessionId } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const validatedData = fenceEstimateSchema.parse(body);
 
+    const sessionId = await getSessionId();
+
     const metadata = {
       userAgent: req.headers.get('user-agent') || undefined,
       ipAddress: getClientIPFromHeaders(req.headers),
+      sessionId,
     };
 
     const result = await calculateFenceEstimate(validatedData, metadata);

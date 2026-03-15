@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { OrderStatus } from '@prisma/client';
+import { STATUS_LABELS, VALID_STATUS_TRANSITIONS } from '@/lib/validators/order';
 
 export class OrdersService {
   async getOrders(params: {
@@ -70,14 +71,26 @@ export class OrdersService {
               email: true,
             },
           },
+          estimate: {
+            select: {
+              id: true,
+              grandTotal: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.order.count({ where }),
     ]);
 
+    const ordersWithLabels = orders.map((order) => ({
+      ...order,
+      statusLabel: STATUS_LABELS[order.status],
+      calculatedCost: order.estimate?.grandTotal ?? order.calculatedCost,
+    }));
+
     return {
-      orders,
+      orders: ordersWithLabels,
       total,
       page,
       pageSize,
@@ -86,7 +99,7 @@ export class OrdersService {
   }
 
   async getOrderById(id: string) {
-    return prisma.order.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id },
       include: {
         assignedUser: {
@@ -97,8 +110,17 @@ export class OrdersService {
             phone: true,
           },
         },
+        estimate: true,
       },
     });
+
+    if (!order) return null;
+
+    return {
+      ...order,
+      statusLabel: STATUS_LABELS[order.status],
+      calculatedCost: order.estimate?.grandTotal ?? order.calculatedCost,
+    };
   }
 
   async updateOrder(
@@ -117,6 +139,10 @@ export class OrdersService {
 
     const statusChanged = data.status && data.status !== existing.status;
 
+    if (statusChanged && !VALID_STATUS_TRANSITIONS[existing.status]?.includes(data.status!)) {
+      throw new Error(`Invalid status transition from ${existing.status} to ${data.status}`);
+    }
+
     const order = await prisma.order.update({
       where: { id },
       data: {
@@ -128,6 +154,14 @@ export class OrdersService {
             userId
           ),
         }),
+      },
+      include: {
+        estimate: {
+          select: {
+            id: true,
+            grandTotal: true,
+          },
+        },
       },
     });
 
@@ -146,7 +180,20 @@ export class OrdersService {
       });
     }
 
-    return order;
+    return {
+      ...order,
+      statusLabel: STATUS_LABELS[order.status],
+      calculatedCost: order.estimate?.grandTotal ?? order.calculatedCost,
+    };
+  }
+
+  async updateOrderStatus(
+    id: string,
+    status: OrderStatus,
+    comment: string | undefined,
+    userId: string
+  ) {
+    return this.updateOrder(id, { status, managerComment: comment }, userId);
   }
 
   async deleteOrder(id: string) {
@@ -186,7 +233,9 @@ export class OrdersService {
       {
         status: newStatus,
         timestamp: new Date().toISOString(),
+        changedAt: new Date().toISOString(),
         userId,
+        comment: null,
       },
     ];
   }
