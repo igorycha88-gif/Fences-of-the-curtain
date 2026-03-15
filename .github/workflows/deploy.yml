@@ -35,6 +35,9 @@ jobs:
             git fetch origin
             git reset --hard origin/master
             
+            # Clean build cache
+            rm -rf .next
+            
             # Install dependencies
             npm install --legacy-peer-deps --silent
             
