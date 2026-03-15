@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { headers } from 'next/headers';
+import { getClientIPFromHeaders } from '@/lib/utils';
 
 export class AuditLogService {
   async logAction(params: {
@@ -10,7 +11,7 @@ export class AuditLogService {
     details?: any;
   }) {
     const headersList = await headers();
-    const ipAddress = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || 'unknown';
+    const ipAddress = getClientIPFromHeaders(headersList) || 'unknown';
     const userAgent = headersList.get('user-agent') || 'unknown';
 
     await (prisma as any).adminActionLog.create({
