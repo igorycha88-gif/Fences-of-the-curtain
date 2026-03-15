@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+const IN_PROGRESS_STATUSES = ['ESTIMATE_APPROVAL', 'MEASUREMENT', 'PRODUCTION', 'INSTALLATION'] as const;
+
 export class StatisticsService {
   async getDashboardStats(period: 'day' | 'week' | 'month' | 'quarter' | 'year' = 'month') {
     const now = new Date();
@@ -21,7 +23,7 @@ export class StatisticsService {
       }),
       prisma.order.count({
         where: {
-          status: 'IN_PROGRESS',
+          status: { in: [...IN_PROGRESS_STATUSES] },
         },
       }),
       prisma.order.count({
@@ -38,7 +40,7 @@ export class StatisticsService {
       prisma.order.count({
         where: {
           createdAt: { gte: startDate },
-          status: { in: ['NEW', 'IN_PROGRESS', 'COMPLETED'] },
+          status: { in: ['NEW', ...IN_PROGRESS_STATUSES, 'COMPLETED'] },
         },
       }),
     ]);
@@ -164,7 +166,7 @@ export class StatisticsService {
       }),
       prisma.order.findMany({
         where: {
-          status: 'IN_PROGRESS',
+          status: { in: [...IN_PROGRESS_STATUSES] },
           createdAt: { gte: startDate, lte: endDate },
         },
       }),

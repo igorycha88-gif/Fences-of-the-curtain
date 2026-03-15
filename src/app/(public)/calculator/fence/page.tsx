@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Calculator, Send, Zap, Shield, Clock, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
+import OrderForm from '@/components/calculator/OrderForm';
 
 interface FenceType {
   id: string;
@@ -98,6 +98,7 @@ export default function FenceCalculatorPage() {
   const [loading, setLoading] = useState(false);
   const [gateWarning, setGateWarning] = useState<string | null>(null);
   const [wicketWarning, setWicketWarning] = useState<string | null>(null);
+  const [showOrderForm, setShowOrderForm] = useState(false);
 
   useEffect(() => {
     const fetchFenceTypes = async () => {
@@ -520,13 +521,13 @@ export default function FenceCalculatorPage() {
                       </div>
 
                       <div className="flex flex-col gap-3">
-                        <Link
-                          href="/contacts"
+                        <button
+                          onClick={() => setShowOrderForm(true)}
                           className="btn-primary flex items-center justify-center gap-2"
                         >
                           <Send className="w-4 h-4" />
                           Оформить заявку
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </AnimatedSection>
@@ -565,6 +566,14 @@ export default function FenceCalculatorPage() {
           </div>
         </div>
       </main>
+
+      {showOrderForm && result && (
+        <OrderForm
+          calculatedCost={result.totals.grandTotal}
+          onClose={() => setShowOrderForm(false)}
+          onSuccess={() => setShowOrderForm(false)}
+        />
+      )}
     </div>
   );
 }
