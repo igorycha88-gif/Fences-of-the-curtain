@@ -53,12 +53,14 @@ export interface WicketInstallationCalculationResult {
 }
 
 export interface GateInfo {
+  id: string;
   type: string;
   length: number;
   selectedName: string;
 }
 
 export interface WicketInfo {
+  id: string;
   width: number;
   selectedName: string;
 }
@@ -138,6 +140,7 @@ export async function calculateFenceEstimate(
     }
 
     gateInfo = {
+      id: selectedGate.id,
       type: selectedGate.type,
       length: selectedGate.gateLength,
       selectedName: selectedGate.name,
@@ -185,6 +188,7 @@ export async function calculateFenceEstimate(
     }
 
     wicketInfo = {
+      id: selectedWicket.id,
       width: selectedWicket.wicketLength,
       selectedName: selectedWicket.name,
     };
@@ -261,7 +265,7 @@ export async function calculateFenceEstimate(
   if (hasGate && gateInfo) {
     const gateItem: GateCalculationResult = {
       category: 'gates',
-      nomenclatureId: gateInfo.selectedName,
+      nomenclatureId: gateInfo.id,
       nomenclatureName: gateInfo.selectedName,
       quantity: 1,
       unit: 'шт',
@@ -274,7 +278,7 @@ export async function calculateFenceEstimate(
   if (hasWicket && wicketInfo) {
     const wicketItem: WicketCalculationResult = {
       category: 'wickets',
-      nomenclatureId: wicketInfo.selectedName,
+      nomenclatureId: wicketInfo.id,
       nomenclatureName: wicketInfo.selectedName,
       quantity: 1,
       unit: 'шт',
@@ -336,7 +340,7 @@ export async function calculateFenceEstimate(
       hasGate: hasGate || false,
       gateType: gateType || null,
       gateLength: gateInfo?.length || null,
-      gateNomenclatureId: gateInfo ? gateInfo.selectedName : null,
+      gateNomenclatureId: gateInfo ? gateInfo.id : null,
       gateNomenclatureName: gateInfo ? gateInfo.selectedName : null,
       postsTotal: postsResult.totalPrice,
       lagsTotal: lagsResult.totalPrice,
@@ -346,7 +350,7 @@ export async function calculateFenceEstimate(
       gateInstallationTotal,
       hasWicket: hasWicket || false,
       wicketWidth: wicketInfo?.width || null,
-      wicketNomenclatureId: wicketInfo ? wicketInfo.selectedName : null,
+      wicketNomenclatureId: wicketInfo ? wicketInfo.id : null,
       wicketNomenclatureName: wicketInfo ? wicketInfo.selectedName : null,
       wicketTotal,
       wicketInstallationTotal,
@@ -398,6 +402,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
 
   const gateInfo: GateInfo | undefined = estimate.hasGate && estimate.gateType && estimate.gateLength
     ? {
+        id: estimate.gateNomenclatureId || '',
         type: estimate.gateType,
         length: estimate.gateLength,
         selectedName: estimate.gateNomenclatureName || 'Ворота',
@@ -406,6 +411,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
 
   const wicketInfo: WicketInfo | undefined = estimate.hasWicket && estimate.wicketWidth
     ? {
+        id: estimate.wicketNomenclatureId || '',
         width: estimate.wicketWidth,
         selectedName: estimate.wicketNomenclatureName || 'Калитка',
       }
