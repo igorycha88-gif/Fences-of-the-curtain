@@ -224,7 +224,7 @@ export default function PostsPage() {
   };
 
   const handlePurchasePriceChange = (value: number | null) => {
-    setFormValues((prev) => ({ ...prev, purchasePrice: value }));
+    setFormValues((prev) => ({ ...prev, purchasePricePerUnit: value }));
   };
 
   const handleConfirmDuplicate = () => {
