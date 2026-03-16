@@ -2,7 +2,34 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Download } from 'lucide-react';
+
+interface ExtendedEstimateItem {
+  category: string;
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+  purchasePricePerUnit?: number | null;
+  purchaseTotal?: number | null;
+  marginRub?: number | null;
+  marginPercent?: number | null;
+}
+
+interface EstimateSummary {
+  retailTotal: number;
+  purchaseTotal: number;
+  marginTotalRub: number;
+  marginTotalPercent: number;
+  retailMaterialsTotal: number;
+  purchaseMaterialsTotal: number;
+  materialMarginRub: number;
+  materialMarginPercent: number;
+  worksTotal: number;
+  grandTotal: number;
+}
 
 interface EstimateDetail {
   id: string;
@@ -31,7 +58,7 @@ interface EstimateDetail {
   installationTotal: number;
   materialsTotal: number;
   grandTotal: number;
-  items: any[];
+  items: ExtendedEstimateItem[];
   ipAddress: string | null;
   userAgent: string | null;
   city: string | null;
@@ -41,12 +68,26 @@ interface EstimateDetail {
     email: string | null;
     phone: string | null;
   } | null;
+  showPurchasePrices?: boolean;
+  summary?: EstimateSummary;
 }
 
 const coatingLabels: Record<string, string> = {
   GALVANIZED: 'Оцинкованный',
   POLYMER_SINGLE: 'Односторонний полимер',
   POLYMER_DOUBLE: 'Двусторонний полимер',
+};
+
+const categoryLabels: Record<string, string> = {
+  posts: 'Столбы',
+  lags: 'Лаги',
+  profnastil: 'Профнастил',
+  picket: 'Евроштакетник',
+  gates: 'Ворота',
+  wickets: 'Калитки',
+  mountingHardware: 'Монтажная фурнитура',
+  mounting_hardware: 'Монтажная фурнитура',
+  installation: 'Работы',
 };
 
 export default function EstimateDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -76,8 +117,35 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('ru-RU') + ' ₽';
+  const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) return '—';
+    return price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+  };
+
+  const formatPercent = (percent: number | null | undefined) => {
+    if (percent === null || percent === undefined) return '—';
+    return percent.toFixed(2) + '%';
+  };
+
+  const handleExport = async () => {
+    if (!estimate) return;
+    
+    try {
+      const res = await fetch(`/api/admin/estimates/${resolvedParams.id}/export`);
+      if (!res.ok) throw new Error('Ошибка экспорта');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `estimate_${estimate.id.slice(0, 8)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      console.error('Export error:', err);
+    }
   };
 
   if (loading) {
@@ -99,29 +167,42 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
     );
   }
 
+  const showPurchasePrices = estimate.showPurchasePrices && estimate.summary;
+
   return (
     <div>
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          href="/admin/estimates"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Смета #{estimate.id.slice(0, 8)}
-          </h1>
-          <p className="text-gray-500">
-            от {new Date(estimate.createdAt).toLocaleDateString('ru-RU', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </p>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin/estimates"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Смета #{estimate.id.slice(0, 8)}
+            </h1>
+            <p className="text-gray-500">
+              от {new Date(estimate.createdAt).toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          </div>
         </div>
+        {showPurchasePrices && (
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Экспорт сметы
+          </button>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -148,97 +229,9 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          {(estimate.hasGate || estimate.hasWicket) && (
-            <div className="bg-white rounded-xl shadow-md border p-6">
-              <h2 className="text-lg font-bold mb-4">Дополнительно</h2>
-              <div className="space-y-3">
-                {estimate.hasGate && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Ворота:</span>
-                    <span className="font-medium">
-                      {estimate.gateNomenclatureName || estimate.gateType || 'Ворота'}
-                      {estimate.gateLength && ` ${(estimate.gateLength / 1000).toFixed(1)}м`}
-                    </span>
-                  </div>
-                )}
-                {estimate.hasWicket && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Калитка:</span>
-                    <span className="font-medium">
-                      {estimate.wicketNomenclatureName || 'Калитка'}
-                      {estimate.wicketWidth && ` ${(estimate.wicketWidth / 1000).toFixed(1)}м`}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-xl shadow-md border p-6">
-            <h2 className="text-lg font-bold mb-4">Детализация</h2>
-            <div className="space-y-2">
-              {Array.isArray(estimate.items) && estimate.items.map((item, index) => (
-                <div key={index} className="flex justify-between py-2 border-b text-sm">
-                  <div>
-                    <span className="text-gray-700">{item.nomenclatureName || item.category}</span>
-                    <span className="text-gray-400 ml-2">
-                      ({item.quantity} {item.unit})
-                    </span>
-                  </div>
-                  <span className="font-medium">{formatPrice(item.totalPrice)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-md border p-6">
-            <h2 className="text-lg font-bold mb-4">Стоимость</h2>
-            <div className="space-y-2">
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Столбы</span>
-                <span>{formatPrice(estimate.postsTotal)}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Лаги</span>
-                <span>{formatPrice(estimate.lagsTotal)}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Профнастил</span>
-                <span>{formatPrice(estimate.profnastilTotal)}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Монтажная фурнитура</span>
-                <span>{formatPrice(estimate.mountingHardwareTotal)}</span>
-              </div>
-              {estimate.hasGate && (
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Ворота</span>
-                  <span>{formatPrice(estimate.gateTotal)}</span>
-                </div>
-              )}
-              {estimate.hasWicket && (
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Калитка</span>
-                  <span>{formatPrice(estimate.wicketTotal)}</span>
-                </div>
-              )}
-              <div className="flex justify-between py-2 border-b font-medium">
-                <span>Материалы</span>
-                <span>{formatPrice(estimate.materialsTotal)}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Работы</span>
-                <span>{formatPrice(estimate.installationTotal)}</span>
-              </div>
-              <div className="flex justify-between py-3 text-lg font-bold bg-primary/5 -mx-2 px-2 rounded">
-                <span>ИТОГО</span>
-                <span className="text-primary">{formatPrice(estimate.grandTotal)}</span>
-              </div>
-            </div>
-          </div>
-
           <div className="bg-white rounded-xl shadow-md border p-6">
             <h2 className="text-lg font-bold mb-4">Информация</h2>
             <div className="space-y-2 text-sm">
@@ -258,6 +251,32 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
               </div>
             </div>
           </div>
+
+          {showPurchasePrices && estimate.summary && (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-md border border-green-200 p-6">
+              <h2 className="text-lg font-bold mb-4 text-green-800">Финансовые показатели сметы</h2>
+              <div className="space-y-3">
+                <div className="flex justify-between py-2 border-b border-green-200">
+                  <span className="text-green-700">Розничная стоимость материалов:</span>
+                  <span className="font-medium text-green-900">{formatPrice(estimate.summary.retailMaterialsTotal)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-green-200">
+                  <span className="text-green-700">Маржа за материал:</span>
+                  <span className="font-medium text-green-900">
+                    {formatPrice(estimate.summary.materialMarginRub)} ({estimate.summary.materialMarginPercent.toFixed(2)}%)
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-green-200">
+                  <span className="text-green-700">Стоимость работ:</span>
+                  <span className="font-medium text-green-900">{formatPrice(estimate.summary.worksTotal)}</span>
+                </div>
+                <div className="flex justify-between py-2 font-bold text-green-900 bg-green-100 rounded px-2 -mx-2">
+                  <span>Общая стоимость сметы:</span>
+                  <span>{formatPrice(estimate.summary.grandTotal)}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {estimate.user && (
             <div className="bg-white rounded-xl shadow-md border p-6">
@@ -280,6 +299,181 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
           )}
         </div>
       </div>
+
+      {Array.isArray(estimate.items) && estimate.items.length > 0 && (() => {
+        const materialItems = estimate.items.filter(item => item.category !== 'installation');
+        const workItems = estimate.items.filter(item => item.category === 'installation');
+        const materialsTotal = materialItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        const worksTotal = workItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        
+        return (
+          <>
+            {materialItems.length > 0 && (
+              <div className="mt-6 bg-white rounded-xl shadow-md border p-6">
+                <h2 className="text-lg font-bold mb-4">Смета материалов</h2>
+                <div className="overflow-x-auto">
+                  {showPurchasePrices ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left p-3 font-medium">№</th>
+                          <th className="text-left p-3 font-medium">Категория</th>
+                          <th className="text-left p-3 font-medium">Наименование</th>
+                          <th className="text-left p-3 font-medium">Ед.</th>
+                          <th className="text-right p-3 font-medium">Кол-во</th>
+                          <th className="text-right p-3 font-medium">Стоимость за ед.</th>
+                          <th className="text-right p-3 font-medium">Стоимость итого</th>
+                          <th className="text-right p-3 font-medium">Цена закуп.</th>
+                          <th className="text-right p-3 font-medium">Сумма закуп.</th>
+                          <th className="text-right p-3 font-medium">Маржа (₽)</th>
+                          <th className="text-right p-3 font-medium">Маржа (%)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {materialItems.map((item, index) => (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 text-gray-500">{index + 1}</td>
+                            <td className="p-3">{categoryLabels[item.category] || item.category}</td>
+                            <td className="p-3">{item.nomenclatureName}</td>
+                            <td className="p-3 text-gray-500">{item.unit}</td>
+                            <td className="p-3 text-right">{item.quantity}</td>
+                            <td className="p-3 text-right">{formatPrice(item.pricePerUnit)}</td>
+                            <td className="p-3 text-right font-medium">{formatPrice(item.totalPrice)}</td>
+                            <td className="p-3 text-right">{formatPrice(item.purchasePricePerUnit)}</td>
+                            <td className="p-3 text-right">{formatPrice(item.purchaseTotal)}</td>
+                            <td className={`p-3 text-right font-medium ${item.marginRub && item.marginRub > 0 ? 'text-green-600' : ''}`}>
+                              {formatPrice(item.marginRub)}
+                            </td>
+                            <td className={`p-3 text-right font-medium ${item.marginPercent && item.marginPercent > 0 ? 'text-green-600' : ''}`}>
+                              {formatPercent(item.marginPercent)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      {estimate.summary && (
+                        <tfoot>
+                          <tr className="bg-gray-100 font-bold">
+                            <td colSpan={6} className="p-3 text-right">ИТОГО:</td>
+                            <td className="p-3 text-right">{formatPrice(materialsTotal)}</td>
+                            <td></td>
+                            <td className="p-3 text-right">{formatPrice(estimate.summary.purchaseTotal)}</td>
+                            <td className="p-3 text-right text-green-600">{formatPrice(estimate.summary.marginTotalRub)}</td>
+                            <td className="p-3 text-right text-green-600">{formatPercent(estimate.summary.marginTotalPercent)}</td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left p-3 font-medium">№</th>
+                          <th className="text-left p-3 font-medium">Категория</th>
+                          <th className="text-left p-3 font-medium">Наименование</th>
+                          <th className="text-left p-3 font-medium">Ед.</th>
+                          <th className="text-right p-3 font-medium">Кол-во</th>
+                          <th className="text-right p-3 font-medium">Сумма</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {materialItems.map((item, index) => (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 text-gray-500">{index + 1}</td>
+                            <td className="p-3">{categoryLabels[item.category] || item.category}</td>
+                            <td className="p-3">{item.nomenclatureName}</td>
+                            <td className="p-3 text-gray-500">{item.unit}</td>
+                            <td className="p-3 text-right">{item.quantity}</td>
+                            <td className="p-3 text-right font-medium">{formatPrice(item.totalPrice)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-100 font-bold">
+                          <td colSpan={5} className="p-3 text-right">ИТОГО:</td>
+                          <td className="p-3 text-right">{formatPrice(materialsTotal)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {workItems.length > 0 && (
+              <div className="mt-6 bg-white rounded-xl shadow-md border p-6">
+                <h2 className="text-lg font-bold mb-4">Смета работ</h2>
+                <div className="overflow-x-auto">
+                  {showPurchasePrices ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left p-3 font-medium">№</th>
+                          <th className="text-left p-3 font-medium">Категория</th>
+                          <th className="text-left p-3 font-medium">Наименование</th>
+                          <th className="text-left p-3 font-medium">Ед.</th>
+                          <th className="text-right p-3 font-medium">Кол-во</th>
+                          <th className="text-right p-3 font-medium">Стоимость за ед.</th>
+                          <th className="text-right p-3 font-medium">Стоимость итого</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {workItems.map((item, index) => (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 text-gray-500">{index + 1}</td>
+                            <td className="p-3">{categoryLabels[item.category] || item.category}</td>
+                            <td className="p-3">{item.nomenclatureName}</td>
+                            <td className="p-3 text-gray-500">{item.unit}</td>
+                            <td className="p-3 text-right">{item.quantity}</td>
+                            <td className="p-3 text-right">{formatPrice(item.pricePerUnit)}</td>
+                            <td className="p-3 text-right font-medium">{formatPrice(item.totalPrice)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-100 font-bold">
+                          <td colSpan={6} className="p-3 text-right">ИТОГО:</td>
+                          <td className="p-3 text-right">{formatPrice(worksTotal)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left p-3 font-medium">№</th>
+                          <th className="text-left p-3 font-medium">Категория</th>
+                          <th className="text-left p-3 font-medium">Наименование</th>
+                          <th className="text-left p-3 font-medium">Ед.</th>
+                          <th className="text-right p-3 font-medium">Кол-во</th>
+                          <th className="text-right p-3 font-medium">Сумма</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {workItems.map((item, index) => (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 text-gray-500">{index + 1}</td>
+                            <td className="p-3">{categoryLabels[item.category] || item.category}</td>
+                            <td className="p-3">{item.nomenclatureName}</td>
+                            <td className="p-3 text-gray-500">{item.unit}</td>
+                            <td className="p-3 text-right">{item.quantity}</td>
+                            <td className="p-3 text-right font-medium">{formatPrice(item.totalPrice)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-100 font-bold">
+                          <td colSpan={5} className="p-3 text-right">ИТОГО:</td>
+                          <td className="p-3 text-right">{formatPrice(worksTotal)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
