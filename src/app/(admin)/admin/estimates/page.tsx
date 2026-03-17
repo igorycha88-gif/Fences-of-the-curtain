@@ -472,7 +472,7 @@ export default function EstimatesPage() {
 
       {selectedEstimate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">Расчет #{selectedEstimate.id.slice(0, 8)}</h2>
               <button
@@ -528,14 +528,14 @@ export default function EstimatesPage() {
                                     <th className="text-left p-2 font-medium">№</th>
                                     <th className="text-left p-2 font-medium">Категория</th>
                                     <th className="text-left p-2 font-medium">Наименование</th>
-                                    <th className="text-left p-2 font-medium">Ед.</th>
-                                    <th className="text-right p-2 font-medium">Кол-во</th>
-                                    <th className="text-right p-2 font-medium">Стоимость за ед.</th>
-                                    <th className="text-right p-2 font-medium">Стоимость итого</th>
-                                    <th className="text-right p-2 font-medium">Цена закуп.</th>
-                                    <th className="text-right p-2 font-medium">Сумма закуп.</th>
-                                    <th className="text-right p-2 font-medium">Маржа (₽)</th>
-                                    <th className="text-right p-2 font-medium">Маржа (%)</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Кол-во</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость за ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость итого</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Цена закуп.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Сумма закуп.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Маржа (₽)</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Маржа (%)</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -544,16 +544,16 @@ export default function EstimatesPage() {
                                       <td className="p-2 text-gray-500">{index + 1}</td>
                                       <td className="p-2">{categoryLabels[item.category] || item.category}</td>
                                       <td className="p-2">{item.nomenclatureName}</td>
-                                      <td className="p-2 text-gray-500">{item.unit}</td>
-                                      <td className="p-2 text-right">{item.quantity}</td>
-                                      <td className="p-2 text-right">{item.pricePerUnit.toLocaleString('ru-RU')} ₽</td>
-                                      <td className="p-2 text-right font-medium">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
-                                      <td className="p-2 text-right">{item.purchasePricePerUnit ? item.purchasePricePerUnit.toLocaleString('ru-RU') + ' ₽' : '—'}</td>
-                                      <td className="p-2 text-right">{item.purchaseTotal ? item.purchaseTotal.toLocaleString('ru-RU') + ' ₽' : '—'}</td>
-                                      <td className={`p-2 text-right font-medium ${item.marginRub && item.marginRub > 0 ? 'text-green-600' : ''}`}>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.pricePerUnit.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.purchasePricePerUnit ? item.purchasePricePerUnit.toLocaleString('ru-RU') + ' ₽' : '—'}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.purchaseTotal ? item.purchaseTotal.toLocaleString('ru-RU') + ' ₽' : '—'}</td>
+                                      <td className={`p-2 text-right font-medium whitespace-nowrap ${item.marginRub && item.marginRub > 0 ? 'text-green-600' : ''}`}>
                                         {item.marginRub ? item.marginRub.toLocaleString('ru-RU') + ' ₽' : '—'}
                                       </td>
-                                      <td className={`p-2 text-right font-medium ${item.marginPercent && item.marginPercent > 0 ? 'text-green-600' : ''}`}>
+                                      <td className={`p-2 text-right font-medium whitespace-nowrap ${item.marginPercent && item.marginPercent > 0 ? 'text-green-600' : ''}`}>
                                         {item.marginPercent ? item.marginPercent.toFixed(2) + '%' : '—'}
                                       </td>
                                     </tr>
@@ -562,11 +562,11 @@ export default function EstimatesPage() {
                                 <tfoot>
                                   <tr className="bg-gray-100 font-bold">
                                     <td colSpan={6} className="p-2 text-right">ИТОГО:</td>
-                                    <td className="p-2 text-right">{materialsTotal.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{materialsTotal.toLocaleString('ru-RU')} ₽</td>
                                     <td></td>
-                                    <td className="p-2 text-right">{selectedEstimate.summary.purchaseTotal.toLocaleString('ru-RU')} ₽</td>
-                                    <td className="p-2 text-right text-green-600">{selectedEstimate.summary.marginTotalRub.toLocaleString('ru-RU')} ₽</td>
-                                    <td className="p-2 text-right text-green-600">{selectedEstimate.summary.marginTotalPercent.toFixed(2)}%</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{selectedEstimate.summary.purchaseTotal.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right text-green-600 whitespace-nowrap">{selectedEstimate.summary.marginTotalRub.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right text-green-600 whitespace-nowrap">{selectedEstimate.summary.marginTotalPercent.toFixed(2)}%</td>
                                   </tr>
                                 </tfoot>
                               </table>
@@ -577,9 +577,9 @@ export default function EstimatesPage() {
                                     <th className="text-left p-2 font-medium">№</th>
                                     <th className="text-left p-2 font-medium">Категория</th>
                                     <th className="text-left p-2 font-medium">Наименование</th>
-                                    <th className="text-left p-2 font-medium">Ед.</th>
-                                    <th className="text-right p-2 font-medium">Кол-во</th>
-                                    <th className="text-right p-2 font-medium">Сумма</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Кол-во</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Сумма</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -588,16 +588,16 @@ export default function EstimatesPage() {
                                       <td className="p-2 text-gray-500">{index + 1}</td>
                                       <td className="p-2">{categoryLabels[item.category] || item.category}</td>
                                       <td className="p-2">{item.nomenclatureName}</td>
-                                      <td className="p-2 text-gray-500">{item.unit}</td>
-                                      <td className="p-2 text-right">{item.quantity}</td>
-                                      <td className="p-2 text-right font-medium">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
                                     </tr>
                                   ))}
                                 </tbody>
                                 <tfoot>
                                   <tr className="bg-gray-100 font-bold">
                                     <td colSpan={5} className="p-2 text-right">ИТОГО:</td>
-                                    <td className="p-2 text-right">{materialsTotal.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{materialsTotal.toLocaleString('ru-RU')} ₽</td>
                                   </tr>
                                 </tfoot>
                               </table>
@@ -617,10 +617,10 @@ export default function EstimatesPage() {
                                     <th className="text-left p-2 font-medium">№</th>
                                     <th className="text-left p-2 font-medium">Категория</th>
                                     <th className="text-left p-2 font-medium">Наименование</th>
-                                    <th className="text-left p-2 font-medium">Ед.</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
                                     <th className="text-right p-2 font-medium">Кол-во</th>
-                                    <th className="text-right p-2 font-medium">Стоимость за ед.</th>
-                                    <th className="text-right p-2 font-medium">Стоимость итого</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость за ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость итого</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -629,17 +629,17 @@ export default function EstimatesPage() {
                                       <td className="p-2 text-gray-500">{index + 1}</td>
                                       <td className="p-2">{categoryLabels[item.category] || item.category}</td>
                                       <td className="p-2">{item.nomenclatureName}</td>
-                                      <td className="p-2 text-gray-500">{item.unit}</td>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
                                       <td className="p-2 text-right">{item.quantity}</td>
-                                      <td className="p-2 text-right">{item.pricePerUnit.toLocaleString('ru-RU')} ₽</td>
-                                      <td className="p-2 text-right font-medium">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.pricePerUnit.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
                                     </tr>
                                   ))}
                                 </tbody>
                                 <tfoot>
                                   <tr className="bg-gray-100 font-bold">
                                     <td colSpan={6} className="p-2 text-right">ИТОГО:</td>
-                                    <td className="p-2 text-right">{worksTotal.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{worksTotal.toLocaleString('ru-RU')} ₽</td>
                                   </tr>
                                 </tfoot>
                               </table>
@@ -650,9 +650,9 @@ export default function EstimatesPage() {
                                     <th className="text-left p-2 font-medium">№</th>
                                     <th className="text-left p-2 font-medium">Категория</th>
                                     <th className="text-left p-2 font-medium">Наименование</th>
-                                    <th className="text-left p-2 font-medium">Ед.</th>
-                                    <th className="text-right p-2 font-medium">Кол-во</th>
-                                    <th className="text-right p-2 font-medium">Сумма</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Кол-во</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Сумма</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -661,16 +661,16 @@ export default function EstimatesPage() {
                                       <td className="p-2 text-gray-500">{index + 1}</td>
                                       <td className="p-2">{categoryLabels[item.category] || item.category}</td>
                                       <td className="p-2">{item.nomenclatureName}</td>
-                                      <td className="p-2 text-gray-500">{item.unit}</td>
-                                      <td className="p-2 text-right">{item.quantity}</td>
-                                      <td className="p-2 text-right font-medium">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
                                     </tr>
                                   ))}
                                 </tbody>
                                 <tfoot>
                                   <tr className="bg-gray-100 font-bold">
                                     <td colSpan={5} className="p-2 text-right">ИТОГО:</td>
-                                    <td className="p-2 text-right">{worksTotal.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{worksTotal.toLocaleString('ru-RU')} ₽</td>
                                   </tr>
                                 </tfoot>
                               </table>
