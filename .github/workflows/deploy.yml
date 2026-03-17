@@ -60,6 +60,11 @@ jobs:
             pm2 start npm --name "fences-app" -- start
             pm2 save
             
-            # Health check
-            sleep 5
+            # Health check with retries
+            sleep 10
+            for i in 1 2 3 4 5; do
+              curl -f http://localhost:3000/ && break
+              echo "Attempt $i failed, waiting..."
+              sleep 5
+            done
             curl -f http://localhost:3000/ || exit 1
