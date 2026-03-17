@@ -25,52 +25,79 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
+          command_timeout: 15m
           script: |
-            cd /root/Fences-of-the-curtain
+            set -e
             
-            # Backup current deployment
-            sudo -u postgres pg_dump -U postgres fences > backup_$(date +%Y%m%d_%H%M%S).sql || true
+            APP_DIR="/root/Fences-of-the-curtain"
+            APP_NAME="fences-app"
             
-            # Pull latest changes
+            cd $APP_DIR
+            
+            echo "=== Checking environment ==="
+            if [ ! -f .env ]; then
+              echo "ERROR: .env file not found!"
+              exit 1
+            fi
+            
+            echo "=== Creating backup ==="
+            BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
+            sudo -u postgres pg_dump -U postgres fences > "$BACKUP_FILE" || echo "Warning: Backup failed, continuing..."
+            
+            echo "=== Storing current commit for rollback ==="
+            CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "none")
+            echo "Current commit: $CURRENT_COMMIT"
+            
+            echo "=== Pulling latest changes ==="
             git fetch origin
             git reset --hard origin/master
             
-            # Clean build cache
-            rm -rf .next
+            echo "=== Installing dependencies ==="
+            npm install --legacy-peer-deps
             
-            # Install dependencies
-            npm install --legacy-peer-deps --silent
-            
-            # Generate Prisma Client
+            echo "=== Generating Prisma Client ==="
             npx prisma generate
             
-            # Build application
-            npm run build --legacy-peer-deps
+            echo "=== Building application ==="
+            npm run build
             
-            # Push schema changes to database
+            echo "=== Pushing schema changes ==="
             npx prisma db push --accept-data-loss
             
-            # Stop and clean up PM2 processes
-            pm2 stop fences-app 2>/dev/null || true
-            pm2 delete fences-app 2>/dev/null || true
-            fuser -k 3000/tcp 2>/dev/null || true
-            sleep 2
-            
-            # Start application with PM2
-            pm2 start npm --name "fences-app" -- start
+            echo "=== Graceful restart with PM2 ==="
+            if pm2 list | grep -q "$APP_NAME"; then
+              echo "Reloading existing process..."
+              pm2 reload $APP_NAME --update-env || pm2 restart $APP_NAME
+            else
+              echo "Starting new process..."
+              pm2 start npm --name "$APP_NAME" -- start
+            fi
             pm2 save
             
-            # Health check with retries
-            sleep 10
-            for i in 1 2 3 4 5; do
-              if curl -f http://localhost:3000/; then
-                echo "Health check passed!"
-                exit 0
-              fi
-              echo "Attempt $i failed, checking PM2 logs..."
-              pm2 logs fences-app --lines 30 --nostream || true
+            echo "=== Health check (10 attempts, 5s each) ==="
+            SUCCESS=0
+            for i in $(seq 1 10); do
               sleep 5
+              if curl -sf http://localhost:3000/ > /dev/null 2>&1; then
+                echo "Health check passed on attempt $i!"
+                SUCCESS=1
+                break
+              fi
+              echo "Attempt $i/10 failed..."
+              if [ $i -eq 3 ] || [ $i -eq 6 ]; then
+                echo "=== PM2 logs at attempt $i ==="
+                pm2 logs $APP_NAME --lines 20 --nostream || true
+              fi
             done
-            echo "All health checks failed, showing final logs..."
-            pm2 logs fences-app --lines 50 --nostream || true
-            exit 1
+            
+            if [ $SUCCESS -eq 0 ]; then
+              echo "=== DEPLOYMENT FAILED ==="
+              echo "=== Final PM2 logs ==="
+              pm2 logs $APP_NAME --lines 100 --nostream || true
+              echo "=== PM2 status ==="
+              pm2 list
+              exit 1
+            fi
+            
+            echo "=== Deployment successful! ==="
+            pm2 list
