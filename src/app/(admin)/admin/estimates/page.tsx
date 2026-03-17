@@ -24,6 +24,33 @@ interface Estimate {
   } | null;
 }
 
+interface ExtendedEstimateItem {
+  category: string;
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+  purchasePricePerUnit?: number | null;
+  purchaseTotal?: number | null;
+  marginRub?: number | null;
+  marginPercent?: number | null;
+}
+
+interface EstimateSummary {
+  retailTotal: number;
+  purchaseTotal: number;
+  marginTotalRub: number;
+  marginTotalPercent: number;
+  retailMaterialsTotal?: number;
+  purchaseMaterialsTotal?: number;
+  materialMarginRub?: number;
+  materialMarginPercent?: number;
+  worksTotal?: number;
+  grandTotal?: number;
+}
+
 interface EstimateDetail extends Estimate {
   lagRows: number;
   coating: string;
@@ -42,9 +69,11 @@ interface EstimateDetail extends Estimate {
   mountingHardwareTotal: number;
   installationTotal: number;
   materialsTotal: number;
-  items: any[];
+  items: ExtendedEstimateItem[];
   ipAddress: string | null;
   userAgent: string | null;
+  showPurchasePrices?: boolean;
+  summary?: EstimateSummary;
 }
 
 interface FenceType {
@@ -56,6 +85,18 @@ const coatingLabels: Record<string, string> = {
   GALVANIZED: 'Оцинкованный',
   POLYMER_SINGLE: 'Односторонний полимер',
   POLYMER_DOUBLE: 'Двусторонний полимер',
+};
+
+const categoryLabels: Record<string, string> = {
+  posts: 'Столбы',
+  lags: 'Лаги',
+  profnastil: 'Профнастил',
+  picket: 'Евроштакетник',
+  gates: 'Ворота',
+  wickets: 'Калитки',
+  mountingHardware: 'Монтажная фурнитура',
+  mounting_hardware: 'Монтажная фурнитура',
+  installation: 'Работы',
 };
 
 export default function EstimatesPage() {
@@ -431,7 +472,7 @@ export default function EstimatesPage() {
 
       {selectedEstimate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">Расчет #{selectedEstimate.id.slice(0, 8)}</h2>
               <button
@@ -468,75 +509,204 @@ export default function EstimatesPage() {
                   </div>
                 </div>
 
-                {(selectedEstimate.hasGate || selectedEstimate.hasWicket) && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Дополнительно</h3>
+                {selectedEstimate.items && selectedEstimate.items.length > 0 && (() => {
+                  const materialItems = selectedEstimate.items.filter(item => item.category !== 'installation');
+                  const workItems = selectedEstimate.items.filter(item => item.category === 'installation');
+                  const materialsTotal = materialItems.reduce((sum, item) => sum + item.totalPrice, 0);
+                  const worksTotal = workItems.reduce((sum, item) => sum + item.totalPrice, 0);
+                  
+                  return (
+                    <>
+                      {materialItems.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-3">Смета материалов</h3>
+                          <div className="overflow-x-auto">
+                            {selectedEstimate.showPurchasePrices && selectedEstimate.summary ? (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b bg-gray-50">
+                                    <th className="text-left p-2 font-medium">№</th>
+                                    <th className="text-left p-2 font-medium">Категория</th>
+                                    <th className="text-left p-2 font-medium">Наименование</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Кол-во</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость за ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость итого</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Цена закуп.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Сумма закуп.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Маржа (₽)</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Маржа (%)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {materialItems.map((item, index) => (
+                                    <tr key={index} className="border-b hover:bg-gray-50">
+                                      <td className="p-2 text-gray-500">{index + 1}</td>
+                                      <td className="p-2">{categoryLabels[item.category] || item.category}</td>
+                                      <td className="p-2">{item.nomenclatureName}</td>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.pricePerUnit.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.purchasePricePerUnit ? item.purchasePricePerUnit.toLocaleString('ru-RU') + ' ₽' : '—'}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.purchaseTotal ? item.purchaseTotal.toLocaleString('ru-RU') + ' ₽' : '—'}</td>
+                                      <td className={`p-2 text-right font-medium whitespace-nowrap ${item.marginRub && item.marginRub > 0 ? 'text-green-600' : ''}`}>
+                                        {item.marginRub ? item.marginRub.toLocaleString('ru-RU') + ' ₽' : '—'}
+                                      </td>
+                                      <td className={`p-2 text-right font-medium whitespace-nowrap ${item.marginPercent && item.marginPercent > 0 ? 'text-green-600' : ''}`}>
+                                        {item.marginPercent ? item.marginPercent.toFixed(2) + '%' : '—'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="bg-gray-100 font-bold">
+                                    <td colSpan={6} className="p-2 text-right">ИТОГО:</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{materialsTotal.toLocaleString('ru-RU')} ₽</td>
+                                    <td></td>
+                                    <td className="p-2 text-right whitespace-nowrap">{selectedEstimate.summary.purchaseTotal.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right text-green-600 whitespace-nowrap">{selectedEstimate.summary.marginTotalRub.toLocaleString('ru-RU')} ₽</td>
+                                    <td className="p-2 text-right text-green-600 whitespace-nowrap">{selectedEstimate.summary.marginTotalPercent.toFixed(2)}%</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b bg-gray-50">
+                                    <th className="text-left p-2 font-medium">№</th>
+                                    <th className="text-left p-2 font-medium">Категория</th>
+                                    <th className="text-left p-2 font-medium">Наименование</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Кол-во</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Сумма</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {materialItems.map((item, index) => (
+                                    <tr key={index} className="border-b hover:bg-gray-50">
+                                      <td className="p-2 text-gray-500">{index + 1}</td>
+                                      <td className="p-2">{categoryLabels[item.category] || item.category}</td>
+                                      <td className="p-2">{item.nomenclatureName}</td>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="bg-gray-100 font-bold">
+                                    <td colSpan={5} className="p-2 text-right">ИТОГО:</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{materialsTotal.toLocaleString('ru-RU')} ₽</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {workItems.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-3">Смета работ</h3>
+                          <div className="overflow-x-auto">
+                            {selectedEstimate.showPurchasePrices && selectedEstimate.summary ? (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b bg-gray-50">
+                                    <th className="text-left p-2 font-medium">№</th>
+                                    <th className="text-left p-2 font-medium">Категория</th>
+                                    <th className="text-left p-2 font-medium">Наименование</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
+                                    <th className="text-right p-2 font-medium">Кол-во</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость за ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Стоимость итого</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {workItems.map((item, index) => (
+                                    <tr key={index} className="border-b hover:bg-gray-50">
+                                      <td className="p-2 text-gray-500">{index + 1}</td>
+                                      <td className="p-2">{categoryLabels[item.category] || item.category}</td>
+                                      <td className="p-2">{item.nomenclatureName}</td>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+                                      <td className="p-2 text-right">{item.quantity}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.pricePerUnit.toLocaleString('ru-RU')} ₽</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="bg-gray-100 font-bold">
+                                    <td colSpan={6} className="p-2 text-right">ИТОГО:</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{worksTotal.toLocaleString('ru-RU')} ₽</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b bg-gray-50">
+                                    <th className="text-left p-2 font-medium">№</th>
+                                    <th className="text-left p-2 font-medium">Категория</th>
+                                    <th className="text-left p-2 font-medium">Наименование</th>
+                                    <th className="text-left p-2 font-medium whitespace-nowrap">Ед.</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Кол-во</th>
+                                    <th className="text-right p-2 font-medium whitespace-nowrap">Сумма</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {workItems.map((item, index) => (
+                                    <tr key={index} className="border-b hover:bg-gray-50">
+                                      <td className="p-2 text-gray-500">{index + 1}</td>
+                                      <td className="p-2">{categoryLabels[item.category] || item.category}</td>
+                                      <td className="p-2">{item.nomenclatureName}</td>
+                                      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+                                      <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
+                                      <td className="p-2 text-right font-medium whitespace-nowrap">{item.totalPrice.toLocaleString('ru-RU')} ₽</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="bg-gray-100 font-bold">
+                                    <td colSpan={5} className="p-2 text-right">ИТОГО:</td>
+                                    <td className="p-2 text-right whitespace-nowrap">{worksTotal.toLocaleString('ru-RU')} ₽</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
+                {selectedEstimate.showPurchasePrices && selectedEstimate.summary && (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4">
+                    <h3 className="font-semibold text-green-800 mb-3">Финансовые показатели сметы</h3>
                     <div className="space-y-2 text-sm">
-                      {selectedEstimate.hasGate && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span className="text-gray-600">Ворота:</span>
-                          <span className="font-medium">
-                            {selectedEstimate.gateNomenclatureName || selectedEstimate.gateType || 'Ворота'}
-                            {selectedEstimate.gateLength && ` ${selectedEstimate.gateLength / 1000}м`}
-                            {' — '}{formatPrice(selectedEstimate.gateTotal)}
-                          </span>
-                        </div>
-                      )}
-                      {selectedEstimate.hasWicket && (
-                        <div className="flex justify-between py-2 border-b">
-                          <span className="text-gray-600">Калитка:</span>
-                          <span className="font-medium">
-                            {selectedEstimate.wicketNomenclatureName || 'Калитка'}
-                            {selectedEstimate.wicketWidth && ` ${selectedEstimate.wicketWidth / 1000}м`}
-                            {' — '}{formatPrice(selectedEstimate.wicketTotal)}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex justify-between py-2 border-b border-green-200">
+                        <span className="text-green-700">Розничная стоимость материалов:</span>
+                        <span className="font-medium text-green-900">{formatPrice(selectedEstimate.summary.retailMaterialsTotal || selectedEstimate.summary.retailTotal)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-green-200">
+                        <span className="text-green-700">Маржа за материал:</span>
+                        <span className="font-medium text-green-900">
+                          {formatPrice(selectedEstimate.summary.materialMarginRub || selectedEstimate.summary.marginTotalRub)} ({(selectedEstimate.summary.materialMarginPercent || selectedEstimate.summary.marginTotalPercent).toFixed(2)}%)
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-green-200">
+                        <span className="text-green-700">Стоимость работ:</span>
+                        <span className="font-medium text-green-900">{formatPrice(selectedEstimate.summary.worksTotal || 0)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 font-bold text-green-900 bg-green-100 rounded px-2 -mx-2">
+                        <span>Общая стоимость сметы:</span>
+                        <span>{formatPrice(selectedEstimate.summary.grandTotal || selectedEstimate.summary.retailTotal)}</span>
+                      </div>
                     </div>
                   </div>
                 )}
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Стоимость</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-gray-600">Столбы:</span>
-                      <span>{formatPrice(selectedEstimate.postsTotal)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-gray-600">Лаги:</span>
-                      <span>{formatPrice(selectedEstimate.lagsTotal)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-gray-600">Профнастил:</span>
-                      <span>{formatPrice(selectedEstimate.profnastilTotal)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-gray-600">Монтажная фурнитура:</span>
-                      <span>{formatPrice(selectedEstimate.mountingHardwareTotal)}</span>
-                    </div>
-                    {selectedEstimate.hasGate && (
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-600">Ворота:</span>
-                        <span>{formatPrice(selectedEstimate.gateTotal)}</span>
-                      </div>
-                    )}
-                    {selectedEstimate.hasWicket && (
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="text-gray-600">Калитка:</span>
-                        <span>{formatPrice(selectedEstimate.wicketTotal)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-gray-600">Работы:</span>
-                      <span>{formatPrice(selectedEstimate.installationTotal)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 font-semibold text-base">
-                      <span>ИТОГО:</span>
-                      <span>{formatPrice(selectedEstimate.grandTotal)}</span>
-                    </div>
-                  </div>
-                </div>
 
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Пользователь</h3>

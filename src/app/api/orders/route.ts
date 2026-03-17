@@ -89,13 +89,15 @@ export async function POST(req: NextRequest) {
         calculatedCost: estimate.grandTotal,
         status: 'NEW',
         estimateId: estimate.id,
-        statusHistory: JSON.stringify([
+        statusHistory: [
           {
             status: 'NEW',
             changedAt: new Date().toISOString(),
-            comment: null,
+            changedBy: 'system',
+            changedByName: 'Система',
+            data: {},
           },
-        ]),
+        ],
       },
       include: {
         estimate: {

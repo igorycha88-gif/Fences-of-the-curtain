@@ -1,5 +1,12 @@
 import { describe, it, expect } from '@jest/globals';
-import { calculateMargin, getMarginColor, getMarginEmoji } from '@/lib/utils/marginCalculator';
+import { 
+  calculateMargin, 
+  getMarginColor, 
+  getMarginEmoji,
+  roundToTwo,
+  calculateSummary
+} from '@/lib/utils/marginCalculator';
+import type { ExtendedEstimateItem } from '@/lib/utils/marginCalculator';
 
 describe('Margin Calculator', () => {
   describe('calculateMargin', () => {
@@ -99,6 +106,271 @@ describe('Margin Calculator', () => {
 
     it('should return white circle for null margin', () => {
       expect(getMarginEmoji(null)).toBe('⚪');
+    });
+  });
+
+  describe('roundToTwo', () => {
+    it('should round to 2 decimal places', () => {
+      expect(roundToTwo(1.234)).toBe(1.23);
+      expect(roundToTwo(1.235)).toBe(1.24);
+      expect(roundToTwo(1.236)).toBe(1.24);
+    });
+
+    it('should handle integers', () => {
+      expect(roundToTwo(5)).toBe(5);
+      expect(roundToTwo(100)).toBe(100);
+    });
+
+    it('should handle already rounded numbers', () => {
+      expect(roundToTwo(1.23)).toBe(1.23);
+      expect(roundToTwo(100.5)).toBe(100.5);
+    });
+
+    it('should handle very small decimals', () => {
+      expect(roundToTwo(0.001)).toBe(0);
+      expect(roundToTwo(0.005)).toBe(0.01);
+      expect(roundToTwo(0.009)).toBe(0.01);
+    });
+  });
+
+  describe('calculateSummary', () => {
+    it('should calculate summary correctly with all items having purchase prices', () => {
+      const items: ExtendedEstimateItem[] = [
+        {
+          category: 'posts',
+          nomenclatureId: '1',
+          nomenclatureName: 'Столб',
+          quantity: 10,
+          unit: 'шт',
+          pricePerUnit: 1000,
+          totalPrice: 10000,
+          purchasePricePerUnit: 700,
+          purchaseTotal: 7000,
+          marginRub: 3000,
+          marginPercent: 30
+        },
+        {
+          category: 'lags',
+          nomenclatureId: '2',
+          nomenclatureName: 'Лага',
+          quantity: 20,
+          unit: 'шт',
+          pricePerUnit: 500,
+          totalPrice: 10000,
+          purchasePricePerUnit: 350,
+          purchaseTotal: 7000,
+          marginRub: 3000,
+          marginPercent: 30
+        }
+      ];
+
+      const summary = calculateSummary(items);
+
+      expect(summary.retailTotal).toBe(20000);
+      expect(summary.purchaseTotal).toBe(14000);
+      expect(summary.marginTotalRub).toBe(6000);
+      expect(summary.marginTotalPercent).toBe(30);
+    });
+
+    it('should handle items without purchase prices', () => {
+      const items: ExtendedEstimateItem[] = [
+        {
+          category: 'posts',
+          nomenclatureId: '1',
+          nomenclatureName: 'Столб',
+          quantity: 10,
+          unit: 'шт',
+          pricePerUnit: 1000,
+          totalPrice: 10000,
+          purchasePricePerUnit: 700,
+          purchaseTotal: 7000,
+          marginRub: 3000,
+          marginPercent: 30
+        },
+        {
+          category: 'mountingHardware',
+          nomenclatureId: '2',
+          nomenclatureName: 'Саморез',
+          quantity: 100,
+          unit: 'шт',
+          pricePerUnit: 5,
+          totalPrice: 500,
+          purchasePricePerUnit: null,
+          purchaseTotal: null,
+          marginRub: null,
+          marginPercent: null
+        }
+      ];
+
+      const summary = calculateSummary(items);
+
+      expect(summary.retailTotal).toBe(10500);
+      expect(summary.purchaseTotal).toBe(7000);
+      expect(summary.marginTotalRub).toBe(3000);
+      expect(summary.marginTotalPercent).toBeCloseTo(28.57, 1);
+    });
+
+    it('should handle empty items array', () => {
+      const summary = calculateSummary([]);
+
+      expect(summary.retailTotal).toBe(0);
+      expect(summary.purchaseTotal).toBe(0);
+      expect(summary.marginTotalRub).toBe(0);
+      expect(summary.marginTotalPercent).toBe(0);
+    });
+
+    it('should calculate correct margin percent', () => {
+      const items: ExtendedEstimateItem[] = [
+        {
+          category: 'posts',
+          nomenclatureId: '1',
+          nomenclatureName: 'Столб',
+          quantity: 10,
+          unit: 'шт',
+          pricePerUnit: 1000,
+          totalPrice: 10000,
+          purchasePricePerUnit: 500,
+          purchaseTotal: 5000,
+          marginRub: 5000,
+          marginPercent: 50
+        }
+      ];
+
+      const summary = calculateSummary(items);
+
+      expect(summary.marginTotalPercent).toBe(50);
+    });
+
+    it('should calculate new fields: retailMaterialsTotal, worksTotal, grandTotal', () => {
+      const items: ExtendedEstimateItem[] = [
+        {
+          category: 'posts',
+          nomenclatureId: '1',
+          nomenclatureName: 'Столб',
+          quantity: 10,
+          unit: 'шт',
+          pricePerUnit: 1000,
+          totalPrice: 30000,
+          purchasePricePerUnit: 200,
+          purchaseTotal: 20000,
+          marginRub: 10000,
+          marginPercent: 33.33
+        },
+        {
+          category: 'installation',
+          nomenclatureId: '2',
+          nomenclatureName: 'Монтаж',
+          quantity: 100,
+          unit: 'м',
+          pricePerUnit: 150,
+          totalPrice: 15000,
+          purchasePricePerUnit: null,
+          purchaseTotal: null,
+          marginRub: null,
+          marginPercent: null
+        }
+      ];
+
+      const summary = calculateSummary(items);
+
+      expect(summary.retailMaterialsTotal).toBe(30000);
+      expect(summary.worksTotal).toBe(15000);
+      expect(summary.grandTotal).toBe(45000);
+    });
+
+    it('should calculate materialMargin correctly (only materials, not works)', () => {
+      const items: ExtendedEstimateItem[] = [
+        {
+          category: 'posts',
+          nomenclatureId: '1',
+          nomenclatureName: 'Столб',
+          quantity: 10,
+          unit: 'шт',
+          pricePerUnit: 1000,
+          totalPrice: 30000,
+          purchasePricePerUnit: 200,
+          purchaseTotal: 20000,
+          marginRub: 10000,
+          marginPercent: 33.33
+        },
+        {
+          category: 'installation',
+          nomenclatureId: '2',
+          nomenclatureName: 'Монтаж',
+          quantity: 100,
+          unit: 'м',
+          pricePerUnit: 150,
+          totalPrice: 15000,
+          purchasePricePerUnit: null,
+          purchaseTotal: null,
+          marginRub: null,
+          marginPercent: null
+        }
+      ];
+
+      const summary = calculateSummary(items);
+
+      expect(summary.purchaseMaterialsTotal).toBe(20000);
+      expect(summary.materialMarginRub).toBe(10000);
+      expect(summary.materialMarginPercent).toBeCloseTo(33.33, 1);
+    });
+
+    it('should return zeros for new fields when empty array', () => {
+      const summary = calculateSummary([]);
+
+      expect(summary.retailMaterialsTotal).toBe(0);
+      expect(summary.purchaseMaterialsTotal).toBe(0);
+      expect(summary.materialMarginRub).toBe(0);
+      expect(summary.materialMarginPercent).toBe(0);
+      expect(summary.worksTotal).toBe(0);
+      expect(summary.grandTotal).toBe(0);
+    });
+
+    it('should calculate grandTotal correctly with only materials (no works)', () => {
+      const items: ExtendedEstimateItem[] = [
+        {
+          category: 'posts',
+          nomenclatureId: '1',
+          nomenclatureName: 'Столб',
+          quantity: 10,
+          unit: 'шт',
+          pricePerUnit: 1000,
+          totalPrice: 10000,
+          purchasePricePerUnit: 700,
+          purchaseTotal: 7000,
+          marginRub: 3000,
+          marginPercent: 30
+        }
+      ];
+
+      const summary = calculateSummary(items);
+
+      expect(summary.worksTotal).toBe(0);
+      expect(summary.grandTotal).toBe(10000);
+    });
+
+    it('should calculate grandTotal correctly with only works (no materials)', () => {
+      const items: ExtendedEstimateItem[] = [
+        {
+          category: 'installation',
+          nomenclatureId: '1',
+          nomenclatureName: 'Монтаж',
+          quantity: 100,
+          unit: 'м',
+          pricePerUnit: 200,
+          totalPrice: 20000,
+          purchasePricePerUnit: null,
+          purchaseTotal: null,
+          marginRub: null,
+          marginPercent: null
+        }
+      ];
+
+      const summary = calculateSummary(items);
+
+      expect(summary.retailMaterialsTotal).toBe(0);
+      expect(summary.worksTotal).toBe(20000);
+      expect(summary.grandTotal).toBe(20000);
     });
   });
 });
