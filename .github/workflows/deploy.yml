@@ -63,9 +63,14 @@ jobs:
             # Health check with retries
             sleep 10
             for i in 1 2 3 4 5; do
-              curl -f http://localhost:3000/ && break
+              if curl -f http://localhost:3000/; then
+                echo "Health check passed!"
+                exit 0
+              fi
               echo "Attempt $i failed, checking PM2 logs..."
-              pm2 logs fences-app --lines 20 --nostream || true
+              pm2 logs fences-app --lines 30 --nostream || true
               sleep 5
             done
-            curl -f http://localhost:3000/ || (pm2 logs fences-app --lines 50 --nostream || true && exit 1)
+            echo "All health checks failed, showing final logs..."
+            pm2 logs fences-app --lines 50 --nostream || true
+            exit 1
