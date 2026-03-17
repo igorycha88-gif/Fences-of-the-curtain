@@ -64,7 +64,8 @@ jobs:
             sleep 10
             for i in 1 2 3 4 5; do
               curl -f http://localhost:3000/ && break
-              echo "Attempt $i failed, waiting..."
+              echo "Attempt $i failed, checking PM2 logs..."
+              pm2 logs fences-app --lines 20 --nostream || true
               sleep 5
             done
-            curl -f http://localhost:3000/ || exit 1
+            curl -f http://localhost:3000/ || (pm2 logs fences-app --lines 50 --nostream || true && exit 1)
