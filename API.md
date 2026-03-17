@@ -657,6 +657,66 @@ All endpoints may return error responses:
 }
 ```
 
+## Admin Estimates
+
+### GET /api/admin/estimates/[id]
+
+Get estimate details with purchase prices and margin (for ADMIN only).
+
+**Response (200) - ADMIN:**
+```json
+{
+  "id": "estimate-id",
+  "createdAt": "2026-03-16T10:00:00Z",
+  "fenceType": { "id": "type-id", "name": "Профнастил" },
+  "length": 50,
+  "height": 2.0,
+  "items": [
+    {
+      "category": "posts",
+      "nomenclatureId": "post-id",
+      "nomenclatureName": "Столб 60×60×2 мм",
+      "quantity": 21,
+      "unit": "шт",
+      "pricePerUnit": 1428.57,
+      "totalPrice": 30000.00,
+      "purchasePricePerUnit": 950.00,
+      "purchaseTotal": 19950.00,
+      "marginRub": 10050.00,
+      "marginPercent": 33.50
+    }
+  ],
+  "summary": {
+    "retailTotal": 140000.00,
+    "purchaseTotal": 95000.00,
+    "marginTotalRub": 45000.00,
+    "marginTotalPercent": 32.14
+  },
+  "showPurchasePrices": true,
+  "grandTotal": 140000.00
+}
+```
+
+**Response (200) - MANAGER:**
+```json
+{
+  "id": "estimate-id",
+  "items": [...],
+  "showPurchasePrices": false,
+  "grandTotal": 140000.00
+}
+```
+
+### GET /api/admin/estimates/[id]/export
+
+Export estimate to Excel with purchase prices (for ADMIN only).
+
+**Response (200):**
+Binary XLSX file with columns:
+- №, Категория, Наименование, Ед. изм., Кол-во
+- Цена розн. за ед., Сумма розн. (for all users)
+- Цена закуп. за ед., Сумма закуп., Маржа (₽), Маржа (%) (for ADMIN only)
+
 ## Rate Limiting
 
 API endpoints have rate limiting (100 requests per minute per IP).

@@ -1,6 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getCityByIP } from './ipLookupService';
+import {
+  calculateExtendedItems,
+  calculateSummary,
+  EstimateItem,
+  ExtendedEstimateItem,
+  EstimateSummary,
+} from '@/lib/utils/marginCalculator';
 
 export interface EstimatesQueryParams {
   page?: number;
@@ -147,6 +154,117 @@ export class EstimatesService {
     return {
       ...estimate,
       deviceType: getDeviceType(estimate.userAgent),
+    };
+  }
+
+  async getEstimateByIdWithMargin(
+    id: string,
+    includePurchasePrices: boolean = false
+  ): Promise<{
+    id: string;
+    createdAt: Date;
+    fenceType: { id: string; name: string } | null;
+    fenceTypeId: string;
+    length: number;
+    height: number;
+    lagRows: number;
+    coating: string;
+    hasGate: boolean;
+    gateType: string | null;
+    gateLength: number | null;
+    gateNomenclatureName: string | null;
+    gateTotal: number;
+    gateInstallationTotal: number;
+    hasWicket: boolean;
+    wicketWidth: number | null;
+    wicketNomenclatureName: string | null;
+    wicketTotal: number;
+    wicketInstallationTotal: number;
+    postsTotal: number;
+    lagsTotal: number;
+    profnastilTotal: number;
+    mountingHardwareTotal: number;
+    installationTotal: number;
+    materialsTotal: number;
+    grandTotal: number;
+    ipAddress: string | null;
+    userAgent: string | null;
+    city: string | null;
+    user: { id: string; name: string | null; email: string | null; phone: string | null } | null;
+    deviceType: 'desktop' | 'mobile';
+    items: ExtendedEstimateItem[];
+    summary?: EstimateSummary;
+  } | null> {
+    const estimate = await prisma.fenceEstimate.findUnique({
+      where: { id },
+      include: {
+        fenceType: {
+          select: { id: true, name: true },
+        },
+        user: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+      },
+    });
+
+    if (!estimate) {
+      return null;
+    }
+
+    const baseItems: EstimateItem[] = estimate.items
+      ? (JSON.parse(JSON.stringify(estimate.items)) as EstimateItem[])
+      : [];
+
+    let items: ExtendedEstimateItem[];
+    let summary: EstimateSummary | undefined;
+
+    if (includePurchasePrices) {
+      items = await calculateExtendedItems(baseItems);
+      summary = calculateSummary(items);
+    } else {
+      items = baseItems.map((item) => ({
+        ...item,
+        purchasePricePerUnit: null,
+        purchaseTotal: null,
+        marginRub: null,
+        marginPercent: null,
+      }));
+    }
+
+    return {
+      id: estimate.id,
+      createdAt: estimate.createdAt,
+      fenceType: estimate.fenceType,
+      fenceTypeId: estimate.fenceTypeId,
+      length: estimate.length,
+      height: estimate.height,
+      lagRows: estimate.lagRows,
+      coating: estimate.coating,
+      hasGate: estimate.hasGate,
+      gateType: estimate.gateType,
+      gateLength: estimate.gateLength,
+      gateNomenclatureName: estimate.gateNomenclatureName,
+      gateTotal: estimate.gateTotal,
+      gateInstallationTotal: estimate.gateInstallationTotal,
+      hasWicket: estimate.hasWicket,
+      wicketWidth: estimate.wicketWidth,
+      wicketNomenclatureName: estimate.wicketNomenclatureName,
+      wicketTotal: estimate.wicketTotal,
+      wicketInstallationTotal: estimate.wicketInstallationTotal,
+      postsTotal: estimate.postsTotal,
+      lagsTotal: estimate.lagsTotal,
+      profnastilTotal: estimate.profnastilTotal,
+      mountingHardwareTotal: estimate.mountingHardwareTotal,
+      installationTotal: estimate.installationTotal,
+      materialsTotal: estimate.materialsTotal,
+      grandTotal: estimate.grandTotal,
+      ipAddress: estimate.ipAddress,
+      userAgent: estimate.userAgent,
+      city: estimate.city,
+      user: estimate.user,
+      deviceType: getDeviceType(estimate.userAgent),
+      items,
+      summary,
     };
   }
 

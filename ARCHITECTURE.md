@@ -157,12 +157,19 @@ project/
 │   ├── validators/               # Zod схемы
 │   │   ├── calculator.ts
 │   │   └── order.ts
-│   └── utils.ts                  # Утилиты
+│   ├── utils/                    # Утилиты
+│   │   ├── marginCalculator.ts   # Расчет маржи и закупочных цен
+│   │   ├── formatters.ts         # Форматирование данных
+│   │   └── priceCalculator.ts    # Расчет цен
+│   └── permissions/              # Права доступа
+│       └── rbac.ts               # Role-based access control
 │
 ├── services/
 │   ├── calculator/
 │   │   ├── fenceCalculator.ts    # Логика расчета забора
 │   │   └── canopyCalculator.ts   # Логика расчета навеса
+│   ├── admin/
+│   │   └── estimatesService.ts   # Сервис смет с расчетом маржи
 │   ├── pdf/
 │   │   └── generator.ts          # Генерация PDF
 │   ├── email/
