@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
-import { STATUS_LABELS } from '@/lib/validators/order';
+import { Search, ChevronLeft, ChevronRight, ExternalLink, ChevronDown } from 'lucide-react';
+import { STATUS_LABELS, VALID_STATUS_TRANSITIONS } from '@/lib/validators/order';
+import { StatusChangeModal } from '@/components/admin/Orders/StatusChangeModal';
 
 interface Order {
   id: string;
@@ -47,6 +48,9 @@ export default function OrdersPage() {
   });
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedNewStatus, setSelectedNewStatus] = useState<string>('');
 
   useEffect(() => {
     fetchOrders();
@@ -79,6 +83,36 @@ export default function OrdersPage() {
     return <span className={`px-2 py-1 rounded text-sm font-medium ${color}`}>{label}</span>;
   };
 
+  const renderStatusCell = (order: Order) => {
+    const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
+    const color = STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800';
+    const label = STATUS_LABELS[order.status] || order.status;
+
+    if (availableTransitions.length === 0) {
+      return <span className={`px-2 py-1 rounded text-sm font-medium ${color}`}>{label}</span>;
+    }
+
+    return (
+      <div className="relative group">
+        <button className={`px-2 py-1 rounded text-sm font-medium ${color} flex items-center gap-1 hover:opacity-80`}>
+          {label}
+          <ChevronDown className="w-3 h-3" />
+        </button>
+        <div className="absolute left-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-10 hidden group-hover:block min-w-[160px]">
+          {availableTransitions.map((status) => (
+            <button
+              key={status}
+              onClick={() => handleStatusClick(order, status)}
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${STATUS_COLORS[status]}`}
+            >
+              {STATUS_LABELS[status]}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
@@ -90,6 +124,16 @@ export default function OrdersPage() {
   const handleFilterChange = (key: string, value: string) => {
     setFilters({ ...filters, [key]: value });
     setPage(1);
+  };
+
+  const handleStatusClick = (order: Order, newStatus: string) => {
+    setSelectedOrder(order);
+    setSelectedNewStatus(newStatus);
+    setModalOpen(true);
+  };
+
+  const handleStatusUpdateSuccess = () => {
+    fetchOrders();
   };
 
   return (
@@ -181,7 +225,7 @@ export default function OrdersPage() {
                       <td className="py-3 px-4 font-semibold">
                         {formatCurrency(order.calculatedCost)}
                       </td>
-                      <td className="py-3 px-4">{getStatusBadge(order.status)}</td>
+                      <td className="py-3 px-4">{renderStatusCell(order)}</td>
                       <td className="py-3 px-4">
                         {order.estimateId ? (
                           <Link
@@ -237,6 +281,17 @@ export default function OrdersPage() {
           </>
         )}
       </div>
+
+      {modalOpen && selectedOrder && (
+        <StatusChangeModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          orderId={selectedOrder.id}
+          currentStatus={selectedOrder.status}
+          newStatus={selectedNewStatus}
+          onSuccess={handleStatusUpdateSuccess}
+        />
+      )}
     </div>
   );
 }

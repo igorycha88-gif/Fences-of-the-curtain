@@ -20,11 +20,11 @@ model User {
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   actionLogs           AdminActionLog[]
+  estimates            FenceEstimate[]
   ordersAssigned       Order[]                   @relation("AssignedOrders")
   priceHistory         PriceHistory[]
   referenceChangeLogs  ReferenceChangeLog[]
   notificationSettings UserNotificationSettings?
-  estimates            FenceEstimate[]
 }
 
 model FenceMaterial {
@@ -174,25 +174,32 @@ model WorkPrice {
 }
 
 model Order {
-  id             String       @id @default(cuid())
-  clientName     String
-  phone          String
-  email          String?
-  serviceType    String
-  parameters     Json
-  calculatedCost Float
-  status         OrderStatus  @default(NEW)
-  managerComment String?
-  assignedTo     String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  statusHistory  Json?
-  assignedUser   User?        @relation("AssignedOrders", fields: [assignedTo], references: [id])
-  estimateId     String?    @unique
-  estimate       FenceEstimate? @relation(fields: [estimateId], references: [id], onDelete: SetNull)
+  id                 String         @id @default(cuid())
+  clientName         String
+  phone              String
+  email              String?
+  serviceType        String
+  parameters         Json
+  calculatedCost     Float
+  status             OrderStatus    @default(NEW)
+  managerComment     String?
+  assignedTo         String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  statusHistory      Json?
+  estimateId         String?        @unique
+  cancellationReason String?
+  completionDate     DateTime?
+  measurementAddress String?
+  measurementDate    DateTime?
+  assignedUser       User?          @relation("AssignedOrders", fields: [assignedTo], references: [id])
+  estimate           FenceEstimate? @relation(fields: [estimateId], references: [id])
 
   @@index([status])
   @@index([estimateId])
+  @@index([measurementDate])
+  @@index([cancellationReason])
+  @@index([completionDate])
 }
 
 model PortfolioItem {
@@ -405,42 +412,42 @@ model WicketType {
 }
 
 model FenceEstimate {
-  id                    String    @id @default(cuid())
-  fenceTypeId           String
-  length                Float
-  height                Float
-  lagRows               Int
-  coating               String    @default("POLYMER_SINGLE")
-  hasGate               Boolean   @default(false)
-  gateType              String?
-  gateLength            Int?
-  gateNomenclatureId    String?
-  gateNomenclatureName  String?
-  postsTotal            Float
-  lagsTotal             Float
-  profnastilTotal       Float
-  installationTotal     Float
-  materialsTotal        Float
-  grandTotal            Float
-  items                 Json
-  userId                String?
-  sessionId             String?
-  userAgent             String?
-  ipAddress             String?
-  createdAt             DateTime  @default(now())
-  mountingHardwareTotal Float     @default(0)
-  gateTotal             Float     @default(0)
-  gateInstallationTotal Float     @default(0)
-  hasWicket             Boolean   @default(false)
-  wicketWidth           Int?
-  wicketNomenclatureId   String?
-  wicketNomenclatureName String?
-  wicketTotal           Float     @default(0)
-  wicketInstallationTotal Float   @default(0)
-  city                  String?
-  fenceType             FenceType @relation(fields: [fenceTypeId], references: [id])
-  user                  User?     @relation(fields: [userId], references: [id])
-  order                 Order?
+  id                      String    @id @default(cuid())
+  fenceTypeId             String
+  length                  Float
+  height                  Float
+  lagRows                 Int
+  postsTotal              Float
+  lagsTotal               Float
+  profnastilTotal         Float
+  installationTotal       Float
+  materialsTotal          Float
+  grandTotal              Float
+  items                   Json
+  userId                  String?
+  sessionId               String?
+  userAgent               String?
+  ipAddress               String?
+  createdAt               DateTime  @default(now())
+  mountingHardwareTotal   Float     @default(0)
+  coating                 String    @default("POLYMER_SINGLE")
+  gateInstallationTotal   Float     @default(0)
+  gateLength              Int?
+  gateNomenclatureId      String?
+  gateNomenclatureName    String?
+  gateTotal               Float     @default(0)
+  gateType                String?
+  hasGate                 Boolean   @default(false)
+  hasWicket               Boolean   @default(false)
+  wicketInstallationTotal Float     @default(0)
+  wicketNomenclatureId    String?
+  wicketNomenclatureName  String?
+  wicketTotal             Float     @default(0)
+  wicketWidth             Int?
+  city                    String?
+  fenceType               FenceType @relation(fields: [fenceTypeId], references: [id])
+  user                    User?     @relation(fields: [userId], references: [id])
+  order                   Order?
 
   @@index([fenceTypeId])
   @@index([userId])
@@ -484,6 +491,53 @@ model MountingHardwareRelation {
   @@index([referenceId])
 }
 
+model Work {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  category        String
+  unit            String
+  price           Float
+  useInCalculator Boolean        @default(false)
+  sortOrder       Int            @default(0)
+  active          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  relations       WorkRelation[]
+
+  @@index([active])
+  @@index([useInCalculator])
+  @@index([category])
+  @@index([sortOrder])
+}
+
+model WorkRelation {
+  id            String   @id @default(cuid())
+  workId        String
+  fenceType     String?
+  createdAt     DateTime @default(now())
+  referenceId   String?
+  referenceType String?
+  work          Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@unique([workId, fenceType, referenceType, referenceId])
+  @@index([fenceType])
+  @@index([referenceType])
+  @@index([referenceId])
+}
+
+model ContactInfo {
+  id              String   @id @default(cuid())
+  address         String   @default("")
+  phone           String   @default("")
+  email           String   @default("")
+  workHoursMonFri String   @default("")
+  workHoursSat    String   @default("")
+  workHoursSun    String   @default("")
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -519,53 +573,4 @@ enum OrderStatus {
   INSTALLATION
   COMPLETED
   CANCELLED
-}
-
-model Work {
-  id              String         @id @default(cuid())
-  name            String
-  description     String?
-  category        String
-  unit            String
-  price           Float
-  useInCalculator Boolean        @default(false)
-  sortOrder       Int            @default(0)
-  active          Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  relations       WorkRelation[]
-
-  @@index([active])
-  @@index([useInCalculator])
-  @@index([category])
-  @@index([sortOrder])
-}
-
-model WorkRelation {
-  id            String   @id @default(cuid())
-  workId        String
-  fenceType     String?
-  referenceType String?
-  referenceId   String?
-  createdAt     DateTime @default(now())
-
-  work          Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
-
-  @@unique([workId, fenceType, referenceType, referenceId])
-  @@index([fenceType])
-  @@index([referenceType])
-  @@index([referenceId])
-}
-
-model ContactInfo {
-  id              String   @id @default(cuid())
-  address         String   @default("")
-  phone           String   @default("")
-  email           String   @default("")
-  workHoursMonFri String   @default("")
-  workHoursSat    String   @default("")
-  workHoursSun    String   @default("")
-  updatedAt       DateTime @updatedAt
-  createdAt       DateTime @default(now())
 }

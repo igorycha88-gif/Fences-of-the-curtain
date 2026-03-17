@@ -7,31 +7,115 @@ export const createOrderSchema = z.object({
   message: z.string().max(1000).optional(),
 });
 
+export const ORDER_STATUSES = [
+  'NEW',
+  'ESTIMATE_APPROVAL',
+  'MEASUREMENT',
+  'PRODUCTION',
+  'INSTALLATION',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+
+export const CONTACT_RESULTS = [
+  'REACHED',
+  'CALLBACK',
+  'NO_ANSWER',
+  'LEFT_MESSAGE',
+] as const;
+
+export const CANCELLATION_REASONS = [
+  'PRICE_TOO_HIGH',
+  'FOUND_OTHER_CONTRACTOR',
+  'CHANGED_MIND',
+  'NOT_RESPONSIVE',
+  'PROJECT_POSTPONED',
+  'OTHER',
+] as const;
+
+export const CONTACT_RESULT_LABELS: Record<string, string> = {
+  REACHED: 'Дозвонились',
+  CALLBACK: 'Перезвонить позже',
+  NO_ANSWER: 'Не ответили',
+  LEFT_MESSAGE: 'Оставили сообщение',
+};
+
+export const CANCELLATION_REASON_LABELS: Record<string, string> = {
+  PRICE_TOO_HIGH: 'Цена слишком высокая',
+  FOUND_OTHER_CONTRACTOR: 'Выбрали другого подрядчика',
+  CHANGED_MIND: 'Передумал',
+  NOT_RESPONSIVE: 'Клиент не выходит на связь',
+  PROJECT_POSTPONED: 'Проект отложен',
+  OTHER: 'Другое',
+};
+
+export const estimateApprovalDataSchema = z.object({
+  contactResult: z.enum(CONTACT_RESULTS).optional(),
+  preferredContactDate: z.string().optional(),
+});
+
+export const measurementDataSchema = z.object({
+  measurementDate: z.string().optional(),
+  measurementAddress: z.string().min(10, 'Адрес должен содержать минимум 10 символов'),
+  measurementComment: z.string().optional(),
+});
+
+export const productionDataSchema = z.object({
+  measurementConfirmed: z.boolean().optional(),
+  measurementResult: z.string().min(10, 'Результат замера должен содержать минимум 10 символов').optional().or(z.literal('')),
+  adjustedCost: z.number().positive().optional(),
+});
+
+export const installationDataSchema = z.object({
+  productionReadyDate: z.string().optional(),
+  productionNotes: z.string().optional(),
+});
+
+export const completedDataSchema = z.object({
+  completionDate: z.string().optional(),
+  clientSatisfied: z.boolean().optional(),
+  photos: z.array(z.string()).optional(),
+  reviewLink: z.string().optional(),
+});
+
+export const cancelledDataSchema = z.object({
+  cancellationReason: z.enum(CANCELLATION_REASONS),
+  cancellationComment: z.string().min(10, 'Комментарий должен содержать минимум 10 символов'),
+});
+
+export const statusChangeDataSchema = z.object({
+  contactResult: z.enum(CONTACT_RESULTS).optional(),
+  preferredContactDate: z.string().optional(),
+  measurementDate: z.string().optional(),
+  measurementAddress: z.string().optional(),
+  measurementComment: z.string().optional(),
+  measurementConfirmed: z.boolean().optional(),
+  measurementResult: z.string().optional(),
+  adjustedCost: z.number().positive().optional(),
+  productionReadyDate: z.string().optional(),
+  productionNotes: z.string().optional(),
+  completionDate: z.string().optional(),
+  clientSatisfied: z.boolean().optional(),
+  photos: z.array(z.string()).optional(),
+  reviewLink: z.string().optional(),
+  cancellationReason: z.enum(CANCELLATION_REASONS).optional(),
+  cancellationComment: z.string().optional(),
+});
+
 export const updateOrderStatusSchema = z.object({
-  status: z.enum([
-    'NEW',
-    'ESTIMATE_APPROVAL',
-    'MEASUREMENT',
-    'PRODUCTION',
-    'INSTALLATION',
-    'COMPLETED',
-    'CANCELLED',
-  ]),
+  status: z.enum(ORDER_STATUSES),
+  data: statusChangeDataSchema.optional(),
   comment: z.string().max(500).optional(),
+});
+
+export const statusHistoryUpdateSchema = z.object({
+  data: statusChangeDataSchema.partial(),
 });
 
 export const orderListQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   pageSize: z.coerce.number().min(1).max(100).default(20),
-  status: z.enum([
-    'NEW',
-    'ESTIMATE_APPROVAL',
-    'MEASUREMENT',
-    'PRODUCTION',
-    'INSTALLATION',
-    'COMPLETED',
-    'CANCELLED',
-  ]).optional(),
+  status: z.enum(ORDER_STATUSES).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   search: z.string().optional(),
@@ -60,3 +144,39 @@ export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
 export function isValidStatusTransition(from: string, to: string): boolean {
   return VALID_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
 }
+
+export function getStatusTransitionSchema(fromStatus: string, toStatus: string) {
+  const transitionKey = `${fromStatus}->${toStatus}`;
+  
+  switch (transitionKey) {
+    case 'NEW->ESTIMATE_APPROVAL':
+      return estimateApprovalDataSchema;
+    case 'ESTIMATE_APPROVAL->MEASUREMENT':
+      return measurementDataSchema;
+    case 'MEASUREMENT->PRODUCTION':
+      return productionDataSchema;
+    case 'PRODUCTION->INSTALLATION':
+      return installationDataSchema;
+    case 'INSTALLATION->COMPLETED':
+      return completedDataSchema;
+    default:
+      if (toStatus === 'CANCELLED') {
+        return cancelledDataSchema;
+      }
+      return z.object({});
+  }
+}
+
+export type OrderStatus = typeof ORDER_STATUSES[number];
+export type ContactResult = typeof CONTACT_RESULTS[number];
+export type CancellationReason = typeof CANCELLATION_REASONS[number];
+export type StatusChangeData = z.infer<typeof statusChangeDataSchema>;
+export type StatusHistoryEntry = {
+  status: OrderStatus;
+  changedAt: string;
+  changedBy: string;
+  changedByName: string;
+  data: StatusChangeData;
+  editedAt?: string;
+  editedBy?: string;
+};
