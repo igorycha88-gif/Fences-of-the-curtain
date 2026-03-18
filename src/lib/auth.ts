@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { User } from '@prisma/client';
+import { compare } from '@/lib/password';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -29,7 +30,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const passwordMatch = user.password === credentials.password;
+        const passwordMatch = await compare(credentials.password, user.password);
 
         console.log('[AUTH] Password match:', passwordMatch);
 
