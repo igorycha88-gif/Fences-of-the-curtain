@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { usersService } from '@/services/admin/usersService';
 import { hasPermission } from '@/lib/permissions/rbac';
+import { safeParseInt } from '@/lib/parse-params';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +18,8 @@ export async function GET(request: NextRequest) {
       role: searchParams.get('role') as any || undefined,
       active: searchParams.get('active') === 'true' ? true : searchParams.get('active') === 'false' ? false : undefined,
       search: searchParams.get('search') || undefined,
-      page: parseInt(searchParams.get('page') || '1'),
-      pageSize: parseInt(searchParams.get('pageSize') || '20'),
+      page: safeParseInt(searchParams.get('page'), 1),
+      pageSize: safeParseInt(searchParams.get('pageSize'), 20),
     };
 
     const result = await usersService.getUsers(params);

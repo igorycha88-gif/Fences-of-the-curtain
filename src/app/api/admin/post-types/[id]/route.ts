@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { postTypeService } from '@/services/admin/postTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { postTypeUpdateSchema } from '@/lib/validators/postType';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -77,9 +79,9 @@ export async function PUT(
   } catch (error: any) {
     console.error('[POST-TYPES PUT] Error updating post type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[POST-TYPES PUT] Validation errors:', JSON.stringify(error.errors, null, 2));
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('не найден')) {

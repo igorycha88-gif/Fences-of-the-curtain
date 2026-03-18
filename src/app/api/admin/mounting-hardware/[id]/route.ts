@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { mountingHardwareUpdateSchema } from '@/lib/validators/mountingHardware';
+import { ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -77,9 +79,9 @@ export async function PUT(
   } catch (error: any) {
     console.error('[MOUNTING-HARDWARE PUT] Error:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[MOUNTING-HARDWARE PUT] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('не найден')) {
