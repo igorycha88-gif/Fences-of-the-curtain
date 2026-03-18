@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('[GATE-TYPES POST] Request body:', JSON.stringify(body, null, 2));
     
     const validatedData = gateTypeSchema.parse(body);
     console.log('[GATE-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));

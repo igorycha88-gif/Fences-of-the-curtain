@@ -61,7 +61,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('[WICKET-TYPES POST] Request body:', JSON.stringify(body, null, 2));
     
     const validatedData = wicketTypeSchema.parse(body);
     console.log('[WICKET-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));

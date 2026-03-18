@@ -18,10 +18,7 @@ export default function AdminLayout({
   const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
 
   useEffect(() => {
-    console.log('[ADMIN LAYOUT] Session status:', status);
-    
     if (status === 'unauthenticated') {
-      console.log('[ADMIN LAYOUT] User not authenticated, redirecting to login');
       router.push('/login');
     }
   }, [status, router]);

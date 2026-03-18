@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { roundUp } from '@/lib/utils/roundUp';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
 export interface LagCalculationResult {
   category: 'lags';
@@ -19,28 +21,37 @@ export interface LagCalculationError {
   };
 }
 
+async function getActiveLags() {
+  return cache.getOrSet(
+    CACHE_KEYS.LAGS_ACTIVE,
+    async () => {
+      const now = new Date();
+      return prisma.lagType.findMany({
+        where: {
+          active: true,
+          OR: [
+            { validFrom: null },
+            { validFrom: { lte: now } },
+          ],
+          AND: {
+            OR: [
+              { expirationDate: null },
+              { expirationDate: { gt: now } },
+            ],
+          },
+        },
+        orderBy: { priority: 'asc' },
+      });
+    },
+    CACHE_TTL.REFERENCE_DATA
+  );
+}
+
 export async function calculateLags(
   fenceLengthM: number,
   lagRows: 2 | 3
 ): Promise<LagCalculationResult> {
-  const now = new Date();
-  const lags = await prisma.lagType.findMany({
-    where: {
-      active: true,
-      OR: [
-        { validFrom: null },
-        { validFrom: { lte: now } },
-      ],
-      AND: {
-        OR: [
-          { expirationDate: null },
-          { expirationDate: { gt: now } },
-        ],
-      },
-    },
-    orderBy: { priority: 'asc' },
-    take: 1,
-  });
+  const lags = await getActiveLags();
 
   if (lags.length === 0) {
     const error: LagCalculationError = {

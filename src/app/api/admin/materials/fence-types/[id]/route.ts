@@ -49,7 +49,6 @@ export async function PUT(
     }
 
     const body = await request.json();
-    console.log('[FENCE-TYPES PUT] Request body:', JSON.stringify(body, null, 2));
 
     const validatedData = fenceTypeUpdateSchema.parse(body);
     console.log('[FENCE-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
