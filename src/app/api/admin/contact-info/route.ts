@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions/rbac';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 const contactInfoSchema = z.object({
   address: z.string().optional(),
@@ -87,11 +88,8 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(contactInfo);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 400 }
-      );
+    if (error instanceof ZodError) {
+      return validationError(error);
     }
     console.error('Error updating contact info:', error);
     return NextResponse.json(

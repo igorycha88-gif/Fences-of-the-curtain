@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { wicketTypeService } from '@/services/admin/wicketTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { wicketTypeSchema } from '@/lib/validators/wicketType';
+import { safeParseInt } from '@/lib/parse-params';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,8 +19,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
     const search = searchParams.get('search') || undefined;
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1);
+    const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
     const validityFilter = searchParams.get('validityFilter') as 'all' | 'active' | 'expired' | 'expiring_soon' || 'all';
 
     const result = await wicketTypeService.getAll({
@@ -73,9 +76,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[WICKET-TYPES POST] Error creating wicket type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[WICKET-TYPES POST] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('уже существу')) {

@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { fenceTypeService } from '@/services/admin/fenceTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { fenceTypeSchema } from '@/lib/validators/fenceType';
+import { safeParseInt } from '@/lib/parse-params';
+import { ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,8 +19,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
     const search = searchParams.get('search') || undefined;
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1);
+    const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
 
     const result = await fenceTypeService.getAll({
       active: active ? active === 'true' : undefined,
@@ -61,9 +64,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[FENCE-TYPES POST] Error creating fence type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[FENCE-TYPES POST] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { gateTypeService } from '@/services/admin/gateTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { gateTypeSchema } from '@/lib/validators/gateType';
+import { safeParseInt } from '@/lib/parse-params';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +20,8 @@ export async function GET(request: NextRequest) {
     const active = searchParams.get('active');
     const search = searchParams.get('search') || undefined;
     const type = searchParams.get('type') as 'all' | 'Распашные' | 'Откатные' || 'all';
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1);
+    const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
     const validityFilter = searchParams.get('validityFilter') as 'all' | 'active' | 'expired' | 'expiring_soon' || 'all';
 
     const result = await gateTypeService.getAll({
@@ -75,9 +78,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[GATE-TYPES POST] Error creating gate type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[GATE-TYPES POST] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('уже существу')) {
