@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
 export interface GateLookupResult {
   id: string;
@@ -16,30 +18,39 @@ export interface GateLookupError {
 
 export type GateTypeValue = 'SWING' | 'SLIDING';
 
+async function getActiveGates() {
+  return cache.getOrSet(
+    CACHE_KEYS.GATES_ACTIVE,
+    async () => {
+      const now = new Date();
+      return prisma.gateType.findMany({
+        where: {
+          active: true,
+          OR: [{ validFrom: null }, { validFrom: { lte: now } }],
+          AND: {
+            OR: [{ expirationDate: null }, { expirationDate: { gt: now } }],
+          },
+        },
+        orderBy: [{ gateLength: 'asc' }, { priority: 'asc' }],
+      });
+    },
+    CACHE_TTL.REFERENCE_DATA
+  );
+}
+
 export async function findGateByTypeAndLength(
   gateType: GateTypeValue,
   gateWidthMm: number
 ): Promise<GateLookupResult> {
   const gateTypeValue = gateType === 'SWING' ? 'Распашные' : 'Откатные';
-  const now = new Date();
 
   console.log('[gateLookup] Searching for gate:', { gateType, gateTypeValue, gateWidthMm });
 
-  const gates = await prisma.gateType.findMany({
-    where: {
-      active: true,
-      type: gateTypeValue,
-      OR: [{ validFrom: null }, { validFrom: { lte: now } }],
-      AND: {
-        OR: [{ expirationDate: null }, { expirationDate: { gt: now } }],
-      },
-    },
-    orderBy: [{ gateLength: 'asc' }, { priority: 'asc' }],
-  });
+  const gates = await getActiveGates();
 
-  console.log('[gateLookup] Found gates in DB:', gates.map(g => ({ name: g.name, type: g.type, gateLength: g.gateLength, retailPrice: g.retailPrice })));
+  console.log('[gateLookup] Found gates from cache:', gates.map(g => ({ name: g.name, type: g.type, gateLength: g.gateLength, retailPrice: g.retailPrice })));
 
-  const matchingGates = gates.filter((g) => g.gateLength >= gateWidthMm);
+  const matchingGates = gates.filter((g) => g.type === gateTypeValue && g.gateLength >= gateWidthMm);
 
   console.log('[gateLookup] Matching gates (gateLength >= gateWidthMm):', matchingGates.map(g => ({ name: g.name, gateLength: g.gateLength })));
 

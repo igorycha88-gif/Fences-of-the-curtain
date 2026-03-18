@@ -28,7 +28,6 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    console.log('[API] Request body:', body);
 
     const validatedData = updateOrderStatusSchema.parse(body);
     console.log('[API] Validated data:', validatedData);

@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { roundUp } from '@/lib/utils/roundUp';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
 export interface PostCalculationResult {
   category: 'posts';
@@ -23,6 +25,32 @@ export interface PostCalculationError {
 
 const UNDERGROUND_DEPTH_MM = 1200;
 
+async function getActivePosts() {
+  return cache.getOrSet(
+    CACHE_KEYS.POSTS_ACTIVE,
+    async () => {
+      const now = new Date();
+      return prisma.postType.findMany({
+        where: {
+          active: true,
+          OR: [
+            { validFrom: null },
+            { validFrom: { lte: now } },
+          ],
+          AND: {
+            OR: [
+              { expirationDate: null },
+              { expirationDate: { gt: now } },
+            ],
+          },
+        },
+        orderBy: [{ priority: 'asc' }, { length: 'asc' }],
+      });
+    },
+    CACHE_TTL.REFERENCE_DATA
+  );
+}
+
 export async function calculatePosts(
   fenceLengthM: number,
   fenceHeightM: number,
@@ -31,32 +59,12 @@ export async function calculatePosts(
   const postCount = roundUp(fenceLengthM / postSpacingM) + 2;
   const requiredHeightMm = fenceHeightM * 1000 + UNDERGROUND_DEPTH_MM;
 
-  const now = new Date();
-  const posts = await prisma.postType.findMany({
-    where: {
-      active: true,
-      length: { gte: requiredHeightMm / 1000 },
-      OR: [
-        { validFrom: null },
-        { validFrom: { lte: now } },
-      ],
-      AND: {
-        OR: [
-          { expirationDate: null },
-          { expirationDate: { gt: now } },
-        ],
-      },
-    },
-    orderBy: [{ priority: 'asc' }, { length: 'asc' }],
-    take: 1,
-  });
+  const posts = await getActivePosts();
 
-  if (posts.length === 0) {
-    const allPosts = await prisma.postType.findMany({
-      where: { active: true },
-      orderBy: { length: 'desc' },
-      take: 1,
-    });
+  const matchingPosts = posts.filter(p => p.length >= requiredHeightMm / 1000);
+
+  if (matchingPosts.length === 0) {
+    const allPosts = posts.sort((a, b) => b.length - a.length);
     
     const error: PostCalculationError = {
       error: 'NO_POSTS_FOUND',
@@ -70,7 +78,7 @@ export async function calculatePosts(
     throw error;
   }
 
-  const selectedPost = posts[0];
+  const selectedPost = matchingPosts[0];
   const pricePerUnit = selectedPost.retailPricePerUnit;
   const totalPrice = postCount * pricePerUnit;
 

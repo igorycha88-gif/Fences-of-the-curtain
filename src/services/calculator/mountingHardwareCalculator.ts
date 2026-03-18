@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { roundUp } from '@/lib/utils/roundUp';
 import { CalculationMethod } from '@/lib/validators/mountingHardware';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
 interface HardwareForCalculation {
   id: string;
@@ -8,6 +10,8 @@ interface HardwareForCalculation {
   retailPrice: number;
   calculationMethod: string | null;
   calculationValue: number | null;
+  referenceType: string;
+  referenceId: string;
 }
 
 export interface MountingHardwareCalculationResult {
@@ -19,6 +23,66 @@ export interface MountingHardwareCalculationResult {
   pricePerUnit: number;
   totalPrice: number;
   calculationMethod: CalculationMethod;
+}
+
+async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string }) {
+  const { postTypeId, lagTypeId, profnastilTypeId } = referenceIds;
+  
+  if (!postTypeId && !lagTypeId && !profnastilTypeId) {
+    return [];
+  }
+
+  const cacheKey = CACHE_KEYS.MOUNTING_HARDWARE(
+    postTypeId || 'none',
+    lagTypeId || 'none',
+    profnastilTypeId || 'none'
+  );
+
+  return cache.getOrSet(
+    cacheKey,
+    async () => {
+      const conditions: Array<{ referenceType: string; referenceId: string }> = [];
+      
+      if (postTypeId) {
+        conditions.push({ referenceType: 'POST', referenceId: postTypeId });
+      }
+      if (lagTypeId) {
+        conditions.push({ referenceType: 'LAG', referenceId: lagTypeId });
+      }
+      if (profnastilTypeId) {
+        conditions.push({ referenceType: 'PROFNASTIL', referenceId: profnastilTypeId });
+      }
+
+      return prisma.mountingHardware.findMany({
+        where: {
+          active: true,
+          useInCalculator: true,
+          relations: {
+            some: {
+              OR: conditions,
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          retailPrice: true,
+          calculationMethod: true,
+          calculationValue: true,
+          relations: {
+            where: {
+              OR: conditions,
+            },
+            select: {
+              referenceType: true,
+              referenceId: true,
+            },
+          },
+        },
+      });
+    },
+    CACHE_TTL.REFERENCE_DATA
+  );
 }
 
 export async function calculateMountingHardware(params: {
@@ -46,27 +110,34 @@ export async function calculateMountingHardware(params: {
 
   const results: MountingHardwareCalculationResult[] = [];
 
-  if (postTypeId) {
-    const hardware = await prisma.mountingHardware.findMany({
-      where: {
-        active: true,
-        useInCalculator: true,
-        relations: {
-          some: {
-            referenceType: 'POST',
-            referenceId: postTypeId,
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        retailPrice: true,
-        calculationMethod: true,
-        calculationValue: true,
-      },
-    });
+  const allHardware = await getHardwareForReferences({
+    postTypeId,
+    lagTypeId,
+    profnastilTypeId,
+  });
 
+  const hardwareByType = new Map<string, HardwareForCalculation[]>();
+  
+  for (const hw of allHardware) {
+    for (const rel of hw.relations) {
+      const key = `${rel.referenceType}:${rel.referenceId}`;
+      if (!hardwareByType.has(key)) {
+        hardwareByType.set(key, []);
+      }
+      hardwareByType.get(key)!.push({
+        id: hw.id,
+        name: hw.name,
+        retailPrice: hw.retailPrice,
+        calculationMethod: hw.calculationMethod,
+        calculationValue: hw.calculationValue,
+        referenceType: rel.referenceType,
+        referenceId: rel.referenceId,
+      });
+    }
+  }
+
+  if (postTypeId) {
+    const hardware = hardwareByType.get(`POST:${postTypeId}`) || [];
     for (const hw of hardware) {
       const result = calculateHardwareItem(hw, postsCount, fenceLengthM, fenceArea);
       if (result) {
@@ -76,26 +147,7 @@ export async function calculateMountingHardware(params: {
   }
 
   if (lagTypeId) {
-    const hardware = await prisma.mountingHardware.findMany({
-      where: {
-        active: true,
-        useInCalculator: true,
-        relations: {
-          some: {
-            referenceType: 'LAG',
-            referenceId: lagTypeId,
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        retailPrice: true,
-        calculationMethod: true,
-        calculationValue: true,
-      },
-    });
-
+    const hardware = hardwareByType.get(`LAG:${lagTypeId}`) || [];
     for (const hw of hardware) {
       const result = calculateHardwareItem(hw, lagsCount, fenceLengthM, fenceArea);
       if (result) {
@@ -105,26 +157,7 @@ export async function calculateMountingHardware(params: {
   }
 
   if (profnastilTypeId) {
-    const hardware = await prisma.mountingHardware.findMany({
-      where: {
-        active: true,
-        useInCalculator: true,
-        relations: {
-          some: {
-            referenceType: 'PROFNASTIL',
-            referenceId: profnastilTypeId,
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        retailPrice: true,
-        calculationMethod: true,
-        calculationValue: true,
-      },
-    });
-
+    const hardware = hardwareByType.get(`PROFNASTIL:${profnastilTypeId}`) || [];
     for (const hw of hardware) {
       const result = calculateHardwareItem(hw, profnastilCount, fenceLengthM, fenceArea);
       if (result) {

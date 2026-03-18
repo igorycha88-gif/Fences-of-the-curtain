@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { CreateWorkInput, UpdateWorkInput, WorkQueryInput, WorkRelationInput } from '@/lib/validators/work';
 import { WorkCategory, WorkUnit, WorkCategoryNames, WorkUnitNames } from '@/lib/enums/work';
 import { referenceRegistry } from '@/lib/referenceRegistry';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
 export class WorkService {
   async getAll(params: {
@@ -366,42 +368,60 @@ export class WorkService {
   }
 
   async getWorksForCalculator(fenceType?: string) {
-    const where: Prisma.WorkWhereInput = {
-      active: true,
-      useInCalculator: true,
-    };
+    const cacheKey = fenceType 
+      ? CACHE_KEYS.WORKS_BY_FENCE_TYPE(fenceType)
+      : 'calculator:works:default';
 
-    if (fenceType) {
-      where.relations = {
-        some: { fenceType },
-      };
-    } else {
-      where.relations = {
-        none: {},
-      };
-    }
+    return cache.getOrSet(
+      cacheKey,
+      async () => {
+        const where: Prisma.WorkWhereInput = {
+          active: true,
+          useInCalculator: true,
+        };
 
-    const works = await prisma.work.findMany({
-      where,
-      orderBy: { sortOrder: 'asc' },
-    });
+        if (fenceType) {
+          where.relations = {
+            some: { fenceType },
+          };
+        } else {
+          where.relations = {
+            none: {},
+          };
+        }
 
-    return works;
+        const works = await prisma.work.findMany({
+          where,
+          orderBy: { sortOrder: 'asc' },
+        });
+
+        return works;
+      },
+      CACHE_TTL.REFERENCE_DATA
+    );
   }
 
   async getWorksForCalculatorByReference(referenceType: string, referenceId: string) {
-    const works = await prisma.work.findMany({
-      where: {
-        active: true,
-        useInCalculator: true,
-        relations: {
-          some: { referenceType, referenceId },
-        },
-      },
-      orderBy: { sortOrder: 'asc' },
-    });
+    const cacheKey = CACHE_KEYS.WORKS_BY_REFERENCE(referenceType, referenceId);
 
-    return works;
+    return cache.getOrSet(
+      cacheKey,
+      async () => {
+        const works = await prisma.work.findMany({
+          where: {
+            active: true,
+            useInCalculator: true,
+            relations: {
+              some: { referenceType, referenceId },
+            },
+          },
+          orderBy: { sortOrder: 'asc' },
+        });
+
+        return works;
+      },
+      CACHE_TTL.REFERENCE_DATA
+    );
   }
 }
 

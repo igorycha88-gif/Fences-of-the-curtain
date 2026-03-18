@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seeds/seed.ts",
-    "db:migrate-passwords": "tsx prisma/migrations/hash-existing-passwords.ts"
+    "db:migrate-passwords": "tsx prisma/migrations/hash-existing-passwords.ts",
+    "check:pii": "bash scripts/check-pii-logs.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
