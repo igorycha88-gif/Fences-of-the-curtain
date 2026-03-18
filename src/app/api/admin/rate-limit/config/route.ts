@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getConfig, updateConfig } from '@/lib/rate-limit';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 const updateConfigSchema = z.object({
   maxAttempts: z.number().int().min(1).max(100),
@@ -52,11 +53,8 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 400 }
-      );
+    if (error instanceof ZodError) {
+      return validationError(error);
     }
 
     console.error('[RATE LIMIT API] Error updating config:', error);

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { lagTypeService } from '@/services/admin/lagTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { lagTypeUpdateSchema } from '@/lib/validators/lagType';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -77,9 +79,9 @@ export async function PUT(
   } catch (error: any) {
     console.error('[LAG-TYPES PUT] Error updating lag type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[LAG-TYPES PUT] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('не найден')) {

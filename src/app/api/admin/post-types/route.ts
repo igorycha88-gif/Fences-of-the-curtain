@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { postTypeService } from '@/services/admin/postTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { postTypeSchema } from '@/lib/validators/postType';
+import { safeParseInt } from '@/lib/parse-params';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,8 +21,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || undefined;
     const minThickness = searchParams.get('minThickness');
     const maxThickness = searchParams.get('maxThickness');
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1);
+    const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
     const validityFilter = searchParams.get('validityFilter') as 'all' | 'active' | 'expired' | 'expiring_soon' || 'all';
 
     const result = await postTypeService.getAll({
@@ -73,8 +76,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error creating post type:', error);
     
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+    if (error instanceof ZodError) {
+      return validationError(error);
     }
     
     if (error.message.includes('уже существует') || error.message.includes('должна отличаться')) {

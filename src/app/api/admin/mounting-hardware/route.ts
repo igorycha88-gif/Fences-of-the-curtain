@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { mountingHardwareSchema, ReferenceType } from '@/lib/validators/mountingHardware';
+import { safeParseInt } from '@/lib/parse-params';
+import { ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,8 +21,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || undefined;
     const referenceType = searchParams.get('referenceType') as ReferenceType | undefined;
     const referenceId = searchParams.get('referenceId') || undefined;
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1);
+    const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
 
     const result = await mountingHardwareService.getAll({
       active: active ? active === 'true' : undefined,
@@ -75,9 +78,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[MOUNTING-HARDWARE POST] Error:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[MOUNTING-HARDWARE POST] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
