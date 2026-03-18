@@ -1,0 +1,19 @@
+export const CACHE_KEYS = {
+  FENCE_TYPES: 'calculator:fence-types',
+  POSTS_ACTIVE: 'calculator:posts:active',
+  LAGS_ACTIVE: 'calculator:lags:active',
+  PROFNASTIL_ACTIVE: 'calculator:profnastil:active',
+  GATES_ACTIVE: 'calculator:gates:active',
+  WICKETS_ACTIVE: 'calculator:wickets:active',
+  WORKS_BY_FENCE_TYPE: (fenceType: string) => `calculator:works:fence:${fenceType}`,
+  WORKS_BY_REFERENCE: (refType: string, refId: string) => `calculator:works:ref:${refType}:${refId}`,
+  MOUNTING_HARDWARE: (postTypeId: string, lagTypeId: string, profnastilTypeId: string) =>
+    `calculator:hardware:${postTypeId}:${lagTypeId}:${profnastilTypeId}`,
+} as const;
+
+export const CACHE_TTL = {
+  REFERENCE_DATA: 300,
+  FENCE_TYPES: 300,
+  IP_LOCATION: 86400,
+  RATE_LIMIT_CONFIG: 60,
+} as const;

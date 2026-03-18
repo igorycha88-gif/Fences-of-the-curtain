@@ -56,7 +56,6 @@ export async function PUT(
     }
 
     const body = await request.json();
-    console.log('[MOUNTING-HARDWARE PUT] Request body:', JSON.stringify(body, null, 2));
     
     const isAdmin = session.user.role === 'ADMIN';
 

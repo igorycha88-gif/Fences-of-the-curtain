@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      console.log('[ADMIN LOGIN] Attempting to sign in with email:', email);
+      console.log('[ADMIN LOGIN] Attempting to sign in');
 
       const result = await signIn('credentials', {
         email,

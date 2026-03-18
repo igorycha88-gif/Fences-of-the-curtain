@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('[FENCE-TYPES POST] Request body:', JSON.stringify(body, null, 2));
 
     const validatedData = fenceTypeSchema.parse(body);
     console.log('[FENCE-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));

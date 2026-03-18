@@ -121,6 +121,24 @@ NEXTAUTH_URL="http://localhost:3000"  # для локальной разрабо
 openssl rand -base64 32
 ```
 
+⚠️ **ВАЖНО: Требования безопасности NEXTAUTH_SECRET**
+
+**Приложение НЕ ЗАПУСТИТСЯ если NEXTAUTH_SECRET:**
+- Не определен
+- Меньше 32 символов
+- Содержит placeholder значения:
+  - `your-super-secret-key-change-in-production`
+  - `change-in-production`, `your-super-secret`
+  - `secret`, `test`, `dev`, `REPLACE_WITH_REAL_SECRET`
+
+**Для Production:**
+- ✅ Используйте переменные окружения сервера (НЕ .env файл)
+- ✅ Vercel: Environment Variables в настройках проекта
+- ✅ Docker: используйте secrets или `-e` флаг
+- ✅ Kubernetes: используйте Secrets
+- ❌ НИКОГДА не коммитьте .env файл в git
+- ❌ НИКОГДА не используйте placeholder значения в production
+
 **Вход в админ-панель:**
 
 1. Перейдите на главную страницу: http://localhost:3000

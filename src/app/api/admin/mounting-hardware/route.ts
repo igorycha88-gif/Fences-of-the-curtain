@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('[MOUNTING-HARDWARE POST] Request body:', JSON.stringify(body, null, 2));
     
     const validatedData = mountingHardwareSchema.parse(body);
     console.log('[MOUNTING-HARDWARE POST] Validated data:', JSON.stringify(validatedData, null, 2));

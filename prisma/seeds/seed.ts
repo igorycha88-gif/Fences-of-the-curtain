@@ -248,6 +248,17 @@ async function main() {
     skipDuplicates: true,
   });
 
+  await prisma.rateLimitConfig.upsert({
+    where: { id: 'auth' },
+    update: {},
+    create: {
+      id: 'auth',
+      maxAttempts: 5,
+      windowMs: 900000,
+    },
+  });
+  console.log('[CREATED] RateLimitConfig - default configuration');
+
   await prisma.wicketType.createMany({
     data: [
       {

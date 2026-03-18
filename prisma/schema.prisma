@@ -574,3 +574,10 @@ enum OrderStatus {
   COMPLETED
   CANCELLED
 }
+
+model RateLimitConfig {
+  id          String   @id @default("auth")
+  maxAttempts Int      @default(5)
+  windowMs    Int      @default(900000)
+  updatedAt   DateTime @updatedAt
+}
