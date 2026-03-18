@@ -4,6 +4,7 @@ import { PostTypeInput, PostTypeUpdate } from '@/lib/validators/postType';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
+import { createAuditLogAsync } from '@/lib/audit';
 
 export interface PostDuplicate {
   id: string;
@@ -349,30 +350,51 @@ export class PostTypeService {
       return;
     }
 
-    const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
+    const priceFields = ['retailPricePerUnit', 'purchasePricePerUnit', 'pricePerMeter'];
+    const changes: Record<string, { old: unknown; new: unknown }> = {};
 
     if (oldValue && newValue) {
       const fields = Object.keys(newValue) as Array<keyof typeof newValue>;
 
       for (const field of fields) {
         if (oldValue[field] !== newValue[field]) {
-          changes.push({
-            field: field as string,
-            oldValue: oldValue[field],
-            newValue: newValue[field],
-          });
+          changes[field as string] = {
+            old: oldValue[field],
+            new: newValue[field],
+          };
         }
       }
     }
 
-    for (const change of changes) {
+    const priceChanges = Object.keys(changes).filter((f) => priceFields.includes(f));
+
+    if (priceChanges.length > 0) {
+      const oldPrices: Record<string, unknown> = {};
+      const newPrices: Record<string, unknown> = {};
+
+      for (const field of priceChanges) {
+        oldPrices[field] = changes[field].old;
+        newPrices[field] = changes[field].new;
+      }
+
+      createAuditLogAsync({
+        userId,
+        action: 'UPDATE_PRICE',
+        entityType: 'PostType',
+        entityId,
+        oldValues: oldPrices as Prisma.InputJsonValue,
+        newValues: newPrices as Prisma.InputJsonValue,
+      });
+    }
+
+    for (const field of Object.keys(changes)) {
       await prisma.referenceChangeLog.create({
         data: {
           entityType: 'PostType',
           entityId,
-          fieldName: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue,
+          fieldName: field,
+          oldValue: changes[field].old as Prisma.InputJsonValue,
+          newValue: changes[field].new as Prisma.InputJsonValue,
           changedBy: userId,
         },
       });

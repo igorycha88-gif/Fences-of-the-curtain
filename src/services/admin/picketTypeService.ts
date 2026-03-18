@@ -5,6 +5,7 @@ import { calculatePricePerUnit, calculatePicketMargin } from '@/lib/utils/priceC
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
+import { logPriceChange } from '@/lib/audit-helpers';
 
 export class PicketTypeService {
   async getAll(params: {
@@ -281,6 +282,8 @@ export class PicketTypeService {
       return;
     }
 
+    logPriceChange('PicketType', entityId, oldValue, newValue, userId);
+
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
     if (oldValue && newValue) {
@@ -303,8 +306,8 @@ export class PicketTypeService {
           entityType: 'PicketType',
           entityId,
           fieldName: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue,
+          oldValue: change.oldValue as Prisma.InputJsonValue,
+          newValue: change.newValue as Prisma.InputJsonValue,
           changedBy: userId,
         },
       });

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { MountingHardwareInput, MountingHardwareUpdate, ReferenceType } from '@/lib/validators/mountingHardware';
 import { referenceRegistry } from '@/lib/referenceRegistry';
+import { logPriceChange } from '@/lib/audit-helpers';
 
 export class MountingHardwareService {
   async getAll(params: {
@@ -319,6 +320,8 @@ export class MountingHardwareService {
       return;
     }
 
+    logPriceChange('MountingHardware', entityId, oldValue, newValue, userId);
+
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
     if (oldValue && newValue) {
@@ -341,8 +344,8 @@ export class MountingHardwareService {
           entityType: 'MountingHardware',
           entityId,
           fieldName: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue,
+          oldValue: change.oldValue as Prisma.InputJsonValue,
+          newValue: change.newValue as Prisma.InputJsonValue,
           changedBy: userId,
         },
       });
