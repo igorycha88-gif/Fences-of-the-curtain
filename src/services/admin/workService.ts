@@ -5,6 +5,7 @@ import { WorkCategory, WorkUnit, WorkCategoryNames, WorkUnitNames } from '@/lib/
 import { referenceRegistry } from '@/lib/referenceRegistry';
 import { cache } from '@/lib/cache';
 import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
+import { logPriceChange } from '@/lib/audit-helpers';
 
 export class WorkService {
   async getAll(params: {
@@ -306,6 +307,8 @@ export class WorkService {
     newValue: any,
     userId: string
   ) {
+    logPriceChange('Work', entityId, oldValue, newValue, userId);
+
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
     if (oldValue && newValue) {
@@ -328,8 +331,8 @@ export class WorkService {
           entityType: 'Work',
           entityId,
           fieldName: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue,
+          oldValue: change.oldValue as Prisma.InputJsonValue,
+          newValue: change.newValue as Prisma.InputJsonValue,
           changedBy: userId,
         },
       });

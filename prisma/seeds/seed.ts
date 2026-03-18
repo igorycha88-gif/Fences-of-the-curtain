@@ -39,6 +39,7 @@ async function ensureUser(email: string, name: string, passwordPlain: string, ro
 async function main() {
   console.log('Seeding database...');
 
+  await ensureUser('system@fences.local', 'Система', 'system_internal_2024', Role.ADMIN, '+70000000000');
   await ensureUser('admin@fences.ru', 'Администратор', 'admin123', Role.ADMIN, '+79001234567');
   await ensureUser('manager@fences.ru', 'Менеджер', 'manager123', Role.MANAGER, '+79001234568');
 
