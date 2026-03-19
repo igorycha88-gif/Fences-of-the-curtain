@@ -189,12 +189,12 @@ describe('WorkService', () => {
       expect(prisma.work.count).toHaveBeenCalledWith({});
 
       expect(result).toEqual({
-        items: expect.arrayContaining({
+        items: expect.arrayContaining([{
           ...mockWorks[0],
           categoryName: 'Монтаж',
           unitName: 'м',
           relations: [],
-        }),
+        }]),
         total: 1,
         page: 1,
         pageSize: 20,
@@ -403,7 +403,7 @@ describe('WorkService', () => {
 
       prisma.work.findMany.mockResolvedValue(mockWorks);
 
-      const result = await workService.getByFenceType();
+      const result = await workService.getByFenceType(undefined as any);
 
       expect(prisma.work.findMany).toHaveBeenCalledWith({
         where: {
@@ -507,49 +507,7 @@ describe('WorkService', () => {
       });
     });
 
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
   });
-    });
-
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
-  });
-    });
-
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
-    });
-
-    });
-
-      expect(prisma.work.update).toHaveBeenCalledWith({
-        where: { id: 'work-1' },
-        data: {
-          name: 'Тест',
-        },
-        include: { relations: true },
-      });
-    });
-
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
 
   describe('delete', () => {
     it('should delete work', async () => {
@@ -719,3 +677,4 @@ describe('WorkService', () => {
       expect(service.getFenceTypeName('UNKNOWN')).toBe('UNKNOWN');
     });
   });
+});

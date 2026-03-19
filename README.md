@@ -9,6 +9,7 @@
 - **Backend**: Next.js API Routes
 - **Database**: PostgreSQL 16
 - **ORM**: Prisma 5
+- **Cache/Rate Limiting**: Redis 7
 - **Authentication**: NextAuth.js
 - **Validation**: Zod
 - **PDF Generation**: jsPDF
@@ -37,8 +38,32 @@
 ### Требования
 - Node.js 20+
 - PostgreSQL 16+
-- Redis 7+
+- Redis 7+ (обязательно для rate limiting)
 - npm или yarn
+
+### Переменные окружения
+
+Для работы приложения необходимы следующие переменные в `.env`:
+
+```bash
+# База данных
+DATABASE_URL="postgresql://user:password@localhost:5432/fences"
+
+# Redis (обязательно для rate limiting)
+REDIS_URL="redis://localhost:6379"
+
+# NextAuth.js
+NEXTAUTH_SECRET="your-super-secret-key-min-32-chars"
+NEXTAUTH_URL="http://localhost:3001"
+```
+
+### Rate Limiting
+
+Приложение использует Redis для rate limiting на публичных API:
+- **POST /api/orders**: 5 запросов в час с одного IP
+- **POST /api/auth/signin**: 5 запросов в 15 минут с одного IP
+
+Конфигурация rate limiting хранится в таблице `RateLimitConfig` и может быть изменена без перезапуска сервера.
 
 ### Локальная разработка
 
