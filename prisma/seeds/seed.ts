@@ -258,7 +258,18 @@ async function main() {
       windowMs: 900000,
     },
   });
-  console.log('[CREATED] RateLimitConfig - default configuration');
+  console.log('[CREATED] RateLimitConfig - auth configuration');
+
+  await prisma.rateLimitConfig.upsert({
+    where: { id: 'orders' },
+    update: {},
+    create: {
+      id: 'orders',
+      maxAttempts: 5,
+      windowMs: 3600000,
+    },
+  });
+  console.log('[CREATED] RateLimitConfig - orders configuration');
 
   await prisma.wicketType.createMany({
     data: [

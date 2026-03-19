@@ -731,6 +731,32 @@ df -h
 - Firewall configuration
 - Regular backups
 
+### Managing Secrets
+
+All secrets must be configured before deployment. See [SECURITY_SECRETS.md](./SECURITY_SECRETS.md) for detailed documentation.
+
+**Required secrets:**
+- `NEXTAUTH_SECRET` - JWT token signing (generate with `openssl rand -base64 32`)
+- `CRON_SECRET` - Cron endpoint authorization (generate with `openssl rand -base64 32`)
+- `POSTGRES_PASSWORD` - Database password
+
+**To rotate secrets:**
+```bash
+# Preview changes
+./scripts/rotate-secrets.sh --dry-run
+
+# Rotate secrets
+./scripts/rotate-secrets.sh
+
+# Apply to production
+# See SECURITY_SECRETS.md for detailed instructions
+```
+
+**Important:**
+- Never commit `.env` files to git
+- Use different secrets for each environment
+- Rotate secrets immediately if compromised
+
 ## Support
 
 For issues contact: info@fences.ru

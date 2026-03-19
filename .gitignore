@@ -28,6 +28,10 @@ yarn-error.log*
 .env.production
 .env.dev
 
+# Backup files created by rotate-secrets.sh - NEVER commit these!
+.env.backup.*
+.env.bak
+
 # Vercel
 .vercel
 
