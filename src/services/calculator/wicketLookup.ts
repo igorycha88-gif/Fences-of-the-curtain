@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
 export interface WicketLookupResult {
   id: string;
@@ -14,26 +16,35 @@ export interface WicketLookupError {
   details?: Record<string, unknown>;
 }
 
+async function getActiveWickets() {
+  return cache.getOrSet(
+    CACHE_KEYS.WICKETS_ACTIVE,
+    async () => {
+      const now = new Date();
+      return prisma.wicketType.findMany({
+        where: {
+          active: true,
+          OR: [{ validFrom: null }, { validFrom: { lte: now } }],
+          AND: {
+            OR: [{ expirationDate: null }, { expirationDate: { gt: now } }],
+          },
+        },
+        orderBy: [{ wicketLength: 'asc' }, { wicketHeight: 'asc' }, { priority: 'asc' }],
+      });
+    },
+    CACHE_TTL.REFERENCE_DATA
+  );
+}
+
 export async function findWicketByHeightAndWidth(
   requiredHeightMm: number,
   requiredWidthMm: number
 ): Promise<WicketLookupResult> {
-  const now = new Date();
-
   console.log('[wicketLookup] Searching for wicket:', { requiredHeightMm, requiredWidthMm });
 
-  const wickets = await prisma.wicketType.findMany({
-    where: {
-      active: true,
-      OR: [{ validFrom: null }, { validFrom: { lte: now } }],
-      AND: {
-        OR: [{ expirationDate: null }, { expirationDate: { gt: now } }],
-      },
-    },
-    orderBy: [{ wicketLength: 'asc' }, { wicketHeight: 'asc' }, { priority: 'asc' }],
-  });
+  const wickets = await getActiveWickets();
 
-  console.log('[wicketLookup] Found wickets in DB:', wickets.map(w => ({ name: w.name, wicketHeight: w.wicketHeight, wicketLength: w.wicketLength, retailPrice: w.retailPrice })));
+  console.log('[wicketLookup] Found wickets from cache:', wickets.map(w => ({ name: w.name, wicketHeight: w.wicketHeight, wicketLength: w.wicketLength, retailPrice: w.retailPrice })));
 
   const widthMatchingWickets = wickets.filter((w) => w.wicketLength >= requiredWidthMm);
 

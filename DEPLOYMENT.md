@@ -73,10 +73,41 @@ NEXT_PUBLIC_GOOGLE_ANALYTICS_ID="analytics-id"
 NEXT_PUBLIC_YANDEX_MAPS_API_KEY="maps-api-key"
 ```
 
+⚠️ **IMPORTANT: NEXTAUTH_SECRET Security Requirements**
+
 Generate NEXTAUTH_SECRET:
 
 ```bash
 openssl rand -base64 32
+```
+
+**The application will NOT start if NEXTAUTH_SECRET:**
+- Is not defined
+- Is less than 32 characters
+- Contains placeholder values like:
+  - `your-super-secret-key-change-in-production`
+  - `change-in-production`
+  - `your-super-secret`
+  - `secret`, `test`, `dev`
+  - `REPLACE_WITH_REAL_SECRET`
+
+**For Production Deployment:**
+- ✅ Use environment variables on your server (NOT .env file)
+- ✅ Vercel: Environment Variables in project settings
+- ✅ Docker: Use secrets or `-e` flag
+- ✅ Kubernetes: Use Secrets
+- ❌ NEVER commit .env file to git
+- ❌ NEVER use placeholder values in production
+
+**Example for Docker:**
+```bash
+docker run -e NEXTAUTH_SECRET="$(openssl rand -base64 32)" ...
+```
+
+**Example for systemd:**
+```bash
+# Add to /etc/systemd/system/fences.service
+Environment="NEXTAUTH_SECRET=your-generated-secret-here"
 ```
 
 ### 4. Create SSL Directory

@@ -1,3 +1,5 @@
+import { hash, compare } from '../src/lib/password';
+
 describe('Auth System', () => {
   let prismaMock: any;
 
@@ -90,11 +92,12 @@ describe('Auth System', () => {
     });
 
     it('should return null when user is inactive', async () => {
+      const hashedPassword = await hash('password123');
       prismaMock.user.findUnique.mockResolvedValue({
         id: '1',
         email: 'test@example.com',
         name: 'Test User',
-        password: 'password123',
+        password: hashedPassword,
         active: false,
       });
 
@@ -108,11 +111,12 @@ describe('Auth System', () => {
     });
 
     it('should return null when password does not match', async () => {
+      const hashedPassword = await hash('correctPassword');
       prismaMock.user.findUnique.mockResolvedValue({
         id: '1',
         email: 'test@example.com',
         name: 'Test User',
-        password: 'correctPassword',
+        password: hashedPassword,
         active: true,
       });
 
@@ -126,11 +130,12 @@ describe('Auth System', () => {
     });
 
     it('should return user object when credentials are valid', async () => {
+      const hashedPassword = await hash('admin123');
       const mockUser = {
         id: '1',
         email: 'admin@fences.ru',
         name: 'Администратор',
-        password: 'admin123',
+        password: hashedPassword,
         active: true,
       };
 
@@ -165,7 +170,7 @@ async function authorize(credentials: any, prisma: any) {
     return null;
   }
 
-  const passwordMatch = user.password === credentials.password;
+  const passwordMatch = await compare(credentials.password, user.password);
 
   if (!passwordMatch) {
     return null;
