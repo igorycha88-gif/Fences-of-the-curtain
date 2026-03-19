@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { workService } from '@/services/admin/workService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { createWorkSchema, workQuerySchema } from '@/lib/validators/work';
+import { safeParseInt } from '@/lib/parse-params';
+import { ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +22,8 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || undefined;
     const search = searchParams.get('search') || undefined;
     const fenceType = searchParams.get('fenceType') || undefined;
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1);
+    const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
 
     const result = await workService.getAll({
       active: active ? active === 'true' : undefined,
@@ -61,8 +64,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error creating work:', error);
     
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+    if (error instanceof ZodError) {
+      return validationError(error);
     }
     
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });

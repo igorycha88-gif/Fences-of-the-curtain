@@ -3,6 +3,7 @@ import { createOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
 import { prisma } from '@/lib/prisma';
 import { getSessionFromCookie } from '@/lib/session';
 import { headers } from 'next/headers';
+import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW = 3600000;
@@ -107,6 +108,24 @@ export async function POST(req: NextRequest) {
           },
         },
       },
+    });
+
+    getSystemUserId().then((systemUserId) => {
+      createAuditLogAsync({
+        userId: systemUserId,
+        action: 'CREATE_ORDER',
+        entityType: 'Order',
+        entityId: order.id,
+        oldValues: null,
+        newValues: {
+          clientName: validatedData.clientName,
+          phone: validatedData.phone,
+          email: validatedData.email,
+          serviceType: 'fence',
+          parameters: order.parameters,
+          calculatedCost: estimate.grandTotal,
+        },
+      });
     });
 
     return NextResponse.json(

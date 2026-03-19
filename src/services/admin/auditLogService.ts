@@ -1,25 +1,32 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { headers } from 'next/headers';
 import { getClientIPFromHeaders } from '@/lib/utils';
 
+export interface LogActionParams {
+  userId: string;
+  action: string;
+  entityType?: string;
+  entityId?: string;
+  oldValues?: Prisma.InputJsonValue | null;
+  newValues?: Prisma.InputJsonValue | null;
+  details?: Prisma.InputJsonValue;
+}
+
 export class AuditLogService {
-  async logAction(params: {
-    userId: string;
-    action: string;
-    entityType?: string;
-    entityId?: string;
-    details?: any;
-  }) {
+  async logAction(params: LogActionParams) {
     const headersList = await headers();
     const ipAddress = getClientIPFromHeaders(headersList) || 'unknown';
     const userAgent = headersList.get('user-agent') || 'unknown';
 
-    await (prisma as any).adminActionLog.create({
+    await prisma.auditLog.create({
       data: {
         userId: params.userId,
         action: params.action,
         entityType: params.entityType,
         entityId: params.entityId,
+        oldValues: params.oldValues ?? undefined,
+        newValues: params.newValues ?? undefined,
         details: params.details,
         ipAddress,
         userAgent,
@@ -48,8 +55,9 @@ export class AuditLogService {
       pageSize = 50,
     } = params;
     const skip = (page - 1) * pageSize;
+    const safePageSize = Math.min(pageSize, 100);
 
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
 
     if (userId) {
       where.userId = userId;
@@ -78,10 +86,10 @@ export class AuditLogService {
     }
 
     const [logs, total] = await Promise.all([
-      (prisma as any).adminActionLog.findMany({
+      prisma.auditLog.findMany({
         where,
         skip,
-        take: pageSize,
+        take: safePageSize,
         include: {
           user: {
             select: {
@@ -93,20 +101,20 @@ export class AuditLogService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      (prisma as any).adminActionLog.count({ where }),
+      prisma.auditLog.count({ where }),
     ]);
 
     return {
       logs,
       total,
       page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      pageSize: safePageSize,
+      totalPages: Math.ceil(total / safePageSize),
     };
   }
 
   async getActionsByUser(userId: string, limit: number = 100) {
-    return (prisma as any).adminActionLog.findMany({
+    return prisma.auditLog.findMany({
       where: { userId },
       take: limit,
       orderBy: { createdAt: 'desc' },

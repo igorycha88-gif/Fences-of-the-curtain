@@ -1,5 +1,28 @@
 name: Deploy to VPS
 
+# DEPLOYMENT REQUIREMENTS:
+# 
+# Before using this workflow, ensure the following secrets are configured in GitHub repository settings:
+# 
+# Required GitHub Secrets:
+# - SSH_PASSWORD: SSH password for server access
+# - SSH_PORT: SSH port (default: 22)
+# 
+# Required Server Environment Variables (MUST be set on VPS):
+# - NEXTAUTH_SECRET: Minimum 32 characters, generated with: openssl rand -base64 32
+#   ⚠️ DO NOT use placeholder values like "your-super-secret-key" or "change-in-production"
+#   ⚠️ The application will NOT start with invalid NEXTAUTH_SECRET
+# - DATABASE_URL: PostgreSQL connection string
+# - REDIS_URL: Redis connection string
+# - NEXTAUTH_URL: Your production URL (e.g., https://yourdomain.com)
+# - Other variables: see .env.example for complete list
+# 
+# Security Notes:
+# - NEVER commit .env file to repository
+# - Use server environment variables or secrets management
+# - NEXTAUTH_SECRET validation happens at application startup
+# - Invalid NEXTAUTH_SECRET will cause deployment to fail
+
 on:
   repository_dispatch:
     types: [deploy-triggered]

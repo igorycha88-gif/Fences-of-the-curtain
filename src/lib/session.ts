@@ -22,6 +22,7 @@ export async function getSessionId(): Promise<string> {
     sameSite: 'strict',
     maxAge: SESSION_MAX_AGE,
     path: '/',
+    secure: process.env.NODE_ENV === 'production',
   });
 
   return newSessionId;
@@ -39,6 +40,7 @@ export async function setSessionCookie(sessionId: string): Promise<void> {
     sameSite: 'strict',
     maxAge: SESSION_MAX_AGE,
     path: '/',
+    secure: process.env.NODE_ENV === 'production',
   });
 }
 
