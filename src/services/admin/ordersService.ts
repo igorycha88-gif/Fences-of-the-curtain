@@ -7,6 +7,7 @@ import {
   StatusChangeData,
   getStatusTransitionSchema 
 } from '@/lib/validators/order';
+import { createAuditLogAsync } from '@/lib/audit';
 
 export class OrdersService {
   async getOrders(params: {
@@ -172,17 +173,13 @@ export class OrdersService {
     });
 
     if (statusChanged) {
-      await (prisma as any).adminActionLog.create({
-        data: {
-          userId,
-          action: 'UPDATE_ORDER_STATUS',
-          entityType: 'Order',
-          entityId: id,
-          details: {
-            oldStatus: existing.status,
-            newStatus: data.status,
-          },
-        },
+      createAuditLogAsync({
+        userId,
+        action: 'UPDATE_ORDER_STATUS',
+        entityType: 'Order',
+        entityId: id,
+        oldValues: { status: existing.status },
+        newValues: { status: data.status },
       });
     }
 
@@ -280,18 +277,13 @@ export class OrdersService {
 
     console.log('[OrdersService] Order updated successfully');
 
-    await (prisma as any).adminActionLog.create({
-      data: {
-        userId,
-        action: 'UPDATE_ORDER_STATUS',
-        entityType: 'Order',
-        entityId: id,
-        details: {
-          oldStatus: existing.status,
-          newStatus: status,
-          data: validatedData,
-        },
-      },
+    createAuditLogAsync({
+      userId,
+      action: 'UPDATE_ORDER_STATUS',
+      entityType: 'Order',
+      entityId: id,
+      oldValues: { status: existing.status },
+      newValues: { status, data: validatedData },
     });
 
     return {
@@ -323,6 +315,7 @@ export class OrdersService {
     });
 
     const entry = history[historyIndex];
+    const oldEntryData = { ...entry.data };
     history[historyIndex] = {
       ...entry,
       data: { ...entry.data, ...data },
@@ -336,10 +329,47 @@ export class OrdersService {
       data: { statusHistory: history },
     });
 
+    createAuditLogAsync({
+      userId,
+      action: 'EDIT_STATUS_HISTORY',
+      entityType: 'Order',
+      entityId: orderId,
+      oldValues: { data: oldEntryData },
+      newValues: { data: history[historyIndex].data, historyIndex },
+    });
+
     return history[historyIndex];
   }
 
-  async deleteOrder(id: string) {
+  async deleteOrder(id: string, userId: string) {
+    const order = await prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    createAuditLogAsync({
+      userId,
+      action: 'DELETE_ORDER',
+      entityType: 'Order',
+      entityId: id,
+      oldValues: {
+        clientName: order.clientName,
+        phone: order.phone,
+        email: order.email,
+        serviceType: order.serviceType,
+        parameters: order.parameters,
+        calculatedCost: order.calculatedCost,
+        status: order.status,
+        managerComment: order.managerComment,
+        assignedTo: order.assignedTo,
+        estimateId: order.estimateId,
+      },
+      newValues: null,
+    });
+
     return prisma.order.delete({
       where: { id },
     });
@@ -357,6 +387,21 @@ export class OrdersService {
       ids.map(async (id) => {
         const existing = await prisma.order.findUnique({ where: { id } });
         if (!existing) return null;
+
+        createAuditLogAsync({
+          userId,
+          action: 'BATCH_UPDATE_ORDERS',
+          entityType: 'Order',
+          entityId: id,
+          oldValues: {
+            status: existing.status,
+            assignedTo: existing.assignedTo,
+          },
+          newValues: {
+            status: data.status ?? existing.status,
+            assignedTo: data.assignedTo ?? existing.assignedTo,
+          },
+        });
 
         return this.updateOrder(id, data, userId);
       })

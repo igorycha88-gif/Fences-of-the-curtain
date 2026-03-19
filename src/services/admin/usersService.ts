@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { Role } from '@prisma/client';
+import { hash } from '@/lib/password';
 
 export class UsersService {
   async getUsers(params: {
@@ -74,8 +75,12 @@ export class UsersService {
   }
 
   async createUser(data: Prisma.UserCreateInput) {
+    const hashedPassword = await hash(data.password);
     return prisma.user.create({
-      data,
+      data: {
+        ...data,
+        password: hashedPassword,
+      },
     });
   }
 
@@ -93,9 +98,10 @@ export class UsersService {
   }
 
   async updateUserPassword(id: string, newPassword: string) {
+    const hashedPassword = await hash(newPassword);
     return prisma.user.update({
       where: { id },
-      data: { password: newPassword },
+      data: { password: hashedPassword },
     });
   }
 

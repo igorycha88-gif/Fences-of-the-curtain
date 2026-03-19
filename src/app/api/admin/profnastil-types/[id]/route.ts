@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { profnastilTypeService } from '@/services/admin/profnastilTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { profnastilTypeUpdateSchema } from '@/lib/validators/profnastilType';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -56,7 +58,6 @@ export async function PUT(
     }
 
     const body = await request.json();
-    console.log('[PROFNASTIL-TYPES PUT] Request body:', JSON.stringify(body, null, 2));
     
     const isAdmin = session.user.role === 'ADMIN';
 
@@ -78,9 +79,9 @@ export async function PUT(
   } catch (error: any) {
     console.error('[PROFNASTIL-TYPES PUT] Error updating profnastil type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[PROFNASTIL-TYPES PUT] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('не найден')) {

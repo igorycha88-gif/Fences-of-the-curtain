@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fenceTypeCalculatorService } from '@/services/calculator/fenceTypeCalculatorService';
 import { fenceTypesQuerySchema } from '@/lib/validators';
+import crypto from 'crypto';
+
+function generateETag(data: unknown): string {
+  const hash = crypto
+    .createHash('md5')
+    .update(JSON.stringify(data))
+    .digest('hex');
+  return `"${hash}"`;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,12 +22,18 @@ export async function GET(req: NextRequest) {
       onlyWithMaterials: validatedData.onlyWithMaterials,
     });
 
+    const etag = generateETag(result);
+    const ifNoneMatch = req.headers.get('if-none-match');
+    
+    if (ifNoneMatch === etag) {
+      return new NextResponse(null, { status: 304 });
+    }
+
     return NextResponse.json(result, { 
       status: 200,
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+        'ETag': etag,
       }
     });
   } catch (error) {

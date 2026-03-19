@@ -4,6 +4,7 @@ import { WicketTypeInput, WicketTypeUpdate } from '@/lib/validators/wicketType';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
+import { logPriceChange } from '@/lib/audit-helpers';
 
 export class WicketTypeService {
   async getAll(params: {
@@ -234,6 +235,8 @@ export class WicketTypeService {
       return;
     }
 
+    logPriceChange('WicketType', entityId, oldValue, newValue, userId);
+
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
     if (oldValue && newValue) {
@@ -256,8 +259,8 @@ export class WicketTypeService {
           entityType: 'WicketType',
           entityId,
           fieldName: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue,
+          oldValue: change.oldValue as Prisma.InputJsonValue,
+          newValue: change.newValue as Prisma.InputJsonValue,
           changedBy: userId,
         },
       });

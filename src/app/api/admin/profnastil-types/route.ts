@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { profnastilTypeService } from '@/services/admin/profnastilTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { profnastilTypeSchema } from '@/lib/validators/profnastilType';
+import { safeParseInt } from '@/lib/parse-params';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +20,8 @@ export async function GET(request: NextRequest) {
     const active = searchParams.get('active');
     const search = searchParams.get('search') || undefined;
     const coating = searchParams.get('coating') || undefined;
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const page = safeParseInt(searchParams.get('page'), 1);
+    const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
     const validityFilter = searchParams.get('validityFilter') as 'all' | 'active' | 'expired' | 'expiring_soon' || 'all';
     const sortBy = searchParams.get('sortBy') || 'priority';
     const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'asc';
@@ -67,7 +70,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('[PROFNASTIL-TYPES POST] Request body:', JSON.stringify(body, null, 2));
 
     const isAdmin = session.user.role === 'ADMIN';
 
@@ -89,9 +91,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[PROFNASTIL-TYPES POST] Error creating profnastil type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[PROFNASTIL-TYPES POST] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('уже существует')) {
