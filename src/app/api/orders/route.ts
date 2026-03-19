@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
 import { prisma } from '@/lib/prisma';
 import { getSessionFromCookie } from '@/lib/session';
-import { headers } from 'next/headers';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
-
-const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW = 3600000;
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+import { applyRateLimitByEndpoint } from '@/lib/rate-limit';
 
 function getClientIp(request: NextRequest): string {
   const xForwardedFor = request.headers.get('x-forwarded-for');
@@ -17,40 +13,30 @@ function getClientIp(request: NextRequest): string {
   return 'unknown';
 }
 
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimitStore.get(ip);
-
-  if (!record || now > record.resetTime) {
-    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-    return true;
-  }
-
-  if (record.count >= RATE_LIMIT_MAX) {
-    return false;
-  }
-
-  record.count++;
-  return true;
-}
-
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
-    
-    if (!checkRateLimit(clientIp)) {
+    const rateLimitResult = await applyRateLimitByEndpoint(clientIp, 'orders');
+
+    const rlHeaders = {
+      'X-RateLimit-Limit': '5',
+      'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+      'X-RateLimit-Reset': String(Math.floor(rateLimitResult.resetAt.getTime() / 1000)),
+    };
+
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'RATE_LIMIT_EXCEEDED', message: 'Слишком много запросов. Попробуйте позже.' },
-        { status: 429 }
+        { status: 429, headers: rlHeaders }
       );
     }
 
     const sessionId = await getSessionFromCookie();
-    
+
     if (!sessionId) {
       return NextResponse.json(
         { error: 'SESSION_EXPIRED', message: 'Время сессии истекло. Пожалуйста, выполните расчет заново.' },
-        { status: 400 }
+        { status: 400, headers: rlHeaders }
       );
     }
 
@@ -62,7 +48,7 @@ export async function POST(req: NextRequest) {
     if (!estimate) {
       return NextResponse.json(
         { error: 'SESSION_EXPIRED', message: 'Время сессии истекло. Пожалуйста, выполните расчет заново.' },
-        { status: 400 }
+        { status: 400, headers: rlHeaders }
       );
     }
 
@@ -137,19 +123,19 @@ export async function POST(req: NextRequest) {
         calculatedCost: estimate.grandTotal,
         createdAt: order.createdAt,
       },
-      { status: 201 }
+      { status: 201, headers: rlHeaders }
     );
   } catch (error) {
     if (error instanceof Error) {
       console.error('Order creation error:', error);
-      
+
       if (error.name === 'ZodError') {
         return NextResponse.json(
           { error: 'VALIDATION_ERROR', message: error.message },
           { status: 400 }
         );
       }
-      
+
       return NextResponse.json(
         { error: error.message },
         { status: 400 }

@@ -1,6 +1,8 @@
 import { redis } from './redis';
 import { prisma } from './prisma';
 
+export type EndpointType = 'auth' | 'orders';
+
 interface RateLimitConfig {
   maxAttempts: number;
   windowMs: number;
@@ -13,11 +15,19 @@ interface RateLimitResult {
   resetAt: Date;
 }
 
-const DEFAULT_CONFIG: RateLimitConfig = {
-  maxAttempts: 5,
-  windowMs: 15 * 60 * 1000,
-  keyPrefix: 'rate_limit:auth',
+export interface RateLimitResultExtended {
+  allowed: boolean;
+  attempts: number;
+  remaining: number;
+  resetAt: Date;
+}
+
+const DEFAULT_CONFIGS: Record<EndpointType, RateLimitConfig> = {
+  auth: { maxAttempts: 5, windowMs: 900000, keyPrefix: 'rate_limit:auth' },
+  orders: { maxAttempts: 5, windowMs: 3600000, keyPrefix: 'rate_limit:orders' },
 };
+
+const DEFAULT_CONFIG = DEFAULT_CONFIGS.auth;
 
 function maskEmail(email: string): string {
   const [localPart, domain] = email.split('@');
@@ -28,41 +38,40 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${domain}`;
 }
 
-let configCache: RateLimitConfig | null = null;
-let configCacheTime: number = 0;
+const configCacheMap = new Map<string, { config: RateLimitConfig; time: number }>();
 const CACHE_TTL = 60 * 1000;
 
 export function clearConfigCache(): void {
-  configCache = null;
-  configCacheTime = 0;
+  configCacheMap.clear();
 }
 
-export async function getConfig(): Promise<RateLimitConfig> {
+export async function getConfig(endpointType: EndpointType = 'auth'): Promise<RateLimitConfig> {
   const now = Date.now();
+  const cached = configCacheMap.get(endpointType);
 
-  if (configCache && now - configCacheTime < CACHE_TTL) {
-    return configCache;
+  if (cached && now - cached.time < CACHE_TTL) {
+    return cached.config;
   }
 
   try {
     const dbConfig = await prisma.rateLimitConfig.findUnique({
-      where: { id: 'auth' },
+      where: { id: endpointType },
     });
 
     if (dbConfig) {
-      configCache = {
+      const config: RateLimitConfig = {
         maxAttempts: dbConfig.maxAttempts,
         windowMs: dbConfig.windowMs,
-        keyPrefix: DEFAULT_CONFIG.keyPrefix,
+        keyPrefix: DEFAULT_CONFIGS[endpointType].keyPrefix,
       };
-      configCacheTime = now;
-      return configCache;
+      configCacheMap.set(endpointType, { config, time: now });
+      return config;
     }
   } catch (error) {
     console.error('[RATE LIMIT] Error fetching config from database:', error);
   }
 
-  return DEFAULT_CONFIG;
+  return DEFAULT_CONFIGS[endpointType];
 }
 
 export async function checkRateLimit(ip: string, email: string): Promise<boolean> {
@@ -124,8 +133,7 @@ export async function updateConfig(
       data: { maxAttempts, windowMs },
     });
 
-    configCache = null;
-    configCacheTime = 0;
+    configCacheMap.delete('auth');
 
     console.log(
       `[RATE LIMIT] Config updated: maxAttempts=${maxAttempts}, windowMs=${windowMs}`
@@ -159,6 +167,54 @@ export async function getRateLimitStatus(
     return {
       allowed: true,
       attempts: 0,
+      resetAt: new Date(Date.now() + config.windowMs),
+    };
+  }
+}
+
+export async function applyRateLimitByEndpoint(
+  ip: string,
+  endpointType: EndpointType
+): Promise<RateLimitResultExtended> {
+  const config = await getConfig(endpointType);
+  const key = `${config.keyPrefix}:${ip}`;
+
+  try {
+    const attempts = await redis.incr(key);
+
+    if (attempts === 1) {
+      await redis.expire(key, Math.floor(config.windowMs / 1000));
+    }
+
+    const ttl = await redis.ttl(key);
+    const resetAt = new Date(Date.now() + (ttl > 0 ? ttl * 1000 : config.windowMs));
+    const allowed = attempts <= config.maxAttempts;
+    const remaining = Math.max(0, config.maxAttempts - attempts);
+
+    if (!allowed) {
+      console.log(
+        `[RATE LIMIT] Blocked: IP=${ip}, EndpointType=${endpointType}, Attempts=${attempts}`
+      );
+    }
+
+    return { allowed, attempts, remaining, resetAt };
+  } catch (error) {
+    console.error(
+      `[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy). ` +
+      `IP=${ip}, EndpointType=${endpointType}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[RATE LIMIT] ALERT: Redis connection failed in production. ' +
+        'Rate limiting is temporarily disabled. Monitor Redis health!'
+      );
+    }
+
+    return {
+      allowed: true,
+      attempts: 0,
+      remaining: config.maxAttempts,
       resetAt: new Date(Date.now() + config.windowMs),
     };
   }
