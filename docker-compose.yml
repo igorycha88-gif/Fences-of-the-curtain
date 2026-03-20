@@ -5,8 +5,8 @@ services:
       dockerfile: docker/Dockerfile
     container_name: fences-app
     restart: unless-stopped
-    ports:
-      - "3001:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/fences
@@ -25,6 +25,8 @@ services:
       - NEXT_PUBLIC_YANDEX_METRIKA_ID=${NEXT_PUBLIC_YANDEX_METRIKA_ID}
       - NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=${NEXT_PUBLIC_GOOGLE_ANALYTICS_ID}
       - NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
+    volumes:
+      - uploads_data:/app/public/uploads
     secrets:
       - redis_password
     depends_on:
@@ -62,15 +64,18 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "3001:3001"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
+      - uploads_data:/var/www/uploads:ro
     depends_on:
       - app
 
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
 
 secrets:
   redis_password:
