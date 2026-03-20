@@ -98,14 +98,10 @@ export default function HomePage() {
               </AnimatedSection>
 
               <AnimatedSection animation="fade-in" delay={500}>
-                <div className="flex items-center justify-center gap-8 mt-12 text-muted-foreground">
+                <div className="flex items-center justify-center mt-12 text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-primary" />
-                    <span>Гарантия до 20 лет</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                    <span>Бесплатный замер</span>
+                    <span>Гарантия качества</span>
                   </div>
                 </div>
               </AnimatedSection>
@@ -158,7 +154,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Гарантия качества</h3>
                 <p className="text-muted-foreground text-sm">
-                  До 20 лет гарантии на материалы и работы
+                  Профессиональный подход и контроль качества
                 </p>
               </AnimatedSection>
 
