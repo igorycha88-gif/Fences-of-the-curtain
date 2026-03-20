@@ -28,6 +28,9 @@ yarn-error.log*
 .env.production
 .env.dev
 
+# Secrets (Docker secrets - NEVER commit these!)
+secrets/
+
 # Backup files created by rotate-secrets.sh - NEVER commit these!
 .env.backup.*
 .env.bak
