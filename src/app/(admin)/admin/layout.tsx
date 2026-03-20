@@ -39,10 +39,7 @@ export default function AdminLayout({
   };
 
   const handleLogout = async () => {
-    console.log('[ADMIN LAYOUT] Logging out...');
-    await signOut({ redirect: false });
-    router.push('/');
-    router.refresh();
+    await signOut({ callbackUrl: '/', redirect: true });
   };
 
   const isActive = (path: string) => {
@@ -83,16 +80,16 @@ export default function AdminLayout({
           },
         }}
       />
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg border-r">
-        <div className="p-6">
+      <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg border-r flex flex-col">
+        <div className="p-6 flex-shrink-0">
           <h1 className="text-xl font-bold text-gray-900">Админ-панель</h1>
         </div>
-        <nav className="mt-6">
-          <ul className="space-y-2">
+        <nav className="flex-1 overflow-y-auto min-h-0">
+          <ul className="space-y-2 px-3 pb-4">
             <li>
               <a 
                 href="/admin/dashboard" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
+                className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/dashboard')
                     ? 'bg-primary text-white font-semibold'
                     : 'text-gray-700 hover:bg-gray-50'
@@ -104,7 +101,7 @@ export default function AdminLayout({
             <li>
               <a 
                 href="/admin/orders" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
+                className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/orders')
                     ? 'bg-primary text-white font-semibold'
                     : 'text-gray-700 hover:bg-gray-50'
@@ -116,7 +113,7 @@ export default function AdminLayout({
             <li>
               <a 
                 href="/admin/estimates" 
-                className={`block px-6 py-3 rounded-lg transition-colors ${
+                className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/estimates')
                     ? 'bg-primary text-white font-semibold'
                     : 'text-gray-700 hover:bg-gray-50'
@@ -128,7 +125,7 @@ export default function AdminLayout({
             <li className="pt-4 border-t mt-4">
               <button
                 onClick={toggleReferences}
-                className="w-full px-6 py-2 flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors"
+                className="w-full px-3 py-2 flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4" />
@@ -142,7 +139,7 @@ export default function AdminLayout({
               </button>
             </li>
             {!isReferencesCollapsed && (
-              <div className="max-h-[calc(100vh-400px)] overflow-y-auto custom-scrollbar">
+              <>
                 <li>
                   <a 
                     href="/admin/references/fence-types" 
@@ -265,6 +262,18 @@ export default function AdminLayout({
                 </li>
                 <li>
                   <a 
+                    href="/admin/portfolio" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/portfolio')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Портфолио
+                  </a>
+                </li>
+                <li>
+                  <a 
                     href="/admin/users" 
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/users')
@@ -275,18 +284,18 @@ export default function AdminLayout({
                     Пользователи
                   </a>
                 </li>
-              </div>
+              </>
             )}
           </ul>
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-6 border-t">
+        <div className="flex-shrink-0 p-4 border-t bg-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
               {session.user?.name?.[0] || 'A'}
             </div>
-            <div>
-              <p className="font-medium text-gray-900">{session.user?.name}</p>
-              <p className="text-sm text-gray-500">{session.user?.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900 truncate">{session.user?.name}</p>
+              <p className="text-sm text-gray-500 truncate">{session.user?.email}</p>
             </div>
           </div>
           <button
