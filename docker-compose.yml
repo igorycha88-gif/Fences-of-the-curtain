@@ -27,6 +27,7 @@ services:
       - NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
     volumes:
       - uploads_data:/app/public/uploads
+      - next_static_data:/app/.next/static
     secrets:
       - redis_password
     depends_on:
@@ -69,6 +70,7 @@ services:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
       - uploads_data:/var/www/uploads:ro
+      - next_static_data:/var/www/next_static:ro
     depends_on:
       - app
 
@@ -76,6 +78,7 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  next_static_data:
 
 secrets:
   redis_password:
