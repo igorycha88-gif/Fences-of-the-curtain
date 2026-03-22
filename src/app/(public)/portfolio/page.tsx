@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Filter, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 
 interface PortfolioItem {
   id: string;
@@ -104,7 +105,7 @@ export default function PortfolioPage() {
             {filteredItems.map((item) => {
               const images = item.images as string[];
               const firstImage = images[0];
-              const thumbnailUrl = firstImage?.replace(/(\.\w+)$/, '_thumb$1');
+              const thumbnailUrl = getThumbnailUrl(firstImage);
 
               return (
                 <div
