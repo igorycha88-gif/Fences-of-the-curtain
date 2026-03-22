@@ -26,6 +26,8 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
+export const dynamic = 'force-dynamic';
+
 export const config = {
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
