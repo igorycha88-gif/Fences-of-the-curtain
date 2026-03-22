@@ -89,8 +89,8 @@ export async function saveImage(file: File): Promise<{ url: string; thumbnailUrl
     .withMetadata({ exif: undefined })
     .toFile(thumbPath);
 
-  const publicUrl = filePath.replace(path.join(process.cwd(), 'public'), '');
-  const thumbnailUrl = thumbPath.replace(path.join(process.cwd(), 'public'), '');
+  const publicUrl = '/' + filePath.replace(path.join(process.cwd(), 'public'), '').replace(/^\/+/, '');
+  const thumbnailUrl = '/' + thumbPath.replace(path.join(process.cwd(), 'public'), '').replace(/^\/+/, '');
 
   return { url: publicUrl, thumbnailUrl };
 }

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Upload, X, Loader2 } from 'lucide-react';
+import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 
 interface ImageUploaderProps {
   images: string[];
@@ -124,7 +125,7 @@ export function ImageUploader({ images,  onChange,
             }}
           >
             <img
-              src={image.replace(/(\.\w+)$/, '_thumb$1')}
+              src={getThumbnailUrl(image)}
               alt={`Изображение ${index + 1}`}
               className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
             />
