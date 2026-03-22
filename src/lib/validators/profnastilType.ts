@@ -30,6 +30,11 @@ const profnastilTypeBaseSchema = z.object({
   color: z.string()
     .max(50, 'Цвет не должен превышать 50 символов')
     .optional(),
+  purchasePricePerLinearMeter: z.number()
+    .min(0, 'Стоимость за м.п. должна быть не менее 0')
+    .max(100000, 'Стоимость за м.п. не должна превышать 100 000 ₽')
+    .nullable()
+    .optional(),
   purchasePricePerUnit: z.number()
     .min(0, 'Цена закупки должна быть не менее 0')
     .nullable()

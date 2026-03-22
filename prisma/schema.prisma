@@ -311,24 +311,25 @@ model UserNotificationSettings {
 }
 
 model ProfnastilType {
-  id                   String    @id @default(cuid())
-  name                 String
-  description          String?
-  metalThickness       Float
-  fullWidth            Int
-  usefulWidth          Int
-  length               Int
-  coating              String
-  color                String?
-  purchasePricePerUnit Float?
-  retailPricePerUnit   Float
-  validFrom            DateTime?
-  validUntil           DateTime?
-  active               Boolean   @default(true)
-  image                String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  priority             Int       @default(0)
+  id                         String    @id @default(cuid())
+  name                       String
+  description                String?
+  metalThickness             Float
+  fullWidth                  Int
+  usefulWidth                Int
+  length                     Int
+  coating                    String
+  color                      String?
+  purchasePricePerLinearMeter Float?
+  purchasePricePerUnit       Float?
+  retailPricePerUnit         Float
+  validFrom                  DateTime?
+  validUntil                 DateTime?
+  active                     Boolean   @default(true)
+  image                      String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  priority                   Int       @default(0)
 
   @@unique([name, metalThickness, coating, color], name: "profnastil_unique_combination")
   @@index([active])

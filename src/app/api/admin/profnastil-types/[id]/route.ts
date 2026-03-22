@@ -69,13 +69,26 @@ export async function PUT(
       );
     }
 
+    if (!isAdmin && body.purchasePricePerLinearMeter !== undefined) {
+      console.log('[PROFNASTIL-TYPES PUT] Forbidden - non-admin trying to modify purchase prices');
+      return NextResponse.json(
+        { error: 'Only ADMIN can modify purchase prices' },
+        { status: 403 }
+      );
+    }
+
     const validatedData = profnastilTypeUpdateSchema.parse(body);
     console.log('[PROFNASTIL-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    await profnastilTypeService.update(params.id, validatedData, session.user.id);
+    const updated = await profnastilTypeService.update(params.id, validatedData, session.user.id);
     console.log('[PROFNASTIL-TYPES PUT] Updated successfully');
 
-    return NextResponse.json({ success: true });
+    if (!isAdmin) {
+      const { purchasePricePerUnit, purchasePricePerLinearMeter, ...itemWithoutPurchasePrice } = updated as any;
+      return NextResponse.json(itemWithoutPurchasePrice);
+    }
+
+    return NextResponse.json(updated);
   } catch (error: any) {
     console.error('[PROFNASTIL-TYPES PUT] Error updating profnastil type:', error);
     
