@@ -1,0 +1,48 @@
+name: Direct Port Check on VPS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  port-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Direct port check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 37.143.13.196
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 5m
+          script: |
+            set -e
+            
+            echo "=== Checking processes on port 3000 ==="
+            netstat -tlnp | grep :3000 || echo "No process on port 3000"
+            
+            echo ""
+            echo "=== Checking what PM2 actually runs ==="
+            ps aux | grep -E "npm|node" | grep -v grep | head -10
+            
+            echo ""
+            echo "=== Direct curl from VPS ==="
+            echo "Response from localhost:3000/admin/login:"
+            curl -s http://localhost:3000/admin/login | grep -o "Тестовые данные\|admin@fences.ru\|manager@fences.ru" | head -5 || echo "✓ No test credentials"
+            
+            echo ""
+            echo "=== Checking .next directory ==="
+            cd /root/Fences-of-the-curtain
+            if [ -d .next ]; then
+              echo ".next directory exists, checking modified times:"
+              find .next/server/app/admin -name "*login*" -type f -exec ls -lh {} \;
+            fi
+            
+            echo ""
+            echo "=== Checking for multiple node processes ==="
+            pgrep -a -f node | wc -l
