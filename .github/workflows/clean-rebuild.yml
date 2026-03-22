@@ -1,0 +1,83 @@
+name: Clean Rebuild on VPS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-rebuild:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clean rebuild on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 37.143.13.196
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            set -e
+            
+            APP_DIR="/root/Fences-of-the-curtain"
+            APP_NAME="fences-app"
+            
+            cd $APP_DIR
+            
+            echo "=== Stopping PM2 application ==="
+            pm2 stop $APP_NAME || echo "Application not running"
+            
+            echo "=== Removing ALL cache directories ==="
+            rm -rf .next
+            rm -rf node_modules/.cache
+            rm -rf .turbo
+            
+            echo "=== Installing fresh dependencies ==="
+            npm install --legacy-peer-deps
+            
+            echo "=== Generating Prisma Client ==="
+            npx prisma generate
+            
+            echo "=== Clean build ==="
+            npm run build
+            
+            echo "=== Verifying build ==="
+            echo "Checking login page in built files:"
+            find .next -name "*login*" -type f | head -5
+            
+            echo ""
+            echo "Verifying no test credentials in built HTML:"
+            curl -s http://localhost:3000/admin/login 2>&1 | grep -o "Тестовые данные\|admin@fences.ru\|manager@fences.ru" | head -3 || echo "✓ No test credentials found in build"
+            
+            echo ""
+            echo "=== Starting PM2 application ==="
+            pm2 start $APP_NAME || pm2 restart $APP_NAME
+            pm2 save
+            
+            echo "=== Health check ==="
+            sleep 5
+            if curl -sf http://localhost:3000/ > /dev/null 2>&1; then
+              echo "✓ Health check passed"
+            else
+              echo "✗ Health check failed"
+              pm2 logs $APP_NAME --lines 50 --nostream
+              exit 1
+            fi
+            
+            echo ""
+            echo "=== Final verification ==="
+            FINAL_CHECK=$(curl -s http://localhost:3000/admin/login | grep -o "Тестовые данные\|admin@fences.ru\|manager@fences.ru" | head -1 || echo "NONE")
+            if [ "$FINAL_CHECK" != "NONE" ]; then
+              echo "✗ ERROR: Test credentials still present in live application!"
+              exit 1
+            else
+              echo "✓ SUCCESS: No test credentials in live application"
+            fi
+            
+            echo ""
+            echo "=== Build complete ==="
+            pm2 list
