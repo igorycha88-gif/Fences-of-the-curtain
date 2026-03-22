@@ -31,6 +31,9 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/public ./public
+
+RUN mkdir -p /app/public/uploads/portfolio && chown -R nextjs:nodejs /app/public/uploads
 
 USER nextjs
 
