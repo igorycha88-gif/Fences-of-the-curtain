@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Filter, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 
 interface PortfolioItem {
@@ -58,6 +59,7 @@ export default function PortfolioPage() {
       <Header />
 
       <main className="container mx-auto px-4 py-16">
+        <Breadcrumbs items={[{ label: 'Портфолио' }]} />
         <h1 className="text-5xl font-bold text-center mb-4 text-gray-900">Портфолио</h1>
         <p className="text-xl text-gray-600 text-center mb-12 max-w-2xl mx-auto">
           Примеры наших работ выполненных с высоким качеством
