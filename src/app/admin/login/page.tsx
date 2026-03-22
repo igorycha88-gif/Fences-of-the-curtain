@@ -77,6 +77,7 @@ export default function AdminLoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="admin@example.com"
               required
@@ -91,6 +92,7 @@ export default function AdminLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="•••••••••"
               required
@@ -105,12 +107,6 @@ export default function AdminLoginPage() {
             {loading ? 'Вход...' : 'Войти'}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Тестовые данные:</p>
-          <p>admin@fences.ru / admin123</p>
-          <p>manager@fences.ru / manager123</p>
-        </div>
       </div>
     </div>
   );
