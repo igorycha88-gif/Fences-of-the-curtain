@@ -33,11 +33,13 @@ jobs:
 
             APP_DIR="/root/Fences-of-the-curtain"
             APP_NAME="fences-app"
+            LOG_DIR="/var/log/fences-deploy"
+            DEPLOY_LOG="$LOG_DIR/deploy.log"
             DEPLOY_REASON="${{ github.event.inputs.deploy_reason || 'Manual deployment' }}"
             NOTES="${{ github.event.inputs.description || '' }}"
 
             log_deploy() {
-              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a /var/log/fences-deploy/deploy.log
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"
             }
 
             log_deploy "=== MANUAL DEPLOY STARTED ==="
