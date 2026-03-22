@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libssl1.1 ca-ce
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

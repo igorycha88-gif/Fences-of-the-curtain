@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'fences-app',
-      script: 'npm',
-      args: 'start',
+      script: 'npx',
+      args: 'next start -p 3001',
       cwd: '/root/Fences-of-the-curtain',
       instances: 1,
       exec_mode: 'fork',
@@ -13,6 +13,7 @@ module.exports = {
       listen_timeout: 10000,
       env_production: {
         NODE_ENV: 'production',
+        PORT: 3001,
       },
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: '/var/log/fences-app/error.log',
