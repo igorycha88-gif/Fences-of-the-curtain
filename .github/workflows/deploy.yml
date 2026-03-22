@@ -187,6 +187,15 @@ jobs:
             
             pm2 list
             
+            log_deploy "=== Verifying test credentials removed ==="
+            if curl -sf http://localhost:3001/admin/login | grep -q "admin@fences.ru\|manager@fences.ru"; then
+              log_deploy "ERROR: Test credentials still visible on login page!"
+              log_deploy "DEPLOY RESULT: security_check_failed"
+              exit 1
+            else
+              log_deploy "✓ Test credentials successfully removed from login page"
+            fi
+            
             # Cleanup old deploy logs (30 days retention)
             find "$LOG_DIR" -name "deploy.log" -mtime +30 -delete 2>/dev/null || true
             find "$APP_DIR" -name "backup_*.sql" -mtime +7 -delete 2>/dev/null || true
