@@ -5,13 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[MIGRATION-TRIGGER] Migration trigger received');
 
-    const items = await prisma.portfolioItem.findMany({
-      where: {
-        images: {
-          not: null,
-        },
-      },
-    });
+    const items = await prisma.portfolioItem.findMany();
 
     console.log('[MIGRATION-TRIGGER] Found items to migrate:', items.length);
 
@@ -88,13 +82,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const stats = await prisma.portfolioItem.count({
-      where: {
-        images: {
-          not: null,
-        },
-      },
-    });
+    const stats = await prisma.portfolioItem.count();
 
     return NextResponse.json({
       totalItems: stats,
