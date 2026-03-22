@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
-    style-src 'self' 'nonce-${nonce}';
+    style-src 'self' 'nonce-${nonce}' 'unsafe-inline';
     img-src 'self' data: https:;
     font-src 'self';
     connect-src 'self' https://mc.yandex.ru;
