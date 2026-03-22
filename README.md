@@ -9,6 +9,7 @@
 - **Backend**: Next.js API Routes
 - **Database**: PostgreSQL 16
 - **ORM**: Prisma 5
+- **Cache/Rate Limiting**: Redis 7
 - **Authentication**: NextAuth.js
 - **Validation**: Zod
 - **PDF Generation**: jsPDF
@@ -37,8 +38,100 @@
 ### Требования
 - Node.js 20+
 - PostgreSQL 16+
-- Redis 7+
+- Redis 7+ (обязательно для rate limiting)
 - npm или yarn
+
+### Переменные окружения
+
+Для работы приложения необходимы следующие переменные в `.env`:
+
+```bash
+# База данных
+DATABASE_URL="postgresql://user:password@localhost:5432/fences"
+
+# Redis (обязательно для rate limiting)
+REDIS_URL="redis://localhost:6379"
+
+# NextAuth.js
+NEXTAUTH_SECRET="your-super-secret-key-min-32-chars"
+NEXTAUTH_URL="http://localhost:3001"
+```
+
+### Redis Аутентификация
+
+⚠️ **ВАЖНО: Redis работает с обязательной аутентификацией!**
+
+Приложение использует Redis с паролем для защиты данных сессий, кеша и rate limiting.
+
+#### Production (docker-compose.yml)
+
+1. **Генерация пароля Redis:**
+```bash
+./scripts/setup-redis-secret.sh
+```
+
+Скрипт создаст файл `secrets/redis_password` с криптографически стойким паролем.
+
+2. **Проверка подключения:**
+```bash
+# Подключение без пароля (должно быть отказано)
+docker exec fences-redis redis-cli PING
+# Ожидается: (error) NOAUTH Authentication required
+
+# Подключение с паролем (должно быть успешно)
+docker exec fences-redis redis-cli -a $(cat secrets/redis_password) PING
+# Ожидается: PONG
+```
+
+3. **Безопасность:**
+- ✅ Пароль хранится в Docker secrets (`./secrets/redis_password`)
+- ✅ Файл `secrets/` добавлен в `.gitignore`
+- ✅ Порт 6379 НЕ доступен с хост-машины (только внутри Docker сети)
+- ❌ НИКОГДА не коммитьте файл `secrets/redis_password`
+
+#### Development (docker-compose.dev.yml)
+
+Для локальной разработки используется файл `.env.dev`:
+
+```bash
+# .env.dev
+REDIS_PASSWORD=dev_redis_password_change_in_production
+```
+
+**Запуск development конфигурации:**
+```bash
+# Используйте .env файл для development (по умолчанию)
+docker-compose -f docker-compose.dev.yml up -d
+
+# Или явно укажите .env.dev
+docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d
+```
+
+#### Ручная настройка пароля
+
+Если нужно установить конкретный пароль:
+
+```bash
+# 1. Создайте директорию secrets
+mkdir -p secrets
+
+# 2. Сгенерируйте пароль
+openssl rand -base64 32 > secrets/redis_password
+
+# 3. Установите права
+chmod 600 secrets/redis_password
+
+# 4. Добавьте в .env
+REDIS_PASSWORD=$(cat secrets/redis_password)
+```
+
+### Rate Limiting
+
+Приложение использует Redis для rate limiting на публичных API:
+- **POST /api/orders**: 5 запросов в час с одного IP
+- **POST /api/auth/signin**: 5 запросов в 15 минут с одного IP
+
+Конфигурация rate limiting хранится в таблице `RateLimitConfig` и может быть изменена без перезапуска сервера.
 
 ### Локальная разработка
 
@@ -120,6 +213,24 @@ NEXTAUTH_URL="http://localhost:3000"  # для локальной разрабо
 ```bash
 openssl rand -base64 32
 ```
+
+⚠️ **ВАЖНО: Требования безопасности NEXTAUTH_SECRET**
+
+**Приложение НЕ ЗАПУСТИТСЯ если NEXTAUTH_SECRET:**
+- Не определен
+- Меньше 32 символов
+- Содержит placeholder значения:
+  - `your-super-secret-key-change-in-production`
+  - `change-in-production`, `your-super-secret`
+  - `secret`, `test`, `dev`, `REPLACE_WITH_REAL_SECRET`
+
+**Для Production:**
+- ✅ Используйте переменные окружения сервера (НЕ .env файл)
+- ✅ Vercel: Environment Variables в настройках проекта
+- ✅ Docker: используйте secrets или `-e` флаг
+- ✅ Kubernetes: используйте Secrets
+- ❌ НИКОГДА не коммитьте .env файл в git
+- ❌ НИКОГДА не используйте placeholder значения в production
 
 **Вход в админ-панель:**
 

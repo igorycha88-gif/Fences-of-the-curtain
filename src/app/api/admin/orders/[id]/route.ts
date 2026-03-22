@@ -51,7 +51,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -59,7 +59,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await ordersService.deleteOrder(params.id);
+    await ordersService.deleteOrder(params.id, session.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

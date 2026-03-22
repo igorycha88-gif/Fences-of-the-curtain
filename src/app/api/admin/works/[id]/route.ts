@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { workService } from '@/services/admin/workService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { updateWorkSchema } from '@/lib/validators/work';
+import { ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -54,8 +56,8 @@ export async function PUT(
   } catch (error: any) {
     console.error('Error updating work:', error);
     
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+    if (error instanceof ZodError) {
+      return validationError(error);
     }
     
     if (error.message.includes('не найден')) {

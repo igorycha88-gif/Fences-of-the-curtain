@@ -12,7 +12,7 @@ export async function GET(
     
     const session = await getServerSession();
     console.log('[API] Session:', session ? 'exists' : 'null');
-    console.log('[API] Session user:', session?.user ? JSON.stringify(session.user) : 'null');
+    console.log('[API] Session user:', session?.user ? 'authenticated' : 'null');
     
     if (!session) {
       console.log('[API] ERROR: No session');
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     const userEmail = session.user?.email;
-    console.log('[API] User email:', userEmail);
+    console.log('[API] User identified:', !!userEmail);
     
     if (!userEmail) {
       console.log('[API] ERROR: No user email in session');
@@ -32,7 +32,7 @@ export async function GET(
       select: { role: true, email: true, name: true },
     });
     
-    console.log('[API] User from DB:', user ? JSON.stringify(user) : 'null');
+    console.log('[API] User from DB:', user ? `role=${user.role}` : 'null');
 
     const isAdmin = user?.role === 'ADMIN';
     const { id } = await params;
@@ -49,7 +49,7 @@ export async function GET(
     console.log('[API] Estimate items count:', estimate.items?.length);
     console.log('[API] showPurchasePrices:', isAdmin);
     console.log('[API] summary:', estimate.summary);
-    console.log('[API] First 2 items:', JSON.stringify(estimate.items?.slice(0, 2), null, 2));
+    console.log('[API] Items count:', estimate.items?.length);
 
     const response = {
       ...estimate,
