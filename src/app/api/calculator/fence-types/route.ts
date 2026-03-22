@@ -3,6 +3,8 @@ import { fenceTypeCalculatorService } from '@/services/calculator/fenceTypeCalcu
 import { fenceTypesQuerySchema } from '@/lib/validators';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 function generateETag(data: unknown): string {
   const hash = crypto
     .createHash('md5')

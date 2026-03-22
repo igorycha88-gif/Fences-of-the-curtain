@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 import { ReferenceTypeEnum } from '@/lib/validators/mountingHardware';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
