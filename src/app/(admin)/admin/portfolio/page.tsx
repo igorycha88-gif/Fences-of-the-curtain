@@ -21,6 +21,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 
 interface PortfolioItem {
   id: string;
@@ -59,7 +60,7 @@ function SortableRow({ item, onEdit, onDelete, onToggleActive, isSelected, onSel
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const thumbnailUrl = (item.images as string[])[0]?.replace(/(\.\w+)$/, '_thumb$1') || '';
+  const thumbnailUrl = getThumbnailUrl((item.images as string[])[0]);
 
   return (
     <tr ref={setNodeRef} style={style} className={isDragging ? 'bg-gray-50' : ''}>

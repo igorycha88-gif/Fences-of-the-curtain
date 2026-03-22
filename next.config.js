@@ -29,16 +29,10 @@ const securityHeaders = [
   },
 ];
 
-const cspHeader = [
-  {
-    key: 'Content-Security-Policy',
-    value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://mc.yandex.ru https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; connect-src 'self' https://mc.yandex.ru; frame-src 'self' https://www.google.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests;",
-  },
-];
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   images: {
     domains: ['localhost'],
     remotePatterns: [],
@@ -47,7 +41,7 @@ const nextConfig = {
     return [
       {
         source: '/:path*',
-        headers: [...securityHeaders, ...cspHeader],
+        headers: securityHeaders,
       },
     ];
   },

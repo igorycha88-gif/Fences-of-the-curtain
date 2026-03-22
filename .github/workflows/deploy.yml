@@ -47,7 +47,7 @@ jobs:
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: 37.143.13.196
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
@@ -107,3 +107,86 @@ jobs:
             log_deploy "=== Building application ==="
             npm run build
             
+            log_deploy "=== Pushing schema changes ==="
+            npx prisma db push --accept-data-loss
+            
+            log_deploy "=== Graceful restart with PM2 ==="
+            if pm2 list | grep -q "$APP_NAME"; then
+              log_deploy "Reloading existing process..."
+              pm2 reload ecosystem.config.js --env production || pm2 restart ecosystem.config.js --env production
+            else
+              log_deploy "Starting new process..."
+              pm2 start ecosystem.config.js --env production
+            fi
+            pm2 save
+            
+            log_deploy "=== Health check via Nginx (10 attempts, 5s each) ==="
+            SUCCESS=0
+            for i in $(seq 1 10); do
+              sleep 5
+              if curl -sf --max-time 5 http://localhost:3001/ > /dev/null 2>&1; then
+                log_deploy "Health check passed on attempt $i!"
+                SUCCESS=1
+                break
+              fi
+              log_deploy "Attempt $i/10 failed..."
+              if [ $i -eq 3 ] || [ $i -eq 6 ]; then
+                log_deploy "=== PM2 logs at attempt $i ==="
+                pm2 logs $APP_NAME --lines 20 --nostream || true
+              fi
+            done
+            
+            if [ $SUCCESS -eq 0 ]; then
+              log_deploy "=== DEPLOYMENT FAILED - INITIATING ROLLBACK ==="
+              
+              log_deploy "=== Rolling back to previous commit ==="
+              git reset --hard "$PREVIOUS_COMMIT"
+              
+              log_deploy "=== Reinstalling dependencies ==="
+              npm install --legacy-peer-deps
+              npx prisma generate
+              
+              log_deploy "=== Rebuilding application ==="
+              npm run build
+              
+              log_deploy "=== Restarting with previous version ==="
+              pm2 reload ecosystem.config.js --env production || pm2 restart ecosystem.config.js --env production
+              
+              log_deploy "=== Health check after rollback ==="
+              ROLLBACK_SUCCESS=0
+              for i in $(seq 1 5); do
+                sleep 5
+                if curl -sf --max-time 5 http://localhost:3001/ > /dev/null 2>&1; then
+                  log_deploy "Rollback health check passed on attempt $i!"
+                  ROLLBACK_SUCCESS=1
+                  break
+                fi
+              done
+              
+              if [ $ROLLBACK_SUCCESS -eq 1 ]; then
+                log_deploy "=== ROLLBACK SUCCESSFUL ==="
+                log_deploy "DEPLOY RESULT: rolled_back (from $PREVIOUS_COMMIT to $TARGET_COMMIT, back to $PREVIOUS_COMMIT)"
+              else
+                log_deploy "=== ROLLBACK FAILED - MANUAL INTERVENTION REQUIRED ==="
+                log_deploy "DEPLOY RESULT: rollback_failed"
+              fi
+              
+              log_deploy "=== Final PM2 logs ==="
+              pm2 logs $APP_NAME --lines 100 --nostream || true
+              pm2 list
+              
+              git tag -d "$BACKUP_TAG" 2>/dev/null || true
+              exit 1
+            fi
+            
+            log_deploy "=== Cleaning up backup tag ==="
+            git tag -d "$BACKUP_TAG" 2>/dev/null || true
+            
+            log_deploy "=== DEPLOYMENT SUCCESSFUL ==="
+            log_deploy "DEPLOY RESULT: success (from $PREVIOUS_COMMIT to $TARGET_COMMIT)"
+            
+            pm2 list
+            
+            # Cleanup old deploy logs (30 days retention)
+            find "$LOG_DIR" -name "deploy.log" -mtime +30 -delete 2>/dev/null || true
+            find "$APP_DIR" -name "backup_*.sql" -mtime +7 -delete 2>/dev/null || true
