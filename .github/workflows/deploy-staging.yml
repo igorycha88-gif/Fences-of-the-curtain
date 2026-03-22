@@ -1,0 +1,145 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+env:
+  APP_DIR: "/root/Fences-of-the-curtain"
+  APP_NAME: "fences-app-staging"
+  PORT: "3002"
+  BASE_URL: "http://localhost:3002"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            set -e
+            
+            APP_DIR="/root/Fences-of-the-curtain"
+            APP_NAME="fences-app-staging"
+            PORT="3002"
+            BASE_URL="http://localhost:3002"
+            LOG_DIR="/var/log/fences-deploy"
+            DEPLOY_LOG="$LOG_DIR/deploy-staging.log"
+            
+            mkdir -p "$LOG_DIR" /var/log/fences-app
+            mkdir -p /var/log/fences-app/staging
+            
+            log_deploy() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"
+            }
+            
+            cd $APP_DIR
+            
+            log_deploy "=== STAGING DEPLOY STARTED ==="
+            log_deploy "Initiator: ${GITHUB_ACTOR:-manual}"
+            log_deploy "Branch: ${{ github.ref_name }}"
+            log_deploy "Commit: ${{ github.sha }}"
+            
+            log_deploy "=== Checking environment ==="
+            if [ ! -f .env ]; then
+              log_deploy "ERROR: .env file not found!"
+              exit 1
+            fi
+            
+            log_deploy "=== Saving current state for rollback ==="
+            PREVIOUS_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "none")
+            BACKUP_TAG="staging-backup-$(date +%Y%m%d%H%M%S)"
+            git tag "$BACKUP_TAG" 2>/dev/null || true
+            log_deploy "Previous commit: $PREVIOUS_COMMIT"
+            log_deploy "Backup tag: $BACKUP_TAG"
+            
+            log_deploy "=== Pulling latest changes ==="
+            git fetch origin
+            git reset --hard ${{ github.sha }}
+            
+            log_deploy "=== Installing dependencies ==="
+            npm install --legacy-peer-deps
+            
+            log_deploy "=== Generating Prisma Client ==="
+            npx prisma generate
+            
+            log_deploy "=== Building application ==="
+            npm run build
+            
+            log_deploy "=== Stopping existing staging process ==="
+            pm2 stop $APP_NAME || log_deploy "No existing process to stop"
+            
+            log_deploy "=== Starting staging application ==="
+            pm2 start ecosystem.config.js --env production --name $APP_NAME || \
+            pm2 start npx --name $APP_NAME -- -- next start -p $PORT
+            
+            pm2 save
+            
+            log_deploy "=== Waiting for application to start (15 seconds) ==="
+            sleep 15
+            
+            log_deploy "=== Running smoke tests ==="
+            if ./scripts/smoke-test.sh "$BASE_URL"; then
+              log_deploy "✓ Smoke tests passed"
+              SMOKE_SUCCESS=1
+            else
+              log_deploy "✗ Smoke tests failed"
+              SMOKE_SUCCESS=0
+            fi
+            
+            if [ $SMOKE_SUCCESS -eq 0 ]; then
+              log_deploy "=== DEPLOYMENT FAILED - INITIATING ROLLBACK ==="
+              
+              log_deploy "=== Rolling back to previous commit ==="
+              git reset --hard "$PREVIOUS_COMMIT"
+              
+              log_deploy "=== Reinstalling and rebuilding ==="
+              npm install --legacy-peer-deps
+              npx prisma generate
+              npm run build
+              
+              log_deploy "=== Restarting with previous version ==="
+              pm2 reload $APP_NAME || pm2 restart $APP_NAME
+              
+              log_deploy "=== Health check after rollback ==="
+              sleep 10
+              if curl -sf --max-time 5 "$BASE_URL/" > /dev/null 2>&1; then
+                log_deploy "✓ Rollback successful"
+              else
+                log_deploy "✗ Rollback failed - manual intervention required"
+              fi
+              
+              pm2 logs $APP_NAME --lines 50 --nostream || true
+              pm2 list
+              
+              git tag -d "$BACKUP_TAG" 2>/dev/null || true
+              exit 1
+            fi
+            
+            log_deploy "=== Cleaning up backup tag ==="
+            git tag -d "$BACKUP_TAG" 2>/dev/null || true
+            
+            log_deploy "=== STAGING DEPLOYMENT SUCCESSFUL ==="
+            log_deploy "URL: $BASE_URL"
+            log_deploy "DEPLOY RESULT: success (from $PREVIOUS_COMMIT to ${{ github.sha }})"
+            
+            pm2 list
+            
+            log_deploy "=== STAGING ACCESS INFO ==="
+            log_deploy "Access staging at: http://$SSH_HOST:$PORT"
+            log_deploy "Or via SSH tunnel: ssh -L $PORT:localhost:$PORT root@$SSH_HOST"
