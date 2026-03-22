@@ -5,6 +5,8 @@ import { ordersService } from '@/services/admin/ordersService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { safeParseInt } from '@/lib/parse-params';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

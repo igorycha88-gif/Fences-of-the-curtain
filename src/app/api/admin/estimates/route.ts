@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { estimatesService } from '@/services/admin/estimatesService';
 import { safeParseInt } from '@/lib/parse-params';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession();

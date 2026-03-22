@@ -4,6 +4,8 @@ import { headers } from 'next/headers';
 import './globals.css';
 import SessionProvider from '@/components/providers/SessionProvider';
 
+export const dynamic = 'force-dynamic';
+
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
 export const metadata: Metadata = {
