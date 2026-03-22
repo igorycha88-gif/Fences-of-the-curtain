@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
     
     console.log('[DASHBOARD API] Session:', session ? 'Found' : 'Not found');
-    console.log('[DASHBOARD API] Session user:', session?.user?.email);
+    console.log('[DASHBOARD API] Session user:', session?.user ? 'authenticated' : 'null');
     console.log('[DASHBOARD API] Session role:', session?.user?.role);
 
     if (!session?.user) {

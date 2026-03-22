@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { roundUp } from '@/lib/utils/roundUp';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
 export type CoatingType = 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
 
@@ -30,31 +32,42 @@ export interface ProfnastilCalculationError {
   };
 }
 
+async function getActiveProfnastil() {
+  return cache.getOrSet(
+    CACHE_KEYS.PROFNASTIL_ACTIVE,
+    async () => {
+      const now = new Date();
+      return prisma.profnastilType.findMany({
+        where: {
+          active: true,
+          OR: [
+            { validUntil: null },
+            { validUntil: { gt: now } },
+          ],
+        },
+        orderBy: [
+          { priority: 'asc' },
+          { length: 'asc' },
+        ],
+      });
+    },
+    CACHE_TTL.REFERENCE_DATA
+  );
+}
+
 export async function calculateProfnastil(
   fenceLengthM: number,
   fenceHeightM: number,
   coating: CoatingType
 ): Promise<ProfnastilCalculationResult> {
-  const now = new Date();
   const fenceHeightMm = Math.round(fenceHeightM * 1000);
   const coatingValue = COATING_MAPPING[coating];
   
-  const profnastils = await prisma.profnastilType.findMany({
-    where: {
-      active: true,
-      coating: coatingValue,
-      OR: [
-        { validUntil: null },
-        { validUntil: { gt: now } },
-      ],
-    },
-    orderBy: [
-      { priority: 'asc' },
-      { length: 'asc' },
-    ],
-  });
+  const profnastils = await getActiveProfnastil();
 
-  const matchingProfnastils = profnastils.filter(p => p.length >= fenceHeightMm);
+  const matchingProfnastils = profnastils.filter(
+    p => p.coating === coatingValue && p.length >= fenceHeightMm
+  );
   
   if (matchingProfnastils.length === 0) {
     const error: ProfnastilCalculationError = {

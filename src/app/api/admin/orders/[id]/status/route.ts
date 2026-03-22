@@ -4,7 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { ordersService } from '@/services/admin/ordersService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { updateOrderStatusSchema, getStatusTransitionSchema } from '@/lib/validators/order';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 export async function PATCH(
   request: NextRequest,
@@ -28,7 +29,6 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    console.log('[API] Request body:', body);
 
     const validatedData = updateOrderStatusSchema.parse(body);
     console.log('[API] Validated data:', validatedData);
@@ -84,11 +84,8 @@ export async function PATCH(
   } catch (error) {
     console.error('[API] Error updating order status:', error);
     
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'VALIDATION_ERROR', details: error.errors },
-        { status: 400 }
-      );
+    if (error instanceof ZodError) {
+      return validationError(error);
     }
     
     if (error instanceof Error) {

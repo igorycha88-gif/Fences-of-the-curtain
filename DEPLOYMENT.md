@@ -73,10 +73,41 @@ NEXT_PUBLIC_GOOGLE_ANALYTICS_ID="analytics-id"
 NEXT_PUBLIC_YANDEX_MAPS_API_KEY="maps-api-key"
 ```
 
+⚠️ **IMPORTANT: NEXTAUTH_SECRET Security Requirements**
+
 Generate NEXTAUTH_SECRET:
 
 ```bash
 openssl rand -base64 32
+```
+
+**The application will NOT start if NEXTAUTH_SECRET:**
+- Is not defined
+- Is less than 32 characters
+- Contains placeholder values like:
+  - `your-super-secret-key-change-in-production`
+  - `change-in-production`
+  - `your-super-secret`
+  - `secret`, `test`, `dev`
+  - `REPLACE_WITH_REAL_SECRET`
+
+**For Production Deployment:**
+- ✅ Use environment variables on your server (NOT .env file)
+- ✅ Vercel: Environment Variables in project settings
+- ✅ Docker: Use secrets or `-e` flag
+- ✅ Kubernetes: Use Secrets
+- ❌ NEVER commit .env file to git
+- ❌ NEVER use placeholder values in production
+
+**Example for Docker:**
+```bash
+docker run -e NEXTAUTH_SECRET="$(openssl rand -base64 32)" ...
+```
+
+**Example for systemd:**
+```bash
+# Add to /etc/systemd/system/fences.service
+Environment="NEXTAUTH_SECRET=your-generated-secret-here"
 ```
 
 ### 4. Create SSL Directory
@@ -699,6 +730,32 @@ df -h
 - Regular security updates
 - Firewall configuration
 - Regular backups
+
+### Managing Secrets
+
+All secrets must be configured before deployment. See [SECURITY_SECRETS.md](./SECURITY_SECRETS.md) for detailed documentation.
+
+**Required secrets:**
+- `NEXTAUTH_SECRET` - JWT token signing (generate with `openssl rand -base64 32`)
+- `CRON_SECRET` - Cron endpoint authorization (generate with `openssl rand -base64 32`)
+- `POSTGRES_PASSWORD` - Database password
+
+**To rotate secrets:**
+```bash
+# Preview changes
+./scripts/rotate-secrets.sh --dry-run
+
+# Rotate secrets
+./scripts/rotate-secrets.sh
+
+# Apply to production
+# See SECURITY_SECRETS.md for detailed instructions
+```
+
+**Important:**
+- Never commit `.env` files to git
+- Use different secrets for each environment
+- Rotate secrets immediately if compromised
 
 ## Support
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -18,6 +19,7 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 2,
         active: true,
+        updatedAt: new Date(),
       },
     }),
     prisma.fenceType.upsert({
@@ -31,6 +33,7 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 2,
         active: true,
+        updatedAt: new Date(),
       },
     }),
     prisma.fenceType.upsert({
@@ -44,6 +47,7 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 1,
         active: true,
+        updatedAt: new Date(),
       },
     }),
     prisma.fenceType.upsert({
@@ -57,6 +61,7 @@ async function main() {
         postSpacing: 2.5,
         defaultLagRows: 2,
         active: true,
+        updatedAt: new Date(),
       },
     }),
   ]);
@@ -78,6 +83,7 @@ async function main() {
         length: 2500,
         purchasePricePerUnit: 120,
         active: true,
+        updatedAt: new Date(),
       },
     }),
     prisma.lagType.upsert({
@@ -94,6 +100,7 @@ async function main() {
         length: 2500,
         purchasePricePerUnit: 95,
         active: true,
+        updatedAt: new Date(),
       },
     }),
     prisma.lagType.upsert({
@@ -110,6 +117,7 @@ async function main() {
         length: 2500,
         purchasePricePerUnit: 160,
         active: true,
+        updatedAt: new Date(),
       },
     }),
   ]);
@@ -133,6 +141,7 @@ async function main() {
         retailPricePerUnit: 750,
         purchasePricePerUnit: 600,
         active: true,
+        updatedAt: new Date(),
       },
     }),
     prisma.postType.upsert({
@@ -150,6 +159,7 @@ async function main() {
         retailPricePerUnit: 875,
         purchasePricePerUnit: 700,
         active: true,
+        updatedAt: new Date(),
       },
     }),
     prisma.postType.upsert({
@@ -167,6 +177,7 @@ async function main() {
         retailPricePerUnit: 1125,
         purchasePricePerUnit: 900,
         active: true,
+        updatedAt: new Date(),
       },
     }),
   ]);
