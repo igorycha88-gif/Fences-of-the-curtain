@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
+import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import { 
   Calculator, 
@@ -77,6 +78,7 @@ export default function ServicesPage() {
         <section className="py-16 px-4 relative overflow-hidden">
           <div className="absolute inset-0 gradient-mesh opacity-50" />
           <div className="container mx-auto relative z-10">
+            <Breadcrumbs items={[{ label: 'Услуги' }]} />
             <AnimatedSection animation="fade-in-up" className="text-center mb-16">
               <h1 className="section-title mb-4">Наши услуги</h1>
               <p className="section-subtitle">
