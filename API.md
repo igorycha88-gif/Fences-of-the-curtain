@@ -628,36 +628,234 @@ Update post type (Admin, Manager).
 
 Delete post type (Admin only).
 
-#### PATCH /api/admin/post-types/[id]
+  #### PATCH /api/admin/post-types/[id]
 
-Toggle post type active status (Admin, Manager).
+  Toggle post type active status (Admin, Manager).
 
-## Error Responses
+  ### Profnastil Types
 
-All endpoints may return error responses:
+  #### GET /api/admin/profnastil-types
 
-**400 Bad Request:**
-```json
-{
-  "error": "Validation error message"
-}
-```
+  Get list of profnastil types (Admin, Manager).
 
-**401 Unauthorized:**
-```json
-{
-  "error": "Unauthorized"
-}
-```
+  **Query Parameters:**
+  - `active` (optional): Filter by active status (true/false)
+  - `search` (optional): Search by name, color, or coating
+  - `coating` (optional): Filter by coating type
+  - `page` (optional): Page number (default: 1)
+  - `pageSize` (optional): Items per page (default: 20)
+  - `validityFilter` (optional): Filter by validity ('all', 'active', 'expired', 'expiring_soon')
+  - `sortBy` (optional): Sort field (default: 'priority')
+  - `sortOrder` (optional): Sort order ('asc', 'desc')
 
-**500 Internal Server Error:**
-```json
-{
-  "error": "Error message"
-}
-```
+  **Response (200):**
+  ```json
+  {
+    "profnastil": [
+      {
+        "id": "string",
+        "name": "Профнастил С8",
+        "description": "string | null",
+        "metalThickness": 0.5,
+        "fullWidth": 1200,
+        "usefulWidth": 1150,
+        "length": 2000,
+        "coating": "Полимерное (одностороннее)",
+        "color": "RAL 8017 | null",
+        "purchasePricePerLinearMeter": 350.00,
+        "purchasePricePerUnit": 700.00,
+        "retailPricePerUnit": 1200.00,
+        "validFrom": "2026-03-01T10:00:00Z | null",
+        "validUntil": "2026-12-31T23:59:59Z | null",
+        "active": true,
+        "image": "/images/profnastil.jpg",
+        "priority": 1,
+        "createdAt": "2026-03-01T10:00:00Z",
+        "updatedAt": "2026-03-03T10:00:00Z"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 5
+  }
+  ```
 
-## Admin Estimates
+  **Note for MANAGER role:** purchasePricePerLinearMeter and purchasePricePerUnit fields are not included in response.
+
+  #### POST /api/admin/profnastil-types
+
+  Create new profnastil type (Admin only).
+
+  **Request:**
+  ```json
+  {
+    "name": "Профнастил С8",
+    "description": "Описание",
+    "metalThickness": 0.5,
+    "fullWidth": 1200,
+    "usefulWidth": 1150,
+    "length": 2000,
+    "coating": "Полимерное (одностороннее)",
+    "color": "RAL 8017",
+    "purchasePricePerLinearMeter": 350.00,
+    "retailPricePerUnit": 1200.00,
+    "validFrom": "2026-03-01T10:00:00Z",
+    "validUntil": null,
+    "active": true,
+    "sortOrder": 0
+  }
+  ```
+
+  **Automatic calculation:** purchasePricePerUnit = purchasePricePerLinearMeter × (length / 1000)
+  - Example: 350 × (2000 / 1000) = 700.00
+
+  **Response (201):**
+  ```json
+  {
+    "id": "new-profnastil-id"
+  }
+  ```
+
+  **Error Responses:**
+  - 400: Validation error
+  - 403: Forbidden (MANAGER cannot set purchase prices)
+  - 409: Conflict (duplicate combination of name, metalThickness, coating, color)
+  - 500: Internal server error
+
+  #### GET /api/admin/profnastil-types/[id]
+
+  Get profnastil type by ID (Admin, Manager).
+
+  **Response (200) - ADMIN:**
+  ```json
+  {
+    "id": "string",
+    "name": "Профнастил С8",
+    "purchasePricePerLinearMeter": 350.00,
+    "purchasePricePerUnit": 700.00,
+    "retailPricePerUnit": 1200.00,
+    "length": 2000,
+    "metalThickness": 0.5,
+    "active": true
+  }
+  ```
+
+  **Response (200) - MANAGER:**
+  ```json
+  {
+    "id": "string",
+    "name": "Профнастил С8",
+    "retailPricePerUnit": 1200.00,
+    "length": 2000,
+    "metalThickness": 0.5,
+    "active": true
+  }
+  ```
+
+  **Note:** MANAGER role cannot see purchasePricePerLinearMeter and purchasePricePerUnit fields.
+
+  #### PUT /api/admin/profnastil-types/[id]
+
+  Update profnastil type (Admin, Manager).
+
+  **Request:**
+  ```json
+  {
+    "length": 2500,
+    "purchasePricePerLinearMeter": 380.00,
+    "active": true
+  }
+  ```
+
+  **Automatic calculation:** If purchasePricePerLinearMeter or length changes, purchasePricePerUnit is recalculated.
+  - Example: 380 × (2500 / 1000) = 950.00
+
+  **Response (200) - ADMIN:**
+  ```json
+  {
+    "id": "string",
+    "name": "Профнастил С8",
+    "purchasePricePerLinearMeter": 380.00,
+    "purchasePricePerUnit": 950.00,
+    "retailPricePerUnit": 1200.00,
+    "length": 2500,
+    "active": true
+  }
+  ```
+
+  **Response (200) - MANAGER:**
+  ```json
+  {
+    "id": "string",
+    "name": "Профнастил С8",
+    "retailPricePerUnit": 1200.00,
+    "length": 2500,
+    "active": true
+  }
+  ```
+
+  **Note:**
+  - MANAGER cannot modify purchasePricePerLinearMeter or purchasePricePerUnit
+  - MANAGER response doesn't include purchase price fields
+
+  **Error Responses:**
+  - 400: Validation error
+  - 403: Forbidden (MANAGER cannot modify purchase prices)
+  - 404: Profnastil type not found
+  - 409: Conflict (duplicate combination)
+  - 500: Internal server error
+
+  #### DELETE /api/admin/profnastil-types/[id]
+
+  Delete profnastil type (Admin only).
+
+  **Response (200):**
+  ```json
+  {
+    "success": true
+  }
+  ```
+
+  **Error Responses:**
+  - 401: Unauthorized
+  - 403: Forbidden (non-admin)
+  - 404: Not found
+  - 500: Internal server error
+
+  #### PATCH /api/admin/profnastil-types/[id]
+
+  Toggle profnastil type active status (Admin, Manager).
+
+  **Response (200):**
+  ```json
+  {
+    "id": "string",
+    "name": "Профнастил С8",
+    "active": false
+  }
+  ```
+
+  #### PATCH /api/admin/profnastil-types/reorder
+
+  Reorder profnastil types by changing priority (Admin, Manager).
+
+  **Request:**
+  ```json
+  {
+    "id": "string",
+    "newPriority": 5
+  }
+  ```
+
+  **Response (200):**
+  ```json
+  {
+    "success": true
+  }
+  ```
+
+  ## Admin Estimates
 
 ### GET /api/admin/estimates/[id]
 

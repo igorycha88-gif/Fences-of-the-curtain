@@ -19,29 +19,21 @@ const fenceServices = [
   {
     title: 'Забор из профнастила',
     description: 'Практичное и надежное решение. Широкий выбор цветов и покрытий. Устойчив к коррозии и механическим повреждениям.',
-    price: 'от 3 500 ₽/м²',
-    warranty: '10 лет',
     features: ['Быстрый монтаж', 'Шумоизоляция', 'Долговечность'],
   },
   {
     title: 'Евроштакетник',
     description: 'Стильный и современный забор с эстетичным внешним видом. Возможность выбора расстояния между штакетинами.',
-    price: 'от 4 200 ₽/м²',
-    warranty: '15 лет',
     features: ['Вентиляция', 'Эстетика', 'Проветривание'],
   },
   {
     title: 'Сетка-рабица',
     description: 'Экономичный вариант ограждения. Пропускает свет, хорошо просматривается, не затеняет участок.',
-    price: 'от 1 200 ₽/м²',
-    warranty: '5 лет',
     features: ['Экономичность', 'Простота', 'Лёгкость'],
   },
   {
     title: '3D-панели',
     description: 'Современный дизайн и высокая прочность. Идеальное решение для частных домов и коммерческих объектов.',
-    price: 'от 3 800 ₽/м²',
-    warranty: '20 лет',
     features: ['Прочность', 'Дизайн', 'Надёжность'],
   },
 ];
@@ -50,38 +42,30 @@ const canopyServices = [
   {
     title: 'Навес под автомобиль',
     description: 'Защита автомобиля от солнца, дождя и снега. Различные конструкции: односкатные, двускатные и арочные.',
-    price: 'от 35 000 ₽',
-    warranty: '10 лет',
     features: ['Защита авто', 'Любой размер', 'Прочность'],
   },
   {
     title: 'Беседка',
     description: 'Уютное место для отдыха на свежем воздухе. Возможность установки барбекю, освещения и мебели.',
-    price: 'от 45 000 ₽',
-    warranty: '10 лет',
     features: ['Отдых', 'Комфорт', 'Уют'],
   },
   {
     title: 'Навес-терраса',
     description: 'Расширение жилого пространства. Отличное решение для летних вечеров и семейных обедов.',
-    price: 'от 55 000 ₽',
-    warranty: '10 лет',
     features: ['Пространство', 'Стиль', 'Функциональность'],
   },
   {
     title: 'Хозблок',
     description: 'Практичное решение для хранения инструментов и инвентаря. Может использоваться как гараж для мотоцикла.',
-    price: 'от 40 000 ₽',
-    warranty: '10 лет',
     features: ['Хранение', 'Защита', 'Практичность'],
   },
 ];
 
 const advantages = [
   { icon: Calculator, title: 'Точный расчёт', description: 'Онлайн-калькулятор за несколько секунд' },
-  { icon: Shield, title: 'Гарантия качества', description: 'На все работы до 20 лет гарантии' },
+  { icon: Shield, title: 'Гарантия качества', description: 'На все выполненные работы' },
   { icon: Clock, title: 'Быстрый монтаж', description: 'Установка в кратчайшие сроки' },
-  { icon: Award, title: 'Опыт работы', description: 'Более 10 лет на рынке' },
+  { icon: Award, title: 'Опыт работы', description: 'Большой опыт на рынке' },
 ];
 
 export default function ServicesPage() {
@@ -120,14 +104,9 @@ export default function ServicesPage() {
               {fenceServices.map((service, index) => (
                 <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
                   <div className="card-modern p-6 h-full hover-lift group">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
-                        {service.title}
-                      </h3>
-                      <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                        {service.warranty}
-                      </span>
-                    </div>
+                    <h3 className="text-xl font-bold mb-4 group-hover:text-primary transition-colors">
+                      {service.title}
+                    </h3>
                     <p className="text-muted-foreground mb-4">{service.description}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {service.features.map((feature, i) => (
@@ -136,8 +115,7 @@ export default function ServicesPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                      <span className="text-2xl font-bold text-primary">{service.price}</span>
+                    <div className="pt-4 border-t border-border/50">
                       <Link
                         href="/calculator/fence"
                         className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"
@@ -167,14 +145,9 @@ export default function ServicesPage() {
               {canopyServices.map((service, index) => (
                 <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
                   <div className="card-modern p-6 h-full hover-lift group">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
-                        {service.title}
-                      </h3>
-                      <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                        {service.warranty}
-                      </span>
-                    </div>
+                    <h3 className="text-xl font-bold mb-4 group-hover:text-primary transition-colors">
+                      {service.title}
+                    </h3>
                     <p className="text-muted-foreground mb-4">{service.description}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {service.features.map((feature, i) => (
@@ -183,8 +156,7 @@ export default function ServicesPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                      <span className="text-2xl font-bold text-primary">{service.price}</span>
+                    <div className="pt-4 border-t border-border/50">
                       <Link
                         href="/calculator/canopy"
                         className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"

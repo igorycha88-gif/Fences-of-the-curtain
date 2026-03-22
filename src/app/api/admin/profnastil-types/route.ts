@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
     });
 
     const isAdmin = session.user.role === 'ADMIN';
-    
+
     if (!isAdmin && result.profnastil) {
       result.profnastil = result.profnastil.map((item: any) => {
-        const { purchasePricePerUnit, ...itemWithoutPurchasePrice } = item;
+        const { purchasePricePerUnit, purchasePricePerLinearMeter, ...itemWithoutPurchasePrice } = item;
         return itemWithoutPurchasePrice;
       });
     }
@@ -74,6 +74,14 @@ export async function POST(request: NextRequest) {
     const isAdmin = session.user.role === 'ADMIN';
 
     if (!isAdmin && body.purchasePricePerUnit !== undefined) {
+      console.log('[PROFNASTIL-TYPES POST] Forbidden - non-admin trying to set purchase prices');
+      return NextResponse.json(
+        { error: 'Only ADMIN can set purchase prices' },
+        { status: 403 }
+      );
+    }
+
+    if (!isAdmin && body.purchasePricePerLinearMeter !== undefined) {
       console.log('[PROFNASTIL-TYPES POST] Forbidden - non-admin trying to set purchase prices');
       return NextResponse.json(
         { error: 'Only ADMIN can set purchase prices' },

@@ -57,6 +57,74 @@ NEXTAUTH_SECRET="your-super-secret-key-min-32-chars"
 NEXTAUTH_URL="http://localhost:3001"
 ```
 
+### Redis Аутентификация
+
+⚠️ **ВАЖНО: Redis работает с обязательной аутентификацией!**
+
+Приложение использует Redis с паролем для защиты данных сессий, кеша и rate limiting.
+
+#### Production (docker-compose.yml)
+
+1. **Генерация пароля Redis:**
+```bash
+./scripts/setup-redis-secret.sh
+```
+
+Скрипт создаст файл `secrets/redis_password` с криптографически стойким паролем.
+
+2. **Проверка подключения:**
+```bash
+# Подключение без пароля (должно быть отказано)
+docker exec fences-redis redis-cli PING
+# Ожидается: (error) NOAUTH Authentication required
+
+# Подключение с паролем (должно быть успешно)
+docker exec fences-redis redis-cli -a $(cat secrets/redis_password) PING
+# Ожидается: PONG
+```
+
+3. **Безопасность:**
+- ✅ Пароль хранится в Docker secrets (`./secrets/redis_password`)
+- ✅ Файл `secrets/` добавлен в `.gitignore`
+- ✅ Порт 6379 НЕ доступен с хост-машины (только внутри Docker сети)
+- ❌ НИКОГДА не коммитьте файл `secrets/redis_password`
+
+#### Development (docker-compose.dev.yml)
+
+Для локальной разработки используется файл `.env.dev`:
+
+```bash
+# .env.dev
+REDIS_PASSWORD=dev_redis_password_change_in_production
+```
+
+**Запуск development конфигурации:**
+```bash
+# Используйте .env файл для development (по умолчанию)
+docker-compose -f docker-compose.dev.yml up -d
+
+# Или явно укажите .env.dev
+docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d
+```
+
+#### Ручная настройка пароля
+
+Если нужно установить конкретный пароль:
+
+```bash
+# 1. Создайте директорию secrets
+mkdir -p secrets
+
+# 2. Сгенерируйте пароль
+openssl rand -base64 32 > secrets/redis_password
+
+# 3. Установите права
+chmod 600 secrets/redis_password
+
+# 4. Добавьте в .env
+REDIS_PASSWORD=$(cat secrets/redis_password)
+```
+
 ### Rate Limiting
 
 Приложение использует Redis для rate limiting на публичных API:
