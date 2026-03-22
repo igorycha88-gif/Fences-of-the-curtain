@@ -63,6 +63,10 @@ jobs:
 
       - name: Run tests
         run: npm test -- --ci --coverage --maxWorkers=2
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'test-secret-for-ci-check-minimum-32-chars-required' }}
+          NEXTAUTH_URL: http://localhost:3001
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
