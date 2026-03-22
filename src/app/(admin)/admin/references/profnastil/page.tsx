@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
 import { Modal } from '@/components/ui/modal';
 import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
@@ -22,6 +22,7 @@ interface ProfnastilType {
   length: number;
   coating: string;
   color: string | null;
+  purchasePricePerLinearMeter: number | null;
   purchasePricePerUnit: number | null;
   retailPricePerUnit: number;
   validFrom: string | null;
@@ -46,10 +47,8 @@ const formatDate = (date: string | Date | null): string => {
   return d.toLocaleDateString('ru-RU');
 };
 
-const formatValidFrom = (date: string | Date | null): string => {
-  if (!date) return 'С момента добавления';
-  const d = new Date(date);
-  return d.toLocaleDateString('ru-RU');
+const roundToTwo = (num: number): number => {
+  return Math.round(num * 100) / 100;
 };
 
 export default function ProfnastilPage() {
@@ -110,6 +109,17 @@ export default function ProfnastilPage() {
     fetchProfnastil();
   }, [page, search, validityFilter, coatingFilter]);
 
+  const calculatedPurchasePricePerUnit = useMemo(() => {
+    if (
+      formValues.purchasePricePerLinearMeter !== null &&
+      formValues.purchasePricePerLinearMeter !== undefined &&
+      formValues.length
+    ) {
+      return roundToTwo(formValues.purchasePricePerLinearMeter * (formValues.length / 1000));
+    }
+    return null;
+  }, [formValues.purchasePricePerLinearMeter, formValues.length]);
+
   const handleAdd = () => {
     setEditingItem(null);
     setFormValues({
@@ -121,6 +131,7 @@ export default function ProfnastilPage() {
       length: 2000,
       coating: '',
       color: '',
+      purchasePricePerLinearMeter: null,
       purchasePricePerUnit: null,
       retailPricePerUnit: 0,
       active: true,
@@ -141,6 +152,7 @@ export default function ProfnastilPage() {
       length: item.length,
       coating: item.coating,
       color: item.color || '',
+      purchasePricePerLinearMeter: item.purchasePricePerLinearMeter,
       purchasePricePerUnit: item.purchasePricePerUnit,
       retailPricePerUnit: item.retailPricePerUnit,
       active: item.active,
@@ -249,7 +261,9 @@ export default function ProfnastilPage() {
 
   const isAdmin = currentUser?.role === 'ADMIN';
 
-  const marginInfo = formValues.retailPricePerUnit && formValues.purchasePricePerUnit
+  const marginInfo = formValues.retailPricePerUnit && calculatedPurchasePricePerUnit
+    ? calculateMargin(formValues.retailPricePerUnit, calculatedPurchasePricePerUnit)
+    : formValues.retailPricePerUnit && formValues.purchasePricePerUnit
     ? calculateMargin(formValues.retailPricePerUnit, formValues.purchasePricePerUnit)
     : null;
 
@@ -277,6 +291,32 @@ export default function ProfnastilPage() {
       label: 'Розница за ед. (₽)',
       render: (item: ProfnastilType) => formatPrice(item.retailPricePerUnit)
     },
+    ...(isAdmin ? [{
+      key: 'purchasePricePerLinearMeter' as const,
+      label: 'Закупка за м.п. (₽)',
+      render: (item: ProfnastilType) => {
+        if (item.purchasePricePerLinearMeter === null) {
+          return <span className="text-gray-400">Не указана</span>;
+        }
+        return <span>{formatPrice(item.purchasePricePerLinearMeter)}</span>;
+      }
+    }] : []),
+    ...(isAdmin ? [{
+      key: 'purchasePricePerUnit' as const,
+      label: 'Закупка за ед. (₽)',
+      render: (item: ProfnastilType) => {
+        if (item.purchasePricePerUnit === null) {
+          return <span className="text-gray-400">Не указана</span>;
+        }
+        const margin = calculateMargin(item.retailPricePerUnit, item.purchasePricePerUnit);
+        const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
+        return (
+          <span title={`Цена закупки: ${item.purchasePricePerUnit} ₽\nМаржа: ${margin?.marginPercent?.toFixed(1) ?? '-'}%`}>
+            {formatPrice(item.purchasePricePerUnit)} {marginEmoji}
+          </span>
+        );
+      }
+    }] : []),
     {
       key: 'validUntil',
       label: 'Срок действия',
@@ -295,22 +335,6 @@ export default function ProfnastilPage() {
         );
       },
     },
-    ...(isAdmin ? [{
-      key: 'purchasePricePerUnit' as const,
-      label: 'Закупка за ед. (₽)',
-      render: (item: ProfnastilType) => {
-        if (item.purchasePricePerUnit === null) {
-          return <span className="text-gray-400">Не указана</span>;
-        }
-        const margin = calculateMargin(item.retailPricePerUnit, item.purchasePricePerUnit);
-        const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
-        return (
-          <span title={`Цена закупки: ${item.purchasePricePerUnit} ₽\nМаржа: ${margin?.marginPercent.toFixed(1)}%`}>
-            {formatPrice(item.purchasePricePerUnit)} {marginEmoji}
-          </span>
-        );
-      }
-    }] : []),
     { 
       key: 'priority', 
       label: 'Приоритет',
@@ -496,15 +520,44 @@ export default function ProfnastilPage() {
             
             {isAdmin && (
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Цена закупки за ед. (₽)</label>
+                <label className="block text-sm font-medium mb-1">
+                  Стоимость закупки за м.п. (₽)
+                </label>
                 <input
                   type="number"
-                  value={formValues.purchasePricePerUnit ?? ''}
-                  onChange={(e) => handleFormChange('purchasePricePerUnit', e.target.value ? parseFloat(e.target.value) : null)}
+                  value={formValues.purchasePricePerLinearMeter ?? ''}
+                  onChange={(e) => handleFormChange('purchasePricePerLinearMeter', e.target.value ? parseFloat(e.target.value) : null)}
                   className="w-full border rounded px-3 py-2"
                   min={0}
+                  max={100000}
                   step={0.01}
+                  placeholder="Введите базовую цену за метр погонный"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Введите базовую цену за метр погонный
+                </p>
+              </div>
+            )}
+
+            {isAdmin && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Цена закупки за ед. (₽) <span className="text-gray-400 text-xs">(автоматически)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={calculatedPurchasePricePerUnit ?? ''}
+                    className="w-full border rounded px-3 py-2 bg-gray-100 pr-8"
+                    readOnly
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    🔒
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Рассчитывается: Стоимость за м.п. × (Длина / 1000)
+                </p>
               </div>
             )}
 
@@ -523,7 +576,7 @@ export default function ProfnastilPage() {
 
             {isAdmin && marginInfo && marginInfo.marginPercent !== null && (
               <div className="mt-4 p-4 bg-gray-50 rounded border">
-                <h5 className="font-medium mb-2">Расчет маржи</h5>
+                <h5 className="font-medium mb-2">📊 Расчет маржи</h5>
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-gray-600">Маржа:</span>
