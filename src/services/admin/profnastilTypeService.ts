@@ -4,6 +4,24 @@ import { ProfnastilTypeInput, ProfnastilTypeUpdate } from '@/lib/validators/prof
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
+import { logPriceChange } from '@/lib/audit-helpers';
+
+function roundToTwo(num: number): number {
+  return Math.round(num * 100) / 100;
+}
+
+function calculatePurchasePricePerUnit(
+  purchasePricePerLinearMeter: number | null | undefined,
+  length: number | null | undefined
+): number | null {
+  if (purchasePricePerLinearMeter === null || purchasePricePerLinearMeter === undefined) {
+    return null;
+  }
+  if (length === null || length === undefined) {
+    return null;
+  }
+  return roundToTwo(purchasePricePerLinearMeter * (length / 1000));
+}
 
 export class ProfnastilTypeService {
   async getAll(params: {
@@ -116,6 +134,11 @@ export class ProfnastilTypeService {
     });
     const nextPriority = getNextPriority(allItems);
 
+    const purchasePricePerUnit = calculatePurchasePricePerUnit(
+      data.purchasePricePerLinearMeter,
+      data.length
+    );
+
     const profnastil = await prisma.profnastilType.create({
       data: {
         name: data.name,
@@ -126,7 +149,8 @@ export class ProfnastilTypeService {
         length: data.length,
         coating: data.coating,
         color: data.color,
-        purchasePricePerUnit: data.purchasePricePerUnit,
+        purchasePricePerLinearMeter: data.purchasePricePerLinearMeter,
+        purchasePricePerUnit,
         retailPricePerUnit: data.retailPricePerUnit,
         validFrom: data.validFrom,
         validUntil: data.validUntil,
@@ -179,9 +203,21 @@ export class ProfnastilTypeService {
       }
     }
 
+    let updateData = data;
+
+    if (data.purchasePricePerLinearMeter !== undefined || data.length !== undefined) {
+      const pricePerMeter = data.purchasePricePerLinearMeter ?? oldItem.purchasePricePerLinearMeter;
+      const length = data.length ?? oldItem.length;
+
+      updateData = {
+        ...data,
+        purchasePricePerUnit: calculatePurchasePricePerUnit(pricePerMeter, length),
+      } as any;
+    }
+
     const profnastil = await prisma.profnastilType.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     console.log('[PROFNASTIL SERVICE] Updated profnastil:', profnastil.id);
@@ -269,6 +305,8 @@ export class ProfnastilTypeService {
       return;
     }
 
+    logPriceChange('ProfnastilType', entityId, oldValue, newValue, userId);
+
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
     if (oldValue && newValue) {
@@ -291,8 +329,8 @@ export class ProfnastilTypeService {
           entityType: 'ProfnastilType',
           entityId,
           fieldName: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue,
+          oldValue: change.oldValue as Prisma.InputJsonValue,
+          newValue: change.newValue as Prisma.InputJsonValue,
           changedBy: userId,
         },
       });

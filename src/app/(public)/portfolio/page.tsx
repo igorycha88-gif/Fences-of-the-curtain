@@ -1,73 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter } from 'lucide-react';
+import { Filter, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+
+interface PortfolioItem {
+  id: string;
+  title: string;
+  category: string;
+  type?: string;
+  description?: string;
+  images: string[];
+}
 
 export default function PortfolioPage() {
   const [filter, setFilter] = useState<'all' | 'fence' | 'canopy'>('all');
+  const [items, setItems] = useState<PortfolioItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const portfolioItems = [
-    {
-      id: 1,
-      title: 'Забор из профнастила',
-      category: 'fence',
-      type: 'Заборы',
-      description: 'Забор длиной 50м, высотой 2м с калиткой и воротами',
-      images: ['/images/portfolio/fence-1.jpg'],
-      showCost: false,
-    },
-    {
-      id: 2,
-      title: 'Навес под 2 автомобиля',
-      category: 'canopy',
-      type: 'Навесы',
-      description: 'Двускатный навес 6x4м из поликарбоната',
-      images: ['/images/portfolio/canopy-1.jpg'],
-      showCost: false,
-    },
-    {
-      id: 3,
-      title: 'Забор евроштакетник',
-      category: 'fence',
-      type: 'Заборы',
-      description: 'Забор длиной 35м, высотой 1.8м',
-      images: ['/images/portfolio/fence-2.jpg'],
-      showCost: false,
-    },
-    {
-      id: 4,
-      title: 'Беседка для отдыха',
-      category: 'canopy',
-      type: 'Навесы',
-      description: 'Круглая беседка с крышей из поликарбоната',
-      images: ['/images/portfolio/canopy-2.jpg'],
-      showCost: false,
-    },
-    {
-      id: 5,
-      title: '3D-панели для дачи',
-      category: 'fence',
-      type: 'Заборы',
-      description: 'Забор из 3D-панелей с каменными столбами',
-      images: ['/images/portfolio/fence-3.jpg'],
-      showCost: false,
-    },
-    {
-      id: 6,
-      title: 'Навес-терраса',
-      category: 'canopy',
-      type: 'Навесы',
-      description: 'Терраса 8x3м примыкающая к дому',
-      images: ['/images/portfolio/canopy-3.jpg'],
-      showCost: false,
-    },
-  ];
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      try {
+        setLoading(true);
+        const categoryParam = filter === 'all' ? '' : `?category=${filter}`;
+        const res = await fetch(`/api/portfolio${categoryParam}`);
+        if (!res.ok) throw new Error('Ошибка загрузки');
+        const data = await res.json();
+        setItems(data.items || []);
+      } catch (err) {
+        setError('Не удалось загрузить портфолио');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPortfolio();
+  }, [filter]);
 
   const filteredItems = filter === 'all'
-    ? portfolioItems
-    : portfolioItems.filter(item => item.category === filter);
+    ? items
+    : items.filter(item => item.category === filter);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -117,35 +91,64 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border"
-            >
-              <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
-                <span className="text-gray-400 text-sm">Изображение {item.id}</span>
-              </div>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
-                    {item.type}
-                  </span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-900">{item.title}</h3>
-                <p className="text-gray-600 text-sm mb-4">{item.description}</p>
-                <Link
-                  href={`/calculator/${item.category === 'fence' ? 'fence' : 'canopy'}`}
-                  className="text-primary font-medium text-sm hover:underline inline-flex items-center gap-1"
-                >
-                  Рассчитать подобный проект →
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-500 text-lg">{error}</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredItems.map((item) => {
+              const images = item.images as string[];
+              const firstImage = images[0];
+              const thumbnailUrl = firstImage?.replace(/(\.\w+)$/, '_thumb$1');
 
-        {filteredItems.length === 0 && (
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border"
+                >
+                  <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        Нет фото
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
+                        {item.type || (item.category === 'fence' ? 'Заборы' : 'Навесы')}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2 text-gray-900">{item.title}</h3>
+                    {item.description && (
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
+                    )}
+                    <Link
+                      href={`/calculator/${item.category === 'fence' ? 'fence' : 'canopy'}`}
+                      className="text-primary font-medium text-sm hover:underline inline-flex items-center gap-1"
+                    >
+                      Рассчитать подобный проект →
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!loading && !error && filteredItems.length === 0 && (
           <div className="text-center py-20">
             <p className="text-gray-500 text-lg">Нет проектов в выбранной категории</p>
           </div>

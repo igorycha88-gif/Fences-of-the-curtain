@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { priorityService } from '@/services/admin/priorityService';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
+import { validationError } from '@/lib/api-error';
 
 const reorderSchema = z.object({
   id: z.string().min(1),
@@ -36,8 +37,8 @@ export async function PATCH(request: NextRequest) {
   } catch (error: any) {
     console.error('[PROFNASTIL REORDER] Error:', error);
 
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+    if (error instanceof ZodError) {
+      return validationError(error);
     }
 
     if (error.message.includes('не найдена')) {

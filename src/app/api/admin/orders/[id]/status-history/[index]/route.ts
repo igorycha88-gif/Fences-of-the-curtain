@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ordersService } from '@/services/admin/ordersService';
 import { statusHistoryUpdateSchema } from '@/lib/validators/order';
+import { safeParseInt } from '@/lib/parse-params';
 
 export async function PATCH(
   request: NextRequest,
@@ -22,8 +23,8 @@ export async function PATCH(
       );
     }
 
-    const historyIndex = parseInt(params.index, 10);
-    if (isNaN(historyIndex)) {
+    const historyIndex = safeParseInt(params.index, 0);
+    if (historyIndex === 0 && params.index !== '0') {
       return NextResponse.json(
         { error: 'VALIDATION_ERROR', message: 'Некорректный индекс записи' },
         { status: 400 }

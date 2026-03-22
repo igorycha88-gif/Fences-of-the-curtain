@@ -9,6 +9,7 @@ import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
 import { findWicketByHeightAndWidth } from './wicketLookup';
 import { workService } from '@/services/admin/workService';
 import { getCityByIP } from '@/services/admin/ipLookupService';
+import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 
 type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
 
@@ -119,12 +120,32 @@ export async function calculateFenceEstimate(
 
   console.log('[fenceEstimate] Gate params:', { hasGate, gateType, gateWidth });
 
-  if (hasGate && gateType && gateWidth) {
-    const gateWidthMm = Math.round(gateWidth * 1000);
-    console.log('[fenceEstimate] Calling findGateByTypeAndLength:', { gateType, gateWidthMm });
-    const selectedGate = await findGateByTypeAndLength(gateType as GateTypeValue, gateWidthMm);
-    console.log('[fenceEstimate] Selected gate:', selectedGate);
+  const gatePromise = (async () => {
+    if (hasGate && gateType && gateWidth) {
+      const gateWidthMm = Math.round(gateWidth * 1000);
+      console.log('[fenceEstimate] Calling findGateByTypeAndLength:', { gateType, gateWidthMm });
+      const selectedGate = await findGateByTypeAndLength(gateType as GateTypeValue, gateWidthMm);
+      console.log('[fenceEstimate] Selected gate:', selectedGate);
+      return selectedGate;
+    }
+    return null;
+  })();
 
+  const wicketPromise = (async () => {
+    if (input.hasWicket && input.wicketWidth) {
+      const heightMm = Math.round(height * 1000);
+      const wicketWidthMm = Math.round(input.wicketWidth * 1000);
+      console.log('[fenceEstimate] Calling findWicketByHeightAndWidth:', { heightMm, wicketWidthMm });
+      const selectedWicket = await findWicketByHeightAndWidth(heightMm, wicketWidthMm);
+      console.log('[fenceEstimate] Selected wicket:', selectedWicket);
+      return selectedWicket;
+    }
+    return null;
+  })();
+
+  const [selectedGate, selectedWicket] = await Promise.all([gatePromise, wicketPromise]);
+
+  if (selectedGate) {
     const gateLengthMm = selectedGate.gateLength;
     correctedLength = length - gateLengthMm / 1000;
 
@@ -162,17 +183,7 @@ export async function calculateFenceEstimate(
     }
   }
 
-  const { hasWicket, wicketWidth } = input;
-
-  console.log('[fenceEstimate] Wicket params:', { hasWicket, wicketWidth });
-
-  if (hasWicket && wicketWidth) {
-    const heightMm = Math.round(height * 1000);
-    const wicketWidthMm = Math.round(wicketWidth * 1000);
-    console.log('[fenceEstimate] Calling findWicketByHeightAndWidth:', { heightMm, wicketWidthMm });
-    const selectedWicket = await findWicketByHeightAndWidth(heightMm, wicketWidthMm);
-    console.log('[fenceEstimate] Selected wicket:', selectedWicket);
-
+  if (selectedWicket) {
     const wicketLengthMm = selectedWicket.wicketLength;
     correctedLength = correctedLength - wicketLengthMm / 1000;
 
@@ -212,38 +223,37 @@ export async function calculateFenceEstimate(
   const postSpacingMm = fenceType.postSpacing;
   const postSpacingM = postSpacingMm / 1000;
 
-  const [postsResult, lagsResult] = await Promise.all([
+  const [postsResult, lagsResult, profnastilResult] = await Promise.all([
     calculatePosts(correctedLength, height, postSpacingM),
     calculateLags(correctedLength, lagRows),
+    (async () => {
+      if (fenceType.name === 'Профнастил') {
+        return calculateProfnastil(length, height, coating);
+      } else if (fenceType.name === 'Евроштакетник') {
+        throw {
+          error: 'CALCULATOR_NOT_IMPLEMENTED',
+          message: 'Расчёт для типа забора "Евроштакетник" пока не реализован',
+        } as CalculationError;
+      } else if (fenceType.name === 'Сетка-рабица') {
+        throw {
+          error: 'CALCULATOR_NOT_IMPLEMENTED',
+          message: 'Расчёт для типа забора "Сетка-рабица" пока не реализован',
+        } as CalculationError;
+      } else if (fenceType.name === '3D -панели') {
+        throw {
+          error: 'CALCULATOR_NOT_IMPLEMENTED',
+          message: 'Расчёт для типа забора "3D -панели" пока не реализован',
+        } as CalculationError;
+      } else {
+        throw {
+          error: 'UNKNOWN_FENCE_TYPE',
+          message: `Неизвестный тип забора: ${fenceType.name}`,
+        } as CalculationError;
+      }
+    })(),
   ]);
 
   const installationBase = calculateInstallation(length);
-
-  let profnastilResult: ProfnastilCalculationResult | null = null;
-
-  if (fenceType.name === 'Профнастил') {
-    profnastilResult = await calculateProfnastil(length, height, coating);
-  } else if (fenceType.name === 'Евроштакетник') {
-    throw {
-      error: 'CALCULATOR_NOT_IMPLEMENTED',
-      message: 'Расчёт для типа забора "Евроштакетник" пока не реализован',
-    } as CalculationError;
-  } else if (fenceType.name === 'Сетка-рабица') {
-    throw {
-      error: 'CALCULATOR_NOT_IMPLEMENTED',
-      message: 'Расчёт для типа забора "Сетка-рабица" пока не реализован',
-    } as CalculationError;
-  } else if (fenceType.name === '3D -панели') {
-    throw {
-      error: 'CALCULATOR_NOT_IMPLEMENTED',
-      message: 'Расчёт для типа забора "3D -панели" пока не реализован',
-    } as CalculationError;
-  } else {
-    throw {
-      error: 'UNKNOWN_FENCE_TYPE',
-      message: `Неизвестный тип забора: ${fenceType.name}`,
-    } as CalculationError;
-  }
 
   const mountingHardwareResult = await calculateMountingHardware({
     fenceLengthM: correctedLength,
@@ -275,7 +285,7 @@ export async function calculateFenceEstimate(
     items.push(gateItem);
   }
 
-  if (hasWicket && wicketInfo) {
+  if (input.hasWicket && wicketInfo) {
     const wicketItem: WicketCalculationResult = {
       category: 'wickets',
       nomenclatureId: wicketInfo.id,
@@ -325,11 +335,6 @@ export async function calculateFenceEstimate(
   const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal;
   const grandTotal = materials + installation;
 
-  let city: string | null = null;
-  if (metadata?.ipAddress) {
-    city = await getCityByIP(metadata.ipAddress);
-  }
-
   const estimate = await prisma.fenceEstimate.create({
     data: {
       fenceTypeId,
@@ -344,11 +349,11 @@ export async function calculateFenceEstimate(
       gateNomenclatureName: gateInfo ? gateInfo.selectedName : null,
       postsTotal: postsResult.totalPrice,
       lagsTotal: lagsResult.totalPrice,
-      profnastilTotal: profnastilResult.totalPrice,
+      profnastilTotal: profnastilResult?.totalPrice || 0,
       mountingHardwareTotal,
       gateTotal,
       gateInstallationTotal,
-      hasWicket: hasWicket || false,
+      hasWicket: input.hasWicket || false,
       wicketWidth: wicketInfo?.width || null,
       wicketNomenclatureId: wicketInfo ? wicketInfo.id : null,
       wicketNomenclatureName: wicketInfo ? wicketInfo.selectedName : null,
@@ -362,9 +367,23 @@ export async function calculateFenceEstimate(
       sessionId: metadata?.sessionId,
       userAgent: metadata?.userAgent,
       ipAddress: metadata?.ipAddress,
-      city,
+      city: null,
     },
   });
+
+  if (metadata?.ipAddress) {
+    getCityByIP(metadata.ipAddress)
+      .then(city => {
+        if (city) {
+          return prisma.fenceEstimate.update({
+            where: { id: estimate.id },
+            data: { city },
+          });
+        }
+        return null;
+      })
+      .catch(err => console.error('[IP Lookup] Background update failed:', err));
+  }
 
   return {
     estimateId: estimate.id,

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('[AUTH /me] User authenticated:', session.user?.email);
+  console.log('[AUTH /me] User authenticated, role:', session.user?.role);
   return NextResponse.json({ user: session.user });
 }
 

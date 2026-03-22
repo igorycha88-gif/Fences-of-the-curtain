@@ -1,5 +1,32 @@
 name: Deploy to VPS
 
+# DEPLOYMENT REQUIREMENTS:
+# 
+# Before using this workflow, ensure the following secrets are configured in GitHub repository settings:
+# 
+# Required GitHub Secrets:
+# - SSH_PASSWORD: SSH password for server access
+# - SSH_PORT: SSH port (default: 22)
+# 
+# Required Server Environment Variables (MUST be set on VPS):
+# - NEXTAUTH_SECRET: Minimum 32 characters, generated with: openssl rand -base64 32
+#   ⚠️ DO NOT use placeholder values like "your-super-secret-key" or "change-in-production"
+#   ⚠️ The application will NOT start with invalid NEXTAUTH_SECRET
+# - DATABASE_URL: PostgreSQL connection string
+# - REDIS_URL: Redis connection string
+# - NEXTAUTH_URL: Your production URL (e.g., https://yourdomain.com)
+# - Other variables: see .env.example for complete list
+# 
+# Security Notes:
+# - NEVER commit .env file to repository
+# - Use server environment variables or secrets management
+# - NEXTAUTH_SECRET validation happens at application startup
+# - Invalid NEXTAUTH_SECRET will cause deployment to fail
+#
+# Rollback:
+# - Automatic rollback on failed health check
+# - Manual rollback: ./scripts/rollback.sh <commit-or-tag>
+
 on:
   repository_dispatch:
     types: [deploy-triggered]
@@ -31,73 +58,144 @@ jobs:
             
             APP_DIR="/root/Fences-of-the-curtain"
             APP_NAME="fences-app"
+            LOG_DIR="/var/log/fences-deploy"
+            DEPLOY_LOG="$LOG_DIR/deploy.log"
+            
+            mkdir -p "$LOG_DIR"
+            mkdir -p /var/log/fences-app
+            
+            log_deploy() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"
+            }
             
             cd $APP_DIR
             
-            echo "=== Checking environment ==="
+            log_deploy "=== DEPLOY STARTED ==="
+            log_deploy "Initiator: ${GITHUB_ACTOR:-manual}"
+            
+            log_deploy "=== Checking environment ==="
             if [ ! -f .env ]; then
-              echo "ERROR: .env file not found!"
+              log_deploy "ERROR: .env file not found!"
               exit 1
             fi
             
-            echo "=== Creating backup ==="
+            log_deploy "=== Saving current state for rollback ==="
+            PREVIOUS_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "none")
+            BACKUP_TAG="deploy-backup-$(date +%Y%m%d%H%M%S)"
+            git tag "$BACKUP_TAG" 2>/dev/null || true
+            log_deploy "Previous commit: $PREVIOUS_COMMIT"
+            log_deploy "Backup tag: $BACKUP_TAG"
+            
+            log_deploy "=== Creating database backup ==="
             BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
-            sudo -u postgres pg_dump -U postgres fences > "$BACKUP_FILE" || echo "Warning: Backup failed, continuing..."
+            sudo -u postgres pg_dump -U postgres fences > "$BACKUP_FILE" || log_deploy "Warning: Backup failed, continuing..."
             
-            echo "=== Storing current commit for rollback ==="
-            CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "none")
-            echo "Current commit: $CURRENT_COMMIT"
-            
-            echo "=== Pulling latest changes ==="
+            log_deploy "=== Pulling latest changes ==="
             git fetch origin
+            
+            TARGET_COMMIT=$(git rev-parse origin/master)
+            log_deploy "Target commit: $TARGET_COMMIT"
+            
             git reset --hard origin/master
             
-            echo "=== Installing dependencies ==="
+            log_deploy "=== Installing dependencies ==="
             npm install --legacy-peer-deps
             
-            echo "=== Generating Prisma Client ==="
+            log_deploy "=== Generating Prisma Client ==="
             npx prisma generate
             
-            echo "=== Building application ==="
+            log_deploy "=== Building application ==="
             npm run build
             
-            echo "=== Pushing schema changes ==="
+            log_deploy "=== Pushing schema changes ==="
             npx prisma db push --accept-data-loss
             
-            echo "=== Graceful restart with PM2 ==="
+            log_deploy "=== Graceful restart with PM2 ==="
             if pm2 list | grep -q "$APP_NAME"; then
-              echo "Reloading existing process..."
-              pm2 reload $APP_NAME --update-env || pm2 restart $APP_NAME
+              log_deploy "Reloading existing process..."
+              pm2 reload ecosystem.config.js --env production || pm2 restart ecosystem.config.js --env production
             else
-              echo "Starting new process..."
-              pm2 start npm --name "$APP_NAME" -- start
+              log_deploy "Starting new process..."
+              pm2 start ecosystem.config.js --env production
             fi
             pm2 save
             
-            echo "=== Health check (10 attempts, 5s each) ==="
+            log_deploy "=== Health check via Nginx (10 attempts, 5s each) ==="
             SUCCESS=0
             for i in $(seq 1 10); do
               sleep 5
-              if curl -sf http://localhost:3000/ > /dev/null 2>&1; then
-                echo "Health check passed on attempt $i!"
+              if curl -sf --max-time 5 http://localhost:3001/ > /dev/null 2>&1; then
+                log_deploy "Health check passed on attempt $i!"
                 SUCCESS=1
                 break
               fi
-              echo "Attempt $i/10 failed..."
+              log_deploy "Attempt $i/10 failed..."
               if [ $i -eq 3 ] || [ $i -eq 6 ]; then
-                echo "=== PM2 logs at attempt $i ==="
+                log_deploy "=== PM2 logs at attempt $i ==="
                 pm2 logs $APP_NAME --lines 20 --nostream || true
               fi
             done
             
             if [ $SUCCESS -eq 0 ]; then
-              echo "=== DEPLOYMENT FAILED ==="
-              echo "=== Final PM2 logs ==="
+              log_deploy "=== DEPLOYMENT FAILED - INITIATING ROLLBACK ==="
+              
+              log_deploy "=== Rolling back to previous commit ==="
+              git reset --hard "$PREVIOUS_COMMIT"
+              
+              log_deploy "=== Reinstalling dependencies ==="
+              npm install --legacy-peer-deps
+              npx prisma generate
+              
+              log_deploy "=== Rebuilding application ==="
+              npm run build
+              
+              log_deploy "=== Restarting with previous version ==="
+              pm2 reload ecosystem.config.js --env production || pm2 restart ecosystem.config.js --env production
+              
+              log_deploy "=== Health check after rollback ==="
+              ROLLBACK_SUCCESS=0
+              for i in $(seq 1 5); do
+                sleep 5
+                if curl -sf --max-time 5 http://localhost:3001/ > /dev/null 2>&1; then
+                  log_deploy "Rollback health check passed on attempt $i!"
+                  ROLLBACK_SUCCESS=1
+                  break
+                fi
+              done
+              
+              if [ $ROLLBACK_SUCCESS -eq 1 ]; then
+                log_deploy "=== ROLLBACK SUCCESSFUL ==="
+                log_deploy "DEPLOY RESULT: rolled_back (from $PREVIOUS_COMMIT to $TARGET_COMMIT, back to $PREVIOUS_COMMIT)"
+              else
+                log_deploy "=== ROLLBACK FAILED - MANUAL INTERVENTION REQUIRED ==="
+                log_deploy "DEPLOY RESULT: rollback_failed"
+              fi
+              
+              log_deploy "=== Final PM2 logs ==="
               pm2 logs $APP_NAME --lines 100 --nostream || true
-              echo "=== PM2 status ==="
               pm2 list
+              
+              git tag -d "$BACKUP_TAG" 2>/dev/null || true
               exit 1
             fi
             
-            echo "=== Deployment successful! ==="
+            log_deploy "=== Cleaning up backup tag ==="
+            git tag -d "$BACKUP_TAG" 2>/dev/null || true
+            
+            log_deploy "=== DEPLOYMENT SUCCESSFUL ==="
+            log_deploy "DEPLOY RESULT: success (from $PREVIOUS_COMMIT to $TARGET_COMMIT)"
+            
             pm2 list
+            
+            log_deploy "=== Verifying test credentials removed ==="
+            if curl -sf http://localhost:3001/admin/login | grep -q "admin@fences.ru\|manager@fences.ru"; then
+              log_deploy "ERROR: Test credentials still visible on login page!"
+              log_deploy "DEPLOY RESULT: security_check_failed"
+              exit 1
+            else
+              log_deploy "✓ Test credentials successfully removed from login page"
+            fi
+            
+            # Cleanup old deploy logs (30 days retention)
+            find "$LOG_DIR" -name "deploy.log" -mtime +30 -delete 2>/dev/null || true
+            find "$APP_DIR" -name "backup_*.sql" -mtime +7 -delete 2>/dev/null || true

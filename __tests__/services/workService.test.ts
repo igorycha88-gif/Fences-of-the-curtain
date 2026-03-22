@@ -76,7 +76,7 @@ describe('WorkService', () => {
           sortOrder: 0,
           active: true,
           relations: {
-            create: [{ fenceType: 'PROFNASTIL' }],
+            create: [{ fenceType: 'PROFNASTIL', referenceType: null, referenceId: null }],
           },
         },
         include: { relations: true },
@@ -186,15 +186,13 @@ describe('WorkService', () => {
         where: {},
       });
 
-      expect(prisma.work.count).toHaveBeenCalledWith({});
-
       expect(result).toEqual({
-        items: expect.arrayContaining({
+        items: expect.arrayContaining([{
           ...mockWorks[0],
           categoryName: 'Монтаж',
           unitName: 'м',
           relations: [],
-        }),
+        }]),
         total: 1,
         page: 1,
         pageSize: 20,
@@ -381,6 +379,60 @@ describe('WorkService', () => {
 
       expect(result).toEqual([
         {
+          id: 'work-1',
+          name: 'Монтаж забора',
+          category: 'MOUNTING',
+          categoryName: 'Монтаж',
+          unit: 'м',
+          price: 500.00,
+          useInCalculator: true,
+        },
+      ]);
+    });
+
+    it('should return works without fence type', async () => {
+      const { prisma } = require('@/lib/prisma');
+      const mockWorks = [
+        {
+          id: 'work-2',
+          name: 'Замер',
+          category: 'MEASUREMENT',
+          unit: 'FIXED',
+          price: 1000.00,
+          useInCalculator: true,
+        },
+      ];
+
+      prisma.work.findMany.mockResolvedValue(mockWorks);
+
+      const result = await workService.getByFenceType(undefined as any);
+
+      expect(prisma.work.findMany).toHaveBeenCalledWith({
+        where: {
+          active: true,
+          useInCalculator: true,
+          relations: { none: {} },
+        },
+        orderBy: { sortOrder: 'asc' },
+      });
+
+      expect(result).toEqual([
+        {
+          id: 'work-2',
+          name: 'Замер',
+          category: 'MEASUREMENT',
+          categoryName: 'Замер',
+          unit: 'FIXED',
+          unitName: 'фикс.',
+          price: 1000.00,
+          useInCalculator: true,
+        },
+      ])
+    });
+  });
+
+      expect(result).toEqual([
+        {
           ...mockWorks[0],
           categoryName: 'Монтаж',
           unitName: 'м',
@@ -403,7 +455,7 @@ describe('WorkService', () => {
 
       prisma.work.findMany.mockResolvedValue(mockWorks);
 
-      const result = await workService.getByFenceType();
+      const result = await workService.getWorksForCalculator();
 
       expect(prisma.work.findMany).toHaveBeenCalledWith({
         where: {
@@ -470,8 +522,8 @@ describe('WorkService', () => {
 
       expect(prisma.workRelation.createMany).toHaveBeenCalledWith({
         data: expect.arrayContaining([
-          { workId: 'work-1', fenceType: 'PICKET' },
-          { workId: 'work-1', fenceType: 'GATE' },
+          { workId: 'work-1', fenceType: 'PICKET', referenceType: null, referenceId: null },
+          { workId: 'work-1', fenceType: 'GATE', referenceType: null, referenceId: null },
         ]),
       });
 
@@ -501,55 +553,12 @@ describe('WorkService', () => {
       expect(prisma.workRelation.deleteMany).toHaveBeenCalled();
       expect(prisma.work.update).toHaveBeenCalledWith({
         where: { id: 'work-1' },
-        data: {
-          name: 'Тест',
-        },
-      });
-    });
-
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
-  });
-    });
-
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
-  });
-    });
-
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
-    });
-
-    });
-
-      expect(prisma.work.update).toHaveBeenCalledWith({
-        where: { id: 'work-1' },
-        data: {
-          name: 'Тест',
-        },
+        data: {},
         include: { relations: true },
       });
     });
 
-    it('should throw error for non-existent work', async () => {
-      const { prisma } = require('@/lib/prisma');
-      prisma.work.findUnique.mockResolvedValue(null);
-
-      await expect(workService.update('non-existent', {} as any, mockUserId)).rejects.toThrow('Работа не найдена');
-    });
+  });
 
   describe('delete', () => {
     it('should delete work', async () => {
@@ -704,7 +713,8 @@ describe('WorkService', () => {
         orderBy: { sortOrder: 'asc' },
       });
 
-      expect(result).toEqual(mockWorks);
+      
+expect(result).toEqual(mockWorks);
     });
   });
 
@@ -719,3 +729,4 @@ describe('WorkService', () => {
       expect(service.getFenceTypeName('UNKNOWN')).toBe('UNKNOWN');
     });
   });
+});

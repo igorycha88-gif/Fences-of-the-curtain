@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { picketTypeService } from '@/services/admin/picketTypeService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { picketTypeUpdateSchema } from '@/lib/validators/picketType';
+import { validationError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -56,7 +58,6 @@ export async function PUT(
     }
 
     const body = await request.json();
-    console.log('[PICKET-TYPES PUT] Request body:', JSON.stringify(body, null, 2));
     
     const isAdmin = session.user.role === 'ADMIN';
 
@@ -78,9 +79,9 @@ export async function PUT(
   } catch (error: any) {
     console.error('[PICKET-TYPES PUT] Error updating picket type:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       console.error('[PICKET-TYPES PUT] Validation errors:', error.errors);
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return validationError(error);
     }
     
     if (error.message.includes('не найден')) {
