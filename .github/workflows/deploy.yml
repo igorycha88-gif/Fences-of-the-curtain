@@ -100,6 +100,10 @@ jobs:
             
             git reset --hard origin/master
             
+            log_deploy "=== Cleaning up old files ==="
+            rm -f prisma/update_password.ts prisma/update-admin-password.ts || true
+            rm -f update_password.ts update-admin-password.ts || true
+            
             log_deploy "=== Installing dependencies ==="
             npm install --legacy-peer-deps
             
