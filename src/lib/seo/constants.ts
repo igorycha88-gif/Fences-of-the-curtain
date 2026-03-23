@@ -4,18 +4,18 @@ export const SEO_CONFIG = {
   DEFAULT_TITLE: 'Заборы и Навесы — Онлайн расчёт стоимости',
   DEFAULT_DESCRIPTION: 'Профессиональная установка заборов и навесов. Калькулятор стоимости онлайн. Гарантия качества, быстрый монтаж.',
   DEFAULT_KEYWORDS: ['заборы', 'навесы', 'калькулятор забора', 'установка забора', 'забор из профнастила', 'евроштакетник'],
-  DEFAULT_OG_IMAGE: '/og/og-main.jpg',
+  DEFAULT_OG_IMAGE: '/og/og-main.svg',
   TWITTER_SITE: '@zabor_navesy',
   LOCALE: 'ru_RU',
 } as const;
 
 export const BUSINESS_INFO = {
   name: 'Заборы и Навесы',
-  telephone: '+7-900-123-45-67',
-  email: 'info@fences.ru',
+  telephone: '+74993901595',
+  email: 'zabori-naves@yandex.ru',
   address: {
-    locality: 'Город',
-    region: 'Регион',
+    locality: 'Раменское',
+    region: 'Московская область',
     country: 'Россия',
   },
   openingHours: {
@@ -31,37 +31,37 @@ export const PAGE_METADATA = {
     title: 'Заборы и Навесы — Онлайн расчёт стоимости',
     description: 'Профессиональная установка заборов и навесов. Калькулятор стоимости онлайн. Гарантия качества, быстрый монтаж.',
     keywords: ['заборы', 'навесы', 'калькулятор забора', 'установка забора'],
-    ogImage: '/og/og-main.jpg',
+    ogImage: '/og/og-main.svg',
   },
   services: {
     title: 'Услуги — Заборы и Навесы',
     description: 'Установка заборов из профнастила, евроштакетника, сетки-рабицы. Навесы для авто, беседки, террасы.',
     keywords: ['забор из профнастила', 'евроштакетник', 'навес для авто'],
-    ogImage: '/og/og-services.jpg',
+    ogImage: '/og/og-services.svg',
   },
   calculatorFence: {
     title: 'Калькулятор забора — Онлайн расчёт цены',
     description: 'Рассчитайте стоимость забора онлайн за 30 секунд. Профнастил, евроштакетник, 3D-панели.',
     keywords: ['калькулятор забора', 'расчёт забора', 'цена забора'],
-    ogImage: '/og/og-calculator.jpg',
+    ogImage: '/og/og-calculator.svg',
   },
   calculatorCanopy: {
     title: 'Калькулятор навеса — Онлайн расчёт цены',
     description: 'Рассчитайте стоимость навеса онлайн. Навесы для авто, беседки, террасы из поликарбоната.',
     keywords: ['калькулятор навеса', 'расчёт навеса', 'навес для машины'],
-    ogImage: '/og/og-calculator.jpg',
+    ogImage: '/og/og-calculator.svg',
   },
   portfolio: {
     title: 'Портфолио — Заборы и Навесы',
     description: 'Примеры наших работ: заборы и навесы. Фотографии выполненных проектов с описанием.',
     keywords: ['портфолио заборы', 'примеры работ', 'фото заборов'],
-    ogImage: '/og/og-portfolio.jpg',
+    ogImage: '/og/og-portfolio.svg',
   },
   contacts: {
     title: 'Контакты — Заборы и Навесы',
     description: 'Свяжитесь с нами для консультации и расчёта стоимости. Телефон, email, адрес.',
     keywords: ['контакты', 'телефон', 'адрес'],
-    ogImage: '/og/og-contacts.jpg',
+    ogImage: '/og/og-contacts.svg',
   },
 } as const;
 

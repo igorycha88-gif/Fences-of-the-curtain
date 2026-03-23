@@ -19,4 +19,4 @@ Allow: /api/calculator/gate-types
 Allow: /api/calculator/wicket-types
 Allow: /api/calculator/mounting-hardware
 
-Sitemap: https://zabor-i-naves.ru/sitemap.xml
+Sitemap: https://zabori-naves.ru/sitemap.xml
