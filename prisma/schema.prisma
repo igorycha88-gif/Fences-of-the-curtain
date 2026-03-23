@@ -469,7 +469,7 @@ model MountingHardware {
   id                String                     @id @default(cuid())
   name              String
   description       String?
-  purchasePrice     Float
+  purchasePrice     Float?
   retailPrice       Float
   validUntil        DateTime?
   active            Boolean                    @default(true)
