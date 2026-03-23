@@ -341,6 +341,77 @@ async function main() {
     skipDuplicates: true,
   });
 
+  await prisma.panel3D.createMany({
+    data: [
+      {
+        name: '3D-панель 2000x2500',
+        description: 'Стандартная 3D-панель для забора высотой 2 метра',
+        panelHeight: 2000,
+        panelWidth: 2500,
+        rodDiameter: 4.0,
+        cellWidth: 50,
+        cellHeight: 200,
+        purchasePricePerUnit: 3500,
+        retailPricePerUnit: 5000,
+        active: true,
+        priority: 0,
+      },
+      {
+        name: '3D-панель 2500x2500',
+        description: 'Высокая 3D-панель для забора высотой 2.5 метра',
+        panelHeight: 2500,
+        panelWidth: 2500,
+        rodDiameter: 4.0,
+        cellWidth: 50,
+        cellHeight: 200,
+        purchasePricePerUnit: 4200,
+        retailPricePerUnit: 6000,
+        active: true,
+        priority: 1,
+      },
+      {
+        name: '3D-панель 2000x3000',
+        description: 'Широкая 3D-панель для забора высотой 2 метра',
+        panelHeight: 2000,
+        panelWidth: 3000,
+        rodDiameter: 4.5,
+        cellWidth: 50,
+        cellHeight: 200,
+        purchasePricePerUnit: 4200,
+        retailPricePerUnit: 6000,
+        active: true,
+        priority: 2,
+      },
+      {
+        name: '3D-панель 1500x2500',
+        description: 'Низкая 3D-панель для забора высотой 1.5 метра',
+        panelHeight: 1500,
+        panelWidth: 2500,
+        rodDiameter: 4.0,
+        cellWidth: 50,
+        cellHeight: 200,
+        purchasePricePerUnit: 2800,
+        retailPricePerUnit: 4000,
+        active: true,
+        priority: 3,
+      },
+      {
+        name: '3D-панель 1700x2500',
+        description: '3D-панель для забора высотой 1.7 метра',
+        panelHeight: 1700,
+        panelWidth: 2500,
+        rodDiameter: 4.0,
+        cellWidth: 50,
+        cellHeight: 200,
+        purchasePricePerUnit: 3150,
+        retailPricePerUnit: 4500,
+        active: true,
+        priority: 4,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
   console.log('Database seeded successfully!');
 }
 

@@ -37,22 +37,21 @@ export async function GET(request: NextRequest) {
         referenceType,
         referenceId,
       },
-      include: {
-        mountingHardware: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            purchasePrice: true,
-            retailPrice: true,
-            active: true,
-          },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    const mountingHardwareIds = relations.map(r => r.mountingHardwareId);
+
+    const mountingHardwareItems = await prisma.mountingHardware.findMany({
+      where: {
+        id: {
+          in: mountingHardwareIds,
         },
       },
       orderBy: {
-        mountingHardware: {
-          sortOrder: 'asc',
-        },
+        sortOrder: 'asc',
       },
     });
 

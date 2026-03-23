@@ -9,7 +9,19 @@ type ModelName =
   | 'lagType' 
   | 'gateType' 
   | 'wicketType' 
-  | 'fenceType';
+  | 'fenceType'
+  | 'panel3D';
+
+const modelMap: Record<ModelName, any> = {
+  profnastilType: prisma.profnastilType,
+  picketType: prisma.picketType,
+  postType: prisma.postType,
+  lagType: prisma.lagType,
+  gateType: prisma.gateType,
+  wicketType: prisma.wicketType,
+  fenceType: prisma.fenceType,
+  panel3D: (prisma as any).panel3D,
+};
 
 interface ReorderResult {
   success: boolean;
@@ -24,7 +36,7 @@ export class PriorityService {
     newPriority: number,
     userId: string
   ): Promise<ReorderResult> {
-    const allItems = await (prisma[model] as any).findMany({
+    const allItems = await modelMap[model].findMany({
       select: { id: true, priority: true },
     }) as PriorityItem[];
 
@@ -61,7 +73,7 @@ export class PriorityService {
 
       await prisma.$transaction(async (tx) => {
         for (const update of updates) {
-          await (tx[model] as any).update({
+          await (tx as any)[model].update({
             where: { id: update.id },
             data: { priority: update.priority },
           });
@@ -95,7 +107,7 @@ export class PriorityService {
 
     await prisma.$transaction(async (tx) => {
       for (const update of updates) {
-        await (tx[model] as any).update({
+        await (tx as any)[model].update({
           where: { id: update.id },
           data: { priority: update.priority },
         });
@@ -121,7 +133,7 @@ export class PriorityService {
   }
 
   async getNextPriorityValue(model: ModelName): Promise<number> {
-    const allItems = await (prisma[model] as any).findMany({
+    const allItems = await modelMap[model].findMany({
       select: { id: true, priority: true },
     }) as PriorityItem[];
 
@@ -129,7 +141,7 @@ export class PriorityService {
   }
 
   async recalculateAllPriorities(model: ModelName): Promise<void> {
-    const allItems = await (prisma[model] as any).findMany({
+    const allItems = await modelMap[model].findMany({
       select: { id: true, priority: true },
       orderBy: { priority: 'asc' as any },
     }) as PriorityItem[];
@@ -138,7 +150,7 @@ export class PriorityService {
       for (let i = 0; i < allItems.length; i++) {
         const newPriority = i + 1;
         if (allItems[i].priority !== newPriority) {
-          await (tx[model] as any).update({
+          await (tx as any)[model].update({
             where: { id: allItems[i].id },
             data: { priority: newPriority },
           });
@@ -148,7 +160,7 @@ export class PriorityService {
   }
 
   async recalculateAfterDelete(model: ModelName, userId: string): Promise<void> {
-    const allItems = await (prisma[model] as any).findMany({
+    const allItems = await modelMap[model].findMany({
       select: { id: true, priority: true },
       orderBy: { priority: 'asc' as any },
     }) as PriorityItem[];
@@ -169,7 +181,7 @@ export class PriorityService {
       await prisma.$transaction(async (tx) => {
         for (const update of updates) {
           const oldPriority = allItems.find((item) => item.id === update.id)?.priority || 0;
-          await (tx[model] as any).update({
+          await (tx as any)[model].update({
             where: { id: update.id },
             data: { priority: update.priority },
           });

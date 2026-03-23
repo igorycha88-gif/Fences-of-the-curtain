@@ -13,16 +13,19 @@ describe('fenceEstimateService', () => {
   beforeAll(async () => {
     const fenceType = await prisma.fenceType.create({
       data: {
+        id: 'test-fence-type-1',
         name: 'Профнастил',
         postSpacing: 2500,
         active: true,
         priority: 1,
+        updatedAt: new Date(),
       },
     });
     testFenceTypeId = fenceType.id;
 
     const postType = await prisma.postType.create({
       data: {
+        id: 'test-post-type-1',
         name: 'Тестовый столб 60x60x2.5',
         sectionWidth: 60,
         sectionHeight: 60,
@@ -32,12 +35,14 @@ describe('fenceEstimateService', () => {
         retailPricePerUnit: 700,
         active: true,
         priority: 1,
+        updatedAt: new Date(),
       },
     });
     testPostTypeId = postType.id;
 
     const lagType = await prisma.lagType.create({
       data: {
+        id: 'test-lag-type-1',
         name: 'Тестовая лага 40x20x2.0',
         width: 40,
         height: 20,
@@ -46,27 +51,31 @@ describe('fenceEstimateService', () => {
         length: 3000,
         active: true,
         priority: 0,
+        updatedAt: new Date(),
       },
     });
     testLagTypeId = lagType.id;
 
     const profnastilType = await prisma.profnastilType.create({
       data: {
+        id: 'test-profnastil-type-1',
         name: 'Тестовый профнастил С8 0.5мм 2000мм',
         metalThickness: 0.5,
         fullWidth: 1200,
         usefulWidth: 1150,
         length: 2000,
-        coating: 'POLYMER',
+        coating: 'Полимерное (одностороннее)',
         retailPricePerUnit: 550,
         active: true,
         priority: 0,
+        updatedAt: new Date(),
       },
     });
     testProfnastilTypeId = profnastilType.id;
 
     const gateType = await prisma.gateType.create({
       data: {
+        id: 'test-gate-type-1',
         name: 'Тестовые ворота 4000мм',
         type: 'Распашные',
         gateLength: 4000,
@@ -77,12 +86,14 @@ describe('fenceEstimateService', () => {
         retailPrice: 45000,
         active: true,
         priority: 0,
+        updatedAt: new Date(),
       },
     });
     testGateTypeId = gateType.id;
 
     const wicketType = await prisma.wicketType.create({
       data: {
+        id: 'test-wicket-type-1',
         name: 'Тестовая калитка 1000x2000',
         wicketLength: 1000,
         wicketHeight: 2000,
@@ -92,6 +103,7 @@ describe('fenceEstimateService', () => {
         retailPrice: 15000,
         active: true,
         priority: 0,
+        updatedAt: new Date(),
       },
     });
     testWicketTypeId = wicketType.id;
@@ -116,6 +128,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -138,6 +153,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -154,6 +172,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -170,6 +191,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 3 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -185,6 +209,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -201,6 +228,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -218,6 +248,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     await expect(calculateFenceEstimate(input)).rejects.toEqual({
@@ -232,6 +265,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -253,6 +289,9 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
     };
 
     const created = await calculateFenceEstimate(input);
@@ -279,6 +318,7 @@ describe('fenceEstimateService', () => {
       lagRows: 2 as const,
       coating: 'GALVANIZED' as const,
       hasGate: true,
+      hasWicket: false,
       gateType: 'SWING' as const,
       gateWidth: gateWidth,
     };
@@ -308,6 +348,7 @@ describe('fenceEstimateService', () => {
       lagRows: 2 as const,
       coating: 'GALVANIZED' as const,
       hasGate: true,
+      hasWicket: false,
       gateType: 'SWING' as const,
       gateWidth: gateWidth,
     };
@@ -332,6 +373,8 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
       hasWicket: true,
       wicketWidth: 1.0,
     };
@@ -353,6 +396,8 @@ describe('fenceEstimateService', () => {
       length: fenceLength,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
       hasWicket: true,
       wicketWidth: wicketWidth,
     };
@@ -380,6 +425,7 @@ describe('fenceEstimateService', () => {
       length: fenceLength,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
       hasGate: true,
       gateType: 'SWING' as const,
       gateWidth: gateWidth,
@@ -411,6 +457,8 @@ describe('fenceEstimateService', () => {
       length: 50,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
       hasWicket: true,
       wicketWidth: 1.0,
     };
@@ -433,6 +481,8 @@ describe('fenceEstimateService', () => {
       length: 5,
       height: 2.0,
       lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
       hasWicket: true,
       wicketWidth: 5.0,
     };

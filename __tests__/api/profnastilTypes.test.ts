@@ -76,7 +76,14 @@ describe('POST /api/admin/profnastil-types', () => {
     expect(response.status).toBe(201);
     expect(profnastilTypeService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        purchasePricePerUnit: 700,
+        name: 'Тестовый профнастил',
+        metalThickness: 0.5,
+        fullWidth: 1200,
+        usefulWidth: 1150,
+        length: 2000,
+        coating: 'Полимерное (одностороннее)',
+        purchasePricePerLinearMeter: 350,
+        retailPricePerUnit: 1200,
       }),
       'admin-id'
     );

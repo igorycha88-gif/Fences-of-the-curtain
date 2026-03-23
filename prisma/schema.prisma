@@ -248,6 +248,27 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+model Panel3D {
+  id                     String   @id @default(cuid())
+  name                   String
+  description            String?
+  panelHeight            Float
+  panelWidth             Float
+  panelArea              Float?
+  rodDiameter            Float
+  cellWidth              Float
+  cellHeight             Float
+  purchasePricePerUnit   Float?
+  retailPricePerUnit     Float
+  image                 String?
+  active                 Boolean  @default(true)
+  validFrom              DateTime?
+  validUntil             DateTime?
+  priority               Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
 model PriceHistory {
   id         String   @id @default(cuid())
   entityType String
@@ -453,6 +474,10 @@ model FenceEstimate {
   wicketNomenclatureName  String?
   wicketTotal             Float     @default(0)
   wicketWidth             Int?
+  panel3dId               String?
+  panel3dNomenclatureName String?
+  panel3dTotal            Float     @default(0)
+  panel3dInstallationTotal Float    @default(0)
   city                    String?
   fenceType               FenceType @relation(fields: [fenceTypeId], references: [id])
   user                    User?     @relation(fields: [userId], references: [id])

@@ -3,6 +3,7 @@ export const CACHE_KEYS = {
   POSTS_ACTIVE: 'calculator:posts:active',
   LAGS_ACTIVE: 'calculator:lags:active',
   PROFNASTIL_ACTIVE: 'calculator:profnastil:active',
+  PANEL_3D_ACTIVE: 'calculator:panel3d:active',
   GATES_ACTIVE: 'calculator:gates:active',
   WICKETS_ACTIVE: 'calculator:wickets:active',
   WORKS_BY_FENCE_TYPE: (fenceType: string) => `calculator:works:fence:${fenceType}`,

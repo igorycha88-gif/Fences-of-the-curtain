@@ -8,7 +8,7 @@ describe('FenceType Validators', () => {
         name: 'Профнастил',
         description: 'Описание типа забора',
         difficultyCoef: 1.0,
-        postSpacing: 2.5,
+        postSpacing: 2500,
         defaultLagRows: 2,
         active: true,
         priority: 0,
@@ -27,7 +27,7 @@ describe('FenceType Validators', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.difficultyCoef).toBe(1.0);
-        expect(result.data.postSpacing).toBe(2.5);
+        expect(result.data.postSpacing).toBe(2500);
         expect(result.data.defaultLagRows).toBe(2);
         expect(result.data.active).toBe(true);
         expect(result.data.priority).toBe(0);
@@ -84,29 +84,29 @@ describe('FenceType Validators', () => {
       }
     });
 
-    it('should reject postSpacing less than 1.5', () => {
+    it('should reject postSpacing less than 1000', () => {
       const invalidData = {
         name: 'Тест',
-        postSpacing: 1.4,
+        postSpacing: 999,
       };
 
       const result = fenceTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toContain('не менее 1.5');
+        expect(result.error.errors[0].message).toContain('1000');
       }
     });
 
-    it('should reject postSpacing greater than 4.0', () => {
+    it('should reject postSpacing greater than 5000', () => {
       const invalidData = {
         name: 'Тест',
-        postSpacing: 4.1,
+        postSpacing: 5001,
       };
 
       const result = fenceTypeSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toContain('4.0');
+        expect(result.error.errors[0].message).toContain('5000');
       }
     });
 

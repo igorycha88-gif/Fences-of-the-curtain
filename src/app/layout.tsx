@@ -5,6 +5,7 @@ import JsonLdScript from '@/components/seo/JsonLdScript';
 import { generateOrganizationJsonLd, generateWebSiteJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import { headers } from 'next/headers';
+import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 

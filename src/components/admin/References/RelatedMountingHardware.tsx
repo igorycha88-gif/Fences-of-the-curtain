@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
 import { formatPrice } from '@/lib/utils/formatters';
 
-type ReferenceType = 'LAG' | 'POST' | 'PROFNASTIL' | 'PICKET' | 'GATE' | 'WICKET';
+type ReferenceType = 'LAG' | 'POST' | 'PROFNASTIL' | 'PICKET' | 'GATE' | 'WICKET' | 'PANEL_3D';
 
 interface MountingHardwareItem {
   id: string;
