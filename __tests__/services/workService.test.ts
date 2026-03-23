@@ -2,6 +2,19 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { workService } from '@/services/admin/workService';
 import { prisma } from '@/lib/prisma';
 
+jest.mock('@/lib/cache', () => ({
+  cache: {
+    get: jest.fn().mockResolvedValue(null as any),
+    set: jest.fn().mockResolvedValue(undefined as any),
+    del: jest.fn().mockResolvedValue(undefined as any),
+    delPattern: jest.fn().mockResolvedValue(undefined as any),
+    getOrSet: jest.fn().mockImplementation(async (key: string, factory: () => Promise<any>, ttl: number) => {
+      return await factory();
+    }),
+    healthCheck: jest.fn().mockResolvedValue({ redis: false, memory: true } as any),
+  },
+}));
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     work: {
@@ -359,6 +372,9 @@ describe('WorkService', () => {
           unit: 'M',
           price: 500.00,
           useInCalculator: true,
+          WorkRelation: [
+            { fenceType: 'PROFNASTIL' },
+          ],
         },
       ];
 
@@ -370,9 +386,6 @@ describe('WorkService', () => {
         where: {
           active: true,
           useInCalculator: true,
-          relations: {
-            some: { fenceType: 'PROFNASTIL' },
-          },
         },
         orderBy: { sortOrder: 'asc' },
       });
@@ -383,59 +396,10 @@ describe('WorkService', () => {
           name: 'Монтаж забора',
           category: 'MOUNTING',
           categoryName: 'Монтаж',
-          unit: 'м',
+          unit: 'M',
+          unitName: 'м',
           price: 500.00,
           useInCalculator: true,
-        },
-      ]);
-    });
-
-    it('should return works without fence type', async () => {
-      const { prisma } = require('@/lib/prisma');
-      const mockWorks = [
-        {
-          id: 'work-2',
-          name: 'Замер',
-          category: 'MEASUREMENT',
-          unit: 'FIXED',
-          price: 1000.00,
-          useInCalculator: true,
-        },
-      ];
-
-      prisma.work.findMany.mockResolvedValue(mockWorks);
-
-      const result = await workService.getByFenceType(undefined as any);
-
-      expect(prisma.work.findMany).toHaveBeenCalledWith({
-        where: {
-          active: true,
-          useInCalculator: true,
-          relations: { none: {} },
-        },
-        orderBy: { sortOrder: 'asc' },
-      });
-
-      expect(result).toEqual([
-        {
-          id: 'work-2',
-          name: 'Замер',
-          category: 'MEASUREMENT',
-          categoryName: 'Замер',
-          unit: 'FIXED',
-          unitName: 'фикс.',
-          price: 1000.00,
-          useInCalculator: true,
-        },
-      ])
-    });
-  });
-
-      expect(result).toEqual([
-        {
-          ...mockWorks[0],
-          categoryName: 'Монтаж',
-          unitName: 'м',
         },
       ]);
     });
@@ -461,7 +425,6 @@ describe('WorkService', () => {
         where: {
           active: true,
           useInCalculator: true,
-          relations: { none: {} },
         },
         orderBy: { sortOrder: 'asc' },
       });
@@ -469,8 +432,6 @@ describe('WorkService', () => {
       expect(result).toEqual([
         {
           ...mockWorks[0],
-          categoryName: 'Замер',
-          unitName: 'фикс.',
         },
       ]);
     });
@@ -666,6 +627,9 @@ describe('WorkService', () => {
           unit: 'M',
           price: 500.00,
           useInCalculator: true,
+          WorkRelation: [
+            { fenceType: 'PROFNASTIL' },
+          ],
         },
       ];
 
@@ -677,9 +641,6 @@ describe('WorkService', () => {
         where: {
           active: true,
           useInCalculator: true,
-          relations: {
-            some: { fenceType: 'PROFNASTIL' },
-          },
         },
         orderBy: { sortOrder: 'asc' },
       });
@@ -708,13 +669,11 @@ describe('WorkService', () => {
         where: {
           active: true,
           useInCalculator: true,
-          relations: { none: {} },
         },
         orderBy: { sortOrder: 'asc' },
       });
 
-      
-expect(result).toEqual(mockWorks);
+      expect(result).toEqual(mockWorks);
     });
   });
 

@@ -119,14 +119,16 @@ export class WorkService {
       where: {
         active: true,
         useInCalculator: true,
-        relations: {
-          some: { fenceType },
-        },
       },
       orderBy: { sortOrder: 'asc' },
     });
 
-    return items.map((item) => ({
+    const filteredItems = items.filter((item) => {
+      const itemRelations = (item as any).WorkRelation || [];
+      return itemRelations.some((rel: any) => rel.fenceType === fenceType);
+    });
+
+    return filteredItems.map((item) => ({
       id: item.id,
       name: item.name,
       category: item.category,
@@ -143,14 +145,20 @@ export class WorkService {
       where: {
         active: true,
         useInCalculator: true,
-        relations: {
-          some: { referenceType, referenceId },
-        },
       },
       orderBy: { sortOrder: 'asc' },
     });
 
-    return items.map((item) => ({
+    const filteredItems = items.filter((item) => {
+      const itemRelations = (item as any).WorkRelation || [];
+      return itemRelations.some((rel: any) => rel.referenceType === referenceType && rel.referenceId === referenceId);
+    });
+
+    const referenceItemName = referenceType && referenceId
+      ? await referenceRegistry.getItemName(referenceType, referenceId)
+      : undefined;
+
+    return filteredItems.map((item) => ({
       id: item.id,
       name: item.name,
       category: item.category,
@@ -159,9 +167,10 @@ export class WorkService {
       unitName: WorkUnitNames[item.unit as WorkUnit] || item.unit,
       price: item.price,
       useInCalculator: item.useInCalculator,
+      referenceItemName,
     }));
   }
-
+  
   private getFenceTypeName(fenceType: string): string {
     const typeMap: Record<string, string> = {
       'PROFNASTIL': 'Профнастил',
@@ -378,25 +387,21 @@ export class WorkService {
     return cache.getOrSet(
       cacheKey,
       async () => {
-        const where: Prisma.WorkWhereInput = {
-          active: true,
-          useInCalculator: true,
-        };
-
-        if (fenceType) {
-          where.relations = {
-            some: { fenceType },
-          };
-        } else {
-          where.relations = {
-            none: {},
-          };
-        }
-
         const works = await prisma.work.findMany({
-          where,
+          where: {
+            active: true,
+            useInCalculator: true,
+          },
           orderBy: { sortOrder: 'asc' },
         });
+
+        if (fenceType) {
+          const filteredWorks = works.filter((work) => {
+            const workRelations = (work as any).WorkRelation || [];
+            return workRelations.some((rel: any) => rel.fenceType === fenceType);
+          });
+          return filteredWorks;
+        }
 
         return works;
       },
@@ -404,9 +409,9 @@ export class WorkService {
     );
   }
 
-  async getWorksForCalculatorByReference(referenceType: string, referenceId: string) {
+   async getWorksForCalculatorByReference(referenceType: string, referenceId: string) {
     const cacheKey = CACHE_KEYS.WORKS_BY_REFERENCE(referenceType, referenceId);
-
+    
     return cache.getOrSet(
       cacheKey,
       async () => {
@@ -414,14 +419,16 @@ export class WorkService {
           where: {
             active: true,
             useInCalculator: true,
-            relations: {
-              some: { referenceType, referenceId },
-            },
           },
           orderBy: { sortOrder: 'asc' },
         });
-
-        return works;
+        
+        const filteredWorks = works.filter((work) => {
+          const workRelations = (work as any).WorkRelation || [];
+          return workRelations.some((rel: any) => rel.referenceType === referenceType && rel.referenceId === referenceId);
+        });
+        
+        return filteredWorks;
       },
       CACHE_TTL.REFERENCE_DATA
     );

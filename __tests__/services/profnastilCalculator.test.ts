@@ -15,6 +15,7 @@ describe('calculateProfnastil', () => {
       retailPricePerUnit: 1100,
       active: true,
       priority: 1,
+      updatedAt: new Date(),
     },
     {
       id: 'test-prof-2',
@@ -27,6 +28,7 @@ describe('calculateProfnastil', () => {
       retailPricePerUnit: 900,
       active: true,
       priority: 2,
+      updatedAt: new Date(),
     },
     {
       id: 'test-prof-3',
@@ -39,6 +41,7 @@ describe('calculateProfnastil', () => {
       retailPricePerUnit: 1300,
       active: true,
       priority: 3,
+      updatedAt: new Date(),
     },
     {
       id: 'test-prof-4',
@@ -51,6 +54,7 @@ describe('calculateProfnastil', () => {
       retailPricePerUnit: 1400,
       active: true,
       priority: 1,
+      updatedAt: new Date(),
     },
   ];
 
@@ -95,7 +99,7 @@ describe('calculateProfnastil', () => {
     const result = await calculateProfnastil(50, 2.0, 'POLYMER_DOUBLE');
 
     expect(result.coating).toBe('Полимерное (двустороннее)');
-    expect(result.nomenclatureName).toContain('двусторонний');
+    expect(result.nomenclatureName).toContain('двустороннее');
   });
 
   it('should select profnastil with correct height', async () => {

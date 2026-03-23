@@ -76,6 +76,8 @@ export default function FenceCalculatorPage() {
   const [fenceTypes, setFenceTypes] = useState<FenceType[]>([]);
   const [fenceTypesLoading, setFenceTypesLoading] = useState(true);
   const [fenceTypesError, setFenceTypesError] = useState<string | null>(null);
+  const [selectedFenceType, setSelectedFenceType] = useState<FenceType | null>(null);
+  const isPanel3D = selectedFenceType?.name === '3D-панели';
 
   const [formData, setFormData] = useState<FenceCalculatorForm>({
     fenceTypeId: '',
@@ -135,6 +137,7 @@ export default function FenceCalculatorPage() {
   }, []);
 
   const handleFenceTypeSelect = (fenceType: FenceType) => {
+    setSelectedFenceType(fenceType);
     setFormData(prev => ({
       ...prev,
       fenceTypeId: fenceType.id,
@@ -372,20 +375,22 @@ export default function FenceCalculatorPage() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Покрытие</label>
-                        <select
-                          value={formData.coating}
-                          onChange={(e) => setFormData({ ...formData, coating: e.target.value as any })}
-                          className="select-modern"
-                        >
-                          {coatings.map((type) => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      {!isPanel3D && (
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Покрытие</label>
+                          <select
+                            value={formData.coating}
+                            onChange={(e) => setFormData({ ...formData, coating: e.target.value as any })}
+                            className="select-modern"
+                            >
+                            {coatings.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                       <div className="flex flex-wrap gap-4">
                         <label className="flex items-center gap-3 cursor-pointer p-3 bg-secondary/50 rounded-xl hover:bg-secondary transition-colors">

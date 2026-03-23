@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /api/auth
+Disallow: /api/admin
+
+Allow: /api/contact-info
+Allow: /api/portfolio
+Allow: /api/calculator
+Allow: /api/calculator/fence
+Allow: /api/calculator/canopy
+Allow: /api/calculator/fence-types
+Allow: /api/calculator/profnastil-types
+Allow: /api/calculator/picket-types
+Allow: /api/calculator/post-types
+Allow: /api/calculator/lag-types
+Allow: /api/calculator/gate-types
+Allow: /api/calculator/wicket-types
+Allow: /api/calculator/mounting-hardware
+
+Sitemap: https://zabor-i-naves.ru/sitemap.xml

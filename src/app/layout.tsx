@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import SessionProvider from '@/components/providers/SessionProvider';
+import JsonLdScript from '@/components/seo/JsonLdScript';
+import { generateOrganizationJsonLd, generateWebSiteJsonLd } from '@/lib/seo/jsonld';
+import { SEO_CONFIG } from '@/lib/seo/constants';
 import { headers } from 'next/headers';
 import './globals.css';
-import SessionProvider from '@/components/providers/SessionProvider';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +14,46 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zabor-i-naves.ru';
 
 export const metadata: Metadata = {
-  title: 'Заборы и Навесы | Установка заборов и навесов',
-  description: 'Профессиональная установка заборов и навесов. Онлайн-расчет стоимости, каталог услуг, портфолио работ.',
-  keywords: 'заборы, навесы, установка заборов, монтаж навесов, калькулятор забора, калькулятор навеса',
+  title: {
+    default: SEO_CONFIG.DEFAULT_TITLE,
+    template: `%s | ${SEO_CONFIG.SITE_NAME}`,
+  },
+  description: SEO_CONFIG.DEFAULT_DESCRIPTION,
+  keywords: SEO_CONFIG.DEFAULT_KEYWORDS.join(', '),
+  authors: [{ name: SEO_CONFIG.SITE_NAME }],
+  creator: SEO_CONFIG.SITE_NAME,
+  publisher: SEO_CONFIG.SITE_NAME,
+  metadataBase: new URL(SEO_CONFIG.BASE_URL),
+  alternates: {
+    canonical: SEO_CONFIG.BASE_URL,
+  },
+  openGraph: {
+    type: 'website',
+    locale: SEO_CONFIG.LOCALE,
+    url: SEO_CONFIG.BASE_URL,
+    siteName: SEO_CONFIG.SITE_NAME,
+    title: SEO_CONFIG.DEFAULT_TITLE,
+    description: SEO_CONFIG.DEFAULT_DESCRIPTION,
+    images: [
+      {
+        url: `${SEO_CONFIG.BASE_URL}${SEO_CONFIG.DEFAULT_OG_IMAGE}`,
+        width: 1200,
+        height: 630,
+        alt: SEO_CONFIG.SITE_NAME,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: SEO_CONFIG.TWITTER_SITE,
+    title: SEO_CONFIG.DEFAULT_TITLE,
+    description: SEO_CONFIG.DEFAULT_DESCRIPTION,
+    images: [`${SEO_CONFIG.BASE_URL}${SEO_CONFIG.DEFAULT_OG_IMAGE}`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   icons: {
     icon: '/favicon.svg',
   },
@@ -48,13 +88,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const organizationJsonLd = generateOrganizationJsonLd();
+  const websiteJsonLd = generateWebSiteJsonLd();
   const nonce = headers().get('x-nonce') || '';
 
   return (
     <html lang="ru">
       <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <JsonLdScript data={[organizationJsonLd, websiteJsonLd]} />
       </head>
       <body className={inter.className}>
         <SessionProvider>{children}</SessionProvider>

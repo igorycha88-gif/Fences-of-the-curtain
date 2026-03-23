@@ -1,5 +1,42 @@
 # Deployment Guide
 
+## CI/CD Workflow
+
+Проект использует GitHub Actions для автоматического деплоя:
+
+1. **PR в master** → Запускается CI проверка (lint, typecheck, tests)
+2. **Merge PR** → Автоматический bump версии и создание GitHub Release
+3. **Release** → Запускается деплой на VPS
+
+### CI Checks (`.github/workflows/ci.yml`)
+- Type check (`tsc --noEmit`)
+- Lint (`next lint`)
+- Tests (`npm test -- --coverage`)
+
+CI проверка блокирует деплой, если найдены ошибки.
+
+### Deployment (`.github/workflows/deploy.yml`)
+- SSH подключение по ключу (безопаснее пароля)
+- Backup БД в `/backup/fences/` с gzip сжатием
+- `prisma migrate deploy` (безопасно для данных)
+- Health check с автоматическим rollback
+
+### Security Improvements
+
+#### PostgreSQL Security
+- Production: Порт БД НЕ открыт извне (только внутри Docker сети)
+- Development: Порт 5433 открыт только для удобства отладки
+
+#### HTTPS Configuration
+- Production: Nginx с SSL/TLS на порту 443
+- Development: HTTP на порту 80/3001
+- Автоматический редирект HTTP → HTTPS в продакшн
+
+#### Redis Security
+- Docker secrets для хранения пароля (`./secrets/redis_password`)
+- Пароль не доступен в .env файле
+- Аутентификация обязательна
+
 ## Prerequisites
 
 - VPS/VDS with minimum 4GB RAM and 50GB SSD
@@ -137,76 +174,23 @@ Check logs:
 docker-compose logs -f app
 ```
 
-### 6. Database Setup
+### 6. Generate Redis Password
 
 ```bash
-docker-compose exec app npx prisma db push
+./scripts/setup-redis-secret.sh
+# или вручную:
+openssl rand -base64 32 > secrets/redis_password
+chmod 600 secrets/redis_password
+```
+
+### 7. Database Setup
+
+```bash
+docker-compose exec app npx prisma migrate deploy
 docker-compose exec app npm run db:seed
 ```
 
-### 7. Configure Nginx (Optional)
-
-If using external Nginx:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-    
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-### 8. Update Nginx Configuration for Docker
-
-Edit `docker/nginx.conf`:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-
-    location / {
-        proxy_pass http://app:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name yourdomain.com;
-
-    ssl_certificate /etc/nginx/ssl/fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-
-    location / {
-        proxy_pass http://app:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-Restart services:
-
-```bash
-docker-compose down
-docker-compose up -d
-```
+**Важно:** Всегда используйте `prisma migrate deploy` в production, никогда не используйте `prisma db push`.
 
 ### 9. Setup Firewall
 
@@ -238,7 +222,9 @@ Create backup script `/opt/backup.sh`:
 ```bash
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-docker exec fences-db pg_dump -U postgres fences > /backup/fences_$DATE.sql
+BACKUP_DIR="/backup/fences/$(date +%Y/%m/%d)"
+mkdir -p "$BACKUP_DIR"
+docker exec fences-db pg_dump -U postgres fences | gzip > "$BACKUP_DIR/backup_$DATE.sql.gz"
 ```
 
 Add to crontab:
@@ -496,48 +482,44 @@ npx prisma migrate dev --name <migration_name>
 npx prisma migrate deploy
 ```
 
-**IMPORTANT**: 
-- Always use `prisma migrate dev` locally to create migrations
-- Never use `prisma db push` on production - it breaks migration history
-- Always use `prisma migrate deploy` on production
+**IMPORTANT**:
+- Всегда используйте `prisma migrate dev` локально для создания миграций
+- Никогда не используйте `prisma db push` на production - это нарушает историю миграций
+- Всегда используйте `prisma migrate deploy` на production
 
 ### Database Backup
 
+**Docker:**
 ```bash
-# Create backup
-sudo -u postgres pg_dump -d fences > /backup/fences_$(date +%Y%m%d).sql
+# Создать backup
+BACKUP_DIR="/backup/fences/$(date +%Y/%m/%d)"
+mkdir -p "$BACKUP_DIR"
+docker exec fences-db pg_dump -U postgres fences | gzip > "$BACKUP_DIR/backup_$(date +%H%M%S).sql.gz"
 
-# Restore backup
-sudo -u postgres psql -d fences < /backup/fences_20240101.sql
+# Восстановить backup
+gunzip < /backup/fences/2026/03/23/backup_HHMMSS.sql.gz | docker exec -i fences-db psql -U postgres fences
+```
+
+**Systemd:**
+```bash
+# Создать backup
+BACKUP_DIR="/backup/fences/$(date +%Y/%m/%d)"
+mkdir -p "$BACKUP_DIR"
+sudo -u postgres pg_dump -d fences | gzip > "$BACKUP_DIR/backup_$(date +%H%M%S).sql.gz"
+
+# Восстановить backup
+gunzip < /backup/fences/2026/03/23/backup_HHMMSS.sql.gz | sudo -u postgres psql -d fences
 ```
 
 ## CI/CD with GitHub Actions
 
-Create `.github/workflows/deploy.yml`:
+Проект уже имеет настроенный CI/CD:
 
-```yaml
-name: Deploy
+- `.github/workflows/ci.yml` - проверки качества (lint, typecheck, tests)
+- `.github/workflows/bump-version.yml` - автоматический bump версии
+- `.github/workflows/deploy.yml` - деплой на VPS с rollback
 
-on:
-  push:
-    branches: [master]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Deploy to server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /root/Fences-of-the-curtain
-            ./deploy.sh
-```
+CI проверка запускается автоматически для каждого PR в master.
 
 ## Quick Deploy Commands
 

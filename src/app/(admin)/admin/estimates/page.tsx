@@ -157,7 +157,7 @@ export default function EstimatesPage() {
 
   const fetchFenceTypes = async () => {
     try {
-      const res = await fetch('/api/admin/fence-types');
+      const res = await fetch('/api/admin/materials/fence-types');
       const data = await res.json();
       setFenceTypes(data.fenceTypes || data || []);
     } catch (error) {

@@ -25,9 +25,9 @@ export async function GET(
     }
 
     const isAdmin = session.user.role === 'ADMIN';
-    
+
     if (!isAdmin) {
-      const { purchasePricePerUnit, ...itemWithoutPurchasePrice } = profnastil as any;
+      const { purchasePricePerUnit, purchasePricePerLinearMeter, ...itemWithoutPurchasePrice } = profnastil as any;
       return NextResponse.json(itemWithoutPurchasePrice);
     }
 

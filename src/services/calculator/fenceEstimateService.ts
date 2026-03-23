@@ -3,6 +3,7 @@ import { FenceEstimateInput } from '@/lib/validators/fenceEstimate';
 import { calculatePosts, PostCalculationResult } from './postCalculator';
 import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
+import { calculatePanel3D, Panel3DCalculationResult } from './panel3DCalculator';
 import { calculateInstallation, InstallationCalculationResult } from './installationCalculator';
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
@@ -11,7 +12,7 @@ import { workService } from '@/services/admin/workService';
 import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
 
 export interface GateCalculationResult {
   category: 'gates';
@@ -80,7 +81,7 @@ export interface FenceEstimateResult {
     length: number;
     height: number;
     lagRows: 2 | 3;
-    coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
+    coating?: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
     gate?: GateInfo;
     wicket?: WicketInfo;
   };
@@ -223,53 +224,78 @@ export async function calculateFenceEstimate(
   const postSpacingMm = fenceType.postSpacing;
   const postSpacingM = postSpacingMm / 1000;
 
-  const [postsResult, lagsResult, profnastilResult] = await Promise.all([
+  let profnastilResult: ProfnastilCalculationResult | undefined;
+  let panel3dResult: Panel3DCalculationResult | undefined;
+
+  if (fenceType.name === 'Профнастил') {
+    profnastilResult = await calculateProfnastil(length, height, coating);
+  } else if (fenceType.name === '3D-панели') {
+    panel3dResult = await calculatePanel3D(correctedLength, height);
+  } else if (fenceType.name === 'Евроштакетник') {
+    throw {
+      error: 'CALCULATOR_NOT_IMPLEMENTED',
+      message: 'Расчёт для типа забора "Евроштакетник" пока не реализован',
+    } as CalculationError;
+  } else if (fenceType.name === 'Сетка-рабица') {
+    throw {
+      error: 'CALCULATOR_NOT_IMPLEMENTED',
+      message: 'Расчёт для типа забора "Сетка-рабица" пока не реализован',
+    } as CalculationError;
+  } else {
+    throw {
+      error: 'UNKNOWN_FENCE_TYPE',
+      message: `Неизвестный тип забора: ${fenceType.name}`,
+    } as CalculationError;
+  }
+
+  const [postsResult, lagsResult] = await Promise.all([
     calculatePosts(correctedLength, height, postSpacingM),
     calculateLags(correctedLength, lagRows),
-    (async () => {
-      if (fenceType.name === 'Профнастил') {
-        return calculateProfnastil(length, height, coating);
-      } else if (fenceType.name === 'Евроштакетник') {
-        throw {
-          error: 'CALCULATOR_NOT_IMPLEMENTED',
-          message: 'Расчёт для типа забора "Евроштакетник" пока не реализован',
-        } as CalculationError;
-      } else if (fenceType.name === 'Сетка-рабица') {
-        throw {
-          error: 'CALCULATOR_NOT_IMPLEMENTED',
-          message: 'Расчёт для типа забора "Сетка-рабица" пока не реализован',
-        } as CalculationError;
-      } else if (fenceType.name === '3D -панели') {
-        throw {
-          error: 'CALCULATOR_NOT_IMPLEMENTED',
-          message: 'Расчёт для типа забора "3D -панели" пока не реализован',
-        } as CalculationError;
-      } else {
-        throw {
-          error: 'UNKNOWN_FENCE_TYPE',
-          message: `Неизвестный тип забора: ${fenceType.name}`,
-        } as CalculationError;
-      }
-    })(),
   ]);
 
   const installationBase = calculateInstallation(length);
 
-  const mountingHardwareResult = await calculateMountingHardware({
-    fenceLengthM: correctedLength,
-    fenceHeightM: height,
-    postsCount: postsResult.quantity,
-    lagsCount: lagsResult.quantity,
-    profnastilCount: profnastilResult?.quantity || 0,
-    postTypeId: postsResult.nomenclatureId,
-    lagTypeId: lagsResult.nomenclatureId,
-    profnastilTypeId: profnastilResult?.nomenclatureId || '',
-  });
+  let mountingHardwareResult: MountingHardwareCalculationResult[];
+  let panel3dInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
+
+  if (panel3dResult) {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult.quantity,
+      panel3dId: panel3dResult.nomenclatureId,
+      panel3dCount: panel3dResult.quantity,
+    });
+
+    const panelWorks = await workService.getWorksForCalculatorByReference('PANEL_3D', panel3dResult.nomenclatureId);
+
+    if (panelWorks.length > 0) {
+      panel3dInstallationWorks = panelWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
+    } else {
+      const fenceTypeWorks = await workService.getWorksForCalculator(fenceType.name);
+      panel3dInstallationWorks = fenceTypeWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
+    }
+  } else if (profnastilResult) {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult.quantity,
+      profnastilCount: profnastilResult.quantity,
+      postTypeId: postsResult.nomenclatureId,
+      lagTypeId: lagsResult.nomenclatureId,
+      profnastilTypeId: profnastilResult.nomenclatureId,
+    });
+  } else {
+    mountingHardwareResult = [];
+  }
 
   const items: EstimateItem[] = [
     postsResult,
     lagsResult,
     ...(profnastilResult ? [profnastilResult] : []),
+    ...(panel3dResult ? [panel3dResult] : []),
   ];
 
   if (hasGate && gateInfo) {
@@ -326,17 +352,32 @@ export async function calculateFenceEstimate(
     items.push(wicketInstallationItem);
   }
 
+  for (const work of panel3dInstallationWorks) {
+    const panel3dInstallationItem: GateInstallationCalculationResult = {
+      category: 'installation',
+      nomenclatureId: work.id,
+      nomenclatureName: work.name,
+      quantity: panel3dResult ? panel3dResult.quantity : 1,
+      unit: 'шт',
+      pricePerUnit: work.price,
+      totalPrice: work.price * (panel3dResult ? panel3dResult.quantity : 1),
+    };
+    items.push(panel3dInstallationItem);
+  }
+
   items.push(...mountingHardwareResult);
 
   const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
   const gateInstallationTotal = gateInstallationWorks.reduce((sum, work) => sum + work.price, 0);
   const wicketInstallationTotal = wicketInstallationWorks.reduce((sum, work) => sum + work.price, 0);
-  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
-  const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal;
+  const panel3dInstallationTotal = panel3dInstallationWorks.reduce((sum, work) => sum + work.price * (panel3dResult ? panel3dResult.quantity : 1), 0);
+  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
+  const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal;
   const grandTotal = materials + installation;
 
   const estimate = await prisma.fenceEstimate.create({
     data: {
+      id: `estimate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       fenceTypeId,
       length: correctedLength,
       height,
@@ -359,6 +400,10 @@ export async function calculateFenceEstimate(
       wicketNomenclatureName: wicketInfo ? wicketInfo.selectedName : null,
       wicketTotal,
       wicketInstallationTotal,
+      panel3dId: panel3dResult ? panel3dResult.nomenclatureId : null,
+      panel3dNomenclatureName: panel3dResult ? panel3dResult.nomenclatureName : null,
+      panel3dTotal: panel3dResult?.totalPrice || 0,
+      panel3dInstallationTotal,
       installationTotal: installation,
       materialsTotal: materials,
       grandTotal,

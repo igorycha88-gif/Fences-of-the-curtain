@@ -120,8 +120,12 @@ describe('Mounting Hardware Calculator', () => {
     let testPostId: string;
 
     beforeAll(async () => {
+      const { cache } = await import('@/lib/cache');
+      await cache.delPattern('calculator:hardware:*');
+
       const post = await prisma.postType.create({
         data: {
+          id: 'test-post-id-' + Date.now(),
           name: 'Тестовый столб для фурнитуры',
           sectionWidth: 60,
           sectionHeight: 60,
@@ -131,12 +135,14 @@ describe('Mounting Hardware Calculator', () => {
           retailPricePerUnit: 600,
           active: true,
           priority: 999,
+          updatedAt: new Date(),
         },
       });
       testPostId = post.id;
 
       const hardware = await prisma.mountingHardware.create({
         data: {
+          id: 'test-hardware-id-' + Date.now(),
           name: 'Саморез 4.2x19 мм',
           purchasePrice: 3.0,
           retailPrice: 5.0,
@@ -145,17 +151,32 @@ describe('Mounting Hardware Calculator', () => {
           calculationMethod: 'BY_QUANTITY',
           calculationValue: null,
           sortOrder: 999,
+          updatedAt: new Date(),
         },
       });
       testHardwareId = hardware.id;
 
+      console.log('[TEST] Creating relation with hardwareId:', testHardwareId, 'postTypeId:', testPostId);
+
       await prisma.mountingHardwareRelation.create({
         data: {
+          id: 'test-hardware-relation-' + Date.now(),
           mountingHardwareId: testHardwareId,
           referenceType: 'POST',
           referenceId: testPostId,
         },
       });
+
+      console.log('[TEST] Relation created successfully');
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const relationCheck = await prisma.mountingHardwareRelation.findMany({
+        where: {
+          mountingHardwareId: testHardwareId,
+        },
+      });
+      console.log('[TEST] Relations check after creation:', relationCheck);
     });
 
     afterAll(async () => {
@@ -176,6 +197,10 @@ describe('Mounting Hardware Calculator', () => {
         profnastilCount: 10,
         postTypeId: testPostId,
       });
+
+      console.log('[TEST] testPostId:', testPostId);
+      console.log('[TEST] testHardwareId:', testHardwareId);
+      console.log('[TEST] results:', results.map(r => ({ nomenclatureId: r.nomenclatureId, name: r.nomenclatureName })));
 
       const hardwareItem = results.find(r => r.nomenclatureId === testHardwareId);
       expect(hardwareItem).toBeDefined();

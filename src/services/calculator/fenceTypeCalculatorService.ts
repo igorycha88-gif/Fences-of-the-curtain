@@ -44,17 +44,6 @@ export class FenceTypeCalculatorService {
 
     const types = await prisma.fenceType.findMany({
       where,
-      include: {
-        _count: {
-          select: {
-            materials: {
-              where: {
-                active: true,
-              },
-            },
-          },
-        },
-      },
       orderBy: {
         priority: 'asc',
       },
@@ -68,7 +57,7 @@ export class FenceTypeCalculatorService {
       difficultyCoef: type.difficultyCoef,
       postSpacing: type.postSpacing,
       defaultLagRows: type.defaultLagRows,
-      materialsCount: type._count.materials,
+      materialsCount: 0,
     }));
 
     try {

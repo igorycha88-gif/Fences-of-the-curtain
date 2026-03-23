@@ -63,10 +63,16 @@ class ReferenceRegistry {
           orderBy: { name: 'asc' } 
         });
       case 'WICKET':
-        return prisma.wicketType.findMany({ 
-          where: { active: true }, 
-          select: { id: true, name: true }, 
-          orderBy: { name: 'asc' } 
+        return prisma.wicketType.findMany({
+          where: { active: true },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' }
+        });
+      case 'PANEL_3D':
+        return prisma.panel3D.findMany({
+          where: { active: true },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' }
         });
       default:
         throw new Error(`Unknown reference type: ${type}`);
@@ -99,6 +105,9 @@ class ReferenceRegistry {
         case 'WICKET':
           const wicket = await prisma.wicketType.findUnique({ where: { id } });
           return wicket !== null;
+        case 'PANEL_3D':
+          const panel3d = await prisma.panel3D.findUnique({ where: { id } });
+          return panel3d !== null;
         default:
           return false;
       }
@@ -133,6 +142,9 @@ class ReferenceRegistry {
         case 'WICKET':
           const wicket = await prisma.wicketType.findUnique({ where: { id }, select: { name: true } });
           return wicket?.name || 'Неизвестно';
+        case 'PANEL_3D':
+          const panel3d = await prisma.panel3D.findUnique({ where: { id }, select: { name: true } });
+          return panel3d?.name || 'Неизвестно';
         default:
           return 'Неизвестно';
       }
@@ -178,4 +190,10 @@ referenceRegistry.register({
   type: 'WICKET',
   name: 'Калитки',
   modelName: 'WicketType',
+});
+
+referenceRegistry.register({
+  type: 'PANEL_3D',
+  name: '3D-панели',
+  modelName: 'Panel3D',
 });
