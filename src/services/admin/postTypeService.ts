@@ -84,10 +84,13 @@ export class PostTypeService {
       };
     } else if (validityFilter === 'active') {
       where.active = true;
-      where.OR = [
-        { expirationDate: null },
-        { expirationDate: { gt: now } },
-      ];
+      const activeCondition = {
+        OR: [
+          { expirationDate: null },
+          { expirationDate: { gt: now } },
+        ]
+      };
+      where.AND = where.AND ? [...(Array.isArray(where.AND) ? where.AND : [where.AND]), activeCondition] : [activeCondition];
     }
 
     const [posts, total] = await Promise.all([
