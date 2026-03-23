@@ -3,11 +3,12 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64');
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
-    style-src 'self' 'unsafe-inline';
+    script-src 'self' 'nonce-${nonce}' ${isDevelopment ? "'unsafe-inline' 'unsafe-eval'" : ''} https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
+    style-src 'self' 'nonce-${nonce}' ${isDevelopment ? "'unsafe-inline'" : "'unsafe-hashes'"};
     img-src 'self' data: https:;
     font-src 'self';
     connect-src 'self' https://mc.yandex.ru;
@@ -25,8 +26,6 @@ export function middleware(request: NextRequest) {
 
   return response;
 }
-
-export const dynamic = 'force-dynamic';
 
 export const config = {
   matcher: [

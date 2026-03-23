@@ -2,6 +2,15 @@
 
 Веб-приложение для компании по установке заборов и навесов с онлайн-калькуляторами стоимости.
 
+## 📚 Документация
+
+- 📘 [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) - Гайд для локальной разработки
+- 🚀 [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md) - Быстрый деплой на production
+- 📦 [Deployment Guide](DEPLOYMENT.md) - Подробное руководство по деплою
+- ⚙️ [CI/CD Setup Guide](docs/CICD_SETUP_GUIDE.md) - Настройка CI/CD с GitHub Actions
+- 📋 [CI/CD Plan](docs/cicd-plan.md) - План реализации CI/CD
+- ✅ [CI Checklist](docs/CI_CHECKLIST.md) - Чеклист для CI/CD
+
 ## Технологический стек
 
 - **Frontend**: Next.js 14 (App Router), React 18, TypeScript
@@ -40,6 +49,7 @@
 - PostgreSQL 16+
 - Redis 7+ (обязательно для rate limiting)
 - npm или yarn
+- Docker и Docker Compose (опционально, для контейнеризации)
 
 ### Переменные окружения
 
@@ -173,21 +183,67 @@ PORT=3001 npm run dev
 
 ### Запуск с Docker
 
+#### Production (рекомендуется для продакшн)
+
 1. Настройка окружения
 ```bash
 cp .env.example .env
 # Установите переменные окружения
 ```
 
-2. Запуск контейнеров
+2. Генерация пароля Redis
+```bash
+./scripts/setup-redis-secret.sh
+# или вручную:
+openssl rand -base64 32 > secrets/redis_password
+chmod 600 secrets/redis_password
+```
+
+3. Настройка SSL сертификатов (для HTTPS)
+```bash
+mkdir -p ssl
+# Если используете Let's Encrypt:
+sudo certbot certonly --standalone -d yourdomain.com
+sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem ssl/fullchain.pem
+sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem ssl/privkey.pem
+sudo chown -R $USER:$USER ssl
+```
+
+4. Запуск контейнеров
 ```bash
 docker-compose up -d
 ```
 
+**Важно:** В production PostgreSQL порт 5433 НЕ доступен извне. БД доступна только внутри Docker сети.
+
+5. Применение миграций
+```bash
+docker-compose exec app npx prisma migrate deploy
+docker-compose exec app npm run db:seed
+```
+
+#### Development
+
+1. Настройка окружения
+```bash
+cp .env.example .env.dev
+# Установите переменные окружения в .env.dev
+```
+
+2. Запуск development конфигурации
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
+
 3. Применение миграций
 ```bash
-docker-compose exec app npx prisma db push
-docker-compose exec app npm run db:seed
+docker-compose -f docker-compose.dev.yml exec app npx prisma migrate dev
+docker-compose -f docker-compose.dev.yml exec app npm run db:seed
+```
+
+**Важно:** В development PostgreSQL доступен на порту 5433 только для удобства отладки. Для подключения к БД:
+```bash
+docker-compose -f docker-compose.dev.yml exec db psql -U postgres fences
 ```
 
 ## Доступ к админ-панели
@@ -357,3 +413,55 @@ MIT
 
 Email: info@fences.ru
 Телефон: +7 (900) 123-45-67
+
+## Дополнительная документация
+
+- [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) - Гайд для локальной разработки
+- [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md) - Быстрый деплой на production
+- [Deployment Guide](DEPLOYMENT.md) - Подробное руководство по деплою
+- [CI/CD Setup Guide](docs/CICD_SETUP_GUIDE.md) - Настройка CI/CD с GitHub Actions
+- [CI/CD Plan](docs/cicd-plan.md) - План реализации CI/CD
+- [CI Checklist](docs/CI_CHECKLIST.md) - Чеклист для CI/CD
+
+## Быстрый старт
+
+### Локальная разработка
+
+```bash
+# Клонирование репозитория
+git clone <repository-url>
+cd Fences-of-the-curtain
+
+# Установка зависимостей
+npm install
+
+# Настройка окружения
+cp .env.example .env
+nano .env
+
+# Запуск в режиме разработки
+npm run dev
+```
+
+Подробнее в [Local Development Guide](docs/LOCAL_DEVELOPMENT.md)
+
+### Production деплой
+
+```bash
+# На сервере
+git clone <repository-url>
+cd Fences-of-the-curtain
+
+# Настройка окружения
+cp .env.example .env
+nano .env
+
+# Запуск
+docker-compose up -d
+
+# Миграции
+docker-compose exec app npx prisma migrate deploy
+docker-compose exec app npm run db:seed
+```
+
+Подробнее в [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md)

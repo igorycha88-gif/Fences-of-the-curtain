@@ -44,6 +44,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - fences-network
+    expose:
+      - "5432"
 
   redis:
     image: redis:7-alpine

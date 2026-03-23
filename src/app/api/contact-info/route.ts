@@ -8,16 +8,22 @@ export async function GET() {
     let contactInfo = await prisma.contactInfo.findFirst();
 
     if (!contactInfo) {
-      contactInfo = await prisma.contactInfo.create({
-        data: {
-          address: '',
-          phone: '',
-          email: '',
-          workHoursMonFri: '',
-          workHoursSat: '',
-          workHoursSun: '',
-        },
-      });
+      const existingRecord = await prisma.contactInfo.findFirst();
+
+      if (!existingRecord) {
+        contactInfo = await prisma.contactInfo.create({
+          data: {
+            address: '',
+            phone: '',
+            email: '',
+            workHoursMonFri: '',
+            workHoursSat: '',
+            workHoursSun: '',
+          },
+        });
+      } else {
+        contactInfo = existingRecord;
+      }
     }
 
     const hasData =
@@ -64,8 +70,13 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching contact info:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {
+        hasData: false,
+        phone: '',
+        email: '',
+        message: 'База данных недоступна',
+      },
+      { status: 200 }
     );
   }
 }

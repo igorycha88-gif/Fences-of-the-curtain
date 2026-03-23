@@ -25,24 +25,58 @@ export interface MountingHardwareCalculationResult {
   calculationMethod: CalculationMethod;
 }
 
-async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string }) {
-  const { postTypeId, lagTypeId, profnastilTypeId } = referenceIds;
-  
-  if (!postTypeId && !lagTypeId && !profnastilTypeId) {
+async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string; panel3dId?: string }) {
+  const { postTypeId, lagTypeId, profnastilTypeId, panel3dId } = referenceIds;
+
+  if (!postTypeId && !lagTypeId && !profnastilTypeId && !panel3dId) {
     return [];
   }
 
-  const cacheKey = CACHE_KEYS.MOUNTING_HARDWARE(
-    postTypeId || 'none',
-    lagTypeId || 'none',
-    profnastilTypeId || 'none'
-  );
+  const cacheKey = panel3dId
+    ? `calculator:hardware:${postTypeId || 'none'}:${lagTypeId || 'none'}:${profnastilTypeId || 'none'}:${panel3dId}`
+    : CACHE_KEYS.MOUNTING_HARDWARE(
+        postTypeId || 'none',
+        lagTypeId || 'none',
+        profnastilTypeId || 'none'
+      );
 
   return cache.getOrSet(
     cacheKey,
     async () => {
+      console.log('[MOUNTING HARDWARE] Cache MISS, loading from DB');
+      const hardware = await prisma.mountingHardware.findMany({
+        where: {
+          active: true,
+          useInCalculator: true,
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+      });
+
+      const hardwareIds = hardware.map(h => h.id);
+      const relations = await prisma.mountingHardwareRelation.findMany({
+        where: {
+          mountingHardwareId: { in: hardwareIds },
+        },
+      });
+
+      console.log('[MOUNTING HARDWARE] hardwareIds:', hardwareIds);
+      console.log('[MOUNTING HARDWARE] relations:', relations);
+
+      const relationsByHardwareId = new Map<string, Array<{ referenceType: string; referenceId: string }>>();
+      relations.forEach(rel => {
+        if (!relationsByHardwareId.has(rel.mountingHardwareId)) {
+          relationsByHardwareId.set(rel.mountingHardwareId, []);
+        }
+        relationsByHardwareId.get(rel.mountingHardwareId)!.push({
+          referenceType: rel.referenceType,
+          referenceId: rel.referenceId,
+        });
+      });
+
       const conditions: Array<{ referenceType: string; referenceId: string }> = [];
-      
+
       if (postTypeId) {
         conditions.push({ referenceType: 'POST', referenceId: postTypeId });
       }
@@ -52,33 +86,15 @@ async function getHardwareForReferences(referenceIds: { postTypeId?: string; lag
       if (profnastilTypeId) {
         conditions.push({ referenceType: 'PROFNASTIL', referenceId: profnastilTypeId });
       }
+      if (panel3dId) {
+        conditions.push({ referenceType: 'PANEL_3D', referenceId: panel3dId });
+      }
 
-      return prisma.mountingHardware.findMany({
-        where: {
-          active: true,
-          useInCalculator: true,
-          relations: {
-            some: {
-              OR: conditions,
-            },
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          retailPrice: true,
-          calculationMethod: true,
-          calculationValue: true,
-          relations: {
-            where: {
-              OR: conditions,
-            },
-            select: {
-              referenceType: true,
-              referenceId: true,
-            },
-          },
-        },
+      return hardware.filter((hw) => {
+        const hwRelations = relationsByHardwareId.get(hw.id) || [];
+        return hwRelations.some((rel) =>
+          conditions.some((cond) => cond.referenceType === rel.referenceType && cond.referenceId === rel.referenceId)
+        );
       });
     },
     CACHE_TTL.REFERENCE_DATA
@@ -90,10 +106,12 @@ export async function calculateMountingHardware(params: {
   fenceHeightM: number;
   postsCount: number;
   lagsCount: number;
-  profnastilCount: number;
+  profnastilCount?: number;
+  panel3dCount?: number;
   postTypeId?: string;
   lagTypeId?: string;
   profnastilTypeId?: string;
+  panel3dId?: string;
 }): Promise<MountingHardwareCalculationResult[]> {
   const {
     fenceLengthM,
@@ -101,9 +119,11 @@ export async function calculateMountingHardware(params: {
     postsCount,
     lagsCount,
     profnastilCount,
+    panel3dCount,
     postTypeId,
     lagTypeId,
     profnastilTypeId,
+    panel3dId,
   } = params;
 
   const fenceArea = fenceLengthM * fenceHeightM;
@@ -114,12 +134,14 @@ export async function calculateMountingHardware(params: {
     postTypeId,
     lagTypeId,
     profnastilTypeId,
+    panel3dId,
   });
 
   const hardwareByType = new Map<string, HardwareForCalculation[]>();
   
   for (const hw of allHardware) {
-    for (const rel of hw.relations) {
+    const relations = (hw as any).MountingHardwareRelation || [];
+    for (const rel of relations) {
       const key = `${rel.referenceType}:${rel.referenceId}`;
       if (!hardwareByType.has(key)) {
         hardwareByType.set(key, []);
@@ -156,10 +178,20 @@ export async function calculateMountingHardware(params: {
     }
   }
 
-  if (profnastilTypeId) {
+  if (profnastilTypeId && profnastilCount) {
     const hardware = hardwareByType.get(`PROFNASTIL:${profnastilTypeId}`) || [];
     for (const hw of hardware) {
       const result = calculateHardwareItem(hw, profnastilCount, fenceLengthM, fenceArea);
+      if (result) {
+        results.push(result);
+      }
+    }
+  }
+
+  if (panel3dId && panel3dCount) {
+    const hardware = hardwareByType.get(`PANEL_3D:${panel3dId}`) || [];
+    for (const hw of hardware) {
+      const result = calculateHardwareItem(hw, panel3dCount, fenceLengthM, fenceArea);
       if (result) {
         results.push(result);
       }

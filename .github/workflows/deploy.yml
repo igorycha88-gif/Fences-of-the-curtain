@@ -5,7 +5,7 @@ name: Deploy to VPS
 # Before using this workflow, ensure the following secrets are configured in GitHub repository settings:
 # 
 # Required GitHub Secrets:
-# - SSH_PASSWORD: SSH password for server access
+# - SSH_PRIVATE_KEY: SSH private key for server access
 # - SSH_PORT: SSH port (default: 22)
 # 
 # Required Server Environment Variables (MUST be set on VPS):
@@ -49,7 +49,7 @@ jobs:
         with:
           host: 37.143.13.196
           username: root
-          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           command_timeout: 15m
@@ -87,8 +87,10 @@ jobs:
             log_deploy "Backup tag: $BACKUP_TAG"
             
             log_deploy "=== Creating database backup ==="
-            BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
-            sudo -u postgres pg_dump -U postgres fences > "$BACKUP_FILE" || log_deploy "Warning: Backup failed, continuing..."
+            BACKUP_DIR="/backup/fences/$(date +%Y/%m/%d)"
+            mkdir -p "$BACKUP_DIR"
+            BACKUP_FILE="$BACKUP_DIR/backup_$(date +%H%M%S).sql.gz"
+            sudo -u postgres pg_dump -U postgres fences | gzip > "$BACKUP_FILE" || log_deploy "Warning: Backup failed, continuing..."
             
             log_deploy "=== Pulling latest changes ==="
             git fetch origin
@@ -107,8 +109,8 @@ jobs:
             log_deploy "=== Building application ==="
             npm run build
             
-            log_deploy "=== Pushing schema changes ==="
-            npx prisma db push --accept-data-loss
+            log_deploy "=== Applying database migrations ==="
+            npx prisma migrate deploy
             
             log_deploy "=== Graceful restart with PM2 ==="
             if pm2 list | grep -q "$APP_NAME"; then
@@ -145,10 +147,13 @@ jobs:
               log_deploy "=== Reinstalling dependencies ==="
               npm install --legacy-peer-deps
               npx prisma generate
-              
+
               log_deploy "=== Rebuilding application ==="
               npm run build
-              
+
+              log_deploy "=== Rolling back database migrations ==="
+              npx prisma migrate resolve --rolled-back "$(npx prisma migrate status | tail -1 | awk '{print $1}')" || log_deploy "Warning: Migration rollback failed, continuing..."
+
               log_deploy "=== Restarting with previous version ==="
               pm2 reload ecosystem.config.js --env production || pm2 restart ecosystem.config.js --env production
               
@@ -189,4 +194,5 @@ jobs:
             
             # Cleanup old deploy logs (30 days retention)
             find "$LOG_DIR" -name "deploy.log" -mtime +30 -delete 2>/dev/null || true
-            find "$APP_DIR" -name "backup_*.sql" -mtime +7 -delete 2>/dev/null || true
+            # Cleanup old database backups (90 days retention, from backup directory)
+            find "/backup/fences" -name "backup_*.sql.gz" -mtime +90 -delete 2>/dev/null || true

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const ReferenceTypeEnum = z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET']);
+export const ReferenceTypeEnum = z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D']);
 
 export const CalculationMethodEnum = z.enum(['BY_QUANTITY', 'BY_LENGTH', 'BY_AREA', 'BY_RATIO', 'BY_INVERSE_RATIO']);
 
@@ -17,8 +17,12 @@ const mountingHardwareBaseSchema = z.object({
     .max(1000, 'Описание не должно превышать 1000 символов')
     .optional()
     .nullable(),
-  purchasePrice: z.number()
-    .min(0, 'Цена закупки должна быть не менее 0'),
+  purchasePrice: z.number({
+    required_error: 'Цена закупки обязательна для заполнения',
+    invalid_type_error: 'Цена закупки должна быть числом',
+  })
+    .min(0, 'Цена закупки должна быть не менее 0')
+    .nullable(),
   retailPrice: z.number()
     .min(0, 'Розничная стоимость должна быть не менее 0'),
   validUntil: z.coerce.date().nullable().optional(),

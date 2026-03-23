@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
         height: body.height,
         coating: body.coating,
         active: body.active ?? true,
-        sortOrder: body.sortOrder ?? 0,
       },
     });
 
