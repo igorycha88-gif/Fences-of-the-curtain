@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 const VALID_REFERENCE_TYPES = ['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET'] as const;
 type ReferenceType = typeof VALID_REFERENCE_TYPES[number];
 

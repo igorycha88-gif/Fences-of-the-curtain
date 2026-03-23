@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { statisticsService } from '@/services/admin/statisticsService';
 import { hasPermission } from '@/lib/permissions/rbac';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log('[DASHBOARD API] Fetching session...');

@@ -5,6 +5,8 @@ import { getConfig, updateConfig } from '@/lib/rate-limit';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 const updateConfigSchema = z.object({
   maxAttempts: z.number().int().min(1).max(100),
   windowMs: z.number().int().min(60000).max(3600000),

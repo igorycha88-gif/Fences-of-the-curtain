@@ -7,8 +7,11 @@ services:
     restart: unless-stopped
     expose:
       - "3000"
+    ports:
+      - "3000:3000"
     environment:
       - NODE_ENV=production
+      - PORT=3000
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/fences
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
