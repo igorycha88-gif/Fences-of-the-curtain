@@ -4,18 +4,30 @@ export const SEO_CONFIG = {
   DEFAULT_TITLE: 'Заборы и Навесы — Онлайн расчёт стоимости',
   DEFAULT_DESCRIPTION: 'Профессиональная установка заборов и навесов. Калькулятор стоимости онлайн. Гарантия качества, быстрый монтаж.',
   DEFAULT_KEYWORDS: ['заборы', 'навесы', 'калькулятор забора', 'установка забора', 'забор из профнастила', 'евроштакетник'],
+<<<<<<< HEAD
   DEFAULT_OG_IMAGE: '/og/og-main.jpg',
+=======
+  DEFAULT_OG_IMAGE: '/og/og-main.svg',
+>>>>>>> origin/dev2
   TWITTER_SITE: '@zabor_navesy',
   LOCALE: 'ru_RU',
 } as const;
 
 export const BUSINESS_INFO = {
   name: 'Заборы и Навесы',
+<<<<<<< HEAD
   telephone: '+7-900-123-45-67',
   email: 'info@fences.ru',
   address: {
     locality: 'Город',
     region: 'Регион',
+=======
+  telephone: '+74993901595',
+  email: 'zabori-naves@yandex.ru',
+  address: {
+    locality: 'Раменское',
+    region: 'Московская область',
+>>>>>>> origin/dev2
     country: 'Россия',
   },
   openingHours: {
@@ -31,37 +43,61 @@ export const PAGE_METADATA = {
     title: 'Заборы и Навесы — Онлайн расчёт стоимости',
     description: 'Профессиональная установка заборов и навесов. Калькулятор стоимости онлайн. Гарантия качества, быстрый монтаж.',
     keywords: ['заборы', 'навесы', 'калькулятор забора', 'установка забора'],
+<<<<<<< HEAD
     ogImage: '/og/og-main.jpg',
+=======
+    ogImage: '/og/og-main.svg',
+>>>>>>> origin/dev2
   },
   services: {
     title: 'Услуги — Заборы и Навесы',
     description: 'Установка заборов из профнастила, евроштакетника, сетки-рабицы. Навесы для авто, беседки, террасы.',
     keywords: ['забор из профнастила', 'евроштакетник', 'навес для авто'],
+<<<<<<< HEAD
     ogImage: '/og/og-services.jpg',
+=======
+    ogImage: '/og/og-services.svg',
+>>>>>>> origin/dev2
   },
   calculatorFence: {
     title: 'Калькулятор забора — Онлайн расчёт цены',
     description: 'Рассчитайте стоимость забора онлайн за 30 секунд. Профнастил, евроштакетник, 3D-панели.',
     keywords: ['калькулятор забора', 'расчёт забора', 'цена забора'],
+<<<<<<< HEAD
     ogImage: '/og/og-calculator.jpg',
+=======
+    ogImage: '/og/og-calculator.svg',
+>>>>>>> origin/dev2
   },
   calculatorCanopy: {
     title: 'Калькулятор навеса — Онлайн расчёт цены',
     description: 'Рассчитайте стоимость навеса онлайн. Навесы для авто, беседки, террасы из поликарбоната.',
     keywords: ['калькулятор навеса', 'расчёт навеса', 'навес для машины'],
+<<<<<<< HEAD
     ogImage: '/og/og-calculator.jpg',
+=======
+    ogImage: '/og/og-calculator.svg',
+>>>>>>> origin/dev2
   },
   portfolio: {
     title: 'Портфолио — Заборы и Навесы',
     description: 'Примеры наших работ: заборы и навесы. Фотографии выполненных проектов с описанием.',
     keywords: ['портфолио заборы', 'примеры работ', 'фото заборов'],
+<<<<<<< HEAD
     ogImage: '/og/og-portfolio.jpg',
+=======
+    ogImage: '/og/og-portfolio.svg',
+>>>>>>> origin/dev2
   },
   contacts: {
     title: 'Контакты — Заборы и Навесы',
     description: 'Свяжитесь с нами для консультации и расчёта стоимости. Телефон, email, адрес.',
     keywords: ['контакты', 'телефон', 'адрес'],
+<<<<<<< HEAD
     ogImage: '/og/og-contacts.jpg',
+=======
+    ogImage: '/og/og-contacts.svg',
+>>>>>>> origin/dev2
   },
 } as const;
 

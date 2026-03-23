@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   title: {
     default: SEO_CONFIG.DEFAULT_TITLE,
     template: `%s | ${SEO_CONFIG.SITE_NAME}`,
+<<<<<<< HEAD
   },
   description: SEO_CONFIG.DEFAULT_DESCRIPTION,
   keywords: SEO_CONFIG.DEFAULT_KEYWORDS.join(', '),
@@ -56,27 +57,47 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.svg',
+=======
+>>>>>>> origin/dev2
   },
-  metadataBase: new URL(siteUrl),
+  description: SEO_CONFIG.DEFAULT_DESCRIPTION,
+  keywords: SEO_CONFIG.DEFAULT_KEYWORDS.join(', '),
+  authors: [{ name: SEO_CONFIG.SITE_NAME }],
+  creator: SEO_CONFIG.SITE_NAME,
+  publisher: SEO_CONFIG.SITE_NAME,
+  metadataBase: new URL(SEO_CONFIG.BASE_URL),
   alternates: {
-    canonical: '/',
+    canonical: SEO_CONFIG.BASE_URL,
   },
   openGraph: {
     type: 'website',
-    locale: 'ru_RU',
-    url: siteUrl,
-    title: 'Заборы и Навесы | Установка заборов и навесов',
-    description: 'Профессиональная установка заборов и навесов. Онлайн-расчет стоимости, каталог услуг, портфолио работ.',
-    siteName: 'Заборы и Навесы',
+    locale: SEO_CONFIG.LOCALE,
+    url: SEO_CONFIG.BASE_URL,
+    siteName: SEO_CONFIG.SITE_NAME,
+    title: SEO_CONFIG.DEFAULT_TITLE,
+    description: SEO_CONFIG.DEFAULT_DESCRIPTION,
+    images: [
+      {
+        url: `${SEO_CONFIG.BASE_URL}${SEO_CONFIG.DEFAULT_OG_IMAGE}`,
+        width: 1200,
+        height: 630,
+        alt: SEO_CONFIG.SITE_NAME,
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Заборы и Навесы | Установка заборов и навесов',
-    description: 'Профессиональная установка заборов и навесов. Онлайн-расчет стоимости, каталог услуг, портфолио работ.',
+    site: SEO_CONFIG.TWITTER_SITE,
+    title: SEO_CONFIG.DEFAULT_TITLE,
+    description: SEO_CONFIG.DEFAULT_DESCRIPTION,
+    images: [`${SEO_CONFIG.BASE_URL}${SEO_CONFIG.DEFAULT_OG_IMAGE}`],
   },
   robots: {
     index: true,
     follow: true,
+  },
+  icons: {
+    icon: '/favicon.svg',
   },
   verification: {
     yandex: 'b82b0cfe086d3936',
