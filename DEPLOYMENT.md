@@ -669,6 +669,145 @@ docker-compose exec app npx prisma migrate deploy
 npx prisma migrate deploy
 ```
 
+## Emergency Rollback
+
+### Backup Branch: master2
+
+Ветка `master2` содержит последнюю стабильную версию приложения, которая была успешно задеплоена на продакшен (v1.3.1).
+
+**Когда использовать master2:**
+- Дейлой из master сломал продакшен
+- Критические баги в новых фичах
+- Нужно быстро вернуть рабочую версию
+
+### Rollback Procedure
+
+#### Шаг 1: Подготовка rollback
+
+```bash
+# Локально на разработчике
+git checkout master
+git merge master2 --no-edit
+git push origin master --force
+```
+
+#### Шаг 2: Запуск деплоя
+
+```bash
+# В GitHub Actions
+gh workflow run deploy.yml
+
+# Или через UI
+# GitHub → Actions → Deploy to VPS → Run workflow
+```
+
+#### Шаг 3: Проверка
+
+После деплоя:
+1. Проверить сайт: https://zabor-i-naves.ru
+2. Проверить админку
+3. Проверить работоспособность калькуляторов
+
+### Автоматический Rollback
+
+Дейлой-воркфлоу уже включает автоматический rollback при ошибках:
+- Health check (10 попыток по 5 сек)
+- При ошибке → автоматический откат
+- Бекап БД до каждого деплоя
+- Логи в `/var/log/fences-deploy/deploy.log`
+
+### Логи rollback на сервере
+
+```bash
+# Просмотр логов деплоя
+tail -100 /var/log/fences-deploy/deploy.log
+
+# Просмотр логов PM2
+pm2 logs fences-app --lines 100
+
+# Проверка статуса PM2
+pm2 list
+```
+
+### Частые проблемы при деплое
+
+#### 1. Merge Conflicts
+
+**Симптом:** Build fails с "Merge conflict marker encountered"
+
+**Решение:**
+```bash
+# Локально
+git checkout master
+git diff origin/master...dev2 --name-status
+# Ручной merge или cherry-pick конкретных коммитов
+```
+
+#### 2. TypeScript Errors
+
+**Симптом:** "Type error: Element implicitly has an 'any' type"
+
+**Решение:**
+```bash
+# Проверить локально
+npm run build
+npm run typecheck
+
+# Исправить типы в файлах
+git add .
+git commit
+git push origin master
+```
+
+#### 3. Migration Errors
+
+**Симптом:** "Migration failed to apply"
+
+**Решение:**
+```bash
+# Локально тестировать миграции
+npx prisma migrate deploy
+npx prisma generate
+
+# При проблеме - manual resolve
+npx prisma migrate resolve --applied <migration_name>
+```
+
+#### 4. Permission Errors
+
+**Симптом:** "Permission denied" при деплое
+
+**Решение:**
+```bash
+# На сервере
+sudo chmod -R 755 /root/Fences-of-the-curtain
+sudo chown -R root:root /root/Fences-of-the-curtain
+```
+
+### Мониторинг после деплоя
+
+После успешного деплоя:
+
+```bash
+# 1. Проверить сайт
+curl -I https://zabor-i-naves.ru
+
+# 2. Проверить основные страницы
+curl https://zabor-i-naves.ru/ | head -20
+curl https://zabor-i-naves.ru/calculator | head -20
+
+# 3. Проверить API
+curl https://zabor-i-naves.ru/api/contact-info
+
+# 4. PM2 статус
+pm2 status
+
+# 5. Проверить логи
+pm2 logs fences-app --lines 50
+```
+
+При любых проблемах - использовать master2 для rollback!
+
 ### Logs
 
 ```bash
