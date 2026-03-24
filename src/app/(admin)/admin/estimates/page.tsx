@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Download, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { isApiError } from '@/lib/utils/apiResponse';
 
 interface Estimate {
   id: string;
@@ -134,6 +135,13 @@ export default function EstimatesPage() {
         throw new Error('Ошибка загрузки');
       }
       const data = await res.json();
+
+      if (isApiError(data)) {
+        console.error('[Estimates] API Error fetching estimate detail:', data.error);
+        toast.error('Ошибка загрузки сметы');
+        return;
+      }
+
       setSelectedEstimate(data);
     } catch (error) {
       console.error('Error fetching estimate detail:', error);
@@ -159,9 +167,17 @@ export default function EstimatesPage() {
     try {
       const res = await fetch('/api/admin/materials/fence-types');
       const data = await res.json();
-      setFenceTypes(data.fenceTypes || data || []);
+
+      if (isApiError(data)) {
+        console.error('[Estimates] API Error fetching fence types:', data.error);
+        setFenceTypes([]);
+        return;
+      }
+
+      setFenceTypes(Array.isArray(data.fenceTypes) ? data.fenceTypes : Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching fence types:', error);
+      setFenceTypes([]);
     }
   };
 
@@ -177,6 +193,13 @@ export default function EstimatesPage() {
 
       const res = await fetch(`/api/admin/estimates?${params.toString()}`);
       const data = await res.json();
+
+      if (isApiError(data)) {
+        console.error('[Estimates] API Error:', data.error);
+        setEstimates([]);
+        setTotal(0);
+        return;
+      }
       setEstimates(data.estimates || []);
       setTotal(data.total || 0);
     } catch (error) {

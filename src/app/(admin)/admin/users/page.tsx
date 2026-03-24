@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { isApiError } from '@/lib/utils/apiResponse';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -25,9 +26,17 @@ export default function UsersPage() {
 
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       const data = await res.json();
-      setUsers(data.users || []);
+
+      if (isApiError(data)) {
+        console.error('[Users] API Error:', data.error);
+        setUsers([]);
+        return;
+      }
+
+      setUsers(Array.isArray(data.users) ? data.users : []);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }

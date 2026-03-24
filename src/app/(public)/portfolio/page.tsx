@@ -6,6 +6,7 @@ import { Filter, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { getThumbnailUrl } from '@/lib/utils/imageUrl';
+import { isApiError } from '@/lib/utils/apiResponse';
 
 interface PortfolioItem {
   id: string;
@@ -39,9 +40,19 @@ export default function PortfolioPage() {
         const res = await fetch(`/api/portfolio${categoryParam}`);
         if (!res.ok) throw new Error('Ошибка загрузки');
         const data = await res.json();
-        setItems(data.items || []);
+
+        if (isApiError(data)) {
+          console.error('[Portfolio] API Error:', data.error);
+          setItems([]);
+          setError('Не удалось загрузить портфолио');
+          return;
+        }
+
+        setItems(Array.isArray(data.items) ? data.items : []);
       } catch (err) {
+        console.error('Error fetching portfolio:', err);
         setError('Не удалось загрузить портфолио');
+        setItems([]);
       } finally {
         setLoading(false);
       }

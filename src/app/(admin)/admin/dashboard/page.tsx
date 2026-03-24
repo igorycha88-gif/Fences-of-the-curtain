@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { isApiError } from '@/lib/utils/apiResponse';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -15,10 +16,20 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/admin/dashboard');
       const data = await res.json();
-      setStats(data.stats);
-      setRecentOrders(data.recentOrders || []);
+
+      if (isApiError(data)) {
+        console.error('[Dashboard] API Error:', data.error);
+        setStats({});
+        setRecentOrders([]);
+        return;
+      }
+
+      setStats(data.stats || {});
+      setRecentOrders(Array.isArray(data.recentOrders) ? data.recentOrders : []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setStats({});
+      setRecentOrders([]);
     } finally {
       setLoading(false);
     }
