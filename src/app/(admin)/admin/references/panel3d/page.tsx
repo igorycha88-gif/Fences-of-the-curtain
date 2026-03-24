@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
+import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface Panel3D {
   id: string;
@@ -564,6 +565,11 @@ export default function Panel3dPage() {
 
               <RelatedWorks
                 fenceType="PANEL_3D"
+              />
+
+              <RelatedWorksByReference
+                referenceType="PANEL_3D"
+                referenceId={editingPanel3d.id}
               />
             </>
           )}

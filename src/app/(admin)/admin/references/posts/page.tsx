@@ -12,6 +12,7 @@ import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
+import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface PostType {
   id: string;
@@ -585,6 +586,13 @@ export default function PostsPage() {
 
             {isAdmin && editingPost && (
               <RelatedMountingHardware
+                referenceType="POST"
+                referenceId={editingPost.id}
+              />
+            )}
+
+            {isAdmin && editingPost && (
+              <RelatedWorksByReference
                 referenceType="POST"
                 referenceId={editingPost.id}
               />

@@ -12,6 +12,7 @@ import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
+import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface LagType {
   id: string;
@@ -579,6 +580,13 @@ export default function LagsPage() {
 
             {isAdmin && editingLag && (
               <RelatedMountingHardware
+                referenceType="LAG"
+                referenceId={editingLag.id}
+              />
+            )}
+
+            {isAdmin && editingLag && (
+              <RelatedWorksByReference
                 referenceType="LAG"
                 referenceId={editingLag.id}
               />

@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
+import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface PicketType {
   id: string;
@@ -590,6 +591,13 @@ export default function PicketPage() {
           {isAdmin && editingItem && (
             <RelatedWorks
               fenceType="PICKET"
+            />
+          )}
+
+          {isAdmin && editingItem && (
+            <RelatedWorksByReference
+              referenceType="PICKET"
+              referenceId={editingItem.id}
             />
           )}
 

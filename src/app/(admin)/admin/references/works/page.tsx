@@ -538,9 +538,9 @@ export default function WorksPage() {
 
           <div className="border-t pt-4">
             <h4 className="font-medium mb-3">Привязка к номенклатуре</h4>
-            
+
             <div className="space-y-2 border rounded p-3 bg-gray-50 mb-4">
-              <p className="text-xs text-gray-500 mb-2 font-medium">Ворота / Калитки</p>
+              <p className="text-xs text-gray-500 mb-2 font-medium">Профнастил / Лаги / Столбы / Евроштакетник / Ворота / Калитки / 3D-панели</p>
               {formValues.relations.filter((r) => r.referenceType).map((rel, idx) => {
                 const actualIndex = formValues.relations.indexOf(rel);
                 return (

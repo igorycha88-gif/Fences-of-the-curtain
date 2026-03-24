@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
+import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface ProfnastilType {
   id: string;
@@ -642,6 +643,13 @@ export default function ProfnastilPage() {
           {isAdmin && editingItem && (
             <RelatedWorks
               fenceType="PROFNASTIL"
+            />
+          )}
+
+          {isAdmin && editingItem && (
+            <RelatedWorksByReference
+              referenceType="PROFNASTIL"
+              referenceId={editingItem.id}
             />
           )}
 
