@@ -2,20 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Filter, Loader2 } from 'lucide-react';
+import { Filter, Loader2, ImageOff } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 import { isApiError } from '@/lib/utils/apiResponse';
-
-interface PortfolioItem {
-  id: string;
-  title: string;
-  category: string;
-  type?: string;
-  description?: string;
-  images: string[];
-}
 
 interface PortfolioItem {
   id: string;
@@ -31,6 +22,7 @@ export default function PortfolioPage() {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -64,6 +56,11 @@ export default function PortfolioPage() {
   const filteredItems = filter === 'all'
     ? items
     : items.filter(item => item.category === filter);
+
+  const handleImageError = (imageUrl: string) => {
+    console.error('[Portfolio] Image failed to load:', imageUrl);
+    setImageErrors(prev => new Set(prev).add(imageUrl));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -135,16 +132,18 @@ export default function PortfolioPage() {
                   className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border"
                 >
                   <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300">
-                    {thumbnailUrl ? (
+                    {thumbnailUrl && !imageErrors.has(thumbnailUrl) ? (
                       <img
                         src={thumbnailUrl}
                         alt={item.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        onError={() => handleImageError(thumbnailUrl)}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        Нет фото
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gradient-to-br from-slate-100 to-slate-200">
+                        <ImageOff className="w-12 h-12 mb-2 text-gray-300" />
+                        <span className="text-sm">Нет фото</span>
                       </div>
                     )}
                   </div>

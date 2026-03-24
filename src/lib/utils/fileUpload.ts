@@ -50,19 +50,35 @@ export function getUploadPath(): string {
 }
 
 export async function saveImage(file: File): Promise<{ url: string; thumbnailUrl: string }> {
+  console.log('[FileUpload] Starting image upload:', { 
+    name: file.name, 
+    size: file.size, 
+    type: file.type 
+  });
+  
   const buffer = Buffer.from(await file.arrayBuffer());
   
   const mimeType = detectMimeType(buffer);
   if (!mimeType || !ALLOWED_MIME_TYPES.includes(mimeType)) {
+    console.error('[FileUpload] Invalid file type:', { 
+      detected: mimeType, 
+      filename: file.name 
+    });
     throw new Error('Invalid file type');
   }
 
   const metadata = await sharp(buffer).metadata();
   if (!metadata?.width || !metadata?.height) {
+    console.error('[FileUpload] Unable to read image metadata:', { filename: file.name });
     throw new Error('Unable to read image metadata');
   }
   
   if (metadata.width < MIN_DIMENSIONS.width || metadata.height < MIN_DIMENSIONS.height) {
+    console.error('[FileUpload] Image too small:', { 
+      width: metadata.width, 
+      height: metadata.height, 
+      filename: file.name 
+    });
     throw new Error(`Minimum dimensions: ${MIN_DIMENSIONS.width}x${MIN_DIMENSIONS.height}`);
   }
 
@@ -71,7 +87,10 @@ export async function saveImage(file: File): Promise<{ url: string; thumbnailUrl
   const uploadPath = getUploadPath();
   const filePath = path.join(uploadPath, filename);
 
+  console.log('[FileUpload] Saving to:', { uploadPath, filename });
+
   if (!existsSync(uploadPath)) {
+    console.log('[FileUpload] Creating directory:', uploadPath);
     await mkdir(uploadPath, { recursive: true });
   }
 
@@ -79,6 +98,8 @@ export async function saveImage(file: File): Promise<{ url: string; thumbnailUrl
     .rotate()
     .withMetadata({ exif: undefined })
     .toFile(filePath);
+  
+  console.log('[FileUpload] Original image saved:', filePath);
 
   const thumbFilename = filename.replace(/(\.\w+)$/, '_thumb$1');
   const thumbPath = path.join(uploadPath, thumbFilename);
@@ -88,23 +109,40 @@ export async function saveImage(file: File): Promise<{ url: string; thumbnailUrl
     .resize(THUMBNAIL_SIZE.width, THUMBNAIL_SIZE.height, { fit: 'cover', position: 'center' })
     .withMetadata({ exif: undefined })
     .toFile(thumbPath);
+  
+  console.log('[FileUpload] Thumbnail saved:', thumbPath);
 
   const publicUrl = '/' + filePath.replace(path.join(process.cwd(), 'public'), '').replace(/^\/+/, '');
   const thumbnailUrl = '/' + thumbPath.replace(path.join(process.cwd(), 'public'), '').replace(/^\/+/, '');
+
+  console.log('[FileUpload] Upload complete:', { 
+    publicUrl, 
+    thumbnailUrl,
+    fileExists: existsSync(filePath),
+    thumbExists: existsSync(thumbPath)
+  });
 
   return { url: publicUrl, thumbnailUrl };
 }
 
 export async function deleteImage(url: string): Promise<void> {
+  console.log('[FileUpload] Deleting image:', url);
+  
   const filePath = path.join(process.cwd(), 'public', url);
   const thumbPath = filePath.replace(/(\.\w+)$/, '_thumb$1');
   
   if (existsSync(filePath)) {
     await unlink(filePath);
+    console.log('[FileUpload] Deleted:', filePath);
+  } else {
+    console.warn('[FileUpload] File not found:', filePath);
   }
   
   if (existsSync(thumbPath)) {
     await unlink(thumbPath);
+    console.log('[FileUpload] Deleted thumbnail:', thumbPath);
+  } else {
+    console.warn('[FileUpload] Thumbnail not found:', thumbPath);
   }
 }
 
