@@ -11,6 +11,7 @@ export enum WorkUnit {
   PCS = 'PCS',
   FIXED = 'FIXED',
   M2 = 'M2',
+  MP = 'MP',
 }
 
 export const WorkCategoryNames: Record<WorkCategory, string> = {
@@ -26,6 +27,7 @@ export const WorkUnitNames: Record<WorkUnit, string> = {
   [WorkUnit.PCS]: 'шт',
   [WorkUnit.FIXED]: 'фикс.',
   [WorkUnit.M2]: 'м²',
+  [WorkUnit.MP]: 'м.п.',
 };
 
 export const WORK_CATEGORIES = [
@@ -41,4 +43,5 @@ export const WORK_UNITS = [
   { value: WorkUnit.PCS, label: 'шт (штуки)' },
   { value: WorkUnit.FIXED, label: 'фикс. (фиксированная сумма)' },
   { value: WorkUnit.M2, label: 'м² (квадратные метры)' },
+  { value: WorkUnit.MP, label: 'м.п. (метр погонный)' },
 ];

@@ -11,6 +11,9 @@ describe('fenceEstimateService', () => {
   let testWicketTypeId: string;
   let testMountingHardwareId1: string;
   let testMountingHardwareId2: string;
+  let testWorkIdMP: string;
+  let testWorkIdFIXED: string;
+  let testWorkIdPCS: string;
 
   beforeAll(async () => {
     const fenceType = await prisma.fenceType.create({
@@ -137,6 +140,78 @@ describe('fenceEstimateService', () => {
     });
     testMountingHardwareId2 = mountingHardware2.id;
 
+    const workMP = await prisma.work.create({
+      data: {
+        id: 'test-work-mp-1',
+        name: 'Монтаж забора (метр погонный)',
+        description: 'Монтаж забора за метр погонный',
+        category: 'MOUNTING',
+        unit: 'MP',
+        price: 1500,
+        useInCalculator: true,
+        active: true,
+        sortOrder: 0,
+        updatedAt: new Date(),
+      },
+    });
+    testWorkIdMP = workMP.id;
+
+    await prisma.workRelation.create({
+      data: {
+        workId: testWorkIdMP,
+        fenceType: 'Профнастил',
+      },
+    });
+
+    const workFIXED = await prisma.work.create({
+      data: {
+        id: 'test-work-fixed-1',
+        name: 'Дополнительные работы',
+        description: 'Фиксированная стоимость',
+        category: 'MOUNTING',
+        unit: 'FIXED',
+        price: 5000,
+        useInCalculator: true,
+        active: true,
+        sortOrder: 1,
+        updatedAt: new Date(),
+      },
+    });
+    testWorkIdFIXED = workFIXED.id;
+
+    await prisma.workRelation.create({
+      data: {
+        workId: testWorkIdFIXED,
+        fenceType: 'Профнастил',
+      },
+    });
+
+    const workPCS = await prisma.work.create({
+      data: {
+        id: 'test-work-pcs-1',
+        name: 'Монтаж одной секции',
+        description: 'Монтаж одной секции забора',
+        category: 'MOUNTING',
+        unit: 'PCS',
+        price: 2000,
+        useInCalculator: true,
+        active: true,
+        sortOrder: 2,
+        updatedAt: new Date(),
+      },
+    });
+    testWorkIdPCS = workPCS.id;
+
+    const { cache } = await import('@/lib/cache');
+    await cache.delPattern('calculator:works:');
+
+    await prisma.workRelation.create({
+      data: {
+        workId: testWorkIdPCS,
+        fenceType: 'Профнастил',
+      },
+    });
+
     await prisma.mountingHardwareRelation.createMany({
       data: [
         {
@@ -189,6 +264,26 @@ describe('fenceEstimateService', () => {
     await prisma.lagType.delete({ where: { id: testLagTypeId } });
     await prisma.postType.delete({ where: { id: testPostTypeId } });
     await prisma.fenceType.delete({ where: { id: testFenceTypeId } });
+
+    await prisma.workRelation.deleteMany({
+      where: {
+        OR: [
+          { workId: testWorkIdMP },
+          { workId: testWorkIdFIXED },
+          { workId: testWorkIdPCS },
+        ],
+      },
+    });
+    await prisma.work.deleteMany({
+      where: {
+        OR: [
+          { id: testWorkIdMP },
+          { id: testWorkIdFIXED },
+          { id: testWorkIdPCS },
+        ],
+      },
+    });
+
     await prisma.$disconnect();
   });
 
@@ -207,10 +302,10 @@ describe('fenceEstimateService', () => {
 
     expect(result).toBeDefined();
     expect(result.estimateId).toBeDefined();
-    expect(result.items).toHaveLength(7);
+    expect(result.items).toHaveLength(11);
     expect(result.totals.grandTotal).toBeGreaterThan(0);
     expect(result.totals.materials).toBeGreaterThan(0);
-    expect(result.totals.installation).toBe(60000);
+    expect(result.totals.installation).toBe(142000);
     expect(result.parameters.fenceTypeId).toBe(testFenceTypeId);
     expect(result.parameters.length).toBe(50);
     expect(result.parameters.height).toBe(2.0);
@@ -669,6 +764,133 @@ describe('fenceEstimateService', () => {
 
       const transactionTime = endTime - startTime;
       expect(transactionTime).toBeLessThan(5000);
+    });
+  });
+
+  describe('Fence Type Works (Mounting)', () => {
+    it('should calculate work with MP unit (meter price)', async () => {
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 50,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const result = await calculateFenceEstimate(input);
+
+      const workMPItem = result.items.find(item => item.category === 'installation' && item.nomenclatureId === testWorkIdMP);
+      expect(workMPItem).toBeDefined();
+      expect(workMPItem!.quantity).toBe(50);
+      expect(workMPItem!.unit).toBe('м.п.');
+      expect(workMPItem!.pricePerUnit).toBe(1500);
+      expect(workMPItem!.totalPrice).toBe(75000);
+    });
+
+    it('should calculate work with FIXED unit', async () => {
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 50,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const result = await calculateFenceEstimate(input);
+
+      const workFIXEDItem = result.items.find(item => item.category === 'installation' && item.nomenclatureId === testWorkIdFIXED);
+      expect(workFIXEDItem).toBeDefined();
+      expect(workFIXEDItem!.quantity).toBe(1);
+      expect(workFIXEDItem!.totalPrice).toBe(5000);
+    });
+
+    it('should calculate work with PCS unit', async () => {
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 50,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const result = await calculateFenceEstimate(input);
+
+      const workPCSItem = result.items.find(item => item.category === 'installation' && item.nomenclatureId === testWorkIdPCS);
+      expect(workPCSItem).toBeDefined();
+      expect(workPCSItem!.quantity).toBe(1);
+      expect(workPCSItem!.totalPrice).toBe(2000);
+    });
+
+    it('should include fence type works in installation total', async () => {
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 50,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const result = await calculateFenceEstimate(input);
+
+      const expectedMPWorkTotal = 50 * 1500;
+      const expectedFIXEDWorkTotal = 5000;
+      const expectedPCSWorkTotal = 2000;
+      const expectedFenceTypeWorksTotal = expectedMPWorkTotal + expectedFIXEDWorkTotal + expectedPCSWorkTotal;
+
+      const installationItems = result.items.filter(item => item.category === 'installation');
+      const installationTotal = result.totals.installation;
+
+      expect(installationTotal).toBeGreaterThan(60000);
+      expect(installationTotal).toBe(60000 + expectedFenceTypeWorksTotal);
+    });
+
+    it('should not include works with useInCalculator=false', async () => {
+      const inactiveWork = await prisma.work.create({
+        data: {
+          id: 'test-work-inactive-1',
+          name: 'Неактивная работа',
+          category: 'MOUNTING',
+          unit: 'MP',
+          price: 1000,
+          useInCalculator: false,
+          active: true,
+          sortOrder: 0,
+          updatedAt: new Date(),
+        },
+      });
+
+      await prisma.workRelation.create({
+        data: {
+          workId: inactiveWork.id,
+          fenceType: 'Профнастил',
+        },
+      });
+
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 50,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const result = await calculateFenceEstimate(input);
+
+      const inactiveWorkItem = result.items.find(item => item.nomenclatureId === inactiveWork.id);
+      expect(inactiveWorkItem).toBeUndefined();
+
+      await prisma.workRelation.deleteMany({ where: { workId: inactiveWork.id } });
+      await prisma.work.delete({ where: { id: inactiveWork.id } });
     });
   });
 });

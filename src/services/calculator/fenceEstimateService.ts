@@ -9,8 +9,10 @@ import { calculateMountingHardware, MountingHardwareCalculationResult } from './
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
 import { findWicketByHeightAndWidth } from './wicketLookup';
 import { workService } from '@/services/admin/workService';
+import { fenceTypeCalculatorService } from '@/services/calculator/fenceTypeCalculatorService';
 import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
+import { getFenceTypeCodeByName } from '@/lib/fenceTypeMap';
 
 type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
 
@@ -104,6 +106,17 @@ export async function calculateFenceEstimate(
     where: { id: fenceTypeId },
   });
 
+  const fenceTypeCode = fenceType ? getFenceTypeCodeByName(fenceType.name) : '';
+
+  if (!fenceType) {
+    throw {
+      error: 'NO_FENCE_TYPE',
+      message: 'Тип забора не найден',
+    } as CalculationError;
+  }
+
+  await fenceTypeCalculatorService.invalidateCache();
+
   if (!fenceType) {
     throw {
       error: 'NO_FENCE_TYPE',
@@ -174,7 +187,7 @@ export async function calculateFenceEstimate(
     if (gateWorks.length > 0) {
       gateInstallationWorks = gateWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
     } else {
-      const fenceTypeWorks = await workService.getWorksForCalculator(fenceType.name);
+      const fenceTypeWorks = await workService.getWorksForCalculator(fenceTypeCode);
       const gateInstallationWorksList = fenceTypeWorks
         .filter((w) => w.category === 'MOUNTING');
       
@@ -211,7 +224,7 @@ export async function calculateFenceEstimate(
     if (wicketWorks.length > 0) {
       wicketInstallationWorks = wicketWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
     } else {
-      const fenceTypeWorks = await workService.getWorksForCalculator(fenceType.name);
+      const fenceTypeWorks = await workService.getWorksForCalculator(fenceTypeCode);
       const wicketInstallationWorksList = fenceTypeWorks
         .filter((w) => w.category === 'MOUNTING');
       
@@ -350,6 +363,41 @@ export async function calculateFenceEstimate(
 
   items.push(installationBase);
 
+  console.log('[fenceEstimate] About to call getWorksForCalculator with:', { fenceTypeName: fenceType.name, fenceTypeCode });
+  const fenceTypeWorks = await workService.getWorksForCalculator(fenceTypeCode);
+  console.log('[fenceEstimate] Fence type works:', { fenceType: fenceType.name, fenceTypeCode, total: fenceTypeWorks.length });
+  console.log('[fenceEstimate] All fence type works:', JSON.stringify(fenceTypeWorks, null, 2));
+
+  const fenceTypeMountingWorks = fenceTypeWorks.filter((w) => w.category === 'MOUNTING');
+  console.log('[fenceEstimate] Mounting works:', { count: fenceTypeMountingWorks.length, works: fenceTypeMountingWorks.map(w => ({ id: w.id, name: w.name, unit: w.unit, category: w.category })) });
+
+  for (const work of fenceTypeMountingWorks) {
+    let quantity = 1;
+    let totalPrice = work.price;
+
+    if (work.unit === 'MP') {
+      quantity = length;
+      totalPrice = length * work.price;
+    } else if (work.unit === 'PCS') {
+      quantity = 1;
+      totalPrice = work.price;
+    } else if (work.unit === 'FIXED') {
+      quantity = 1;
+      totalPrice = work.price;
+    }
+
+    const fenceTypeWorkItem: GateInstallationCalculationResult = {
+      category: 'installation',
+      nomenclatureId: work.id,
+      nomenclatureName: work.name,
+      quantity,
+      unit: work.unit === 'MP' ? 'м.п.' : 'шт',
+      pricePerUnit: work.price,
+      totalPrice,
+    };
+    items.push(fenceTypeWorkItem);
+  }
+
   for (const work of gateInstallationWorks) {
     const gateInstallationItem: GateInstallationCalculationResult = {
       category: 'installation',
@@ -395,8 +443,16 @@ export async function calculateFenceEstimate(
   const gateInstallationTotal = gateInstallationWorks.reduce((sum, work) => sum + work.price, 0);
   const wicketInstallationTotal = wicketInstallationWorks.reduce((sum, work) => sum + work.price, 0);
   const panel3dInstallationTotal = panel3dInstallationWorks.reduce((sum, work) => sum + work.price * (panel3dResult ? panel3dResult.quantity : 1), 0);
+
+  const fenceTypeMountingWorksTotal = fenceTypeMountingWorks.reduce((sum, work) => {
+    if (work.unit === 'MP') {
+      return sum + (length * work.price);
+    }
+    return sum + work.price;
+  }, 0);
+
   const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
-  const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal;
+  const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + fenceTypeMountingWorksTotal;
   const grandTotal = materials + installation;
 
   const estimate = await prisma.$transaction(async (tx) => {

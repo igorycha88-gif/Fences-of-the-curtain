@@ -17,7 +17,7 @@ export const createWorkSchema = z.object({
     required_error: 'Категория обязательна',
     invalid_type_error: 'Некорректная категория',
   }),
-  unit: z.enum(['M', 'KM', 'PCS', 'FIXED', 'M2'], {
+  unit: z.enum(['M', 'KM', 'PCS', 'FIXED', 'M2', 'MP'], {
     required_error: 'Единица измерения обязательна',
     invalid_type_error: 'Некорректная единица измерения',
   }),
@@ -32,7 +32,7 @@ export const updateWorkSchema = z.object({
   name: z.string().min(2).max(200).optional(),
   description: z.string().max(1000).optional(),
   category: z.enum(['MOUNTING', 'DELIVERY', 'ADDITIONAL', 'MEASUREMENT']).optional(),
-  unit: z.enum(['M', 'KM', 'PCS', 'FIXED', 'M2']).optional(),
+  unit: z.enum(['M', 'KM', 'PCS', 'FIXED', 'M2', 'MP']).optional(),
   price: z.number().min(0).optional(),
   useInCalculator: z.boolean().optional(),
   sortOrder: z.number().optional(),

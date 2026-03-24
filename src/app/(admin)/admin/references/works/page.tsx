@@ -71,6 +71,7 @@ const UNIT_LABELS: Record<string, string> = {
   PCS: 'шт',
   FIXED: 'фикс.',
   M2: 'м²',
+  MP: 'м.п.',
 };
 
 interface FormRelation {

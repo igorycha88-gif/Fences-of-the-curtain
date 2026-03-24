@@ -421,30 +421,42 @@ export class WorkService {
   }
 
   async getWorksForCalculator(fenceType?: string) {
-    const cacheKey = fenceType 
+    const cacheKey = fenceType
       ? CACHE_KEYS.WORKS_BY_FENCE_TYPE(fenceType)
       : 'calculator:works:default';
+
+    console.log('[WorkService] getWorksForCalculator called with fenceType:', fenceType, 'cacheKey:', cacheKey);
 
     return cache.getOrSet(
       cacheKey,
       async () => {
-        const works = await prisma.work.findMany({
-          where: {
-            active: true,
-            useInCalculator: true,
-          },
-          orderBy: { sortOrder: 'asc' },
+      const works = await prisma.work.findMany({
+        where: {
+          active: true,
+          useInCalculator: true,
+        },
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          relations: true,
+        },
+      });
+
+      console.log('[WorkService] Total works found:', { count: works.length, works: works.map(w => ({ id: w.id, name: w.name, fenceType: w.relations?.[0]?.fenceType })) });
+
+      if (fenceType) {
+        console.log('[WorkService] Filtering works by fenceType:', { fenceType, totalWorks: works.length });
+        const filteredWorks = works.filter((work) => {
+          const workRelations = work.relations || [];
+          console.log(`[WorkService] Checking work: ${work.name}, category: ${work.category}, relations:`, workRelations);
+          const matches = workRelations.some((rel) => rel.fenceType === fenceType);
+          console.log(`[WorkService] Work "${work.name}" matches: ${matches}`);
+          return matches;
         });
+        console.log('[WorkService] Filtered works:', { count: filteredWorks.length, works: filteredWorks.map(w => ({ id: w.id, name: w.name, category: w.category, relations: w.relations })) });
+        return filteredWorks;
+      }
 
-        if (fenceType) {
-          const filteredWorks = works.filter((work) => {
-            const workRelations = (work as any).WorkRelation || [];
-            return workRelations.some((rel: any) => rel.fenceType === fenceType);
-          });
-          return filteredWorks;
-        }
-
-        return works;
+      return works;
       },
       CACHE_TTL.REFERENCE_DATA
     );
