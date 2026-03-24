@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { FenceEstimateInput } from '@/lib/validators/fenceEstimate';
-import { calculatePosts, PostCalculationResult } from './postCalculator';
+import { calculatePosts, calculatePostsForProfnastil, calculatePostsForPanel3D, PostCalculationResult } from './postCalculator';
 import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculatePanel3D, Panel3DCalculationResult } from './panel3DCalculator';
@@ -248,10 +248,11 @@ export async function calculateFenceEstimate(
     } as CalculationError;
   }
 
-  const [postsResult, lagsResult] = await Promise.all([
-    calculatePosts(correctedLength, height, postSpacingM),
-    calculateLags(correctedLength, lagRows),
-  ]);
+  const postsResult = await (fenceType.name === 'Профнастил'
+    ? calculatePostsForProfnastil(correctedLength, height, postSpacingM)
+    : calculatePostsForPanel3D(correctedLength, height, postSpacingM));
+
+  const lagsResult = await calculateLags(correctedLength, lagRows);
 
   const installationBase = calculateInstallation(length);
 

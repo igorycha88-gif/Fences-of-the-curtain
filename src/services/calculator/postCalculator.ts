@@ -51,13 +51,13 @@ async function getActivePosts() {
   );
 }
 
-export async function calculatePosts(
+export async function calculatePostsForProfnastil(
   fenceLengthM: number,
   fenceHeightM: number,
   postSpacingM: number
 ): Promise<PostCalculationResult> {
   const postCount = roundUp(fenceLengthM / postSpacingM) + 2;
-  const requiredHeightMm = (fenceHeightM * 1000) + UNDERGROUND_DEPTH_MM;
+  const requiredHeightMm = (fenceHeightM * 1000 - 200) + UNDERGROUND_DEPTH_MM;
 
   const posts = await getActivePosts();
 
@@ -65,7 +65,7 @@ export async function calculatePosts(
 
   if (matchingPosts.length === 0) {
     const allPosts = posts.sort((a, b) => b.length - a.length);
-    
+
     const error: PostCalculationError = {
       error: 'NO_POSTS_FOUND',
       message: 'Не найдены столбы подходящей высоты',
@@ -91,4 +91,54 @@ export async function calculatePosts(
     pricePerUnit,
     totalPrice,
   };
+}
+
+export async function calculatePostsForPanel3D(
+  fenceLengthM: number,
+  fenceHeightM: number,
+  postSpacingM: number
+): Promise<PostCalculationResult> {
+  const postCount = roundUp(fenceLengthM / postSpacingM) + 2;
+  const requiredHeightMm = (fenceHeightM * 1000) + UNDERGROUND_DEPTH_MM;
+
+  const posts = await getActivePosts();
+
+  const matchingPosts = posts.filter(p => p.length >= requiredHeightMm / 1000);
+
+  if (matchingPosts.length === 0) {
+    const allPosts = posts.sort((a, b) => b.length - a.length);
+
+    const error: PostCalculationError = {
+      error: 'NO_POSTS_FOUND',
+      message: 'Не найдены столбы подходящей высоты',
+      details: {
+        requiredHeight: requiredHeightMm,
+        availableMaxHeight: allPosts[0]?.length ? allPosts[0].length * 1000 : undefined,
+        suggestion: 'Свяжитесь с нами для индивидуального расчета',
+      },
+    };
+    throw error;
+  }
+
+  const selectedPost = matchingPosts[0];
+  const pricePerUnit = selectedPost.retailPricePerUnit;
+  const totalPrice = postCount * pricePerUnit;
+
+  return {
+    category: 'posts',
+    nomenclatureId: selectedPost.id,
+    nomenclatureName: selectedPost.name,
+    quantity: postCount,
+    unit: 'шт',
+    pricePerUnit,
+    totalPrice,
+  };
+}
+
+export async function calculatePosts(
+  fenceLengthM: number,
+  fenceHeightM: number,
+  postSpacingM: number
+): Promise<PostCalculationResult> {
+  return calculatePostsForPanel3D(fenceLengthM, fenceHeightM, postSpacingM);
 }
