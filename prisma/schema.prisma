@@ -19,12 +19,12 @@ model User {
   lastLoginAt          DateTime?
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
-  auditLogs            AuditLog[]
   estimates            FenceEstimate[]
   ordersAssigned       Order[]                   @relation("AssignedOrders")
   priceHistory         PriceHistory[]
   referenceChangeLogs  ReferenceChangeLog[]
   notificationSettings UserNotificationSettings?
+  auditLogs            AuditLog[]
 }
 
 model FenceMaterial {
@@ -249,24 +249,24 @@ model Setting {
 }
 
 model Panel3D {
-  id                     String   @id @default(cuid())
-  name                   String
-  description            String?
-  panelHeight            Float
-  panelWidth             Float
-  panelArea              Float?
-  rodDiameter            Float
-  cellWidth              Float
-  cellHeight             Float
-  purchasePricePerUnit   Float?
-  retailPricePerUnit     Float
-  image                 String?
-  active                 Boolean  @default(true)
-  validFrom              DateTime?
-  validUntil             DateTime?
-  priority               Int      @default(0)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?
+  panelHeight          Float
+  panelWidth           Float
+  panelArea            Float?
+  rodDiameter          Float
+  cellWidth            Float
+  cellHeight           Float
+  purchasePricePerUnit Float?
+  retailPricePerUnit   Float
+  image                String?
+  active               Boolean   @default(true)
+  validFrom            DateTime?
+  validUntil           DateTime?
+  priority             Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }
 
 model PriceHistory {
@@ -332,25 +332,25 @@ model UserNotificationSettings {
 }
 
 model ProfnastilType {
-  id                         String    @id @default(cuid())
-  name                       String
-  description                String?
-  metalThickness             Float
-  fullWidth                  Int
-  usefulWidth                Int
-  length                     Int
-  coating                    String
-  color                      String?
+  id                          String    @id @default(cuid())
+  name                        String
+  description                 String?
+  metalThickness              Float
+  fullWidth                   Int
+  usefulWidth                 Int
+  length                      Int
+  coating                     String
+  color                       String?
+  purchasePricePerUnit        Float?
+  retailPricePerUnit          Float
+  validFrom                   DateTime?
+  validUntil                  DateTime?
+  active                      Boolean   @default(true)
+  image                       String?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+  priority                    Int       @default(0)
   purchasePricePerLinearMeter Float?
-  purchasePricePerUnit       Float?
-  retailPricePerUnit         Float
-  validFrom                  DateTime?
-  validUntil                 DateTime?
-  active                     Boolean   @default(true)
-  image                      String?
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
-  priority                   Int       @default(0)
 
   @@unique([name, metalThickness, coating, color], name: "profnastil_unique_combination")
   @@index([active])
@@ -442,46 +442,46 @@ model WicketType {
 }
 
 model FenceEstimate {
-  id                      String    @id @default(cuid())
-  fenceTypeId             String
-  length                  Float
-  height                  Float
-  lagRows                 Int
-  postsTotal              Float
-  lagsTotal               Float
-  profnastilTotal         Float
-  installationTotal       Float
-  materialsTotal          Float
-  grandTotal              Float
-  items                   Json
-  userId                  String?
-  sessionId               String?
-  userAgent               String?
-  ipAddress               String?
-  createdAt               DateTime  @default(now())
-  mountingHardwareTotal   Float     @default(0)
-  coating                 String    @default("POLYMER_SINGLE")
-  gateInstallationTotal   Float     @default(0)
-  gateLength              Int?
-  gateNomenclatureId      String?
-  gateNomenclatureName    String?
-  gateTotal               Float     @default(0)
-  gateType                String?
-  hasGate                 Boolean   @default(false)
-  hasWicket               Boolean   @default(false)
-  wicketInstallationTotal Float     @default(0)
-  wicketNomenclatureId    String?
-  wicketNomenclatureName  String?
-  wicketTotal             Float     @default(0)
-  wicketWidth             Int?
-  panel3dId               String?
-  panel3dNomenclatureName String?
-  panel3dTotal            Float     @default(0)
-  panel3dInstallationTotal Float    @default(0)
-  city                    String?
-  fenceType               FenceType @relation(fields: [fenceTypeId], references: [id])
-  user                    User?     @relation(fields: [userId], references: [id])
-  order                   Order?
+  id                       String    @id @default(cuid())
+  fenceTypeId              String
+  length                   Float
+  height                   Float
+  lagRows                  Int
+  postsTotal               Float
+  lagsTotal                Float
+  profnastilTotal          Float
+  installationTotal        Float
+  materialsTotal           Float
+  grandTotal               Float
+  items                    Json
+  userId                   String?
+  sessionId                String?
+  userAgent                String?
+  ipAddress                String?
+  createdAt                DateTime  @default(now())
+  mountingHardwareTotal    Float     @default(0)
+  coating                  String    @default("POLYMER_SINGLE")
+  gateInstallationTotal    Float     @default(0)
+  gateLength               Int?
+  gateNomenclatureId       String?
+  gateNomenclatureName     String?
+  gateTotal                Float     @default(0)
+  gateType                 String?
+  hasGate                  Boolean   @default(false)
+  hasWicket                Boolean   @default(false)
+  wicketInstallationTotal  Float     @default(0)
+  wicketNomenclatureId     String?
+  wicketNomenclatureName   String?
+  wicketTotal              Float     @default(0)
+  wicketWidth              Int?
+  city                     String?
+  panel3dId                String?
+  panel3dInstallationTotal Float     @default(0)
+  panel3dNomenclatureName  String?
+  panel3dTotal             Float     @default(0)
+  fenceType                FenceType @relation(fields: [fenceTypeId], references: [id])
+  user                     User?     @relation(fields: [userId], references: [id])
+  order                    Order?
 
   @@index([fenceTypeId])
   @@index([userId])
@@ -572,6 +572,13 @@ model ContactInfo {
   createdAt       DateTime @default(now())
 }
 
+model RateLimitConfig {
+  id          String   @id @default("auth")
+  maxAttempts Int      @default(5)
+  windowMs    Int      @default(900000)
+  updatedAt   DateTime @updatedAt
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -607,11 +614,4 @@ enum OrderStatus {
   INSTALLATION
   COMPLETED
   CANCELLED
-}
-
-model RateLimitConfig {
-  id          String   @id @default("auth")
-  maxAttempts Int      @default(5)
-  windowMs    Int      @default(900000)
-  updatedAt   DateTime @updatedAt
 }

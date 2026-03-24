@@ -6,16 +6,17 @@ const globalForRedis = globalThis as unknown as {
 
 export const redis =
   globalForRedis.redis ??
-  new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  new Redis(parseInt(process.env.REDIS_PORT || '6379'), process.env.REDIS_HOST || 'localhost', {
     maxRetriesPerRequest: 3,
-    enableOfflineQueue: false,
+    enableOfflineQueue: true,
     keepAlive: 10000,
     connectTimeout: 5000,
     lazyConnect: false,
     retryStrategy(times) {
-      if (times > 3) return null;
-      return Math.min(times * 100, 2000);
+      if (times > 10) return null;
+      return Math.min(times * 100, 3000);
     },
+    password: process.env.REDIS_PASSWORD,
   });
 
 globalForRedis.redis = redis;

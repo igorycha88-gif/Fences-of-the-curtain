@@ -57,7 +57,7 @@ export async function calculatePosts(
   postSpacingM: number
 ): Promise<PostCalculationResult> {
   const postCount = roundUp(fenceLengthM / postSpacingM) + 2;
-  const requiredHeightMm = (fenceHeightM * 1000 - 200) + UNDERGROUND_DEPTH_MM;
+  const requiredHeightMm = (fenceHeightM * 1000) + UNDERGROUND_DEPTH_MM;
 
   const posts = await getActivePosts();
 

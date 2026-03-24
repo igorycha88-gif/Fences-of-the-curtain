@@ -99,7 +99,7 @@ describe('calculateProfnastil', () => {
     const result = await calculateProfnastil(50, 2.0, 'POLYMER_DOUBLE');
 
     expect(result.coating).toBe('Полимерное (двустороннее)');
-    expect(result.nomenclatureName).toContain('двустороннее');
+    expect(result.nomenclatureName).toContain('двусторонний');
   });
 
   it('should select profnastil with correct height', async () => {
