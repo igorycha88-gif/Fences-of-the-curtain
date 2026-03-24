@@ -256,7 +256,6 @@ export async function calculateFenceEstimate(
   const installationBase = calculateInstallation(length);
 
   let mountingHardwareResult: MountingHardwareCalculationResult[];
-  let panel3dInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
 
   if (panel3dResult) {
     mountingHardwareResult = await calculateMountingHardware({
@@ -268,24 +267,52 @@ export async function calculateFenceEstimate(
       panel3dCount: panel3dResult.quantity,
     });
   } else if (profnastilResult) {
-      mountingHardwareResult = await calculateMountingHardware({
-        fenceLengthM: correctedLength,
-        fenceHeightM: height,
-        postsCount: postsResult.quantity,
-        lagsCount: lagsResult.quantity,
-        profnastilCount: profnastilResult.quantity,
-        postTypeId: postsResult.nomenclatureId,
-        lagTypeId: lagsResult.nomenclatureId,
-        profnastilTypeId: profnastilResult.nomenclatureId,
-      });
-    } else {
-      mountingHardwareResult = await calculateMountingHardware({
-        fenceLengthM: correctedLength,
-        fenceHeightM: height,
-        postsCount: postsResult.quantity,
-        lagsCount: lagsResult.quantity,
-      });
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult.quantity,
+      profnastilCount: profnastilResult.quantity,
+      postTypeId: postsResult.nomenclatureId,
+      lagTypeId: lagsResult.nomenclatureId,
+      profnastilTypeId: profnastilResult.nomenclatureId,
+    });
+  } else if (selectedGate) {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult.quantity,
+      gateId: selectedGate.id,
+      gateCount: 1,
+    });
+  } else if (selectedWicket) {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult.quantity,
+      wicketId: selectedWicket.id,
+      wicketCount: 1,
+    });
+  } else {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult.quantity,
+    });
+  }
+
+  let panel3dInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
+
+  if (panel3dResult) {
+    const panel3dWorks = await workService.getWorksForCalculatorByReference('PANEL_3D', panel3dResult.nomenclatureId);
+    
+    if (panel3dWorks.length > 0) {
+      panel3dInstallationWorks = panel3dWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
     }
+  }
 
   const items: EstimateItem[] = [
     postsResult,
