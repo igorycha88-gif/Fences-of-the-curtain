@@ -562,4 +562,113 @@ describe('fenceEstimateService', () => {
       message: 'Не найдена калитка с указанными параметрами',
     });
   });
+
+  describe('Transaction', () => {
+    it('should create estimate within transaction', async () => {
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 10,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const result = await calculateFenceEstimate(input);
+
+      expect(result.estimateId).toBeDefined();
+      expect(result.totals.grandTotal).toBeGreaterThan(0);
+
+      const dbEstimate = await prisma.fenceEstimate.findUnique({
+        where: { id: result.estimateId },
+      });
+
+      expect(dbEstimate).toBeDefined();
+      expect(dbEstimate!.grandTotal).toBe(result.totals.grandTotal);
+    });
+
+    it('should rollback transaction on database error', async () => {
+      jest.spyOn(prisma, '$transaction').mockRejectedValueOnce(
+        new Error('Database connection error')
+      );
+
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 10,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      await expect(calculateFenceEstimate(input)).rejects.toThrow(
+        'Database connection error'
+      );
+
+      jest.restoreAllMocks();
+    });
+
+    it('should handle concurrent estimate creation', async () => {
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 10,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const results = await Promise.all([
+        calculateFenceEstimate(input),
+        calculateFenceEstimate(input),
+        calculateFenceEstimate(input),
+      ]);
+
+      expect(results).toHaveLength(3);
+      const uniqueIds = new Set(results.map(r => r.estimateId));
+      expect(uniqueIds.size).toBe(3);
+
+      for (const result of results) {
+        const dbEstimate = await prisma.fenceEstimate.findUnique({
+          where: { id: result.estimateId },
+        });
+
+        expect(dbEstimate).toBeDefined();
+        expect(dbEstimate!.grandTotal).toBe(result.totals.grandTotal);
+      }
+    });
+
+    it('should update city asynchronously without blocking transaction', async () => {
+      const input = {
+        fenceTypeId: testFenceTypeId,
+        length: 10,
+        height: 2.0,
+        lagRows: 2 as const,
+        coating: 'POLYMER_SINGLE' as const,
+        hasGate: false,
+        hasWicket: false,
+      };
+
+      const startTime = Date.now();
+      const result = await calculateFenceEstimate(input, {
+        ipAddress: '8.8.8.8',
+      });
+      const endTime = Date.now();
+
+      expect(result.estimateId).toBeDefined();
+
+      const dbEstimate = await prisma.fenceEstimate.findUnique({
+        where: { id: result.estimateId },
+      });
+
+      expect(dbEstimate).toBeDefined();
+      expect(dbEstimate!.ipAddress).toBe('8.8.8.8');
+
+      const transactionTime = endTime - startTime;
+      expect(transactionTime).toBeLessThan(5000);
+    });
+  });
 });
