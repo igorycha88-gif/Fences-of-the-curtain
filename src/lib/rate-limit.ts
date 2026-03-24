@@ -3,6 +3,10 @@ import { prisma } from './prisma';
 
 export type EndpointType = 'auth' | 'orders';
 
+export function shouldFailOpen(): boolean {
+  return process.env.NODE_ENV !== 'production';
+}
+
 interface RateLimitConfig {
   maxAttempts: number;
   windowMs: number;
@@ -96,20 +100,20 @@ export async function checkRateLimit(ip: string, email: string): Promise<boolean
 
     return true;
   } catch (error) {
-    console.error(
-      `[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy). ` +
-      `This allows authentication to continue but should be monitored. ` +
-      `IP=${ip}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-    
-    if (process.env.NODE_ENV === 'production') {
-      console.warn(
-        '[RATE LIMIT] ALERT: Redis connection failed in production. ' +
-        'Rate limiting is temporarily disabled. Monitor Redis health!'
+    if (shouldFailOpen()) {
+      console.error(
+        '[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy). ' +
+        `This allows authentication to continue but should be monitored. ` +
+        `IP=${ip}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
+      return true;
     }
     
-    return true;
+    console.error(
+      '[RATE LIMIT] Redis unavailable, blocking request (fail-close policy). ' +
+      `IP=${ip}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    throw new Error('Rate limiting unavailable - Redis connection failed');
   }
 }
 
@@ -163,12 +167,17 @@ export async function getRateLimitStatus(
       resetAt,
     };
   } catch (error) {
-    console.error('[RATE LIMIT] Error getting rate limit status:', error);
-    return {
-      allowed: true,
-      attempts: 0,
-      resetAt: new Date(Date.now() + config.windowMs),
-    };
+    if (shouldFailOpen()) {
+      console.error('[RATE LIMIT] Error getting rate limit status (fail-open policy):', error);
+      return {
+        allowed: true,
+        attempts: 0,
+        resetAt: new Date(Date.now() + config.windowMs),
+      };
+    }
+
+    console.error('[RATE LIMIT] Error getting rate limit status (fail-close policy):', error);
+    throw new Error('Rate limiting unavailable - Redis connection failed');
   }
 }
 
@@ -199,23 +208,23 @@ export async function applyRateLimitByEndpoint(
 
     return { allowed, attempts, remaining, resetAt };
   } catch (error) {
-    console.error(
-      `[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy). ` +
-      `IP=${ip}, EndpointType=${endpointType}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-
-    if (process.env.NODE_ENV === 'production') {
-      console.warn(
-        '[RATE LIMIT] ALERT: Redis connection failed in production. ' +
-        'Rate limiting is temporarily disabled. Monitor Redis health!'
+    if (shouldFailOpen()) {
+      console.error(
+        `[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy). ` +
+        `IP=${ip}, EndpointType=${endpointType}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
+      return {
+        allowed: true,
+        attempts: 0,
+        remaining: config.maxAttempts,
+        resetAt: new Date(Date.now() + config.windowMs),
+      };
     }
 
-    return {
-      allowed: true,
-      attempts: 0,
-      remaining: config.maxAttempts,
-      resetAt: new Date(Date.now() + config.windowMs),
-    };
+    console.error(
+      `[RATE LIMIT] Redis unavailable, blocking request (fail-close policy). ` +
+      `IP=${ip}, EndpointType=${endpointType}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    throw new Error('Rate limiting unavailable - Redis connection failed');
   }
 }

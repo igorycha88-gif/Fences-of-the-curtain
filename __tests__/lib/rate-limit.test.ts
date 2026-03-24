@@ -1,12 +1,3 @@
-import {
-  checkRateLimit,
-  resetRateLimit,
-  getConfig,
-  updateConfig,
-  applyRateLimitByEndpoint,
-  clearConfigCache,
-} from '../../src/lib/rate-limit';
-
 jest.mock('../../src/lib/redis', () => ({
   redis: {
     get: jest.fn(),
@@ -31,15 +22,32 @@ jest.mock('../../src/lib/prisma', () => ({
   },
 }));
 
+jest.mock('process', () => ({
+  env: {
+    NODE_ENV: undefined,
+  },
+}));
+
+import {
+  checkRateLimit,
+  resetRateLimit,
+  getConfig,
+  updateConfig,
+  applyRateLimitByEndpoint,
+  clearConfigCache,
+} from '../../src/lib/rate-limit';
+
 describe('Rate Limiting', () => {
   let mockRedis: any;
   let mockPrisma: any;
+  let originalNodeEnv: string | undefined;
 
   beforeEach(() => {
     jest.clearAllMocks();
     clearConfigCache();
     mockRedis = require('../../src/lib/redis').redis;
     mockPrisma = require('../../src/lib/prisma').prisma;
+    originalNodeEnv = process.env.NODE_ENV;
 
     mockPrisma.rateLimitConfig.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) => {
       if (where.id === 'auth') {
@@ -49,6 +57,18 @@ describe('Rate Limiting', () => {
         return { id: 'orders', maxAttempts: 5, windowMs: 3600000, updatedAt: new Date() };
       }
       return null;
+    });
+
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'production',
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: originalNodeEnv,
+      writable: true,
     });
   });
 
@@ -90,10 +110,23 @@ describe('Rate Limiting', () => {
       expect(mockRedis.incr).not.toHaveBeenCalled();
     });
 
-    it('should fail-open on Redis error', async () => {
+    it('should fail-open on Redis error in development', async () => {
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+      });
       mockRedis.get.mockRejectedValue(new Error('Connection refused'));
       const result = await checkRateLimit('192.168.1.100', 'admin@example.com');
       expect(result).toBe(true);
+    });
+
+    it('should fail-close on Redis error in production', async () => {
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+      });
+      mockRedis.get.mockRejectedValue(new Error('Connection refused'));
+      await expect(checkRateLimit('192.168.1.100', 'admin@example.com')).rejects.toThrow('Rate limiting unavailable');
     });
   });
 
@@ -187,7 +220,11 @@ describe('Rate Limiting', () => {
       expect(ordersConfig.windowMs).toBe(3600000);
     });
 
-    it('should fail-open on Redis error', async () => {
+    it('should fail-open on Redis error in development', async () => {
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+      });
       mockRedis.incr.mockRejectedValue(new Error('Connection refused'));
 
       const result = await applyRateLimitByEndpoint('192.168.1.100', 'orders');
@@ -195,6 +232,16 @@ describe('Rate Limiting', () => {
       expect(result.allowed).toBe(true);
       expect(result.attempts).toBe(0);
       expect(result.remaining).toBe(5);
+    });
+
+    it('should fail-close on Redis error in production', async () => {
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+      });
+      mockRedis.incr.mockRejectedValue(new Error('Connection refused'));
+
+      await expect(applyRateLimitByEndpoint('192.168.1.100', 'orders')).rejects.toThrow('Rate limiting unavailable');
     });
 
     it('should fail-open on DB error using DEFAULT_CONFIGS', async () => {
