@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const result = await calculateFenceEstimate(validatedData, metadata);
 
-    return NextResponse.json(result, { status: 200 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error && typeof error === 'object' && 'error' in error) {
       const calcError = error as CalculationError;

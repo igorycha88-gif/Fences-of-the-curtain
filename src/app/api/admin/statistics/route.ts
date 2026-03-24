@@ -10,7 +10,11 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || !hasPermission(session.user.role as any, 'statistics')) {
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!hasPermission(session.user.role as any, 'statistics')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

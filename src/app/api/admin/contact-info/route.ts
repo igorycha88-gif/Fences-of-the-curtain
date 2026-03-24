@@ -20,7 +20,11 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || !hasPermission(session.user.role as any, 'materials')) {
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!hasPermission(session.user.role as any, 'materials')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -53,7 +57,11 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || !hasPermission(session.user.role as any, 'materials')) {
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!hasPermission(session.user.role as any, 'materials')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

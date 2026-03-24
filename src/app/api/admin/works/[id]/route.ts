@@ -14,7 +14,11 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !hasPermission(session.user.role as any, 'materials')) {
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!hasPermission(session.user.role as any, 'materials')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
