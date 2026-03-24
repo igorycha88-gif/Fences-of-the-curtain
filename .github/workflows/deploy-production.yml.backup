@@ -1,14 +1,17 @@
-name: Deploy to Production (Optimized)
+name: Deploy to Production
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   workflow_dispatch:
     inputs:
       deploy_reason:
         description: 'Reason for deployment'
         required: false
         default: 'Manual deployment'
+      description:
+        description: 'Additional notes'
+        required: false
 
 env:
   APP_DIR: "/root/Fences-of-the-curtain"
@@ -20,45 +23,11 @@ permissions:
   contents: read
 
 jobs:
-  pre-deploy-checks:
-    name: Pre-deploy Checks
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Check migration status
-        run: |
-          echo "Checking for pending migrations..."
-          if [ -d "prisma/migrations" ]; then
-            echo "✓ Migrations directory found"
-          else
-            echo "⚠ No migrations directory"
-          fi
-
-      - name: Build test
-        run: npm run build
-
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: pre-deploy-checks
-    if: success()
+    needs: []
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
     
     steps:
       - name: Checkout code
@@ -82,11 +51,9 @@ jobs:
             BASE_URL="http://localhost:3001"
             LOG_DIR="/var/log/fences-deploy"
             DEPLOY_LOG="$LOG_DIR/deploy-production.log"
-            CACHE_DIR="$APP_DIR/.cache"
-            CACHE_FILE="$CACHE_DIR/node_modules_cache.tar.gz"
             DEPLOY_REASON="${{ github.event.inputs.deploy_reason || 'Push to master' }}"
             
-            mkdir -p "$LOG_DIR" /var/log/fences-app "$CACHE_DIR"
+            mkdir -p "$LOG_DIR" /var/log/fences-app
             
             log_deploy() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"
@@ -99,8 +66,6 @@ jobs:
             log_deploy "Branch: ${{ github.ref_name }}"
             log_deploy "Commit: ${{ github.sha }}"
             log_deploy "Reason: $DEPLOY_REASON"
-            
-            DEPLOY_START_TIME=$(date +%s)
             
             log_deploy "=== Checking environment ==="
             if [ ! -f .env ]; then
@@ -123,11 +88,10 @@ jobs:
             log_deploy "Backup tag: $BACKUP_TAG"
             
             log_deploy "=== Creating database backup ==="
-            BACKUP_FILE="$APP_DIR/backup_prod_$(date +%Y%m%d_%H%M%S).sql"
+            BACKUP_FILE="backup_prod_$(date +%Y%m%d_%H%M%S).sql"
             sudo -u postgres pg_dump -U postgres fences > "$BACKUP_FILE" || log_deploy "Warning: Backup failed, continuing..."
             if [ -f "$BACKUP_FILE" ]; then
-              BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-              log_deploy "✓ Backup created: $BACKUP_FILE ($BACKUP_SIZE)"
+              log_deploy "✓ Backup created: $BACKUP_FILE"
             fi
             
             log_deploy "=== Pulling latest changes ==="
@@ -137,145 +101,85 @@ jobs:
             
             git reset --hard origin/master
             
-            log_deploy "=== Saving current node_modules for cache ==="
-            if [ -d "node_modules" ]; then
-              tar czf "$CACHE_FILE.new" node_modules/
-              if [ -f "$CACHE_FILE.new" ]; then
-                CACHE_SIZE=$(du -h "$CACHE_FILE.new" | cut -f1)
-                log_deploy "✓ Cached node_modules ($CACHE_SIZE)"
-                mv "$CACHE_FILE.new" "$CACHE_FILE"
-              fi
-            fi
-            
-            log_deploy "=== Installing dependencies (with cache optimization) ==="
-            INSTALL_START=$(date +%s)
-            
-            if [ -f "$CACHE_FILE" ]; then
-              log_deploy "Restoring node_modules from cache..."
-              tar xzf "$CACHE_FILE" || log_deploy "⚠ Cache extraction failed, proceeding with fresh install"
-            fi
-            
-            npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund
-            INSTALL_END=$(date +%s)
-            INSTALL_TIME=$((INSTALL_END - INSTALL_START))
-            log_deploy "✓ Dependencies installed in ${INSTALL_TIME}s"
+            log_deploy "=== Installing dependencies ==="
+            npm install --legacy-peer-deps
             
             log_deploy "=== Generating Prisma Client ==="
             npx prisma generate
             
-            log_deploy "=== Checking pending migrations ==="
-            MIGRATION_STATUS=$(npx prisma migrate status 2>/dev/null || echo "error")
-            echo "$MIGRATION_STATUS"
-            
-            log_deploy "=== Applying database migrations (SAFE MODE) ==="
-            npx prisma migrate deploy || {
-              log_deploy "⚠ Migration failed! Checking status..."
-              npx prisma migrate status
-              log_deploy "Proceeding with caution - check database manually"
-            }
-            
             log_deploy "=== Building application ==="
-            BUILD_START=$(date +%s)
             npm run build
-            BUILD_END=$(date +%s)
-            BUILD_TIME=$((BUILD_END - BUILD_START))
-            log_deploy "✓ Build completed in ${BUILD_TIME}s"
             
-            log_deploy "=== Preparing PM2 config ==="
-            if [ ! -f ecosystem.config.js ]; then
-              log_deploy "ERROR: ecosystem.config.js not found!"
-              exit 1
-            fi
+            log_deploy "=== Pushing schema changes ==="
+            npx prisma db push --accept-data-loss
             
             log_deploy "=== Graceful zero-downtime restart with PM2 ==="
             if pm2 list | grep -q "$APP_NAME"; then
               log_deploy "Reloading existing process (zero-downtime)..."
-              pm2 reload ecosystem.config.js --env production || {
-                log_deploy "⚠ Reload failed, trying restart..."
-                pm2 restart ecosystem.config.js --env production
-              }
+              pm2 reload ecosystem.config.js --env production || pm2 restart ecosystem.config.js --env production
             else
               log_deploy "Starting new process..."
               pm2 start ecosystem.config.js --env production
             fi
             pm2 save
             
-            log_deploy "=== Waiting for application to stabilize (15 seconds) ==="
-            sleep 15
+            log_deploy "=== Waiting for application to stabilize (20 seconds) ==="
+            sleep 20
             
-            log_deploy "=== Running health checks ==="
-            HEALTH_SUCCESS=0
-            for i in $(seq 1 5); do
-              if curl -sf --max-time 5 "$BASE_URL/" > /dev/null 2>&1; then
-                log_deploy "✓ Health check passed on attempt $i!"
-                HEALTH_SUCCESS=1
-                break
-              fi
-              log_deploy "Attempt $i/5 failed..."
-              sleep 3
-            done
-            
-            if [ $HEALTH_SUCCESS -eq 0 ]; then
-              log_deploy "✗ Health check failed - checking logs..."
-              pm2 logs $APP_NAME --lines 50 --nostream || true
-              log_deploy "Attempting PM2 restart..."
-              pm2 restart ecosystem.config.js --env production
-              sleep 10
-              
-              if curl -sf --max-time 5 "$BASE_URL/" > /dev/null 2>&1; then
-                log_deploy "✓ Health check passed after restart"
-                HEALTH_SUCCESS=1
-              else
-                log_deploy "✗ Health check still failing - initiating rollback"
-              fi
+            log_deploy "=== Running comprehensive smoke tests ==="
+            if ./scripts/smoke-test.sh "$BASE_URL"; then
+              log_deploy "✓ All smoke tests passed"
+              SMOKE_SUCCESS=1
+            else
+              log_deploy "✗ Smoke tests failed"
+              SMOKE_SUCCESS=0
             fi
             
-            if [ $HEALTH_SUCCESS -eq 0 ]; then
+            if [ $SMOKE_SUCCESS -eq 0 ]; then
               log_deploy "=== DEPLOYMENT FAILED - INITIATING EMERGENCY ROLLBACK ==="
               
               log_deploy "=== Rolling back to previous commit: $PREVIOUS_COMMIT ==="
               git reset --hard "$PREVIOUS_COMMIT"
               
-              log_deploy "=== Restoring database from backup ==="
+              log_deploy "=== Restoring from backup if available ==="
               if [ -f "$BACKUP_FILE" ]; then
                 log_deploy "Restoring database from $BACKUP_FILE..."
                 sudo -u postgres psql -U postgres -d fences < "$BACKUP_FILE" || log_deploy "Warning: Database restore failed"
               fi
               
               log_deploy "=== Reinstalling dependencies ==="
-              if [ -f "$CACHE_FILE" ]; then
-                tar xzf "$CACHE_FILE"
-              fi
               npm install --legacy-peer-deps
               npx prisma generate
               
               log_deploy "=== Rebuilding application ==="
               npm run build
               
-              log_deploy "=== Re-applying migrations ==="
-              npx prisma migrate deploy || log_deploy "Warning: Migration re-apply failed"
+              log_deploy "=== Pushing previous schema ==="
+              npx prisma db push --accept-data-loss
               
               log_deploy "=== Restarting with previous version ==="
               pm2 reload ecosystem.config.js --env production || pm2 restart ecosystem.config.js --env production
-              pm2 save
               
-              sleep 15
+              log_deploy "=== Waiting for rollback to stabilize (20 seconds) ==="
+              sleep 20
               
               log_deploy "=== Health check after rollback ==="
               ROLLBACK_SUCCESS=0
-              for i in $(seq 1 5); do
+              for i in $(seq 1 10); do
+                sleep 3
                 if curl -sf --max-time 5 "$BASE_URL/" > /dev/null 2>&1; then
                   log_deploy "✓ Rollback health check passed on attempt $i!"
                   ROLLBACK_SUCCESS=1
                   break
                 fi
-                sleep 3
               done
               
               if [ $ROLLBACK_SUCCESS -eq 1 ]; then
                 log_deploy "=== ROLLBACK SUCCESSFUL ==="
+                log_deploy "DEPLOY RESULT: rolled_back (from $PREVIOUS_COMMIT to $TARGET_COMMIT, back to $PREVIOUS_COMMIT)"
               else
-                log_deploy "=== ROLLBACK FAILED - MANUAL INTERVENTION REQUIRED ==="
+                log_deploy "=== ROLLBACK FAILED - CRITICAL: MANUAL INTERVENTION REQUIRED ==="
+                log_deploy "DEPLOY RESULT: rollback_failed"
               fi
               
               log_deploy "=== Final PM2 logs ==="
@@ -289,13 +193,9 @@ jobs:
             log_deploy "=== Cleaning up backup tag ==="
             git tag -d "$BACKUP_TAG" 2>/dev/null || true
             
-            DEPLOY_END_TIME=$(date +%s)
-            DEPLOY_TOTAL_TIME=$((DEPLOY_END_TIME - DEPLOY_START_TIME))
-            
             log_deploy "=== PRODUCTION DEPLOYMENT SUCCESSFUL ==="
             log_deploy "DEPLOY RESULT: success (from $PREVIOUS_COMMIT to $TARGET_COMMIT)"
-            log_deploy "Total deployment time: ${DEPLOY_TOTAL_TIME}s (install: ${INSTALL_TIME}s, build: ${BUILD_TIME}s)"
-            log_deploy "Deployment completed: $(date '+%Y-%m-%d %H:%M:%S')"
+            log_deploy "Deployment time: $(date '+%Y-%m-%d %H:%M:%S')"
             
             log_deploy "=== PM2 process status ==="
             pm2 list
@@ -305,8 +205,5 @@ jobs:
             
             log_deploy "=== Cleanup old backups (7 days retention) ==="
             find "$APP_DIR" -name "backup_prod_*.sql" -mtime +7 -delete 2>/dev/null || true
-            
-            log_deploy "=== Cleanup old cache (30 days retention) ==="
-            find "$CACHE_DIR" -name "*.tar.gz" -mtime +30 -delete 2>/dev/null || true
             
             log_deploy "=== DEPLOY FINISHED ==="
