@@ -416,11 +416,12 @@ Email: info@fences.ru
 
 ## Дополнительная документация
 
-- [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) - Гайд для локальной разработки
+- [Связанные номенклатуры для расчета калькулятора](docs/RELATED_NOMENCLATURE_CALCULATOR.md) - Описание функционала связанных номенклатур
+- [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) - Полное руководство по локальной разработке
 - [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md) - Быстрый деплой на production
 - [Deployment Guide](DEPLOYMENT.md) - Подробное руководство по деплою
 - [CI/CD Setup Guide](docs/CICD_SETUP_GUIDE.md) - Настройка CI/CD с GitHub Actions
-- [CI/CD Plan](docs/cicd-plan.md) - План реализации CI/CD
+- [CI/CD Plan](docs/CICD_PLAN.md) - План реализации CI/CD
 - [CI Checklist](docs/CI_CHECKLIST.md) - Чеклист для CI/CD
 
 ## Быстрый старт
