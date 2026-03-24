@@ -9,6 +9,8 @@ describe('fenceEstimateService', () => {
   let testProfnastilTypeId: string;
   let testGateTypeId: string;
   let testWicketTypeId: string;
+  let testMountingHardwareId1: string;
+  let testMountingHardwareId2: string;
 
   beforeAll(async () => {
     const fenceType = await prisma.fenceType.create({
@@ -107,11 +109,79 @@ describe('fenceEstimateService', () => {
       },
     });
     testWicketTypeId = wicketType.id;
+
+    const mountingHardware1 = await prisma.mountingHardware.create({
+      data: {
+        id: 'test-mounting-hardware-1',
+        name: 'Саморезы',
+        retailPrice: 2.5,
+        calculationMethod: 'BY_LENGTH',
+        calculationValue: 0.5,
+        active: true,
+        useInCalculator: true,
+        updatedAt: new Date(),
+      },
+    });
+    testMountingHardwareId1 = mountingHardware1.id;
+
+    const mountingHardware2 = await prisma.mountingHardware.create({
+      data: {
+        id: 'test-mounting-hardware-2',
+        name: 'Заклепки',
+        retailPrice: 1.0,
+        calculationMethod: 'BY_QUANTITY',
+        active: true,
+        useInCalculator: true,
+        updatedAt: new Date(),
+      },
+    });
+    testMountingHardwareId2 = mountingHardware2.id;
+
+    await prisma.mountingHardwareRelation.createMany({
+      data: [
+        {
+          mountingHardwareId: testMountingHardwareId1,
+          referenceType: 'POST',
+          referenceId: testPostTypeId,
+        },
+        {
+          mountingHardwareId: testMountingHardwareId1,
+          referenceType: 'LAG',
+          referenceId: testLagTypeId,
+        },
+        {
+          mountingHardwareId: testMountingHardwareId1,
+          referenceType: 'PROFNASTIL',
+          referenceId: testProfnastilTypeId,
+        },
+        {
+          mountingHardwareId: testMountingHardwareId2,
+          referenceType: 'PROFNASTIL',
+          referenceId: testProfnastilTypeId,
+        },
+      ],
+    });
   });
 
   afterAll(async () => {
     await prisma.fenceEstimate.deleteMany({
       where: { fenceTypeId: testFenceTypeId },
+    });
+    await prisma.mountingHardwareRelation.deleteMany({
+      where: {
+        OR: [
+          { mountingHardwareId: testMountingHardwareId1 },
+          { mountingHardwareId: testMountingHardwareId2 },
+        ],
+      },
+    });
+    await prisma.mountingHardware.deleteMany({
+      where: {
+        OR: [
+          { id: testMountingHardwareId1 },
+          { id: testMountingHardwareId2 },
+        ],
+      },
     });
     await prisma.gateType.delete({ where: { id: testGateTypeId } });
     await prisma.wicketType.delete({ where: { id: testWicketTypeId } });
@@ -137,7 +207,7 @@ describe('fenceEstimateService', () => {
 
     expect(result).toBeDefined();
     expect(result.estimateId).toBeDefined();
-    expect(result.items).toHaveLength(5);
+    expect(result.items).toHaveLength(7);
     expect(result.totals.grandTotal).toBeGreaterThan(0);
     expect(result.totals.materials).toBeGreaterThan(0);
     expect(result.totals.installation).toBe(60000);
@@ -310,13 +380,13 @@ describe('fenceEstimateService', () => {
   it('should calculate profnastil on full length when gate is present', async () => {
     const fenceLength = 10;
     const gateWidth = 4;
-    
+
     const input = {
       fenceTypeId: testFenceTypeId,
       length: fenceLength,
       height: 2.0,
       lagRows: 2 as const,
-      coating: 'GALVANIZED' as const,
+      coating: 'POLYMER_SINGLE' as const,
       hasGate: true,
       hasWicket: false,
       gateType: 'SWING' as const,
@@ -327,11 +397,11 @@ describe('fenceEstimateService', () => {
 
     const profnastilItem = result.items.find(item => item.category === 'profnastil');
     expect(profnastilItem).toBeDefined();
-    
+
     const usefulWidth = 1150;
     const fullLengthSheets = Math.ceil(fenceLength * 1000 / usefulWidth) + 2;
     const correctedLengthSheets = Math.ceil((fenceLength - gateWidth) * 1000 / usefulWidth) + 2;
-    
+
     expect(profnastilItem!.quantity).toBe(fullLengthSheets);
     expect(profnastilItem!.quantity).not.toBe(correctedLengthSheets);
   });
@@ -340,13 +410,13 @@ describe('fenceEstimateService', () => {
     const fenceLength = 10;
     const gateWidth = 4;
     const postSpacing = 2.5;
-    
+
     const input = {
       fenceTypeId: testFenceTypeId,
       length: fenceLength,
       height: 2.0,
       lagRows: 2 as const,
-      coating: 'GALVANIZED' as const,
+      coating: 'POLYMER_SINGLE' as const,
       hasGate: true,
       hasWicket: false,
       gateType: 'SWING' as const,

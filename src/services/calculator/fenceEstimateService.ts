@@ -267,29 +267,25 @@ export async function calculateFenceEstimate(
       panel3dId: panel3dResult.nomenclatureId,
       panel3dCount: panel3dResult.quantity,
     });
-
-    const panelWorks = await workService.getWorksForCalculatorByReference('PANEL_3D', panel3dResult.nomenclatureId);
-
-    if (panelWorks.length > 0) {
-      panel3dInstallationWorks = panelWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
-    } else {
-      const fenceTypeWorks = await workService.getWorksForCalculator(fenceType.name);
-      panel3dInstallationWorks = fenceTypeWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
-    }
   } else if (profnastilResult) {
-    mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: lagsResult.quantity,
-      profnastilCount: profnastilResult.quantity,
-      postTypeId: postsResult.nomenclatureId,
-      lagTypeId: lagsResult.nomenclatureId,
-      profnastilTypeId: profnastilResult.nomenclatureId,
-    });
-  } else {
-    mountingHardwareResult = [];
-  }
+      mountingHardwareResult = await calculateMountingHardware({
+        fenceLengthM: correctedLength,
+        fenceHeightM: height,
+        postsCount: postsResult.quantity,
+        lagsCount: lagsResult.quantity,
+        profnastilCount: profnastilResult.quantity,
+        postTypeId: postsResult.nomenclatureId,
+        lagTypeId: lagsResult.nomenclatureId,
+        profnastilTypeId: profnastilResult.nomenclatureId,
+      });
+    } else {
+      mountingHardwareResult = await calculateMountingHardware({
+        fenceLengthM: correctedLength,
+        fenceHeightM: height,
+        postsCount: postsResult.quantity,
+        lagsCount: lagsResult.quantity,
+      });
+    }
 
   const items: EstimateItem[] = [
     postsResult,
