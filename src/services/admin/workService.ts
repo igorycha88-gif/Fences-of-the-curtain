@@ -185,6 +185,7 @@ export class WorkService {
     const typeMap: Record<string, string> = {
       'GATE': 'Ворота',
       'WICKET': 'Калитки',
+      'PANEL_3D': '3D-панели',
     };
     return typeMap[referenceType] || referenceType;
   }
@@ -358,9 +359,10 @@ export class WorkService {
   }
 
   async getReferenceOptions() {
-    const [gateItems, wicketItems] = await Promise.all([
+    const [gateItems, wicketItems, panel3dItems] = await Promise.all([
       referenceRegistry.getItems('GATE'),
       referenceRegistry.getItems('WICKET'),
+      referenceRegistry.getItems('PANEL_3D'),
     ]);
 
     return {
@@ -374,6 +376,11 @@ export class WorkService {
           type: 'WICKET',
           name: 'Калитки',
           items: wicketItems,
+        },
+        {
+          type: 'PANEL_3D',
+          name: '3D-панели',
+          items: panel3dItems,
         },
       ],
     };
