@@ -49,6 +49,9 @@ async function getHardwareForReferences(referenceIds: { postTypeId?: string; lag
           active: true,
           useInCalculator: true,
         },
+        include: {
+          relations: true,
+        },
         orderBy: {
           sortOrder: 'asc',
         },

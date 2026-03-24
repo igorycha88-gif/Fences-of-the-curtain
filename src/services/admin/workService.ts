@@ -418,7 +418,7 @@ export class WorkService {
 
    async getWorksForCalculatorByReference(referenceType: string, referenceId: string) {
     const cacheKey = CACHE_KEYS.WORKS_BY_REFERENCE(referenceType, referenceId);
-    
+
     return cache.getOrSet(
       cacheKey,
       async () => {
@@ -427,11 +427,14 @@ export class WorkService {
             active: true,
             useInCalculator: true,
           },
+          include: {
+            relations: true,
+          },
           orderBy: { sortOrder: 'asc' },
         });
-        
+
         const filteredWorks = works.filter((work) => {
-          const workRelations = (work as any).WorkRelation || [];
+          const workRelations = (work as any).relations || [];
           return workRelations.some((rel: any) => rel.referenceType === referenceType && rel.referenceId === referenceId);
         });
         
