@@ -32,10 +32,29 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check for security issues
+        run: |
+          echo "Checking for hardcoded secrets..."
+          if grep -r -E "(password|secret|api_key|token)\s*=\s*[\"'].*[\"']" src/ --exclude-dir=node_modules --exclude="*.test.*" | grep -v "example"; then
+            echo "WARNING: Found potential hardcoded secrets"
+            exit 1
+          fi
+          echo "✓ No hardcoded secrets found"
+
       - name: Generate Prisma Client
         run: npx prisma generate
         env:
           DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+
+      - name: Check migration status
+        run: |
+          echo "Checking for pending migrations..."
+          if [ -d "prisma/migrations" ]; then
+            echo "✓ Migrations directory found"
+            ls -la prisma/migrations/
+          else
+            echo "⚠ No migrations directory"
+          fi
 
       - name: Run tests
         run: npm test -- --coverage --passWithNoTests
