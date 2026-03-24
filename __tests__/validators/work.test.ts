@@ -242,4 +242,34 @@ describe('Work Validators', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe('relation schema with referenceType', () => {
+    it('should validate valid reference relations for all types', () => {
+      const validRelations = [
+        { referenceType: 'LAG', referenceId: 'test-lag-id' },
+        { referenceType: 'POST', referenceId: 'test-post-id' },
+        { referenceType: 'PROFNASTIL', referenceId: 'test-profnastil-id' },
+        { referenceType: 'PICKET', referenceId: 'test-picket-id' },
+        { referenceType: 'GATE', referenceId: 'test-gate-id' },
+        { referenceType: 'WICKET', referenceId: 'test-wicket-id' },
+        { referenceType: 'PANEL_3D', referenceId: 'test-panel3d-id' },
+      ];
+
+      validRelations.forEach((relation) => {
+        const validData = {
+          name: 'Тестовая работа',
+          category: 'MOUNTING',
+          unit: 'M',
+          price: 1000.00,
+          relations: [relation],
+        };
+
+        const result = createWorkSchema.safeParse(validData);
+        expect(result.success).toBe(true);
+        if (result.success && result.data.relations) {
+          expect(result.data.relations[0]).toEqual(relation);
+        }
+      });
+    });
+  });
 });
