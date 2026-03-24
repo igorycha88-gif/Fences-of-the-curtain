@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Fence, Sun, Moon } from 'lucide-react';
+import ContactPhoneBadge from './ContactPhoneBadge';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -82,6 +83,8 @@ export default function Header() {
         </nav>
 
         <div className="hidden lg:flex items-center gap-3">
+          <ContactPhoneBadge variant="header" />
+          
           <button
             onClick={() => setIsDark(!isDark)}
             className="w-10 h-10 rounded-xl bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-all duration-300 hover:scale-105"
@@ -99,6 +102,8 @@ export default function Header() {
         </div>
 
         <div className="flex lg:hidden items-center gap-2">
+          <ContactPhoneBadge variant="header" />
+          
           <button
             onClick={() => setIsDark(!isDark)}
             className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center transition-colors"
@@ -106,10 +111,10 @@ export default function Header() {
           >
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-
+          
           <button
-            className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center transition-colors"
             aria-label="Toggle menu"
           >
             {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -117,9 +122,10 @@ export default function Header() {
         </div>
       </div>
 
+      {/* Mobile Menu */}
       <div
         className={`lg:hidden absolute top-full left-0 right-0 glass overflow-hidden transition-all duration-500 ${
-          isMenuOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+          isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
         <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
