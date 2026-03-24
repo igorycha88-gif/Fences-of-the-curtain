@@ -111,10 +111,14 @@ export async function calculateMountingHardware(params: {
   lagsCount: number;
   profnastilCount?: number;
   panel3dCount?: number;
+  gateCount?: number;
+  wicketCount?: number;
   postTypeId?: string;
   lagTypeId?: string;
   profnastilTypeId?: string;
   panel3dId?: string;
+  gateId?: string;
+  wicketId?: string;
 }): Promise<MountingHardwareCalculationResult[]> {
   const {
     fenceLengthM,
@@ -123,10 +127,14 @@ export async function calculateMountingHardware(params: {
     lagsCount,
     profnastilCount,
     panel3dCount,
+    gateCount,
+    wicketCount,
     postTypeId,
     lagTypeId,
     profnastilTypeId,
     panel3dId,
+    gateId,
+    wicketId,
   } = params;
 
   const fenceArea = fenceLengthM * fenceHeightM;
@@ -154,6 +162,12 @@ export async function calculateMountingHardware(params: {
   }
   if (panel3dId) {
     requestedReferenceTypes.push({ referenceType: 'PANEL_3D', referenceId: panel3dId });
+  }
+  if (gateId) {
+    requestedReferenceTypes.push({ referenceType: 'GATE', referenceId: gateId });
+  }
+  if (wicketId) {
+    requestedReferenceTypes.push({ referenceType: 'WICKET', referenceId: wicketId });
   }
 
   const relations = requestedReferenceTypes.length > 0
@@ -231,6 +245,26 @@ export async function calculateMountingHardware(params: {
     const hardware = hardwareByType.get(`PANEL_3D:${panel3dId}`) || [];
     for (const hw of hardware) {
       const result = calculateHardwareItem(hw, panel3dCount, fenceLengthM, fenceArea);
+      if (result) {
+        results.push(result);
+      }
+    }
+  }
+
+  if (gateId && gateCount) {
+    const hardware = hardwareByType.get(`GATE:${gateId}`) || [];
+    for (const hw of hardware) {
+      const result = calculateHardwareItem(hw, gateCount, fenceLengthM, fenceArea);
+      if (result) {
+        results.push(result);
+      }
+    }
+  }
+
+  if (wicketId && wicketCount) {
+    const hardware = hardwareByType.get(`WICKET:${wicketId}`) || [];
+    for (const hw of hardware) {
+      const result = calculateHardwareItem(hw, wicketCount, fenceLengthM, fenceArea);
       if (result) {
         results.push(result);
       }

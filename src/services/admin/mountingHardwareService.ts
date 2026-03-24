@@ -285,15 +285,79 @@ export class MountingHardwareService {
     return result;
   }
 
-  async getHardwareForCalculator(referenceType: ReferenceType, referenceId: string) {
+  async getHardwareForCalculator(referenceType: string, referenceId: string) {
+    const hardwareRelations = await prisma.mountingHardwareRelation.findMany({
+      where: {
+        referenceType: referenceType as any,
+        referenceId: referenceId as any,
+      },
+      include: {
+        mountingHardware: true,
+      },
+    });
+
+    const hardwareIds = hardwareRelations.map(r => r.mountingHardwareId);
+    
+    const hardware = hardwareIds.length > 0
+      ? await prisma.mountingHardware.findMany({
+          where: {
+            id: { in: hardwareIds },
+            active: true,
+            useInCalculator: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            retailPrice: true,
+            calculationMethod: true,
+            calculationValue: true,
+          },
+        })
+      : [];
+
+    return hardware;
+  }
+
+  async getHardwareForCalculatorByTypes(params: {
+    postTypeId?: string;
+    lagTypeId?: string;
+    profnastilTypeId?: string;
+    panel3dId?: string;
+    gateId?: string;
+    wicketId?: string;
+  }) {
+    const conditions = [];
+    
+    if (params.postTypeId) {
+      conditions.push({ referenceType: 'POST', referenceId: params.postTypeId });
+    }
+    if (params.lagTypeId) {
+      conditions.push({ referenceType: 'LAG', referenceId: params.lagTypeId });
+    }
+    if (params.profnastilTypeId) {
+      conditions.push({ referenceType: 'PROFNASTIL', referenceId: params.profnastilTypeId });
+    }
+    if (params.panel3dId) {
+      conditions.push({ referenceType: 'PANEL_3D', referenceId: params.panel3dId });
+    }
+    if (params.gateId) {
+      conditions.push({ referenceType: 'GATE', referenceId: params.gateId });
+    }
+    if (params.wicketId) {
+      conditions.push({ referenceType: 'WICKET', referenceId: params.wicketId });
+    }
+
+    if (conditions.length === 0) {
+      return [];
+    }
+
     const hardware = await prisma.mountingHardware.findMany({
       where: {
         active: true,
         useInCalculator: true,
         relations: {
           some: {
-            referenceType,
-            referenceId,
+            OR: conditions,
           },
         },
       },

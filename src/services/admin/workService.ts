@@ -121,10 +121,13 @@ export class WorkService {
         useInCalculator: true,
       },
       orderBy: { sortOrder: 'asc' },
+      include: {
+        relations: true,
+      },
     });
 
     const filteredItems = items.filter((item) => {
-      const itemRelations = (item as any).WorkRelation || [];
+      const itemRelations = item.relations || [];
       return itemRelations.some((rel: any) => rel.fenceType === fenceType);
     });
 
@@ -147,10 +150,13 @@ export class WorkService {
         useInCalculator: true,
       },
       orderBy: { sortOrder: 'asc' },
+      include: {
+        relations: true,
+      },
     });
 
     const filteredItems = items.filter((item) => {
-      const itemRelations = (item as any).WorkRelation || [];
+      const itemRelations = item.relations || [];
       return itemRelations.some((rel: any) => rel.referenceType === referenceType && rel.referenceId === referenceId);
     });
 
@@ -183,6 +189,10 @@ export class WorkService {
 
   private getReferenceTypeName(referenceType: string): string {
     const typeMap: Record<string, string> = {
+      'LAG': 'Лаги',
+      'POST': 'Столбы',
+      'PROFNASTIL': 'Профнастил',
+      'PICKET': 'Евроштакетник',
       'GATE': 'Ворота',
       'WICKET': 'Калитки',
       'PANEL_3D': '3D-панели',
@@ -359,7 +369,11 @@ export class WorkService {
   }
 
   async getReferenceOptions() {
-    const [gateItems, wicketItems, panel3dItems] = await Promise.all([
+    const [lagItems, postItems, profnastilItems, picketItems, gateItems, wicketItems, panel3dItems] = await Promise.all([
+      referenceRegistry.getItems('LAG'),
+      referenceRegistry.getItems('POST'),
+      referenceRegistry.getItems('PROFNASTIL'),
+      referenceRegistry.getItems('PICKET'),
       referenceRegistry.getItems('GATE'),
       referenceRegistry.getItems('WICKET'),
       referenceRegistry.getItems('PANEL_3D'),
@@ -367,6 +381,26 @@ export class WorkService {
 
     return {
       references: [
+        {
+          type: 'LAG',
+          name: 'Лаги',
+          items: lagItems,
+        },
+        {
+          type: 'POST',
+          name: 'Столбы',
+          items: postItems,
+        },
+        {
+          type: 'PROFNASTIL',
+          name: 'Профнастил',
+          items: profnastilItems,
+        },
+        {
+          type: 'PICKET',
+          name: 'Евроштакетник',
+          items: picketItems,
+        },
         {
           type: 'GATE',
           name: 'Ворота',
