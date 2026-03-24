@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { panel3dService } from '@/services/admin/panel3dService';
 import { createAuditLogAsync } from '@/lib/audit';
+import { panel3dSchema } from '@/lib/validators/panel3d';
+import { ZodError } from 'zod';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.user.role === 'CONTENT_MANAGER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -49,15 +56,25 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const userId = session.user!.id;
+    if (session.user.role === 'CONTENT_MANAGER') {
+      return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
+    }
 
-    const result = await panel3dService.create(body, userId);
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
+    }
+
+    const body = await req.json();
+
+    const validatedData = panel3dSchema.parse(body);
+
+    const result = await panel3dService.create(validatedData, userId);
 
     await createAuditLogAsync({
       userId,
@@ -70,7 +87,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error('[API] Error in POST /api/admin/panel3d:', error);
-    
+
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
+    }
+
     if (error instanceof Error) {
       return NextResponse.json(
         { error: error.message },

@@ -86,7 +86,9 @@ export default function Panel3dPage() {
         validityFilter,
       });
 
-      const res = await fetch(`/api/admin/panel3d?${params.toString()}`);
+      const res = await fetch(`/api/admin/panel3d?${params.toString()}`, {
+        credentials: 'include',
+      });
       const data = await res.json();
 
       const { items, total: totalCount, page: currentPage } = handleApiListResponse<Panel3D>(data, []);
@@ -108,7 +110,7 @@ export default function Panel3dPage() {
   }, [page, search, validityFilter]);
 
   const handleCreate = () => {
-    setEditingPanel3d({
+    const newPanel3d = {
       id: '',
       name: '',
       description: '',
@@ -126,7 +128,9 @@ export default function Panel3dPage() {
       priority: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    setEditingPanel3d(newPanel3d);
+    setFormValues(newPanel3d);
     setIsModalOpen(true);
   };
 
@@ -149,6 +153,7 @@ export default function Panel3dPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(formValues),
       });
 
@@ -178,6 +183,7 @@ export default function Panel3dPage() {
     try {
       const res = await fetch(`/api/admin/panel3d/${item.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -198,6 +204,7 @@ export default function Panel3dPage() {
     try {
       const res = await fetch(`/api/admin/panel3d/${item.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (!res.ok) {

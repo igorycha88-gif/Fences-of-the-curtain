@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { panel3dService } from '@/services/admin/panel3dService';
 import { createAuditLogAsync } from '@/lib/audit';
-import { Panel3dUpdate } from '@/lib/validators/panel3d';
+import { Panel3dUpdate, panel3dUpdateSchema } from '@/lib/validators/panel3d';
+import { ZodError } from 'zod';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession();
-    if (!session) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.user.role === 'CONTENT_MANAGER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const item = await panel3dService.getById(params.id);
@@ -34,14 +40,25 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession();
-    if (!session) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (session.user.role === 'CONTENT_MANAGER') {
+      return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
+    }
+
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
+    }
+
     const body = await req.json();
-    const userId = session.user!.id;
-    const result = await panel3dService.update(params.id, body, userId);
+
+    const validatedData = panel3dUpdateSchema.parse(body);
+
+    const result = await panel3dService.update(params.id, validatedData, userId);
 
     await createAuditLogAsync({
       userId,
@@ -54,7 +71,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] Error in PUT /api/admin/panel3d/[id]:', error);
-    
+
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
+    }
+
     if (error instanceof Error) {
       return NextResponse.json(
         { error: error.message },
@@ -71,12 +95,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession();
-    if (!session) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user!.id;
+    if (session.user.role === 'CONTENT_MANAGER') {
+      return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
+    }
+
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
+    }
+
     await panel3dService.delete(params.id, userId);
 
     await createAuditLogAsync({
@@ -107,12 +139,20 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession();
-    if (!session) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user!.id;
+    if (session.user.role === 'CONTENT_MANAGER') {
+      return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
+    }
+
+    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
+    }
+
     const result = await panel3dService.toggleActive(params.id, userId);
 
     await createAuditLogAsync({
