@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Filter, Loader2, ImageOff } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 import { isApiError } from '@/lib/utils/apiResponse';
@@ -177,12 +178,7 @@ export default function PortfolioPage() {
         )}
       </main>
 
-      <footer className="bg-gray-900 text-white py-10">
-        <div className="container mx-auto px-4 text-center">
-          <p className="mb-2">© 2026 Заборы и Навесы. Все права защищены.</p>
-          <p className="text-gray-400">+7 (900) 123-45-67 | info@fences.ru</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
