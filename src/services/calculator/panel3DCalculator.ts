@@ -53,10 +53,19 @@ async function findPanelByHeight(requiredHeightMm: number) {
 
   const requiredHeightMmRounded = Math.round(requiredHeightMm);
 
+  console.log('[findPanelByHeight] Required height:', requiredHeightMm, 'Rounded:', requiredHeightMmRounded);
+  console.log('[findPanelByHeight] Available panels:', panels.map(p => ({ id: p.id, name: p.name, height: p.panelHeight, priority: p.priority })));
+
+  if (panels.length === 0) {
+    console.log('[findPanelByHeight] No panels available');
+    return null;
+  }
+
   const exactMatches = panels.filter(
     p => Math.round(p.panelHeight) === requiredHeightMmRounded
   );
 
+  console.log('[findPanelByHeight] Exact matches count:', exactMatches.length);
   if (exactMatches.length > 0) {
     const sortedByPriority = exactMatches.sort((a, b) => {
       if (a.priority !== b.priority) {
@@ -68,35 +77,35 @@ async function findPanelByHeight(requiredHeightMm: number) {
       return a.id.localeCompare(b.id);
     });
 
+    console.log('[findPanelByHeight] Selected exact match:', sortedByPriority[0]);
     return sortedByPriority[0];
   }
 
   const higherPanels = panels.filter(
-    p => Math.round(p.panelHeight) > requiredHeightMmRounded
+    p => Math.round(p.panelHeight) >= requiredHeightMmRounded
   );
 
+  console.log('[findPanelByHeight] Higher panels found:', higherPanels.length);
+
   if (higherPanels.length === 0) {
-    const error: Panel3DCalculationError = {
-      error: 'NO_PANEL_3D_FOUND',
-      message: 'Не найдена 3D-панель требуемой высоты',
-      details: {
-        requiredHeight: requiredHeightMmRounded,
-        requiredWidth: 0,
-        suggestion: 'Попробуйте выбрать другую высоту забора или свяжитесь с нами',
-      },
-    };
-    throw error;
+    console.log('[findPanelByHeight] No higher panels found');
+    return null;
   }
 
   const sortedByPriority = higherPanels.sort((a, b) => {
     if (a.priority !== b.priority) {
       return a.priority - b.priority;
     }
-    if (Math.round(a.panelHeight) !== Math.round(b.panelHeight)) {
-      return Math.round(a.panelHeight) - Math.round(b.panelHeight);
+    const aHeight = Math.round(a.panelHeight);
+    const bHeight = Math.round(b.panelHeight);
+    if (aHeight !== bHeight) {
+      return aHeight - bHeight;
     }
-    return a.id.localeCompare(b.id);
+    const idCompare = a.id.localeCompare(b.id);
+    return idCompare === 0 ? 0 : aHeight - bHeight || idCompare;
   });
+
+  console.log('[findPanelByHeight] Sorted higher panels:', sortedByPriority.map(p => ({ id: p.id, name: p.name, height: p.panelHeight, priority: p.priority })));
 
   return sortedByPriority[0];
 }
@@ -109,6 +118,19 @@ export async function calculatePanel3D(
   const fenceLengthMm = fenceLengthM * 1000;
 
   const selectedPanel = await findPanelByHeight(fenceHeightMm);
+
+  if (!selectedPanel) {
+    throw {
+      error: 'NO_PANEL_3D_FOUND',
+      message: 'Не найдена 3D-панель требуемой высоты',
+      details: {
+        requiredHeight: fenceHeightMm,
+        requiredWidth: fenceLengthMm,
+        suggestion: 'Попробуйте выбрать другую высоту забора или свяжитесь с нами',
+      },
+    } as Panel3DCalculationError;
+  }
+
   const usefulWidth = selectedPanel.panelWidth;
 
   const panelsCount = roundUp(fenceLengthMm / usefulWidth);

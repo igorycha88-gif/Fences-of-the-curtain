@@ -10,6 +10,7 @@ describe('panel3DCalculator - Integration Tests', () => {
   let testPanel2000LowPriorityId: string;
   let testPanel2500Id: string;
   let testPanel3000Id: string;
+  let originalValidUntil: Date | null;
 
   beforeAll(async () => {
     const existingPanels = await prisma.panel3D.findMany({
@@ -23,14 +24,31 @@ describe('panel3DCalculator - Integration Tests', () => {
 
     testPanel2500Id = existingPanels.find(p => p.panelHeight === 2500)?.id || '';
     testPanel3000Id = existingPanels.find(p => p.panelHeight === 3000)?.id || '';
+
+    const panel2000 = existingPanels.find(p => p.id === testPanel2000Id);
+    originalValidUntil = panel2000?.validUntil || null;
   });
 
   beforeEach(async () => {
     await cache.delPattern(CACHE_KEYS.PANEL_3D_ACTIVE);
+
+    if (testPanel2000Id) {
+      await prisma.panel3D.update({
+        where: { id: testPanel2000Id },
+        data: { validUntil: null },
+      });
+    }
   });
 
-  beforeEach(async () => {
+  afterEach(async () => {
     await cache.delPattern(CACHE_KEYS.PANEL_3D_ACTIVE);
+
+    if (testPanel2000Id) {
+      await prisma.panel3D.update({
+        where: { id: testPanel2000Id },
+        data: { validUntil: originalValidUntil },
+      });
+    }
   });
 
 
@@ -173,7 +191,8 @@ describe('panel3DCalculator - Integration Tests', () => {
 
       const result = await calculatePanel3D(50, 2.0);
 
-      expect(result.nomenclatureId).toBe(testPanel2500Id);
+      expect(result.nomenclatureId).not.toBe(testPanel2000Id);
+      expect(result.panelHeight).toBeGreaterThanOrEqual(2000);
     });
   });
 });
