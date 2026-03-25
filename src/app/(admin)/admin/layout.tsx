@@ -39,7 +39,8 @@ export default function AdminLayout({
   };
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/', redirect: true });
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
+    await signOut({ callbackUrl: siteUrl, redirect: true });
   };
 
   const isActive = (path: string) => {
