@@ -69,7 +69,7 @@ export function AnimatedSection({
     <div
       ref={ref as React.RefObject<HTMLDivElement>}
       className={`${className} ${isVisible ? animationClasses[animation] : 'opacity-0'}`}
-      style={{ animationDelay: `${delay}ms`, animationFillMode: 'forwards' }}
+      style={{ '--animation-delay': `${delay}ms` } as React.CSSProperties}
     >
       {children}
     </div>
@@ -93,7 +93,7 @@ export function StaggerContainer({ children, className = '', staggerDelay = 100 
         <div
           key={index}
           className={isVisible ? 'animate-fade-in-up' : 'opacity-0'}
-          style={{ animationDelay: `${index * staggerDelay}ms`, animationFillMode: 'forwards' }}
+          style={{ '--animation-delay': `${index * staggerDelay}ms` } as React.CSSProperties}
         >
           {child}
         </div>

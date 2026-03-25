@@ -110,11 +110,12 @@ export function PurchasePriceSection({
                   </td>
                   <td className="p-2">
                     <span
-                      style={{
-                        color: marginColor === 'green' ? '#10b981' : 
-                               marginColor === 'yellow' ? '#f59e0b' : 
-                               marginColor === 'red' ? '#ef4444' : '#9ca3af'
-                      }}
+                      className={
+                        marginColor === 'green' ? 'text-green-500' :
+                        marginColor === 'yellow' ? 'text-amber-500' :
+                        marginColor === 'red' ? 'text-red-500' :
+                        'text-gray-400'
+                      }
                     >
                       {margin ? `${margin.marginPercent.toFixed(1)}% ${marginEmoji}` : `Не указана ${marginEmoji}`}
                     </span>

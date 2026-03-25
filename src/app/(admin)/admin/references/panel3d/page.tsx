@@ -10,7 +10,6 @@ import { handleApiListResponse } from '@/lib/utils/apiResponse';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
-import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
 import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
 
 interface Panel3D {
@@ -556,15 +555,11 @@ export default function Panel3dPage() {
             </div>
           </div>
 
-          {isAdmin && editingPanel3d && (
+          {isAdmin && editingPanel3d?.id && (
             <>
               <RelatedMountingHardware
                 referenceType="PANEL_3D"
                 referenceId={editingPanel3d.id}
-              />
-
-              <RelatedWorks
-                fenceType="PANEL_3D"
               />
 
               <RelatedWorksByReference

@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' ${isDevelopment ? "'unsafe-inline' 'unsafe-eval'" : ''} https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
-    style-src 'self' 'nonce-${nonce}' ${isDevelopment ? "'unsafe-inline'" : "'unsafe-hashes'"};
+    style-src 'self' 'nonce-${nonce}' 'unsafe-inline' ${isDevelopment ? '' : "'unsafe-hashes'"};
     img-src 'self' data: https:;
     font-src 'self';
     connect-src 'self' https://mc.yandex.ru;

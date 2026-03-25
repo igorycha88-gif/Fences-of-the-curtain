@@ -63,12 +63,12 @@ export function SimplifiedPurchasePriceInput({
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Маржа:</span>
             <span
-              className="font-semibold"
-              style={{
-                color: marginColor === 'green' ? '#10b981' : 
-                       marginColor === 'yellow' ? '#f59e0b' : 
-                       marginColor === 'red' ? '#ef4444' : '#9ca3af'
-              }}
+              className={`font-semibold ${
+                marginColor === 'green' ? 'text-green-500' :
+                marginColor === 'yellow' ? 'text-amber-500' :
+                marginColor === 'red' ? 'text-red-500' :
+                'text-gray-400'
+              }`}
             >
               {margin ? `${margin.marginPercent.toFixed(1)}% ${marginEmoji}` : `Не указана ${marginEmoji}`}
             </span>
