@@ -53,6 +53,7 @@ interface ReferenceOptions {
   PICKET: ReferenceOption[];
   GATE: ReferenceOption[];
   WICKET: ReferenceOption[];
+  PANEL_3D: ReferenceOption[];
 }
 
 const REFERENCE_TYPE_LABELS: Record<string, string> = {
@@ -62,6 +63,7 @@ const REFERENCE_TYPE_LABELS: Record<string, string> = {
   PICKET: 'Евроштакетник',
   GATE: 'Ворота',
   WICKET: 'Калитки',
+  PANEL_3D: '3D-панели',
 };
 
 const CALCULATION_METHOD_LABELS: Record<string, string> = {

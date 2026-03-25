@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       { value: 'PICKET', label: 'Евроштакетник' },
       { value: 'GATE', label: 'Ворота' },
       { value: 'WICKET', label: 'Калитки' },
+      { value: 'PANEL_3D', label: '3D-панели' },
     ];
 
     return NextResponse.json({
