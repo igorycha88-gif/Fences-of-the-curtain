@@ -308,10 +308,10 @@ describe('fenceEstimateService', () => {
 
     expect(result).toBeDefined();
     expect(result.estimateId).toBeDefined();
-    expect(result.items).toHaveLength(11);
+    expect(result.items).toHaveLength(10);
     expect(result.totals.grandTotal).toBeGreaterThan(0);
     expect(result.totals.materials).toBeGreaterThan(0);
-    expect(result.totals.installation).toBe(142000);
+    expect(result.totals.installation).toBe(82000);
     expect(result.parameters.fenceTypeId).toBe(testFenceTypeId);
     expect(result.parameters.length).toBe(50);
     expect(result.parameters.height).toBe(2.0);
@@ -391,26 +391,6 @@ describe('fenceEstimateService', () => {
     expect(profnastilItem).toBeDefined();
     expect(profnastilItem!.quantity).toBe(46);
     expect(profnastilItem!.unit).toBe('шт');
-  });
-
-  it('should calculate installation correctly', async () => {
-    const input = {
-      fenceTypeId: testFenceTypeId,
-      length: 50,
-      height: 2.0,
-      lagRows: 2 as const,
-      coating: 'POLYMER_SINGLE' as const,
-      hasGate: false,
-      hasWicket: false,
-    };
-
-    const result = await calculateFenceEstimate(input);
-
-    const installationItem = result.items.find(item => item.category === 'installation');
-    expect(installationItem).toBeDefined();
-    expect(installationItem!.quantity).toBe(50);
-    expect(installationItem!.pricePerUnit).toBe(1200);
-    expect(installationItem!.totalPrice).toBe(60000);
   });
 
   it('should throw error for non-existent fence type', async () => {
@@ -854,8 +834,7 @@ describe('fenceEstimateService', () => {
       const installationItems = result.items.filter(item => item.category === 'installation');
       const installationTotal = result.totals.installation;
 
-      expect(installationTotal).toBeGreaterThan(60000);
-      expect(installationTotal).toBe(60000 + expectedFenceTypeWorksTotal);
+      expect(installationTotal).toBe(expectedFenceTypeWorksTotal);
     });
 
     it('should not include works with useInCalculator=false', async () => {

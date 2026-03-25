@@ -4,7 +4,7 @@ import { calculatePosts, calculatePostsForProfnastil, calculatePostsForPanel3D, 
 import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculatePanel3D, Panel3DCalculationResult } from './panel3DCalculator';
-import { calculateInstallation, InstallationCalculationResult } from './installationCalculator';
+
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
 import { findWicketByHeightAndWidth } from './wicketLookup';
@@ -14,7 +14,7 @@ import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { getFenceTypeCodeByName } from '@/lib/fenceTypeMap';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | InstallationCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
 
 export interface GateCalculationResult {
   category: 'gates';
@@ -267,8 +267,6 @@ export async function calculateFenceEstimate(
 
   const lagsResult = await calculateLags(correctedLength, lagRows);
 
-  const installationBase = calculateInstallation(length);
-
   let mountingHardwareResult: MountingHardwareCalculationResult[];
 
   if (panel3dResult) {
@@ -361,8 +359,6 @@ export async function calculateFenceEstimate(
     items.push(wicketItem);
   }
 
-  items.push(installationBase);
-
   console.log('[fenceEstimate] About to call getWorksForCalculator with:', { fenceTypeName: fenceType.name, fenceTypeCode });
   const fenceTypeWorks = await workService.getWorksForCalculator(fenceTypeCode);
   console.log('[fenceEstimate] Fence type works:', { fenceType: fenceType.name, fenceTypeCode, total: fenceTypeWorks.length });
@@ -452,7 +448,7 @@ export async function calculateFenceEstimate(
   }, 0);
 
   const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
-  const installation = installationBase.totalPrice + gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + fenceTypeMountingWorksTotal;
+  const installation = gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + fenceTypeMountingWorksTotal;
   const grandTotal = materials + installation;
 
   const estimate = await prisma.$transaction(async (tx) => {
