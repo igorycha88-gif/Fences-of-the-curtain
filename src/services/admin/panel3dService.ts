@@ -22,14 +22,16 @@ export class Panel3dService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
-    const { 
-      active, 
-      search, 
+    console.log('[PANEL3D SERVICE] GET ALL called with params:', JSON.stringify(params, null, 2));
+
+    const {
+      active,
+      search,
       minHeight,
       maxHeight,
       minWidth,
       maxWidth,
-      page = 1, 
+      page = 1,
       pageSize = 20,
       validityFilter = 'all',
       sortBy = 'priority',
@@ -101,7 +103,14 @@ export class Panel3dService {
       }),
       prisma.panel3D.count({ where }),
     ]);
-    
+
+    console.log('[PANEL3D SERVICE] GET ALL result:', {
+      count: panel3d.length,
+      total,
+      page,
+      totalPages: Math.ceil(total / pageSize)
+    });
+
     return {
       panel3d,
       total,
@@ -120,8 +129,9 @@ export class Panel3dService {
   }
 
   async create(data: Panel3dInput, userId: string) {
+    console.log('[PANEL3D SERVICE] START CREATE - User:', userId);
     console.log('[PANEL3D SERVICE] Creating panel3d with data:', JSON.stringify(data, null, 2));
-    
+
     const existing = await prisma.panel3D.findFirst({
       where: {
         name: data.name,
@@ -134,6 +144,7 @@ export class Panel3dService {
     });
 
     if (existing) {
+      console.log('[PANEL3D SERVICE] ERROR - Panel already exists:', existing.id, existing.name);
       throw new Error('3D-панель с такими параметрами уже существует');
     }
 
@@ -161,7 +172,12 @@ export class Panel3dService {
       },
     });
 
-    console.log('[PANEL3D SERVICE] Created panel3d:', panel3d.id);
+    console.log('[PANEL3D SERVICE] SUCCESS - Created panel3d:', {
+      id: panel3d.id,
+      name: panel3d.name,
+      priority: panel3d.priority,
+      createdAt: panel3d.createdAt
+    });
 
     await prisma.referenceChangeLog.create({
       data: {

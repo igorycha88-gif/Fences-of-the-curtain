@@ -341,7 +341,14 @@ async function main() {
     skipDuplicates: true,
   });
 
-  await prisma.panel3D.createMany({
+  console.log('[SEED] Checking existing Panel3D records...');
+  const existingPanel3D = await prisma.panel3D.findMany();
+  console.log('[SEED] Found', existingPanel3D.length, 'existing Panel3D records');
+  existingPanel3D.forEach(p => {
+    console.log(`[SEED] Existing: ${p.name} (${p.panelHeight}x${p.panelWidth}) - Active: ${p.active}`);
+  });
+
+  const panel3DResult = await prisma.panel3D.createMany({
     data: [
       {
         name: '3D-панель 2000x2500',
@@ -424,6 +431,8 @@ async function main() {
     ],
     skipDuplicates: true,
   });
+
+  console.log('[SEED] Panel3D createMany result - Count:', panel3DResult.count);
 
   console.log('Database seeded successfully!');
 }
