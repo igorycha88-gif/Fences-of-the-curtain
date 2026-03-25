@@ -16,3 +16,10 @@ export function getFenceTypeNameByCode(code: string): string {
   );
   return reverseMap[code] || code;
 }
+
+export function getFenceTypeCodeFromNameOrCode(value: string): string {
+  if (Object.values(FENCE_TYPE_CODE_MAP).includes(value)) {
+    return value;
+  }
+  return getFenceTypeCodeByName(value);
+}

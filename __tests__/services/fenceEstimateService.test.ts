@@ -159,7 +159,7 @@ describe('fenceEstimateService', () => {
     await prisma.workRelation.create({
       data: {
         workId: testWorkIdMP,
-        fenceType: 'Профнастил',
+        fenceType: 'PROFNASTIL',
       },
     });
 
@@ -182,7 +182,7 @@ describe('fenceEstimateService', () => {
     await prisma.workRelation.create({
       data: {
         workId: testWorkIdFIXED,
-        fenceType: 'Профнастил',
+        fenceType: 'PROFNASTIL',
       },
     });
 
@@ -202,13 +202,19 @@ describe('fenceEstimateService', () => {
     });
     testWorkIdPCS = workPCS.id;
 
+    await prisma.work.deleteMany({
+      where: {
+        name: 'Монтаж забора из профнастила',
+      },
+    });
+
     const { cache } = await import('@/lib/cache');
     await cache.delPattern('calculator:works:');
 
     await prisma.workRelation.create({
       data: {
         workId: testWorkIdPCS,
-        fenceType: 'Профнастил',
+        fenceType: 'PROFNASTIL',
       },
     });
 
@@ -870,7 +876,7 @@ describe('fenceEstimateService', () => {
       await prisma.workRelation.create({
         data: {
           workId: inactiveWork.id,
-          fenceType: 'Профнастил',
+          fenceType: 'PROFNASTIL',
         },
       });
 

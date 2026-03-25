@@ -8,6 +8,10 @@ import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 import { logPriceChange } from '@/lib/audit-helpers';
 
 export class WorkService {
+
+  async invalidateCache(): Promise<void> {
+    await cache.delPattern('calculator:works:*');
+  }
   async getAll(params: {
     search?: string;
     category?: string;
@@ -181,6 +185,7 @@ export class WorkService {
     const typeMap: Record<string, string> = {
       'PROFNASTIL': 'Профнастил',
       'PICKET': 'Евроштакетник',
+      'PANEL_3D': '3D-панели',
       'GATE': 'Ворота',
       'WICKET': 'Калитки',
     };
@@ -193,9 +198,9 @@ export class WorkService {
       'POST': 'Столбы',
       'PROFNASTIL': 'Профнастил',
       'PICKET': 'Евроштакетник',
+      'PANEL_3D': '3D-панели',
       'GATE': 'Ворота',
       'WICKET': 'Калитки',
-      'PANEL_3D': '3D-панели',
     };
     return typeMap[referenceType] || referenceType;
   }
@@ -225,6 +230,8 @@ export class WorkService {
         changedBy: userId,
       },
     });
+
+    await this.invalidateCache();
 
     return work;
   }
@@ -265,6 +272,7 @@ export class WorkService {
     });
 
     await this.logChange(id, oldItem, work, userId);
+    await this.invalidateCache();
 
     return work;
   }
@@ -300,6 +308,8 @@ export class WorkService {
         changedBy: userId,
       },
     });
+
+    await this.invalidateCache();
   }
 
   async toggleActive(id: string, userId: string) {
@@ -317,6 +327,7 @@ export class WorkService {
     });
 
     await this.logChange(id, oldItem, item, userId);
+    await this.invalidateCache();
 
     return item;
   }
@@ -363,6 +374,7 @@ export class WorkService {
     return [
       { value: 'PROFNASTIL', label: 'Профнастил' },
       { value: 'PICKET', label: 'Евроштакетник' },
+      { value: 'PANEL_3D', label: '3D-панели' },
       { value: 'GATE', label: 'Ворота' },
       { value: 'WICKET', label: 'Калитки' },
     ];

@@ -372,7 +372,7 @@ describe('WorkService', () => {
           unit: 'M',
           price: 500.00,
           useInCalculator: true,
-          WorkRelation: [
+          relations: [
             { fenceType: 'PROFNASTIL' },
           ],
         },
@@ -388,6 +388,9 @@ describe('WorkService', () => {
           useInCalculator: true,
         },
         orderBy: { sortOrder: 'asc' },
+        include: {
+          relations: true,
+        },
       });
 
       expect(result).toEqual([
@@ -427,6 +430,9 @@ describe('WorkService', () => {
           useInCalculator: true,
         },
         orderBy: { sortOrder: 'asc' },
+        include: {
+          relations: true,
+        },
       });
 
       expect(result).toEqual([
@@ -627,7 +633,7 @@ describe('WorkService', () => {
           unit: 'M',
           price: 500.00,
           useInCalculator: true,
-          WorkRelation: [
+          relations: [
             { fenceType: 'PROFNASTIL' },
           ],
         },
@@ -643,6 +649,9 @@ describe('WorkService', () => {
           useInCalculator: true,
         },
         orderBy: { sortOrder: 'asc' },
+        include: {
+          relations: true,
+        },
       });
 
       expect(result).toEqual(mockWorks);
@@ -671,6 +680,9 @@ describe('WorkService', () => {
           useInCalculator: true,
         },
         orderBy: { sortOrder: 'asc' },
+        include: {
+          relations: true,
+        },
       });
 
       expect(result).toEqual(mockWorks);

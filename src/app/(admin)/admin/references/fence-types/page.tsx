@@ -6,6 +6,8 @@ import { ReferenceForm } from '@/components/admin/References/ReferenceForm';
 import { Modal } from '@/components/ui/modal';
 import { FenceTypeInput } from '@/lib/validators/fenceType';
 import { PriorityColumn } from '@/components/admin/References/shared';
+import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
+import { getFenceTypeCodeFromNameOrCode } from '@/lib/fenceTypeMap';
 import toast from 'react-hot-toast';
 
 interface FenceType {
@@ -279,6 +281,10 @@ export default function FenceTypesPage() {
           onCancel={() => setIsModalOpen(false)}
           submitLabel={editingType ? 'Обновить' : 'Создать'}
         />
+
+        {editingType && (
+          <RelatedWorks fenceType={getFenceTypeCodeFromNameOrCode(editingType.name)} />
+        )}
       </Modal>
     </div>
   );
