@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Calculator, Send, Zap, Shield, Clock, AlertCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
@@ -163,39 +163,6 @@ export default function FenceCalculatorPage() {
       setWicketWarning(null);
     }
   }, [formData.hasWicket, formData.wicketWidth, formData.hasGate, formData.gateWidth, formData.length]);
-
-  useEffect(() => {
-    if (result) {
-      setResult(null);
-    }
-  }, [formData.fenceTypeId, formData.length, formData.height, formData.lagRows, formData.coating, formData.hasGate, formData.gateType, formData.gateWidth, formData.hasWicket, formData.wicketWidth]);
-
-  const calculateRef = useRef<(() => void) | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    calculateRef.current = calculate;
-  }, [formData]);
-
-  useEffect(() => {
-    if (formData.fenceTypeId && formData.length > 0 && formData.height > 0) {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        if (calculateRef.current) {
-          calculateRef.current();
-        }
-      }, 800);
-    }
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [formData.fenceTypeId, formData.length, formData.height, formData.lagRows, formData.coating, formData.hasGate, formData.gateType, formData.gateWidth, formData.hasWicket, formData.wicketWidth]);
 
   const calculate = async () => {
     if (!formData.fenceTypeId) {
