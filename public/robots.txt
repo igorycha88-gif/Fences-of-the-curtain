@@ -20,3 +20,6 @@ Allow: /api/calculator/wicket-types
 Allow: /api/calculator/mounting-hardware
 
 Sitemap: https://zabor-i-naves.ru/sitemap.xml
+
+# Host (для Яндекс)
+Host: https://zabor-i-naves.ru
