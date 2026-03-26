@@ -47,7 +47,7 @@ describe('WorkService - getWorksForCalculatorByReference', () => {
       },
     ];
 
-    (prisma.work.findMany as jest.Mock).mockResolvedValue(mockWorks as any);
+    (prisma.work.findMany as any).mockResolvedValue(mockWorks as any);
 
     const result = await workService.getWorksForCalculatorByReference('PANEL_3D', 'panel3d1');
 
@@ -117,7 +117,7 @@ describe('WorkService - getWorksForCalculatorByReference', () => {
       },
     ];
 
-    (prisma.work.findMany as jest.Mock).mockResolvedValue(mockWorks as any);
+    (prisma.work.findMany as any).mockResolvedValue(mockWorks as any);
 
     const result = await workService.getWorksForCalculatorByReference('PANEL_3D', 'panel3d1');
 
@@ -153,7 +153,7 @@ describe('WorkService - getWorksForCalculatorByReference', () => {
       },
     ];
 
-    (prisma.work.findMany as jest.Mock).mockResolvedValue(mockWorks as any);
+    (prisma.work.findMany as any).mockResolvedValue(mockWorks as any);
 
     const result = await workService.getWorksForCalculatorByReference('PANEL_3D', 'panel3d1');
 
@@ -178,7 +178,7 @@ describe('WorkService - getWorksForCalculatorByReference', () => {
       },
     ];
 
-    (prisma.work.findMany as jest.Mock).mockResolvedValue(mockWorks as any);
+    (prisma.work.findMany as any).mockResolvedValue(mockWorks as any);
 
     const result = await workService.getWorksForCalculatorByReference('PANEL_3D', 'panel3d1');
 

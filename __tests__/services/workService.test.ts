@@ -4,14 +4,14 @@ import { prisma } from '@/lib/prisma';
 
 jest.mock('@/lib/cache', () => ({
   cache: {
-    get: jest.fn().mockResolvedValue(null as any),
-    set: jest.fn().mockResolvedValue(undefined as any),
-    del: jest.fn().mockResolvedValue(undefined as any),
-    delPattern: jest.fn().mockResolvedValue(undefined as any),
-    getOrSet: jest.fn().mockImplementation(async (key: string, factory: () => Promise<any>, ttl: number) => {
+    get: (jest.fn as any)().mockResolvedValue(null as any),
+    set: (jest.fn as any)().mockResolvedValue(undefined as any),
+    del: (jest.fn as any)().mockResolvedValue(undefined as any),
+    delPattern: (jest.fn as any)().mockResolvedValue(undefined as any),
+    getOrSet: (jest.fn as any)().mockImplementation(async (key: string, factory: () => Promise<any>, ttl: number) => {
       return await factory();
     }),
-    healthCheck: jest.fn().mockResolvedValue({ redis: false, memory: true } as any),
+    healthCheck: (jest.fn as any)().mockResolvedValue({ redis: false, memory: true } as any),
   },
 }));
 

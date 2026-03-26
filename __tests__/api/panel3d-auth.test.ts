@@ -18,7 +18,7 @@ describe('Panel3D API - Authorization', () => {
 
   describe('Unauthorized Access (No Session)', () => {
     beforeEach(() => {
-      (getServerSession as jest.Mock).mockResolvedValue(null);
+      (getServerSession as any).mockResolvedValue(null);
     });
 
     it('GET should return 401 when no session', async () => {
@@ -43,7 +43,7 @@ describe('Panel3D API - Authorization', () => {
 
   describe('Forbidden Access (Insufficient Role)', () => {
     beforeEach(() => {
-      (getServerSession as jest.Mock).mockResolvedValue({
+      (getServerSession as any).mockResolvedValue({
         user: {
           id: 'user-id',
           email: 'user@example.com',
@@ -74,7 +74,7 @@ describe('Panel3D API - Authorization', () => {
 
   describe('Authorized Access', () => {
     beforeEach(() => {
-      (getServerSession as jest.Mock).mockResolvedValue({
+      (getServerSession as any).mockResolvedValue({
         user: {
           id: 'admin-id',
           email: 'admin@example.com',
@@ -90,7 +90,7 @@ describe('Panel3D API - Authorization', () => {
     });
 
     it('GET should allow MANAGER access', async () => {
-      (getServerSession as jest.Mock).mockResolvedValue({
+      (getServerSession as any).mockResolvedValue({
         user: {
           id: 'manager-id',
           email: 'manager@example.com',

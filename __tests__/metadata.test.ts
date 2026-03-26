@@ -39,7 +39,7 @@ describe('generatePageMetadata', () => {
     });
 
     const images = Array.isArray(result.openGraph?.images) ? result.openGraph?.images : [result.openGraph?.images];
-    expect(images?.[0]?.url).toBe('https://zabor-i-naves.ru/og/test.jpg');
+    expect((images?.[0] as any)?.url).toBe('https://zabor-i-naves.ru/og/test.jpg');
   });
 
   it('should handle absolute OG image URL', () => {
@@ -50,7 +50,7 @@ describe('generatePageMetadata', () => {
     });
 
     const images = Array.isArray(result.openGraph?.images) ? result.openGraph?.images : [result.openGraph?.images];
-    expect(images?.[0]?.url).toBe('https://example.com/image.jpg');
+    expect((images?.[0] as any)?.url).toBe('https://example.com/image.jpg');
   });
 
   it('should use default OG image if not provided', () => {
@@ -60,7 +60,7 @@ describe('generatePageMetadata', () => {
     });
 
     const images = Array.isArray(result.openGraph?.images) ? result.openGraph?.images : [result.openGraph?.images];
-    expect(images?.[0]?.url).toBe('https://zabor-i-naves.ru/og/og-main.jpg');
+    expect((images?.[0] as any)?.url).toBe('https://zabor-i-naves.ru/og/og-main.jpg');
   });
 
   it('should generate canonical URL', () => {

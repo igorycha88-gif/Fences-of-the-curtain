@@ -37,7 +37,7 @@ describe('Session Cookie Security', () => {
       set: jest.fn(),
     };
 
-    (cookies as jest.Mock).mockResolvedValue(mockCookieStore);
+    (cookies as any).mockResolvedValue(mockCookieStore);
     mockCrypto.randomUUID.mockReturnValue('12345678-1234-1234-1234-123456789012');
   });
 

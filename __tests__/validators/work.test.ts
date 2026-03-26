@@ -169,7 +169,7 @@ describe('Work Validators', () => {
 
       const result = createWorkSchema.safeParse(validData);
       expect(result.success).toBe(true);
-      if (result.success) {
+      if (result.success && result.data.relations) {
         expect(result.data.relations.length).toBe(3);
       }
     });

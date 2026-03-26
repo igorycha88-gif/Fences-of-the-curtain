@@ -47,8 +47,8 @@ describe('Panel3dService - Related Nomenclature', () => {
         },
       ];
 
-      (prisma.panel3D.findUnique as jest.Mock).mockResolvedValue(mockPanel);
-      (prisma.mountingHardwareRelation.findMany as jest.Mock).mockResolvedValue(mockRelations as any);
+      (prisma.panel3D.findUnique as any).mockResolvedValue(mockPanel);
+      (prisma.mountingHardwareRelation.findMany as any).mockResolvedValue(mockRelations as any);
 
       const result = await panel3dService.getMountingHardware('panel3d1');
 
@@ -95,8 +95,8 @@ describe('Panel3dService - Related Nomenclature', () => {
         },
       ];
 
-      (prisma.panel3D.findUnique as jest.Mock).mockResolvedValue(mockPanel);
-      (prisma.workRelation.findMany as jest.Mock).mockResolvedValue(mockRelations as any);
+      (prisma.panel3D.findUnique as any).mockResolvedValue(mockPanel);
+      (prisma.workRelation.findMany as any).mockResolvedValue(mockRelations as any);
 
       const result = await panel3dService.getWorks('panel3d1');
 

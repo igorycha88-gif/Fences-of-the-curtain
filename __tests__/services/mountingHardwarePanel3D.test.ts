@@ -43,8 +43,8 @@ describe('MountingHardwareCalculator - Panel3D Relations', () => {
       },
     ];
 
-    (prisma.mountingHardware.findMany as jest.Mock).mockResolvedValue(mockHardware);
-    (prisma.mountingHardwareRelation.findMany as jest.Mock).mockResolvedValue(mockRelations);
+    (prisma.mountingHardware.findMany as any).mockResolvedValue(mockHardware);
+    (prisma.mountingHardwareRelation.findMany as any).mockResolvedValue(mockRelations);
 
     const result = await calculateMountingHardware({
       fenceLengthM: 10,

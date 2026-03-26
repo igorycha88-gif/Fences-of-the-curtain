@@ -27,7 +27,7 @@ jest.mock('@/lib/utils/roundUp', () => ({
 }));
 
 const mockPrisma = prisma as any;
-const mockRoundUp = require('@/lib/utils/roundUp').roundUp as jest.Mock;
+const mockRoundUp = require('@/lib/utils/roundUp').roundUp as any;
 
 describe('postCalculator', () => {
   beforeEach(() => {

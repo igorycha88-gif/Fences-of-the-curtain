@@ -32,7 +32,7 @@ describe('POST /api/admin/profnastil-types', () => {
 
   it('should auto-calculate purchasePricePerUnit', async () => {
     const { getServerSession } = await import('next-auth');
-    (getServerSession as jest.Mock).mockResolvedValue({
+    (getServerSession as any).mockResolvedValue({
       user: {
         id: 'admin-id',
         role: 'ADMIN',
@@ -40,7 +40,7 @@ describe('POST /api/admin/profnastil-types', () => {
     });
 
     const { profnastilTypeSchema } = await import('@/lib/validators/profnastilType');
-    (profnastilTypeSchema.parse as jest.Mock).mockReturnValue({
+    (profnastilTypeSchema.parse as any).mockReturnValue({
       name: 'Тестовый профнастил',
       metalThickness: 0.5,
       fullWidth: 1200,
@@ -53,13 +53,13 @@ describe('POST /api/admin/profnastil-types', () => {
     });
 
     const { profnastilTypeService } = await import('@/services/admin/profnastilTypeService');
-    (profnastilTypeService.create as jest.Mock).mockResolvedValue({
+    (profnastilTypeService.create as any).mockResolvedValue({
       id: 'test-id',
       purchasePricePerUnit: 700,
     });
 
     const request = {
-      json: jest.fn().mockResolvedValue({
+      json: (jest.fn as any)().mockResolvedValue({
         name: 'Тестовый профнастил',
         metalThickness: 0.5,
         fullWidth: 1200,
@@ -91,7 +91,7 @@ describe('POST /api/admin/profnastil-types', () => {
 
   it('should forbid non-admin from setting purchase prices', async () => {
     const { getServerSession } = await import('next-auth');
-    (getServerSession as jest.Mock).mockResolvedValue({
+    (getServerSession as any).mockResolvedValue({
       user: {
         id: 'manager-id',
         role: 'MANAGER',
@@ -99,7 +99,7 @@ describe('POST /api/admin/profnastil-types', () => {
     });
 
     const request = {
-      json: jest.fn().mockResolvedValue({
+      json: (jest.fn as any)().mockResolvedValue({
         name: 'Тестовый профнастил',
         purchasePricePerLinearMeter: 350,
       }),
@@ -118,7 +118,7 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
 
   it('should recalculate purchasePricePerUnit on update', async () => {
     const { getServerSession } = await import('next-auth');
-    (getServerSession as jest.Mock).mockResolvedValue({
+    (getServerSession as any).mockResolvedValue({
       user: {
         id: 'admin-id',
         role: 'ADMIN',
@@ -126,13 +126,13 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
     });
 
     const { profnastilTypeUpdateSchema } = await import('@/lib/validators/profnastilType');
-    (profnastilTypeUpdateSchema.parse as jest.Mock).mockReturnValue({
+    (profnastilTypeUpdateSchema.parse as any).mockReturnValue({
       length: 2500,
       purchasePricePerLinearMeter: 380,
     });
 
     const { profnastilTypeService } = await import('@/services/admin/profnastilTypeService');
-    (profnastilTypeService.update as jest.Mock).mockResolvedValue({
+    (profnastilTypeService.update as any).mockResolvedValue({
       id: 'test-id',
       length: 2500,
       purchasePricePerLinearMeter: 380,
@@ -140,7 +140,7 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
     });
 
     const request = {
-      json: jest.fn().mockResolvedValue({
+      json: (jest.fn as any)().mockResolvedValue({
         length: 2500,
         purchasePricePerLinearMeter: 380,
       }),
@@ -161,7 +161,7 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
 
   it('should forbid non-admin from modifying purchase prices', async () => {
     const { getServerSession } = await import('next-auth');
-    (getServerSession as jest.Mock).mockResolvedValue({
+    (getServerSession as any).mockResolvedValue({
       user: {
         id: 'manager-id',
         role: 'MANAGER',
@@ -169,7 +169,7 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
     });
 
     const request = {
-      json: jest.fn().mockResolvedValue({
+      json: (jest.fn as any)().mockResolvedValue({
         purchasePricePerLinearMeter: 400,
       }),
     } as any;
@@ -187,7 +187,7 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
 
   it('should return both price fields for ADMIN', async () => {
     const { getServerSession } = await import('next-auth');
-    (getServerSession as jest.Mock).mockResolvedValue({
+    (getServerSession as any).mockResolvedValue({
       user: {
         id: 'admin-id',
         role: 'ADMIN',
@@ -195,7 +195,7 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
     });
 
     const { profnastilTypeService } = await import('@/services/admin/profnastilTypeService');
-    (profnastilTypeService.getById as jest.Mock).mockResolvedValue({
+    (profnastilTypeService.getById as any).mockResolvedValue({
       id: 'test-id',
       name: 'Профнастил С8',
       purchasePricePerLinearMeter: 350,
@@ -203,7 +203,7 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
       retailPricePerUnit: 1200,
     });
 
-    const response = await GET(new Request('http://localhost'), { params: { id: 'test-id' } });
+    const response = await GET(new Request('http://localhost') as any, { params: { id: 'test-id' } });
 
     const data = await response.json();
 
@@ -214,7 +214,7 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
 
   it('should hide purchase price fields for MANAGER', async () => {
     const { getServerSession } = await import('next-auth');
-    (getServerSession as jest.Mock).mockResolvedValue({
+    (getServerSession as any).mockResolvedValue({
       user: {
         id: 'manager-id',
         role: 'MANAGER',
@@ -222,7 +222,7 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
     });
 
     const { profnastilTypeService } = await import('@/services/admin/profnastilTypeService');
-    (profnastilTypeService.getById as jest.Mock).mockResolvedValue({
+    (profnastilTypeService.getById as any).mockResolvedValue({
       id: 'test-id',
       name: 'Профнастил С8',
       purchasePricePerLinearMeter: 350,
@@ -230,7 +230,7 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
       retailPricePerUnit: 1200,
     });
 
-    const response = await GET(new Request('http://localhost'), { params: { id: 'test-id' } });
+    const response = await GET(new Request('http://localhost') as any, { params: { id: 'test-id' } });
 
     const data = await response.json();
 

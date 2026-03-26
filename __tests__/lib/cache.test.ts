@@ -12,7 +12,7 @@ jest.mock('../../src/lib/redis', () => ({
 
 import { redis } from '../../src/lib/redis';
 
-const mockRedis = redis as jest.Mocked<typeof redis>;
+const mockRedis = redis as any;
 
 describe('CacheService', () => {
   let cacheService: CacheService;

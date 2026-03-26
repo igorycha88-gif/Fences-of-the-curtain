@@ -31,7 +31,7 @@ describe('middleware', () => {
         set: jest.fn(),
       },
     };
-    (NextResponse.next as jest.Mock).mockReturnValue(mockResponse);
+    (NextResponse.next as any).mockReturnValue(mockResponse);
     mockGetRandomValues.mockImplementation((arr: Uint8Array) => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = Math.floor(Math.random() * 256);
