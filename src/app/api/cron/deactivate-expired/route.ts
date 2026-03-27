@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { lagTypeService } from '@/services/admin/lagTypeService';
 import { postTypeService } from '@/services/admin/postTypeService';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 
-export async function GET(request: Request) {
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false;
+  }
+}
+
+export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization');
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || !authHeader || !safeCompare(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

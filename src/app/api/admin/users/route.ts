@@ -4,6 +4,16 @@ import { authOptions } from '@/lib/auth';
 import { usersService } from '@/services/admin/usersService';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { safeParseInt } from '@/lib/parse-params';
+import { z } from 'zod';
+
+const createUserSchema = z.object({
+  email: z.string().email('Некорректный email'),
+  name: z.string().min(2, 'Имя минимум 2 символа').max(100, 'Имя максимум 100 символов'),
+  password: z.string().min(8, 'Пароль минимум 8 символов'),
+  role: z.enum(['ADMIN', 'MANAGER', 'CONTENT_MANAGER']).optional(),
+  phone: z.string().optional(),
+  active: z.boolean().optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,10 +58,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const user = await usersService.createUser(body);
+    const validated = createUserSchema.parse(body);
+    const user = await usersService.createUser(validated);
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+    }
     console.error('Error creating user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

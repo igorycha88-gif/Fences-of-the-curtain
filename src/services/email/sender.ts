@@ -1,5 +1,14 @@
 import nodemailer from 'nodemailer';
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export interface EmailData {
   to: string;
   subject: string;
@@ -38,14 +47,14 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
 export function sendOrderNotification(order: any) {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #333; margin-bottom: 20px;">Новая заявка #${order.id}</h2>
+      <h2 style="color: #333; margin-bottom: 20px;">Новая заявка #${escapeHtml(String(order.id))}</h2>
       
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <p><strong>Клиент:</strong> ${order.clientName}</p>
-        <p><strong>Телефон:</strong> ${order.phone}</p>
-        ${order.email ? `<p><strong>Email:</strong> ${order.email}</p>` : ''}
+        <p><strong>Клиент:</strong> ${escapeHtml(order.clientName)}</p>
+        <p><strong>Телефон:</strong> ${escapeHtml(order.phone)}</p>
+        ${order.email ? `<p><strong>Email:</strong> ${escapeHtml(order.email)}</p>` : ''}
         <p><strong>Тип услуги:</strong> ${order.serviceType === 'fence' ? 'Забор' : 'Навес'}</p>
-        <p><strong>Стоимость:</strong> ${order.calculatedCost.toLocaleString('ru-RU')} ₽</p>
+        <p><strong>Стоимость:</strong> ${Number(order.calculatedCost).toLocaleString('ru-RU')} ₽</p>
         <p><strong>Дата:</strong> ${new Date(order.createdAt).toLocaleDateString('ru-RU')}</p>
       </div>
 
@@ -69,9 +78,9 @@ export function sendClientConfirmation(order: any) {
       
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <p>Благодарим вас за заявку! Мы свяжемся с вами в ближайшее время.</p>
-        <p><strong>Номер заявки:</strong> #${order.id}</p>
+        <p><strong>Номер заявки:</strong> #${escapeHtml(String(order.id))}</p>
         <p><strong>Тип услуги:</strong> ${order.serviceType === 'fence' ? 'Забор' : 'Навес'}</p>
-        <p><strong>Стоимость:</strong> ${order.calculatedCost.toLocaleString('ru-RU')} ₽</p>
+        <p><strong>Стоимость:</strong> ${Number(order.calculatedCost).toLocaleString('ru-RU')} ₽</p>
       </div>
 
       <p style="color: #666; font-size: 14px;">

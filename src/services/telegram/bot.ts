@@ -34,15 +34,20 @@ export async function sendTelegramMessage(message: string): Promise<boolean> {
 }
 
 export function sendOrderNotification(order: any) {
-  const message = `
-🆕 <b>Новая заявка #${order.id.slice(-6)}</b>
+  const escapedName = (order.clientName || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapedPhone = (order.phone || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapedEmail = (order.email || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const orderId = String(order.id || '').slice(-6);
 
-👤 <b>Клиент:</b> ${order.clientName}
-📞 <b>Телефон:</b> ${order.phone}
-${order.email ? `📧 <b>Email:</b> ${order.email}` : ''}
+  const message = `
+🆕 <b>Новая заявка #${orderId}</b>
+
+👤 <b>Клиент:</b> ${escapedName}
+📞 <b>Телефон:</b> ${escapedPhone}
+${escapedEmail ? `📧 <b>Email:</b> ${escapedEmail}` : ''}
 
 🏠 <b>Тип:</b> ${order.serviceType === 'fence' ? 'Забор' : 'Навес'}
-💰 <b>Стоимость:</b> ${order.calculatedCost.toLocaleString('ru-RU')} ₽
+💰 <b>Стоимость:</b> ${Number(order.calculatedCost || 0).toLocaleString('ru-RU')} ₽
 📅 <b>Дата:</b> ${new Date(order.createdAt).toLocaleDateString('ru-RU')}
 
 Обработайте заявку в админ-панели.
@@ -52,15 +57,20 @@ ${order.email ? `📧 <b>Email:</b> ${order.email}` : ''}
 }
 
 export function sendContactForm(data: any) {
+  const escapedName = (data.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapedPhone = (data.phone || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapedEmail = (data.email || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escapedMessage = (data.message || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
   const message = `
 📨 <b>Форма обратной связи</b>
 
-👤 <b>Имя:</b> ${data.name}
-📞 <b>Телефон:</b> ${data.phone}
-${data.email ? `📧 <b>Email:</b> ${data.email}` : ''}
+👤 <b>Имя:</b> ${escapedName}
+📞 <b>Телефон:</b> ${escapedPhone}
+${escapedEmail ? `📧 <b>Email:</b> ${escapedEmail}` : ''}
 
 💬 <b>Сообщение:</b>
-${data.message}
+${escapedMessage}
   `.trim();
 
   return sendTelegramMessage(message);

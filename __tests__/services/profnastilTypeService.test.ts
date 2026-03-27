@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { profnastilTypeService } from '@/services/admin/profnastilTypeService';
 import { prisma } from '@/lib/prisma';
 import { ProfnastilTypeInput, ProfnastilTypeUpdate } from '@/lib/validators/profnastilType';
+import * as cacheInvalidation from '@/lib/cache-invalidation';
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
@@ -16,6 +17,25 @@ jest.mock('@/lib/prisma', () => ({
     referenceChangeLog: {
       create: jest.fn(),
     },
+    mountingHardwareRelation: {
+      deleteMany: jest.fn(),
+    },
+  },
+}));
+
+jest.mock('@/lib/cache-invalidation', () => ({
+  invalidateProfnastilTypesCache: jest.fn(),
+}));
+
+jest.mock('@/services/admin/priorityService', () => ({
+  priorityService: {
+    recalculateAfterDelete: jest.fn(),
+  },
+}));
+
+jest.mock('@/services/admin/mountingHardwareService', () => ({
+  mountingHardwareService: {
+    deleteRelationsForReference: jest.fn(),
   },
 }));
 
@@ -212,6 +232,116 @@ describe('ProfnastilTypeService', () => {
       const result = await profnastilTypeService.update('test-id', updateData, 'user-id');
 
       expect(result.purchasePricePerUnit).toBe(2100);
+    });
+  });
+
+  describe('cache invalidation', () => {
+    it('should invalidate cache after create', async () => {
+      const mockData: ProfnastilTypeInput = {
+        name: 'Тестовый профнастил',
+        metalThickness: 0.5,
+        fullWidth: 1200,
+        usefulWidth: 1150,
+        length: 2000,
+        coating: 'Полимерное (одностороннее)',
+        purchasePricePerLinearMeter: 350,
+        retailPricePerUnit: 1200,
+        active: true,
+        sortOrder: 0,
+      };
+
+      (prisma.profnastilType.findFirst as any).mockResolvedValue(null);
+      (prisma.profnastilType.findMany as any).mockResolvedValue([]);
+      (prisma.profnastilType.create as any).mockResolvedValue({
+        id: 'test-id',
+        ...mockData,
+        purchasePricePerUnit: 700,
+        priority: 1,
+      });
+      (prisma.referenceChangeLog.create as any).mockResolvedValue({});
+
+      await profnastilTypeService.create(mockData, 'user-id');
+
+      expect(cacheInvalidation.invalidateProfnastilTypesCache).toHaveBeenCalled();
+    });
+
+    it('should invalidate cache after update', async () => {
+      const existingItem = {
+        id: 'test-id',
+        name: 'Тестовый профнастил',
+        metalThickness: 0.5,
+        fullWidth: 1200,
+        usefulWidth: 1150,
+        length: 2000,
+        coating: 'Полимерное (одностороннее)',
+        purchasePricePerLinearMeter: 350,
+        purchasePricePerUnit: 700,
+        retailPricePerUnit: 1200,
+        active: true,
+        priority: 1,
+      };
+
+      const updateData = {
+        retailPricePerUnit: 1500,
+      };
+
+      (prisma.profnastilType.findUnique as any).mockResolvedValue(existingItem);
+      (prisma.profnastilType.update as any).mockResolvedValue({
+        ...existingItem,
+        ...updateData,
+      });
+      (prisma.referenceChangeLog.create as any).mockResolvedValue({});
+
+      await profnastilTypeService.update('test-id', updateData, 'user-id');
+
+      expect(cacheInvalidation.invalidateProfnastilTypesCache).toHaveBeenCalled();
+    });
+
+    it('should invalidate cache after delete', async () => {
+      const existingItem = {
+        id: 'test-id',
+        name: 'Тестовый профнастил',
+        priority: 1,
+      };
+
+      (prisma.profnastilType.findUnique as any).mockResolvedValue(existingItem);
+      (prisma.profnastilType.delete as any).mockResolvedValue(existingItem);
+      (prisma.referenceChangeLog.create as any).mockResolvedValue({});
+
+      jest.mock('@/services/admin/priorityService', () => ({
+        priorityService: {
+          recalculateAfterDelete: jest.fn(),
+        },
+      }));
+
+      jest.mock('@/services/admin/mountingHardwareService', () => ({
+        mountingHardwareService: {
+          deleteRelationsForReference: jest.fn(),
+        },
+      }));
+
+      await profnastilTypeService.delete('test-id', 'user-id');
+
+      expect(cacheInvalidation.invalidateProfnastilTypesCache).toHaveBeenCalled();
+    });
+
+    it('should invalidate cache after toggleActive', async () => {
+      const existingItem = {
+        id: 'test-id',
+        name: 'Тестовый профнастил',
+        active: true,
+      };
+
+      (prisma.profnastilType.findUnique as any).mockResolvedValue(existingItem);
+      (prisma.profnastilType.update as any).mockResolvedValue({
+        ...existingItem,
+        active: false,
+      });
+      (prisma.referenceChangeLog.create as any).mockResolvedValue({});
+
+      await profnastilTypeService.toggleActive('test-id', 'user-id');
+
+      expect(cacheInvalidation.invalidateProfnastilTypesCache).toHaveBeenCalled();
     });
   });
 });

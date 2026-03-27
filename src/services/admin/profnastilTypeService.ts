@@ -5,6 +5,7 @@ import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
 import { logPriceChange } from '@/lib/audit-helpers';
+import { invalidateProfnastilTypesCache } from '@/lib/cache-invalidation';
 
 function roundToTwo(num: number): number {
   return Math.round(num * 100) / 100;
@@ -173,6 +174,9 @@ export class ProfnastilTypeService {
       },
     });
 
+    await invalidateProfnastilTypesCache();
+    console.log('[PROFNASTIL SERVICE] Cache invalidated');
+
     return profnastil;
   }
 
@@ -224,6 +228,9 @@ export class ProfnastilTypeService {
 
     await this.logChange(id, 'UPDATE', oldItem, profnastil, userId);
 
+    await invalidateProfnastilTypesCache();
+    console.log('[PROFNASTIL SERVICE] Cache invalidated');
+
     return profnastil;
   }
 
@@ -258,6 +265,8 @@ export class ProfnastilTypeService {
     });
 
     await priorityService.recalculateAfterDelete('profnastilType', userId);
+    await invalidateProfnastilTypesCache();
+    console.log('[PROFNASTIL SERVICE] Cache invalidated');
   }
 
   async toggleActive(id: string, userId: string) {
@@ -275,6 +284,9 @@ export class ProfnastilTypeService {
     });
 
     await this.logChange(id, 'TOGGLE_ACTIVE', oldItem, profnastil, userId);
+
+    await invalidateProfnastilTypesCache();
+    console.log('[PROFNASTIL SERVICE] Cache invalidated');
 
     return profnastil;
   }

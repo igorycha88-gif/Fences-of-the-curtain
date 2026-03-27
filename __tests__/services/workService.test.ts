@@ -616,6 +616,7 @@ describe('WorkService', () => {
       expect(result).toEqual([
         { value: 'PROFNASTIL', label: 'Профнастил' },
         { value: 'PICKET', label: 'Евроштакетник' },
+        { value: 'PANEL_3D', label: '3D-панели' },
         { value: 'GATE', label: 'Ворота' },
         { value: 'WICKET', label: 'Калитки' },
       ]);

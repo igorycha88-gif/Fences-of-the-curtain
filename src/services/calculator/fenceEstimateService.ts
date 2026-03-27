@@ -117,13 +117,6 @@ export async function calculateFenceEstimate(
 
   await fenceTypeCalculatorService.invalidateCache();
 
-  if (!fenceType) {
-    throw {
-      error: 'NO_FENCE_TYPE',
-      message: 'Тип забора не найден',
-    } as CalculationError;
-  }
-
   let correctedLength = length;
   let gateInfo: GateInfo | undefined;
   let gateTotal = 0;
@@ -241,7 +234,7 @@ export async function calculateFenceEstimate(
   let panel3dResult: Panel3DCalculationResult | undefined;
 
   if (fenceType.name === 'Профнастил') {
-    profnastilResult = await calculateProfnastil(length, height, coating);
+    profnastilResult = await calculateProfnastil(correctedLength, height, coating);
   } else if (fenceType.name === '3D-панели') {
     panel3dResult = await calculatePanel3D(correctedLength, height);
   } else if (fenceType.name === 'Евроштакетник') {
@@ -372,8 +365,8 @@ export async function calculateFenceEstimate(
     let totalPrice = work.price;
 
     if (work.unit === 'MP') {
-      quantity = length;
-      totalPrice = length * work.price;
+      quantity = correctedLength;
+      totalPrice = correctedLength * work.price;
     } else if (work.unit === 'PCS') {
       quantity = 1;
       totalPrice = work.price;
@@ -442,7 +435,7 @@ export async function calculateFenceEstimate(
 
   const fenceTypeMountingWorksTotal = fenceTypeMountingWorks.reduce((sum, work) => {
     if (work.unit === 'MP') {
-      return sum + (length * work.price);
+      return sum + (correctedLength * work.price);
     }
     return sum + work.price;
   }, 0);
@@ -454,7 +447,7 @@ export async function calculateFenceEstimate(
   const estimate = await prisma.$transaction(async (tx) => {
     return await tx.fenceEstimate.create({
       data: {
-        id: `estimate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `estimate-${crypto.randomUUID()}`,
         fenceTypeId,
         length: correctedLength,
         height,
