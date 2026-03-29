@@ -4,7 +4,7 @@ export const fenceEstimateSchema = z.object({
   fenceTypeId: z.string().min(1),
   length: z.number().min(1).max(1000),
   height: z.number().min(1.5).max(3.5),
-  lagRows: z.union([z.literal(2), z.literal(3)]),
+  lagRows: z.union([z.literal(2), z.literal(3)]).optional(),
   coating: z.enum(['GALVANIZED', 'POLYMER_SINGLE', 'POLYMER_DOUBLE']).default('POLYMER_SINGLE'),
   hasGate: z.boolean().default(false),
   gateType: z.enum(['SWING', 'SLIDING']).optional(),

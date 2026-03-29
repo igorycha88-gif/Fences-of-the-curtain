@@ -189,9 +189,12 @@ export default function FenceCalculatorPage() {
         fenceTypeId: formData.fenceTypeId,
         length: formData.length,
         height: formData.height,
-        lagRows: parseInt(formData.lagRows) as 2 | 3,
         coating: formData.coating,
       };
+
+      if (!isPanel3D) {
+        requestBody.lagRows = parseInt(formData.lagRows) as 2 | 3;
+      }
 
       if (formData.hasGate) {
         requestBody.hasGate = true;
@@ -362,17 +365,19 @@ export default function FenceCalculatorPage() {
                             ))}
                           </select>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Количество лаг</label>
-                          <select
-                            value={formData.lagRows}
-                            onChange={(e) => setFormData({ ...formData, lagRows: e.target.value as '2' | '3' })}
-                            className="select-modern"
-                          >
-                            <option value="2">2 ряда</option>
-                            <option value="3">3 ряда</option>
-                          </select>
-                        </div>
+                        {!isPanel3D && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Количество лаг</label>
+                            <select
+                              value={formData.lagRows}
+                              onChange={(e) => setFormData({ ...formData, lagRows: e.target.value as '2' | '3' })}
+                              className="select-modern"
+                            >
+                              <option value="2">2 ряда</option>
+                              <option value="3">3 ряда</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
 
                       {!isPanel3D && (

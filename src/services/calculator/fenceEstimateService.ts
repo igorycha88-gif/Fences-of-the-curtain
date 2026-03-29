@@ -115,6 +115,13 @@ export async function calculateFenceEstimate(
     } as CalculationError;
   }
 
+  if (fenceType.name !== '3D-панели' && !lagRows) {
+    throw {
+      error: 'MISSING_LAG_ROWS',
+      message: 'Количество лаг обязательно для этого типа забора',
+    } as CalculationError;
+  }
+
   await fenceTypeCalculatorService.invalidateCache();
 
   let correctedLength = length;
@@ -258,7 +265,9 @@ export async function calculateFenceEstimate(
     ? calculatePostsForProfnastil(correctedLength, height, postSpacingM)
     : calculatePostsForPanel3D(correctedLength, height, postSpacingM));
 
-  const lagsResult = await calculateLags(correctedLength, lagRows);
+  const lagsResult = fenceType.name === '3D-панели'
+    ? null
+    : await calculateLags(correctedLength, lagRows!);
 
   let mountingHardwareResult: MountingHardwareCalculationResult[];
 
@@ -267,7 +276,7 @@ export async function calculateFenceEstimate(
       fenceLengthM: correctedLength,
       fenceHeightM: height,
       postsCount: postsResult.quantity,
-      lagsCount: lagsResult.quantity,
+      lagsCount: 0,
       postTypeId: postsResult.nomenclatureId,
       panel3dId: panel3dResult.nomenclatureId,
       panel3dCount: panel3dResult.quantity,
@@ -277,10 +286,10 @@ export async function calculateFenceEstimate(
       fenceLengthM: correctedLength,
       fenceHeightM: height,
       postsCount: postsResult.quantity,
-      lagsCount: lagsResult.quantity,
+      lagsCount: lagsResult!.quantity,
       profnastilCount: profnastilResult.quantity,
       postTypeId: postsResult.nomenclatureId,
-      lagTypeId: lagsResult.nomenclatureId,
+      lagTypeId: lagsResult!.nomenclatureId,
       profnastilTypeId: profnastilResult.nomenclatureId,
     });
   } else if (selectedGate) {
@@ -288,7 +297,7 @@ export async function calculateFenceEstimate(
       fenceLengthM: correctedLength,
       fenceHeightM: height,
       postsCount: postsResult.quantity,
-      lagsCount: lagsResult.quantity,
+      lagsCount: lagsResult!.quantity,
       gateId: selectedGate.id,
       gateCount: 1,
     });
@@ -297,7 +306,7 @@ export async function calculateFenceEstimate(
       fenceLengthM: correctedLength,
       fenceHeightM: height,
       postsCount: postsResult.quantity,
-      lagsCount: lagsResult.quantity,
+      lagsCount: lagsResult!.quantity,
       wicketId: selectedWicket.id,
       wicketCount: 1,
     });
@@ -306,7 +315,7 @@ export async function calculateFenceEstimate(
       fenceLengthM: correctedLength,
       fenceHeightM: height,
       postsCount: postsResult.quantity,
-      lagsCount: lagsResult.quantity,
+      lagsCount: lagsResult!.quantity,
     });
   }
 
@@ -322,7 +331,7 @@ export async function calculateFenceEstimate(
 
   const items: EstimateItem[] = [
     postsResult,
-    lagsResult,
+    ...(lagsResult ? [lagsResult] : []),
     ...(profnastilResult ? [profnastilResult] : []),
     ...(panel3dResult ? [panel3dResult] : []),
   ];
@@ -441,7 +450,7 @@ export async function calculateFenceEstimate(
     return sum + work.price;
   }, 0);
 
-  const materials = postsResult.totalPrice + lagsResult.totalPrice + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
+  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
   const installation = gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + fenceTypeMountingWorksTotal;
   const grandTotal = materials + installation;
 
@@ -452,7 +461,7 @@ export async function calculateFenceEstimate(
         fenceTypeId,
         length: correctedLength,
         height,
-        lagRows,
+        lagRows: lagRows || 2,
         coating,
         hasGate: hasGate || false,
         gateType: gateType || null,
@@ -460,7 +469,7 @@ export async function calculateFenceEstimate(
         gateNomenclatureId: gateInfo ? gateInfo.id : null,
         gateNomenclatureName: gateInfo ? gateInfo.selectedName : null,
         postsTotal: postsResult.totalPrice,
-        lagsTotal: lagsResult.totalPrice,
+        lagsTotal: lagsResult?.totalPrice || 0,
         profnastilTotal: profnastilResult?.totalPrice || 0,
         mountingHardwareTotal,
         gateTotal,
@@ -515,7 +524,7 @@ export async function calculateFenceEstimate(
       fenceTypeName: fenceType.name,
       length,
       height,
-      lagRows,
+      lagRows: lagRows || 2,
       coating,
       ...(gateInfo ? { gate: gateInfo } : {}),
       ...(wicketInfo ? { wicket: wicketInfo } : {}),
