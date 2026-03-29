@@ -268,6 +268,7 @@ export async function calculateFenceEstimate(
       fenceHeightM: height,
       postsCount: postsResult.quantity,
       lagsCount: lagsResult.quantity,
+      postTypeId: postsResult.nomenclatureId,
       panel3dId: panel3dResult.nomenclatureId,
       panel3dCount: panel3dResult.quantity,
     });

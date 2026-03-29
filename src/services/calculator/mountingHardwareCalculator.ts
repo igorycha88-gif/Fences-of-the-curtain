@@ -25,15 +25,15 @@ export interface MountingHardwareCalculationResult {
   calculationMethod: CalculationMethod;
 }
 
-async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string; panel3dId?: string }) {
-  const { postTypeId, lagTypeId, profnastilTypeId, panel3dId } = referenceIds;
+async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string; panel3dId?: string; gateId?: string; wicketId?: string }) {
+  const { postTypeId, lagTypeId, profnastilTypeId, panel3dId, gateId, wicketId } = referenceIds;
 
-  if (!postTypeId && !lagTypeId && !profnastilTypeId && !panel3dId) {
+  if (!postTypeId && !lagTypeId && !profnastilTypeId && !panel3dId && !gateId && !wicketId) {
     return [];
   }
 
   const cacheKey = panel3dId
-    ? `calculator:hardware:${postTypeId || 'none'}:${lagTypeId || 'none'}:${profnastilTypeId || 'none'}:${panel3dId}`
+    ? `calculator:hardware:${postTypeId || 'none'}:${lagTypeId || 'none'}:${profnastilTypeId || 'none'}:${panel3dId}:${gateId || 'none'}:${wicketId || 'none'}`
     : CACHE_KEYS.MOUNTING_HARDWARE(
         postTypeId || 'none',
         lagTypeId || 'none',
@@ -43,41 +43,6 @@ async function getHardwareForReferences(referenceIds: { postTypeId?: string; lag
   return cache.getOrSet(
     cacheKey,
     async () => {
-      console.log('[MOUNTING HARDWARE] Cache MISS, loading from DB');
-      const hardware = await prisma.mountingHardware.findMany({
-        where: {
-          active: true,
-          useInCalculator: true,
-        },
-        include: {
-          relations: true,
-        },
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      });
-
-      const hardwareIds = hardware.map(h => h.id);
-      const relations = await prisma.mountingHardwareRelation.findMany({
-        where: {
-          mountingHardwareId: { in: hardwareIds },
-        },
-      });
-
-      console.log('[MOUNTING HARDWARE] hardwareIds:', hardwareIds);
-      console.log('[MOUNTING HARDWARE] relations:', relations);
-
-      const relationsByHardwareId = new Map<string, Array<{ referenceType: string; referenceId: string }>>();
-      relations.forEach(rel => {
-        if (!relationsByHardwareId.has(rel.mountingHardwareId)) {
-          relationsByHardwareId.set(rel.mountingHardwareId, []);
-        }
-        relationsByHardwareId.get(rel.mountingHardwareId)!.push({
-          referenceType: rel.referenceType,
-          referenceId: rel.referenceId,
-        });
-      });
-
       const conditions: Array<{ referenceType: string; referenceId: string }> = [];
 
       if (postTypeId) {
@@ -92,13 +57,45 @@ async function getHardwareForReferences(referenceIds: { postTypeId?: string; lag
       if (panel3dId) {
         conditions.push({ referenceType: 'PANEL_3D', referenceId: panel3dId });
       }
+      if (gateId) {
+        conditions.push({ referenceType: 'GATE', referenceId: gateId });
+      }
+      if (wicketId) {
+        conditions.push({ referenceType: 'WICKET', referenceId: wicketId });
+      }
 
-      return hardware.filter((hw) => {
-        const hwRelations = relationsByHardwareId.get(hw.id) || [];
-        return hwRelations.some((rel) =>
-          conditions.some((cond) => cond.referenceType === rel.referenceType && cond.referenceId === rel.referenceId)
-        );
+      console.log('[MOUNTING HARDWARE] getHardwareForReferences - conditions:', JSON.stringify(conditions, null, 2));
+
+      const hardware = await prisma.mountingHardwareRelation.findMany({
+        where: {
+          OR: conditions.map(cond => ({
+            referenceType: cond.referenceType,
+            referenceId: cond.referenceId,
+          })),
+        },
+        include: {
+          mountingHardware: true,
+        },
+        orderBy: {
+          mountingHardware: { sortOrder: 'asc' },
+        },
       });
+
+      console.log('[MOUNTING HARDWARE] getHardwareForReferences - relations from DB:', hardware.map(h => ({
+        referenceType: h.referenceType,
+        referenceId: h.referenceId,
+        hardwareName: h.mountingHardware.name,
+        active: h.mountingHardware.active,
+        useInCalculator: h.mountingHardware.useInCalculator
+      })));
+
+      const filtered = hardware
+        .filter(rel => rel.mountingHardware.active && rel.mountingHardware.useInCalculator)
+        .map(rel => rel.mountingHardware);
+
+      console.log('[MOUNTING HARDWARE] getHardwareForReferences - filtered hardware:', filtered.map(h => h.name));
+
+      return filtered;
     },
     CACHE_TTL.REFERENCE_DATA
   );
@@ -141,13 +138,6 @@ export async function calculateMountingHardware(params: {
 
   const results: MountingHardwareCalculationResult[] = [];
 
-  const allHardware = await getHardwareForReferences({
-    postTypeId,
-    lagTypeId,
-    profnastilTypeId,
-    panel3dId,
-  });
-
   const hardwareByType = new Map<string, HardwareForCalculation[]>();
 
   const requestedReferenceTypes: Array<{ referenceType: string; referenceId: string }> = [];
@@ -170,6 +160,8 @@ export async function calculateMountingHardware(params: {
     requestedReferenceTypes.push({ referenceType: 'WICKET', referenceId: wicketId });
   }
 
+  console.log('[MOUNTING HARDWARE] calculateMountingHardware - requestedReferenceTypes:', JSON.stringify(requestedReferenceTypes, null, 2));
+
   const relations = requestedReferenceTypes.length > 0
     ? await prisma.mountingHardwareRelation.findMany({
         where: {
@@ -178,38 +170,44 @@ export async function calculateMountingHardware(params: {
             referenceId: ref.referenceId,
           })),
         },
+        include: {
+          mountingHardware: true,
+        },
+        orderBy: {
+          mountingHardware: { sortOrder: 'asc' },
+        },
       })
     : [];
 
-  const relationsByHardwareId = new Map<string, Array<{ referenceType: string; referenceId: string }>>();
-  relations.forEach(r => {
-    if (!relationsByHardwareId.has(r.mountingHardwareId)) {
-      relationsByHardwareId.set(r.mountingHardwareId, []);
-    }
-    relationsByHardwareId.get(r.mountingHardwareId)!.push({
-      referenceType: r.referenceType,
-      referenceId: r.referenceId,
-    });
-  });
+  console.log('[MOUNTING HARDWARE] calculateMountingHardware - relations:', relations.map(r => ({
+    referenceType: r.referenceType,
+    referenceId: r.referenceId,
+    hardwareName: r.mountingHardware.name,
+    active: r.mountingHardware.active,
+    useInCalculator: r.mountingHardware.useInCalculator
+  })));
 
-  for (const hw of allHardware) {
-    const hwRelations = relationsByHardwareId.get(hw.id) || [];
-    for (const rel of hwRelations) {
-      const key = `${rel.referenceType}:${rel.referenceId}`;
-      if (!hardwareByType.has(key)) {
-        hardwareByType.set(key, []);
-      }
-      hardwareByType.get(key)!.push({
-        id: hw.id,
-        name: hw.name,
-        retailPrice: hw.retailPrice,
-        calculationMethod: hw.calculationMethod,
-        calculationValue: hw.calculationValue,
-        referenceType: rel.referenceType,
-        referenceId: rel.referenceId,
-      });
+  for (const rel of relations) {
+    if (!rel.mountingHardware.active || !rel.mountingHardware.useInCalculator) {
+      continue;
     }
+
+    const key = `${rel.referenceType}:${rel.referenceId}`;
+    if (!hardwareByType.has(key)) {
+      hardwareByType.set(key, []);
+    }
+    hardwareByType.get(key)!.push({
+      id: rel.mountingHardware.id,
+      name: rel.mountingHardware.name,
+      retailPrice: rel.mountingHardware.retailPrice,
+      calculationMethod: rel.mountingHardware.calculationMethod,
+      calculationValue: rel.mountingHardware.calculationValue,
+      referenceType: rel.referenceType,
+      referenceId: rel.referenceId,
+    });
   }
+
+  console.log('[MOUNTING HARDWARE] calculateMountingHardware - hardwareByType:', Array.from(hardwareByType.keys()));
 
   if (postTypeId) {
     const hardware = hardwareByType.get(`POST:${postTypeId}`) || [];
