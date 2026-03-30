@@ -4,6 +4,8 @@ import { estimatesService } from '@/services/admin/estimatesService';
 import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 
+export const dynamic = 'force-dynamic';
+
 const categoryLabels: Record<string, string> = {
   posts: 'Столбы',
   lags: 'Лаги',

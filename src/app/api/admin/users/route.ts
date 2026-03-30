@@ -6,6 +6,8 @@ import { hasPermission } from '@/lib/permissions/rbac';
 import { safeParseInt } from '@/lib/parse-params';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const createUserSchema = z.object({
   email: z.string().email('Некорректный email'),
   name: z.string().min(2, 'Имя минимум 2 символа').max(100, 'Имя максимум 100 символов'),

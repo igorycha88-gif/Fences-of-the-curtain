@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { fenceTypeCalculatorService } from '@/services/calculator/fenceTypeCalculatorService';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
   try {
     const session = await getServerSession(authOptions);

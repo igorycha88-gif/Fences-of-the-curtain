@@ -6,6 +6,8 @@ import { priorityService } from '@/services/admin/priorityService';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 const reorderSchema = z.object({
   id: z.string().min(1),
   newPriority: z.number().int().min(1),

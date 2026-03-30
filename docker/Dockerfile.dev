@@ -4,19 +4,37 @@ WORKDIR /app
 
 ENV NODE_ENV=development
 
+# Copy package files
 COPY package.json package-lock.json* ./
 
-RUN npm install --legacy-peer-deps
+# Install dependencies with cache optimization
+RUN npm install --legacy-peer-deps && \
+    npm cache clean --force
 
+# Copy Prisma schema and generate client
 COPY prisma ./prisma
 COPY tsconfig.json next.config.js ./
+
+# Generate Prisma Client
 RUN npx prisma generate
 
+# Copy source files
 COPY . .
 
-EXPOSE 3001
+# Create uploads directory
+RUN mkdir -p /app/public/uploads/portfolio
 
+# Expose port
+EXPOSE 3000
+
+# Environment variables
 ENV HOSTNAME="0.0.0.0"
-ENV PORT=3001
+ENV PORT=3000
+ENV NODE_ENV=development
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3000/ || exit 1
+
+# Start development server
 CMD ["npm", "run", "dev"]

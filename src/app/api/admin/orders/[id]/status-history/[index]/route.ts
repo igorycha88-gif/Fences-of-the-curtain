@@ -5,6 +5,8 @@ import { ordersService } from '@/services/admin/ordersService';
 import { statusHistoryUpdateSchema } from '@/lib/validators/order';
 import { safeParseInt } from '@/lib/parse-params';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string; index: string } }

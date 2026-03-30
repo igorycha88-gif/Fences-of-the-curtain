@@ -13,8 +13,8 @@ on:
 env:
   APP_DIR: "/root/Fences-of-the-curtain"
   APP_NAME: "fences-app"
-  PORT: "3001"
-  BASE_URL: "http://localhost:3001"
+  PORT: "3000"
+  BASE_URL: "http://localhost:3000"
 
 permissions:
   contents: read
@@ -76,10 +76,10 @@ jobs:
           script: |
             set -e
             
-            APP_DIR="/root/Fences-of-the-curtain"
-            APP_NAME="fences-app"
-            PORT="3001"
-            BASE_URL="http://localhost:3001"
+             APP_DIR="/root/Fences-of-the-curtain"
+             APP_NAME="fences-app"
+             PORT="3000"
+             BASE_URL="http://localhost:3000"
             LOG_DIR="/var/log/fences-deploy"
             DEPLOY_LOG="$LOG_DIR/deploy-production.log"
             CACHE_DIR="$APP_DIR/.cache"

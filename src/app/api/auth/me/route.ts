@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   console.log('[AUTH /me] Checking session...');
   

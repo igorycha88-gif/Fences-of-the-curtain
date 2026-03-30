@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { workService } from '@/services/admin/workService';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);

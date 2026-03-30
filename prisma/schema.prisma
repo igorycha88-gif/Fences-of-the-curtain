@@ -361,7 +361,7 @@ model ProfnastilType {
 }
 
 model PicketType {
-  id                    String    @id @default(cuid())
+  id                    String          @id @default(cuid())
   name                  String
   description           String?
   metalThickness        Float
@@ -369,20 +369,23 @@ model PicketType {
   length                Int
   coating               String
   color                 String?
+  picketShape           PicketTypeShape
+  picketCoating         PicketCoating
   purchasePricePerMeter Float?
   retailPricePerMeter   Float
   validFrom             DateTime?
   validUntil            DateTime?
-  active                Boolean   @default(true)
+  active                Boolean         @default(true)
   image                 String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  priority              Int       @default(0)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  priority              Int             @default(0)
 
-  @@unique([name, metalThickness, coating, color], name: "picket_unique_combination")
+  @@unique([name, metalThickness, picketShape, picketCoating, color], name: "picket_unique_combination")
   @@index([active])
   @@index([validUntil])
-  @@index([coating])
+  @@index([picketCoating])
+  @@index([picketShape])
   @@index([name])
   @@index([priority])
 }
@@ -442,7 +445,7 @@ model WicketType {
 }
 
 model FenceEstimate {
-  id                       String    @id @default(cuid())
+  id                       String          @id @default(cuid())
   fenceTypeId              String
   length                   Float
   height                   Float
@@ -458,29 +461,34 @@ model FenceEstimate {
   sessionId                String?
   userAgent                String?
   ipAddress                String?
-  createdAt                DateTime  @default(now())
-  mountingHardwareTotal    Float     @default(0)
-  coating                  String    @default("POLYMER_SINGLE")
-  gateInstallationTotal    Float     @default(0)
+  createdAt                DateTime        @default(now())
+  mountingHardwareTotal    Float           @default(0)
+  coating                  String          @default("POLYMER_SINGLE")
+  gateInstallationTotal    Float           @default(0)
   gateLength               Int?
   gateNomenclatureId       String?
   gateNomenclatureName     String?
-  gateTotal                Float     @default(0)
+  gateTotal                Float           @default(0)
   gateType                 String?
-  hasGate                  Boolean   @default(false)
-  hasWicket                Boolean   @default(false)
-  wicketInstallationTotal  Float     @default(0)
+  hasGate                  Boolean         @default(false)
+  hasWicket                Boolean         @default(false)
+  wicketInstallationTotal  Float           @default(0)
   wicketNomenclatureId     String?
   wicketNomenclatureName   String?
-  wicketTotal              Float     @default(0)
+  wicketTotal              Float           @default(0)
   wicketWidth              Int?
   city                     String?
   panel3dId                String?
-  panel3dInstallationTotal Float     @default(0)
+  panel3dInstallationTotal Float           @default(0)
   panel3dNomenclatureName  String?
-  panel3dTotal             Float     @default(0)
-  fenceType                FenceType @relation(fields: [fenceTypeId], references: [id])
-  user                     User?     @relation(fields: [userId], references: [id])
+  panel3dTotal             Float           @default(0)
+  picketShape              PicketTypeShape?
+  picketCoating            PicketCoating?
+  picketStep               Int?
+  picketMountingType       String?
+  picketTotal              Float           @default(0)
+  fenceType                FenceType       @relation(fields: [fenceTypeId], references: [id])
+  user                     User?           @relation(fields: [userId], references: [id])
   order                    Order?
 
   @@index([fenceTypeId])
@@ -614,4 +622,19 @@ enum OrderStatus {
   INSTALLATION
   COMPLETED
   CANCELLED
+}
+
+enum PicketTypeShape {
+  P_SHAPED
+  M_SHAPED
+  SEMICIRCULAR
+}
+
+enum PicketCoating {
+  PLASTISOL
+  PURAL
+  PVDF
+  PRINTECH
+  GLOSSY_POLYESTER
+  MATTE_POLYESTER
 }

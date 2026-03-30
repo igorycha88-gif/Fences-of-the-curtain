@@ -4,9 +4,6 @@ import { prisma } from '@/lib/prisma';
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    mountingHardware: {
-      findMany: jest.fn(),
-    },
     mountingHardwareRelation: {
       findMany: jest.fn(),
     },
@@ -20,19 +17,6 @@ describe('MountingHardwareCalculator - Panel3D Relations', () => {
   });
 
   it('should include relations when loading mounting hardware', async () => {
-    const mockHardware = [
-      {
-        id: 'hw1',
-        name: 'Саморезы',
-        active: true,
-        useInCalculator: true,
-        retailPrice: 10,
-        calculationMethod: 'BY_QUANTITY',
-        calculationValue: 1,
-        sortOrder: 1,
-      },
-    ];
-
     const mockRelations = [
       {
         id: 'rel1',
@@ -40,10 +24,19 @@ describe('MountingHardwareCalculator - Panel3D Relations', () => {
         referenceType: 'PANEL_3D',
         referenceId: 'panel3d1',
         createdAt: new Date(),
+        mountingHardware: {
+          id: 'hw1',
+          name: 'Саморезы',
+          active: true,
+          useInCalculator: true,
+          retailPrice: 10,
+          calculationMethod: 'BY_QUANTITY',
+          calculationValue: 1,
+          sortOrder: 1,
+        },
       },
     ];
 
-    (prisma.mountingHardware.findMany as any).mockResolvedValue(mockHardware);
     (prisma.mountingHardwareRelation.findMany as any).mockResolvedValue(mockRelations);
 
     const result = await calculateMountingHardware({
@@ -55,19 +48,24 @@ describe('MountingHardwareCalculator - Panel3D Relations', () => {
       panel3dCount: 4,
     });
 
-    expect(prisma.mountingHardware.findMany).toHaveBeenCalledWith({
+    expect(prisma.mountingHardwareRelation.findMany).toHaveBeenCalledWith({
       where: {
-        active: true,
-        useInCalculator: true,
+        OR: [
+          {
+            referenceType: 'PANEL_3D',
+            referenceId: 'panel3d1',
+          },
+        ],
       },
       include: {
-        relations: true,
+        mountingHardware: true,
       },
       orderBy: {
-        sortOrder: 'asc',
+        mountingHardware: { sortOrder: 'asc' },
       },
     });
 
     expect(result.length).toBeGreaterThan(0);
+    expect(result[0].nomenclatureName).toBe('Саморезы');
   });
 });

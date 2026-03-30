@@ -7,6 +7,8 @@ import { hasPermission } from '@/lib/permissions/rbac';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 const contactInfoSchema = z.object({
   address: z.string().optional(),
   phone: z.string().optional(),

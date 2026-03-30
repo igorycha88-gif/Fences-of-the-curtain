@@ -53,6 +53,18 @@ next-env.d.ts
 /ssl/*.pem
 /ssl/*.key
 
+# Monitoring configuration
+.env.monitoring
+prometheus.yml
+prometheus/alert_rules.yml
+prometheus/recording_rules.yml
+grafana/provisioning/datasources/*.yml
+grafana/provisioning/dashboards/*.yml
+
+# Monitoring data
+prometheus_data/
+grafana_data/
+
 # Logs
 logs/
 *.log

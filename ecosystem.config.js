@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'fences-app',
       script: 'npx',
-      args: 'next start -p 3001',
+      args: 'next start -p 3000',
       cwd: '/root/Fences-of-the-curtain',
       instances: 1,
       exec_mode: 'fork',
@@ -17,7 +17,7 @@ module.exports = {
       exp_backoff_restart_delay: 100,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3001,
+        PORT: 3000,
       },
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: '/var/log/fences-app/error.log',

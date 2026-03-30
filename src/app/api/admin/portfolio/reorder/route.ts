@@ -6,6 +6,8 @@ import { reorderSchema } from '@/lib/validators/portfolio';
 import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

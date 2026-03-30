@@ -7,6 +7,8 @@ import { hasPermission } from '@/lib/permissions/rbac';
 import { gateTypeUpdateSchema } from '@/lib/validators/gateType';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

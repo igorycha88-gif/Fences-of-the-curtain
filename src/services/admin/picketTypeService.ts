@@ -117,6 +117,8 @@ export class PicketTypeService {
         name: data.name,
         metalThickness: data.metalThickness,
         coating: data.coating,
+        picketShape: data.picketShape,
+        picketCoating: data.picketCoating,
         color: data.color || null,
       },
     });
@@ -138,6 +140,8 @@ export class PicketTypeService {
         width: data.width,
         length: data.length,
         coating: data.coating,
+        picketShape: data.picketShape,
+        picketCoating: data.picketCoating,
         color: data.color,
         purchasePricePerMeter: data.purchasePricePerMeter,
         retailPricePerMeter: data.retailPricePerMeter,
@@ -183,6 +187,8 @@ export class PicketTypeService {
           name: data.name || oldItem.name,
           metalThickness: data.metalThickness ?? oldItem.metalThickness,
           coating: data.coating || oldItem.coating,
+          picketShape: data.picketShape ?? oldItem.picketShape,
+          picketCoating: data.picketCoating ?? oldItem.picketCoating,
           color: data.color !== undefined ? data.color : oldItem.color,
         },
       });

@@ -6,6 +6,8 @@ import { bulkOperationSchema } from '@/lib/validators/portfolio';
 import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

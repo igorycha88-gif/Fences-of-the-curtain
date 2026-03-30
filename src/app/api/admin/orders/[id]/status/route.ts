@@ -7,6 +7,8 @@ import { updateOrderStatusSchema, getStatusTransitionSchema } from '@/lib/valida
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

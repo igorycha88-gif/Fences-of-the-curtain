@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { ordersService } from '@/services/admin/ordersService';
 import { hasPermission } from '@/lib/permissions/rbac';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);

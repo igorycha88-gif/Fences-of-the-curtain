@@ -16,6 +16,10 @@ const PLACEHOLDER_VALUES = [
 ];
 
 function validateNextAuthSecret() {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return;
+  }
+
   const secret = process.env.NEXTAUTH_SECRET;
 
   if (!secret) {
@@ -32,7 +36,7 @@ function validateNextAuthSecret() {
   }
 
   for (const placeholder of PLACEHOLDER_VALUES) {
-    if (secret.toLowerCase().includes(placeholder.toLowerCase())) {
+    if (secret.toLowerCase().includes(placeholder)) {
       throw new Error(
         `NEXTAUTH_SECRET contains placeholder "${placeholder}". ` +
           'Generate a real secret with: openssl rand -base64 32'
@@ -40,8 +44,6 @@ function validateNextAuthSecret() {
     }
   }
 }
-
-validateNextAuthSecret();
 
 function extractIP(req: any): string {
   if (!req) return 'unknown';
@@ -59,81 +61,96 @@ function extractIP(req: any): string {
   return 'unknown';
 }
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+let _authOptions: NextAuthOptions | null = null;
+
+function getAuthOptions(): NextAuthOptions {
+  if (!_authOptions) {
+    validateNextAuthSecret();
+    _authOptions = {
+      providers: [
+        CredentialsProvider({
+          name: 'Credentials',
+          credentials: {
+            email: { label: 'Email', type: 'email' },
+            password: { label: 'Password', type: 'password' },
+          },
+          async authorize(credentials, req) {
+            if (!credentials?.email || !credentials?.password) {
+              console.log('[AUTH] Missing credentials');
+              return null;
+            }
+
+            const ip = extractIP(req);
+            const allowed = await checkRateLimit(ip, credentials.email);
+
+            if (!allowed) {
+              console.log('[AUTH] Rate limit exceeded');
+              return null;
+            }
+
+            console.log('[AUTH] Login attempt: user lookup');
+
+            const user = await prisma.user.findUnique({
+              where: { email: credentials.email },
+            });
+
+            if (!user || !user.active) {
+              console.log('[AUTH] User not found or inactive');
+              return null;
+            }
+
+            const passwordMatch = await compare(credentials.password, user.password);
+
+            console.log('[AUTH] Password verification: completed');
+
+            if (!passwordMatch) {
+              console.log('[AUTH] Invalid password');
+              return null;
+            }
+
+            console.log('[AUTH] User authorized: success');
+
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+            };
+          },
+        }),
+      ],
+      callbacks: {
+        async jwt({ token, user }: any) {
+          if (user) {
+            token.id = user.id;
+            token.role = user.role;
+            console.log('[AUTH JWT] Token created, role:', user.role);
+          }
+          return token;
+        },
+        async session({ session, token }: any) {
+          if (session.user && token) {
+            session.user.id = token.id as string;
+            session.user.role = token.role as string;
+            console.log('[AUTH SESSION] Session created, role:', session.user.role);
+          }
+          return session;
+        },
       },
-      async authorize(credentials, req) {
-        if (!credentials?.email || !credentials?.password) {
-          console.log('[AUTH] Missing credentials');
-          return null;
-        }
-
-        const ip = extractIP(req);
-        const allowed = await checkRateLimit(ip, credentials.email);
-
-        if (!allowed) {
-          console.log('[AUTH] Rate limit exceeded');
-          return null;
-        }
-
-        console.log('[AUTH] Login attempt: user lookup');
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.active) {
-          console.log('[AUTH] User not found or inactive');
-          return null;
-        }
-
-        const passwordMatch = await compare(credentials.password, user.password);
-
-        console.log('[AUTH] Password verification: completed');
-
-        if (!passwordMatch) {
-          console.log('[AUTH] Invalid password');
-          return null;
-        }
-
-        console.log('[AUTH] User authorized: success');
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
+      pages: {
+        signIn: '/admin/login',
       },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        console.log('[AUTH JWT] Token created, role:', user.role);
-      }
-      return token;
-    },
-    async session({ session, token }: any) {
-      if (session.user && token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        console.log('[AUTH SESSION] Session created, role:', session.user.role);
-      }
-      return session;
-    },
+      session: {
+        strategy: 'jwt',
+      },
+      secret: process.env.NEXTAUTH_SECRET,
+    };
+  }
+  return _authOptions;
+}
+
+export const authOptions: NextAuthOptions = new Proxy({} as NextAuthOptions, {
+  get(_, prop) {
+    return getAuthOptions()[prop as keyof NextAuthOptions];
   },
-  pages: {
-    signIn: '/admin/login',
-  },
-  session: {
-    strategy: 'jwt',
-  },
-};
+});

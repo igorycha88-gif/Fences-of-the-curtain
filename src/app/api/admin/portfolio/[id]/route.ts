@@ -6,6 +6,8 @@ import { portfolioUpdateSchema } from '@/lib/validators/portfolio';
 import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -3,7 +3,7 @@
   "version": "1.3.1",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -13,7 +13,10 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seeds/seed.ts",
     "db:migrate-passwords": "tsx prisma/migrations/hash-existing-passwords.ts",
-    "check:pii": "bash scripts/check-pii-logs.sh"
+    "check:pii": "bash scripts/check-pii-logs.sh",
+    "pre-commit": "bash .git/hooks/pre-commit",
+    "type-check": "tsc --noEmit --pretty",
+    "validate-prisma": "prisma validate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

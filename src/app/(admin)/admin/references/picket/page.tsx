@@ -22,6 +22,8 @@ interface PicketType {
   width: number;
   length: number;
   coating: string;
+  picketShape: string;
+  picketCoating: string;
   color: string | null;
   purchasePricePerMeter: number | null;
   retailPricePerMeter: number;
@@ -114,6 +116,8 @@ export default function PicketPage() {
       width: 125,
       length: 2000,
       coating: 'Полиэстер',
+      picketShape: 'P_SHAPED',
+      picketCoating: 'PLASTISOL',
       color: '',
       purchasePricePerMeter: null,
       retailPricePerMeter: 0,
@@ -133,6 +137,8 @@ export default function PicketPage() {
       width: item.width,
       length: item.length,
       coating: item.coating,
+      picketShape: item.picketShape as any,
+      picketCoating: item.picketCoating as any,
       color: item.color || '',
       purchasePricePerMeter: item.purchasePricePerMeter,
       retailPricePerMeter: item.retailPricePerMeter,
@@ -475,6 +481,41 @@ export default function PicketPage() {
                 className="w-full border rounded px-3 py-2"
                 placeholder="Например: RAL 8017"
               />
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h4 className="font-medium mb-3">Параметры для калькулятора</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Тип евроштакетника *</label>
+                <select
+                  value={formValues.picketShape || 'P_SHAPED'}
+                  onChange={(e) => handleFormChange('picketShape', e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="P_SHAPED">П-образный</option>
+                  <option value="M_SHAPED">М-образный</option>
+                  <option value="SEMICIRCULAR">Полукруглый (С-образный)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Покрытие евроштакетника *</label>
+                <select
+                  value={formValues.picketCoating || 'PLASTISOL'}
+                  onChange={(e) => handleFormChange('picketCoating', e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="PLASTISOL">Пластизол</option>
+                  <option value="PURAL">Пурал</option>
+                  <option value="PVDF">PVDF</option>
+                  <option value="PRINTECH">Printech</option>
+                  <option value="GLOSSY_POLYESTER">Глянцевый полиэстер</option>
+                  <option value="MATTE_POLYESTER">Матовый полиэстер</option>
+                </select>
+              </div>
             </div>
           </div>
 

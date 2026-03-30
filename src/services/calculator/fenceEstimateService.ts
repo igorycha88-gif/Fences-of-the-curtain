@@ -4,6 +4,7 @@ import { calculatePosts, calculatePostsForProfnastil, calculatePostsForPanel3D, 
 import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculatePanel3D, Panel3DCalculationResult } from './panel3DCalculator';
+import { calculatePicket, PicketCalculationResult } from './picketCalculator';
 
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
@@ -14,7 +15,7 @@ import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { getFenceTypeCodeByName } from '@/lib/fenceTypeMap';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | PicketCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
 
 export interface GateCalculationResult {
   category: 'gates';
@@ -100,7 +101,7 @@ export async function calculateFenceEstimate(
   input: FenceEstimateInput,
   metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
 ): Promise<FenceEstimateResult> {
-  const { fenceTypeId, length, height, lagRows, coating, hasGate, gateType, gateWidth } = input;
+  const { fenceTypeId, length, height, lagRows, coating, hasGate, gateType, gateWidth, picketShape, picketCoating, picketStep, picketMountingType } = input;
 
   const fenceType = await prisma.fenceType.findUnique({
     where: { id: fenceTypeId },
@@ -115,7 +116,7 @@ export async function calculateFenceEstimate(
     } as CalculationError;
   }
 
-  if (fenceType.name !== '3D-панели' && !lagRows) {
+  if (fenceType.name !== '3D-панели' && fenceType.name !== 'Евроштакетник' && !lagRows) {
     throw {
       error: 'MISSING_LAG_ROWS',
       message: 'Количество лаг обязательно для этого типа забора',
@@ -239,16 +240,26 @@ export async function calculateFenceEstimate(
 
   let profnastilResult: ProfnastilCalculationResult | undefined;
   let panel3dResult: Panel3DCalculationResult | undefined;
+  let picketResult: PicketCalculationResult | undefined;
 
   if (fenceType.name === 'Профнастил') {
+    if (!coating) {
+      throw {
+        error: 'MISSING_COATING',
+        message: 'Для профнастила необходимо указать покрытие',
+      } as CalculationError;
+    }
     profnastilResult = await calculateProfnastil(correctedLength, height, coating);
   } else if (fenceType.name === '3D-панели') {
     panel3dResult = await calculatePanel3D(correctedLength, height);
   } else if (fenceType.name === 'Евроштакетник') {
-    throw {
-      error: 'CALCULATOR_NOT_IMPLEMENTED',
-      message: 'Расчёт для типа забора "Евроштакетник" пока не реализован',
-    } as CalculationError;
+    if (!picketShape || !picketCoating || !picketStep || !picketMountingType) {
+      throw {
+        error: 'MISSING_PICKET_PARAMETERS',
+        message: 'Для расчета евроштакетника необходимо указать все параметры: тип, покрытие, шаг и тип монтажа',
+      } as CalculationError;
+    }
+    picketResult = await calculatePicket(correctedLength, height, picketShape, picketCoating, picketStep, picketMountingType);
   } else if (fenceType.name === 'Сетка-рабица') {
     throw {
       error: 'CALCULATOR_NOT_IMPLEMENTED',
@@ -292,6 +303,16 @@ export async function calculateFenceEstimate(
       lagTypeId: lagsResult!.nomenclatureId,
       profnastilTypeId: profnastilResult.nomenclatureId,
     });
+  } else if (picketResult) {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: 2,
+      picketId: picketResult.nomenclatureId,
+      picketCount: picketResult.quantity,
+      postTypeId: postsResult.nomenclatureId,
+    });
   } else if (selectedGate) {
     mountingHardwareResult = await calculateMountingHardware({
       fenceLengthM: correctedLength,
@@ -334,6 +355,7 @@ export async function calculateFenceEstimate(
     ...(lagsResult ? [lagsResult] : []),
     ...(profnastilResult ? [profnastilResult] : []),
     ...(panel3dResult ? [panel3dResult] : []),
+    ...(picketResult ? [picketResult] : []),
   ];
 
   if (hasGate && gateInfo) {
@@ -450,7 +472,7 @@ export async function calculateFenceEstimate(
     return sum + work.price;
   }, 0);
 
-  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
+  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + (picketResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
   const installation = gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + fenceTypeMountingWorksTotal;
   const grandTotal = materials + installation;
 
@@ -484,6 +506,11 @@ export async function calculateFenceEstimate(
         panel3dNomenclatureName: panel3dResult ? panel3dResult.nomenclatureName : null,
         panel3dTotal: panel3dResult?.totalPrice || 0,
         panel3dInstallationTotal,
+        picketShape: picketResult ? picketResult.picketShape as any : null,
+        picketCoating: picketResult ? picketResult.picketCoating as any : null,
+        picketStep: picketStep,
+        picketMountingType: picketMountingType,
+        picketTotal: picketResult?.totalPrice || 0,
         installationTotal: installation,
         materialsTotal: materials,
         grandTotal,

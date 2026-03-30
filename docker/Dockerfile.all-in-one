@@ -1,39 +1,90 @@
-# Multi-stage build
+# Multi-stage build for all-in-one image
 FROM node:20-bullseye-slim AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     openssl \
+    ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
+# Dependencies stage with layer caching
+FROM base AS deps
+
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --only=production && \
+    npm cache clean --force
 
-# Copy Prisma schema and generate client
+# Prisma generation stage
+FROM deps AS prisma-generate
+
 COPY prisma ./prisma
 COPY tsconfig.json next.config.js ./
+
 RUN npx prisma generate
 
-# Copy source code
-COPY . .
+# Builder stage
+FROM base AS builder
+
+# Copy dependencies and Prisma from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=prisma-generate /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=prisma-generate /app/prisma ./prisma
+
+# Copy source files
+COPY package.json package-lock.json* ./
+COPY src ./src
+COPY public ./public
+COPY tsconfig.json next.config.js ./
 
 # Production optimizations
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-EXPOSE 3001
-ENV PORT=3001
+RUN npm run build
+
+# Production runner stage
+FROM base AS runner
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user and directories
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    mkdir -p /app/public/uploads/portfolio && \
+    chown -R nextjs:nodejs /app
+
+# Copy built artifacts
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Environment variables
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Create uploads directory
-RUN mkdir -p /app/public/uploads/portfolio
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3000/ || exit 1
 
 # Start application
 CMD ["npm", "start"]

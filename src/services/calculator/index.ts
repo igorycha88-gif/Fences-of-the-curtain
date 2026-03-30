@@ -5,3 +5,4 @@ export * from './fenceEstimateService';
 export * from './postCalculator';
 export * from './lagCalculator';
 export * from './profnastilCalculator';
+export * from './picketCalculator';

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { panel3dService } from '@/services/admin/panel3dService';
 import { createAuditLogAsync } from '@/lib/audit';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession();

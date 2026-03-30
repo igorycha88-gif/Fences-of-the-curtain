@@ -6,6 +6,8 @@ import { createAuditLogAsync } from '@/lib/audit';
 import { panel3dSchema } from '@/lib/validators/panel3d';
 import { ZodError } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
