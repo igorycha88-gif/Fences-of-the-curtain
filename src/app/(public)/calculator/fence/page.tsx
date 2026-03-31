@@ -100,6 +100,7 @@ export default function FenceCalculatorPage() {
   const [selectedFenceType, setSelectedFenceType] = useState<FenceType | null>(null);
   const isPanel3D = selectedFenceType?.name === '3D-панели';
   const isPicket = selectedFenceType?.name === 'Евроштакетник';
+  const isProfnastil = selectedFenceType?.name === 'Профнастил';
 
   const [picketProfileTypes, setPicketProfileTypes] = useState<PicketProfileType[]>([]);
   const [picketCoatings, setPicketCoatings] = useState<PicketCoating[]>([]);
@@ -449,7 +450,7 @@ export default function FenceCalculatorPage() {
                         )}
                       </div>
 
-                      {!isPanel3D && !isPicket && (
+                      {isProfnastil && (
                         <div>
                           <label className="block text-sm font-medium mb-2">Покрытие</label>
                           <select
@@ -473,31 +474,39 @@ export default function FenceCalculatorPage() {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium mb-2">Тип профиля *</label>
-                              <select
-                                value={formData.picketProfileType}
-                                onChange={(e) => setFormData({ ...formData, picketProfileType: e.target.value })}
-                                className="select-modern"
-                                required
-                              >
-                                <option value="">Выберите тип</option>
-                                {picketProfileTypes.map((pt) => (
-                                  <option key={pt.id} value={pt.id}>{pt.name}</option>
-                                ))}
-                              </select>
+                              {picketProfileTypes.length === 0 ? (
+                                <div className="h-12 bg-secondary/50 rounded-xl animate-pulse" />
+                              ) : (
+                                <select
+                                  value={formData.picketProfileType}
+                                  onChange={(e) => setFormData({ ...formData, picketProfileType: e.target.value })}
+                                  className="select-modern"
+                                  required
+                                >
+                                  <option value="">Выберите тип</option>
+                                  {picketProfileTypes.map((pt) => (
+                                    <option key={pt.id} value={pt.id}>{pt.name}</option>
+                                  ))}
+                                </select>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium mb-2">Покрытие *</label>
-                              <select
-                                value={formData.picketCoating}
-                                onChange={(e) => setFormData({ ...formData, picketCoating: e.target.value })}
-                                className="select-modern"
-                                required
-                              >
-                                <option value="">Выберите покрытие</option>
-                                {picketCoatings.map((c) => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </select>
+                              {picketCoatings.length === 0 ? (
+                                <div className="h-12 bg-secondary/50 rounded-xl animate-pulse" />
+                              ) : (
+                                <select
+                                  value={formData.picketCoating}
+                                  onChange={(e) => setFormData({ ...formData, picketCoating: e.target.value })}
+                                  className="select-modern"
+                                  required
+                                >
+                                  <option value="">Выберите покрытие</option>
+                                  {picketCoatings.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                </select>
+                              )}
                             </div>
                           </div>
 
