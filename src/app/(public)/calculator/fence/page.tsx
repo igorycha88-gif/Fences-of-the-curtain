@@ -17,6 +17,22 @@ interface FenceType {
   materialsCount: number;
 }
 
+interface PicketProfileType {
+  id: string;
+  name: string;
+  description?: string;
+  sortOrder: number;
+  active: boolean;
+}
+
+interface PicketCoating {
+  id: string;
+  name: string;
+  description?: string;
+  sortOrder: number;
+  active: boolean;
+}
+
 interface FenceCalculatorForm {
   fenceTypeId: string;
   length: number;
@@ -34,10 +50,10 @@ interface FenceCalculatorForm {
   soilType: string;
   difficultyCoef?: number;
   postSpacing?: number;
-  picketShape?: 'P_SHAPED' | 'M_SHAPED' | 'SEMICIRCULAR';
-  picketCoating?: 'PLASTISOL' | 'PURAL' | 'PVDF' | 'PRINTECH' | 'GLOSSY_POLYESTER' | 'MATTE_POLYESTER';
-  picketStep?: number;
-  picketMountingType?: 'SINGLE_SIDED' | 'CHESS_PATTERN';
+  picketProfileType: string;
+  picketCoating: string;
+  picketStep: number;
+  picketMountingType: 'SINGLE' | 'CHESS';
 }
 
 interface CalculatorResult {
@@ -82,7 +98,10 @@ export default function FenceCalculatorPage() {
   const [fenceTypesError, setFenceTypesError] = useState<string | null>(null);
   const [selectedFenceType, setSelectedFenceType] = useState<FenceType | null>(null);
   const isPanel3D = selectedFenceType?.name === '3D-панели';
-  const isEuroPicket = selectedFenceType?.name === 'Евроштакетник';
+  const isPicket = selectedFenceType?.name === 'Евроштакетник';
+
+  const [picketProfileTypes, setPicketProfileTypes] = useState<PicketProfileType[]>([]);
+  const [picketCoatings, setPicketCoatings] = useState<PicketCoating[]>([]);
 
   const [formData, setFormData] = useState<FenceCalculatorForm>({
     fenceTypeId: '',
@@ -99,10 +118,10 @@ export default function FenceCalculatorPage() {
     coating: 'GALVANIZED',
     color: '5005',
     soilType: 'normal',
-    picketShape: undefined,
-    picketCoating: undefined,
-    picketStep: 3,
-    picketMountingType: 'SINGLE_SIDED',
+    picketProfileType: '',
+    picketCoating: '',
+    picketStep: 5,
+    picketMountingType: 'SINGLE',
   });
 
   const [result, setResult] = useState<CalculatorResult | null>(null);
@@ -143,16 +162,35 @@ export default function FenceCalculatorPage() {
     };
 
     fetchFenceTypes();
+
+    fetch('/api/calculator/picket-profile-types')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setPicketProfileTypes(data);
+      })
+      .catch(err => console.error('Error loading profile types:', err));
+
+    fetch('/api/calculator/picket-coatings')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setPicketCoatings(data);
+      })
+      .catch(err => console.error('Error loading coatings:', err));
   }, []);
 
   const handleFenceTypeSelect = (fenceType: FenceType) => {
     setSelectedFenceType(fenceType);
+    const isPicketType = fenceType.name === 'Евроштакетник';
     setFormData(prev => ({
       ...prev,
       fenceTypeId: fenceType.id,
       lagRows: String(fenceType.defaultLagRows) as '2' | '3',
       difficultyCoef: fenceType.difficultyCoef,
       postSpacing: fenceType.postSpacing,
+      picketProfileType: isPicketType ? (picketProfileTypes[0]?.id || '') : '',
+      picketCoating: isPicketType ? (picketCoatings[0]?.id || '') : '',
+      picketStep: isPicketType ? 5 : 5,
+      picketMountingType: isPicketType ? 'SINGLE' : 'SINGLE',
     }));
   };
 
@@ -179,19 +217,6 @@ export default function FenceCalculatorPage() {
       return;
     }
 
-    if (selectedFenceType?.name === 'Евроштакетник') {
-      const missingFields = [];
-      if (!formData.picketShape) missingFields.push('тип евроштакетника');
-      if (!formData.picketCoating) missingFields.push('покрытие');
-      if (!formData.picketStep) missingFields.push('шаг');
-      if (!formData.picketMountingType) missingFields.push('тип монтажа');
-
-      if (missingFields.length > 0) {
-        alert(`Для расчета евроштакетника необходимо заполнить все поля:\n\n${missingFields.join('\n')}`);
-        return;
-      }
-    }
-
     if (formData.hasGate && formData.gateWidth >= formData.length) {
       alert('Длина ворот превышает или равна общей длине забора');
       return;
@@ -206,32 +231,25 @@ export default function FenceCalculatorPage() {
     setLoading(true);
     try {
       console.log('[Calculator] Form data before submit:', JSON.stringify(formData, null, 2));
-
+      
       const requestBody: Record<string, unknown> = {
         fenceTypeId: formData.fenceTypeId,
         length: formData.length,
         height: formData.height,
+        coating: formData.coating,
       };
-
-      if (!isPanel3D && !isEuroPicket) {
-        requestBody.coating = formData.coating;
-      }
 
       if (!isPanel3D) {
         requestBody.lagRows = parseInt(formData.lagRows) as 2 | 3;
       }
 
-      if (selectedFenceType?.name === 'Евроштакетник') {
-        requestBody.picketShape = formData.picketShape;
-        requestBody.picketCoating = formData.picketCoating;
+      if (isPicket) {
+        const selectedProfile = picketProfileTypes.find(p => p.id === formData.picketProfileType);
+        const selectedCoating = picketCoatings.find(c => c.id === formData.picketCoating);
+        requestBody.picketProfileType = selectedProfile?.name || '';
+        requestBody.picketCoating = selectedCoating?.name || '';
         requestBody.picketStep = formData.picketStep;
         requestBody.picketMountingType = formData.picketMountingType;
-        console.log('[Calculator] Adding picket parameters:', {
-          picketShape: formData.picketShape,
-          picketCoating: formData.picketCoating,
-          picketStep: formData.picketStep,
-          picketMountingType: formData.picketMountingType,
-        });
       }
 
       if (formData.hasGate) {
@@ -281,26 +299,6 @@ export default function FenceCalculatorPage() {
     { value: 'GALVANIZED', label: 'Оцинковка' },
     { value: 'POLYMER_SINGLE', label: 'Полимерное (одностороннее)' },
     { value: 'POLYMER_DOUBLE', label: 'Полимерное (двустороннее)' },
-  ];
-
-  const picketShapes = [
-    { value: 'P_SHAPED', label: 'П-образный' },
-    { value: 'M_SHAPED', label: 'М-образный' },
-    { value: 'SEMICIRCULAR', label: 'Полукруглый (С-образный)' },
-  ];
-
-  const picketCoatings = [
-    { value: 'PLASTISOL', label: 'Пластизол' },
-    { value: 'PURAL', label: 'Пурал' },
-    { value: 'PVDF', label: 'PVDF' },
-    { value: 'PRINTECH', label: 'Printech' },
-    { value: 'GLOSSY_POLYESTER', label: 'Глянцевый полиэстер' },
-    { value: 'MATTE_POLYESTER', label: 'Матовый полиэстер' },
-  ];
-
-  const picketMountingTypes = [
-    { value: 'SINGLE_SIDED', label: 'Односторонний' },
-    { value: 'CHESS_PATTERN', label: 'В шахматном порядке' },
   ];
 
   const soilTypes = [
@@ -408,112 +406,113 @@ export default function FenceCalculatorPage() {
                         </div>
                       </div>
 
-                       <div className="grid grid-cols-2 gap-4">
-                         <div>
-                           <label className="block text-sm font-medium mb-2">Тип грунта</label>
-                           <select
-                             value={formData.soilType}
-                             onChange={(e) => setFormData({ ...formData, soilType: e.target.value })}
-                             className="select-modern"
-                           >
-                             {soilTypes.map((type) => (
-                               <option key={type.value} value={type.value}>
-                                 {type.label}
-                               </option>
-                             ))}
-                           </select>
-                         </div>
-                         {!isPanel3D && !isEuroPicket && (
-                           <div>
-                             <label className="block text-sm font-medium mb-2">Количество лаг</label>
-                             <select
-                               value={formData.lagRows}
-                               onChange={(e) => setFormData({ ...formData, lagRows: e.target.value as '2' | '3' })}
-                               className="select-modern"
-                             >
-                               <option value="2">2 ряда</option>
-                               <option value="3">3 ряда</option>
-                             </select>
-                           </div>
-                         )}
-                       </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Тип грунта</label>
+                          <select
+                            value={formData.soilType}
+                            onChange={(e) => setFormData({ ...formData, soilType: e.target.value })}
+                            className="select-modern"
+                          >
+                            {soilTypes.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {!isPanel3D && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Количество лаг</label>
+                            <select
+                              value={formData.lagRows}
+                              onChange={(e) => setFormData({ ...formData, lagRows: e.target.value as '2' | '3' })}
+                              className="select-modern"
+                            >
+                              <option value="2">2 ряда</option>
+                              <option value="3">3 ряда</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
 
-                       {!isPanel3D && !isEuroPicket && (
-                         <div>
-                           <label className="block text-sm font-medium mb-2">Покрытие</label>
-                           <select
-                             value={formData.coating}
-                             onChange={(e) => setFormData({ ...formData, coating: e.target.value as any })}
-                             className="select-modern"
-                             >
-                             {coatings.map((type) => (
-                               <option key={type.value} value={type.value}>
-                                 {type.label}
-                               </option>
-                             ))}
-                           </select>
-                         </div>
-                       )}
+                      {!isPanel3D && !isPicket && (
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Покрытие</label>
+                          <select
+                            value={formData.coating}
+                            onChange={(e) => setFormData({ ...formData, coating: e.target.value as any })}
+                            className="select-modern"
+                            >
+                            {coatings.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
-                      {selectedFenceType?.name === 'Евроштакетник' && (
+                      {isPicket && (
                         <div className="space-y-4 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                          <h3 className="text-sm font-semibold mb-3">Параметры евроштакетника</h3>
+                          <h3 className="font-semibold text-primary">Параметры евроштакетника</h3>
+
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium mb-2">Тип евроштакетника</label>
+                              <label className="block text-sm font-medium mb-2">Тип профиля *</label>
                               <select
-                                value={formData.picketShape || ''}
-                                onChange={(e) => setFormData({ ...formData, picketShape: e.target.value as any })}
+                                value={formData.picketProfileType}
+                                onChange={(e) => setFormData({ ...formData, picketProfileType: e.target.value })}
                                 className="select-modern"
-                                >
+                                required
+                              >
                                 <option value="">Выберите тип</option>
-                                {picketShapes.map((type) => (
-                                  <option key={type.value} value={type.value}>
-                                    {type.label}
-                                  </option>
+                                {picketProfileTypes.map((pt) => (
+                                  <option key={pt.id} value={pt.id}>{pt.name}</option>
                                 ))}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-2">Покрытие евроштакетника</label>
+                              <label className="block text-sm font-medium mb-2">Покрытие *</label>
                               <select
-                                value={formData.picketCoating || ''}
-                                onChange={(e) => setFormData({ ...formData, picketCoating: e.target.value as any })}
+                                value={formData.picketCoating}
+                                onChange={(e) => setFormData({ ...formData, picketCoating: e.target.value })}
                                 className="select-modern"
-                                >
+                                required
+                              >
                                 <option value="">Выберите покрытие</option>
-                                {picketCoatings.map((type) => (
-                                  <option key={type.value} value={type.value}>
-                                    {type.label}
-                                  </option>
+                                {picketCoatings.map((c) => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
                                 ))}
                               </select>
                             </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium mb-2">Шаг (см)</label>
+                              <label className="block text-sm font-medium mb-2">Шаг (см) *</label>
                               <input
                                 type="number"
-                                value={formData.picketStep || ''}
-                                onChange={(e) => setFormData({ ...formData, picketStep: Number(e.target.value) })}
+                                value={formData.picketStep}
+                                onChange={(e) => setFormData({ ...formData, picketStep: parseInt(e.target.value) || 5 })}
                                 min="1"
-                                max="10"
+                                max="20"
                                 step="1"
                                 className="input-modern"
+                                required
                               />
+                              <p className="text-xs text-muted-foreground mt-1">Расстояние между штакетниками</p>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-2">Тип монтажа</label>
+                              <label className="block text-sm font-medium mb-2">Тип монтажа *</label>
                               <select
-                                value={formData.picketMountingType || ''}
-                                onChange={(e) => setFormData({ ...formData, picketMountingType: e.target.value as any })}
+                                value={formData.picketMountingType}
+                                onChange={(e) => setFormData({ ...formData, picketMountingType: e.target.value as 'SINGLE' | 'CHESS' })}
                                 className="select-modern"
-                                >
-                                <option value="">Выберите тип</option>
-                                {picketMountingTypes.map((type) => (
-                                  <option key={type.value} value={type.value}>
-                                    {type.label}
-                                  </option>
-                                ))}
+                                required
+                              >
+                                <option value="SINGLE">Односторонний</option>
+                                <option value="CHESS">В шахматном порядке</option>
                               </select>
                             </div>
                           </div>

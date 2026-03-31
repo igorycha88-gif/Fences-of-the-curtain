@@ -25,26 +25,26 @@ export interface MountingHardwareCalculationResult {
   calculationMethod: CalculationMethod;
 }
 
-async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string; panel3dId?: string; picketId?: string; gateId?: string; wicketId?: string }) {
-  const { postTypeId, lagTypeId, profnastilTypeId, panel3dId, picketId, gateId, wicketId } = referenceIds;
-  
-  if (!postTypeId && !lagTypeId && !profnastilTypeId && !panel3dId && !picketId && !gateId && !wicketId) {
+async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string; panel3dId?: string; gateId?: string; wicketId?: string; picketId?: string }) {
+  const { postTypeId, lagTypeId, profnastilTypeId, panel3dId, gateId, wicketId, picketId } = referenceIds;
+
+  if (!postTypeId && !lagTypeId && !profnastilTypeId && !panel3dId && !gateId && !wicketId && !picketId) {
     return [];
   }
-  
-  const cacheKey = panel3dId || picketId
-    ? `calculator:hardware:${postTypeId || 'none'}:${lagTypeId || 'none'}:${profnastilTypeId || 'none'}:${panel3dId || 'none'}:${picketId || 'none'}:${gateId || 'none'}:${wicketId || 'none'}`
+
+  const cacheKey = panel3dId
+    ? `calculator:hardware:${postTypeId || 'none'}:${lagTypeId || 'none'}:${profnastilTypeId || 'none'}:${panel3dId}:${gateId || 'none'}:${wicketId || 'none'}`
     : CACHE_KEYS.MOUNTING_HARDWARE(
         postTypeId || 'none',
         lagTypeId || 'none',
         profnastilTypeId || 'none'
       );
-  
+
   return cache.getOrSet(
     cacheKey,
     async () => {
       const conditions: Array<{ referenceType: string; referenceId: string }> = [];
-      
+
       if (postTypeId) {
         conditions.push({ referenceType: 'POST', referenceId: postTypeId });
       }
@@ -57,14 +57,14 @@ async function getHardwareForReferences(referenceIds: { postTypeId?: string; lag
       if (panel3dId) {
         conditions.push({ referenceType: 'PANEL_3D', referenceId: panel3dId });
       }
-      if (picketId) {
-        conditions.push({ referenceType: 'PICKET', referenceId: picketId });
-      }
       if (gateId) {
         conditions.push({ referenceType: 'GATE', referenceId: gateId });
       }
       if (wicketId) {
         conditions.push({ referenceType: 'WICKET', referenceId: wicketId });
+      }
+      if (picketId) {
+        conditions.push({ referenceType: 'PICKET', referenceId: picketId });
       }
 
       console.log('[MOUNTING HARDWARE] getHardwareForReferences - conditions:', JSON.stringify(conditions, null, 2));
@@ -142,11 +142,11 @@ export async function calculateMountingHardware(params: {
   } = params;
 
   const fenceArea = fenceLengthM * fenceHeightM;
-  
+
   const results: MountingHardwareCalculationResult[] = [];
-  
+
   const hardwareByType = new Map<string, HardwareForCalculation[]>();
-  
+
   const requestedReferenceTypes: Array<{ referenceType: string; referenceId: string }> = [];
   if (postTypeId) {
     requestedReferenceTypes.push({ referenceType: 'POST', referenceId: postTypeId });
@@ -160,14 +160,14 @@ export async function calculateMountingHardware(params: {
   if (panel3dId) {
     requestedReferenceTypes.push({ referenceType: 'PANEL_3D', referenceId: panel3dId });
   }
-  if (picketId) {
-    requestedReferenceTypes.push({ referenceType: 'PICKET', referenceId: picketId });
-  }
   if (gateId) {
     requestedReferenceTypes.push({ referenceType: 'GATE', referenceId: gateId });
   }
   if (wicketId) {
     requestedReferenceTypes.push({ referenceType: 'WICKET', referenceId: wicketId });
+  }
+  if (picketId) {
+    requestedReferenceTypes.push({ referenceType: 'PICKET', referenceId: picketId });
   }
 
   console.log('[MOUNTING HARDWARE] calculateMountingHardware - requestedReferenceTypes:', JSON.stringify(requestedReferenceTypes, null, 2));
@@ -259,16 +259,6 @@ export async function calculateMountingHardware(params: {
     }
   }
 
-  if (picketId && picketCount) {
-    const hardware = hardwareByType.get(`PICKET:${picketId}`) || [];
-    for (const hw of hardware) {
-      const result = calculateHardwareItem(hw, picketCount, fenceLengthM, fenceArea);
-      if (result) {
-        results.push(result);
-      }
-    }
-  }
-
   if (gateId && gateCount) {
     const hardware = hardwareByType.get(`GATE:${gateId}`) || [];
     for (const hw of hardware) {
@@ -283,6 +273,16 @@ export async function calculateMountingHardware(params: {
     const hardware = hardwareByType.get(`WICKET:${wicketId}`) || [];
     for (const hw of hardware) {
       const result = calculateHardwareItem(hw, wicketCount, fenceLengthM, fenceArea);
+      if (result) {
+        results.push(result);
+      }
+    }
+  }
+
+  if (picketId && picketCount) {
+    const hardware = hardwareByType.get(`PICKET:${picketId}`) || [];
+    for (const hw of hardware) {
+      const result = calculateHardwareItem(hw, picketCount, fenceLengthM, fenceArea);
       if (result) {
         results.push(result);
       }

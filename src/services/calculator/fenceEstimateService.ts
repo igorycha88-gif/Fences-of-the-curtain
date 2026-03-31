@@ -4,7 +4,7 @@ import { calculatePosts, calculatePostsForProfnastil, calculatePostsForPanel3D, 
 import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculatePanel3D, Panel3DCalculationResult } from './panel3DCalculator';
-import { calculatePicket, PicketCalculationResult } from './picketCalculator';
+import { calculatePicket, PicketCalculationResult, MountingType } from './picketCalculator';
 
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
@@ -101,7 +101,7 @@ export async function calculateFenceEstimate(
   input: FenceEstimateInput,
   metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
 ): Promise<FenceEstimateResult> {
-  const { fenceTypeId, length, height, lagRows, coating, hasGate, gateType, gateWidth, picketShape, picketCoating, picketStep, picketMountingType } = input;
+  const { fenceTypeId, length, height, lagRows, coating, hasGate, gateType, gateWidth } = input;
 
   const fenceType = await prisma.fenceType.findUnique({
     where: { id: fenceTypeId },
@@ -116,7 +116,7 @@ export async function calculateFenceEstimate(
     } as CalculationError;
   }
 
-  if (fenceType.name !== '3D-панели' && fenceType.name !== 'Евроштакетник' && !lagRows) {
+  if (fenceType.name !== '3D-панели' && !lagRows) {
     throw {
       error: 'MISSING_LAG_ROWS',
       message: 'Количество лаг обязательно для этого типа забора',
@@ -243,23 +243,24 @@ export async function calculateFenceEstimate(
   let picketResult: PicketCalculationResult | undefined;
 
   if (fenceType.name === 'Профнастил') {
-    if (!coating) {
-      throw {
-        error: 'MISSING_COATING',
-        message: 'Для профнастила необходимо указать покрытие',
-      } as CalculationError;
-    }
     profnastilResult = await calculateProfnastil(correctedLength, height, coating);
   } else if (fenceType.name === '3D-панели') {
     panel3dResult = await calculatePanel3D(correctedLength, height);
   } else if (fenceType.name === 'Евроштакетник') {
-    if (!picketShape || !picketCoating || !picketStep || !picketMountingType) {
+    if (!input.picketProfileType || !input.picketCoating || !input.picketStep || !input.picketMountingType) {
       throw {
-        error: 'MISSING_PICKET_PARAMETERS',
-        message: 'Для расчета евроштакетника необходимо указать все параметры: тип, покрытие, шаг и тип монтажа',
+        error: 'MISSING_PICKET_PARAMS',
+        message: 'Для расчёта Евроштакетника необходимо указать тип профиля, покрытие, шаг и тип монтажа',
       } as CalculationError;
     }
-    picketResult = await calculatePicket(correctedLength, height, picketShape, picketCoating, picketStep, picketMountingType);
+    picketResult = await calculatePicket({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      profileTypeName: input.picketProfileType,
+      coatingName: input.picketCoating,
+      stepCm: input.picketStep,
+      mountingType: input.picketMountingType as MountingType,
+    });
   } else if (fenceType.name === 'Сетка-рабица') {
     throw {
       error: 'CALCULATOR_NOT_IMPLEMENTED',
@@ -292,6 +293,17 @@ export async function calculateFenceEstimate(
       panel3dId: panel3dResult.nomenclatureId,
       panel3dCount: panel3dResult.quantity,
     });
+  } else if (picketResult) {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult!.quantity,
+      postTypeId: postsResult.nomenclatureId,
+      lagTypeId: lagsResult!.nomenclatureId,
+      picketId: picketResult.nomenclatureId,
+      picketCount: picketResult.quantity,
+    });
   } else if (profnastilResult) {
     mountingHardwareResult = await calculateMountingHardware({
       fenceLengthM: correctedLength,
@@ -302,16 +314,6 @@ export async function calculateFenceEstimate(
       postTypeId: postsResult.nomenclatureId,
       lagTypeId: lagsResult!.nomenclatureId,
       profnastilTypeId: profnastilResult.nomenclatureId,
-    });
-  } else if (picketResult) {
-    mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: 2,
-      picketId: picketResult.nomenclatureId,
-      picketCount: picketResult.quantity,
-      postTypeId: postsResult.nomenclatureId,
     });
   } else if (selectedGate) {
     mountingHardwareResult = await calculateMountingHardware({
@@ -506,11 +508,13 @@ export async function calculateFenceEstimate(
         panel3dNomenclatureName: panel3dResult ? panel3dResult.nomenclatureName : null,
         panel3dTotal: panel3dResult?.totalPrice || 0,
         panel3dInstallationTotal,
-        picketShape: picketResult ? picketResult.picketShape as any : null,
-        picketCoating: picketResult ? picketResult.picketCoating as any : null,
-        picketStep: picketStep,
-        picketMountingType: picketMountingType,
+        picketNomenclatureId: picketResult ? picketResult.nomenclatureId : null,
+        picketNomenclatureName: picketResult ? picketResult.nomenclatureName : null,
         picketTotal: picketResult?.totalPrice || 0,
+        picketStep: input.picketStep || null,
+        picketMountingType: input.picketMountingType || null,
+        picketProfileType: input.picketProfileType || null,
+        picketCoatingName: input.picketCoating || null,
         installationTotal: installation,
         materialsTotal: materials,
         grandTotal,

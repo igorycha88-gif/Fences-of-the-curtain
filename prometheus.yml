@@ -1,0 +1,73 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'fences-production'
+    environment: 'production'
+    scrape_timeout: 10s
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files for recording and alerting
+rule_files:
+  - "/etc/prometheus/recording_rules.yml"
+  - "/etc/prometheus/alert_rules.yml"
+
+scrape_configs:
+  # Node.js Application Metrics
+  - job_name: 'nodejs'
+    static_configs:
+      - targets:
+          - 'node_exporter:9100'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # PostgreSQL Database Metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets:
+          - 'postgres_exporter:9187'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Redis Cache Metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - 'redis_exporter:9121'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Nginx Proxy Metrics
+  - job_name: 'nginx'
+    static_configs:
+      - targets:
+          - 'nginx_exporter:9113'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Nginx Status Page
+  - job_name: 'nginx-status'
+    static_configs:
+      - targets:
+          - 'nginx:80'
+    metrics_path: /nginx_status
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Nginx Cache Status
+  - job_name: 'nginx-cache'
+    static_configs:
+      - targets:
+          - 'nginx:80'
+    metrics_path: /cache_status
+    scrape_interval: 30s
+    scrape_timeout: 10s

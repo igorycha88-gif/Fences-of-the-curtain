@@ -41,12 +41,13 @@ export class PicketTypeService {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { color: { contains: search, mode: 'insensitive' } },
-        { coating: { contains: search, mode: 'insensitive' } },
+        { picketProfile: { name: { contains: search, mode: 'insensitive' } } },
+        { picketCoatingType: { name: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
     if (coating) {
-      where.coating = coating;
+      where.picketCoatingType = { name: { equals: coating, mode: 'insensitive' } };
     }
 
     if (validityFilter === 'expired') {
@@ -116,9 +117,7 @@ export class PicketTypeService {
       where: {
         name: data.name,
         metalThickness: data.metalThickness,
-        coating: data.coating,
-        picketShape: data.picketShape,
-        picketCoating: data.picketCoating,
+        coatingId: data.coatingId,
         color: data.color || null,
       },
     });
@@ -139,9 +138,8 @@ export class PicketTypeService {
         metalThickness: data.metalThickness,
         width: data.width,
         length: data.length,
-        coating: data.coating,
-        picketShape: data.picketShape,
-        picketCoating: data.picketCoating,
+        profileTypeId: data.profileTypeId,
+        coatingId: data.coatingId,
         color: data.color,
         purchasePricePerMeter: data.purchasePricePerMeter,
         retailPricePerMeter: data.retailPricePerMeter,
@@ -180,15 +178,13 @@ export class PicketTypeService {
       throw new Error('Номенклатура не найдена');
     }
 
-    if (data.name || data.metalThickness || data.coating || data.color !== undefined) {
+    if (data.name || data.metalThickness || data.coatingId || data.color !== undefined) {
       const existing = await prisma.picketType.findFirst({
         where: {
           id: { not: id },
           name: data.name || oldItem.name,
           metalThickness: data.metalThickness ?? oldItem.metalThickness,
-          coating: data.coating || oldItem.coating,
-          picketShape: data.picketShape ?? oldItem.picketShape,
-          picketCoating: data.picketCoating ?? oldItem.picketCoating,
+          coatingId: data.coatingId || oldItem.coatingId,
           color: data.color !== undefined ? data.color : oldItem.color,
         },
       });

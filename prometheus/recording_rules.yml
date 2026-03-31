@@ -1,0 +1,57 @@
+groups:
+  - name: recording.rules
+    interval: 30s
+    rules:
+      # Request rate per second
+      - record: job:request_rate:sum:rate(http_requests_total[5m])
+        labels:
+          aggregated_job: "{{ $labels.job }}"
+
+      # Error rate percentage
+      - record: job:error_rate:sum:rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100
+        labels:
+          aggregated_job: "{{ $labels.job }}"
+
+      # Average response time
+      - record: job:avg_response_time:avg(nginx_http_request_duration_seconds[5m])
+        labels:
+          aggregated_job: "{{ $labels.job }}"
+
+      # 95th percentile response time
+      - record: job:p95_response_time:histogram_quantile(0.95, nginx_http_request_duration_seconds[5m])
+        labels:
+          aggregated_job: "{{ $labels.job }}"
+
+      # 99th percentile response time
+      - record: job:p99_response_time:histogram_quantile(0.99, nginx_http_request_duration_seconds[5m])
+        labels:
+          aggregated_job: "{{ $labels.job }}"
+
+      # Cache hit rate
+      - record: nginx:cache_hit_rate:sum:rate(nginx_http_requests_total{status="HIT"}[5m])
+      - record: nginx:cache_miss_rate:sum:rate(nginx_http_requests_total{status="BYPASS"}[5m]) + sum:rate(nginx_http_requests_total{status="MISS"}[5m])
+      - record: nginx:cache_hit_percentage:sum:(nginx:cache_hit_rate / (nginx:cache_hit_rate + nginx:cache_miss_rate)) * 100
+
+      # Database connections percentage
+      - record: pg:connection_usage:sum:pg_stat_database_numbackends / pg_settings_max_connections * 100
+
+      # Redis memory usage percentage
+      - record: redis:memory_usage:sum:redis_memory_used_bytes / redis_memory_max_bytes * 100
+
+      # CPU usage per job
+      - record: job:cpu_usage:sum:rate(process_cpu_seconds_total[5m]) * 100
+
+      # Memory usage per job in bytes
+      - record: job:memory_bytes:sum:process_resident_memory_bytes
+
+      # Memory usage per job in percentage
+      - record: job:memory_usage:sum:process_resident_memory_bytes / node_memory_MemTotal_bytes * 100
+
+      # Query rate per second
+      - record: pg:query_rate:sum:rate(pg_stat_statements_calls_total[5m])
+
+      # Redis commands per second
+      - record: redis:commands_rate:sum:rate(redis_commands_processed_total[5m])
+
+      # Redis evictions per second
+      - record: redis:evictions_rate:sum:rate(redis_evicted_keys_total[5m])

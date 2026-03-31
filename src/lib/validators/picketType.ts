@@ -1,45 +1,6 @@
 import { z } from 'zod';
 
-export const PICKET_COATING_TYPES = [
-  'Цинк',
-  'Полиэстер',
-  'Пурал',
-  'Пластизол',
-  'Printech',
-  'Двусторонний полиэстер'
-] as const;
-
-export const PICKET_SHAPE_TYPES = [
-  'P_SHAPED',
-  'M_SHAPED',
-  'SEMICIRCULAR'
-] as const;
-
-export const PICKET_COATING_FOR_CALCULATOR = [
-  'PLASTISOL',
-  'PURAL',
-  'PVDF',
-  'PRINTECH',
-  'GLOSSY_POLYESTER',
-  'MATTE_POLYESTER'
-] as const;
-
-export const PICKET_SHAPE_LABELS = {
-  'P_SHAPED': 'П-образный',
-  'M_SHAPED': 'М-образный',
-  'SEMICIRCULAR': 'Полукруглый (С-образный)'
-} as const;
-
-export const PICKET_COATING_LABELS = {
-  'PLASTISOL': 'Пластизол',
-  'PURAL': 'Пурал',
-  'PVDF': 'PVDF',
-  'PRINTECH': 'Printech',
-  'GLOSSY_POLYESTER': 'Глянцевый полиэстер',
-  'MATTE_POLYESTER': 'Матовый полиэстер'
-} as const;
-
-const picketTypeBaseSchema = z.object({
+export const picketTypeBaseSchema = z.object({
   name: z.string()
     .min(2, 'Название должно содержать минимум 2 символа')
     .max(200, 'Название не должно превышать 200 символов'),
@@ -57,15 +18,8 @@ const picketTypeBaseSchema = z.object({
     .int('Длина должна быть целым числом')
     .min(500, 'Длина должна быть не менее 500 мм')
     .max(3000, 'Длина не должна превышать 3000 мм'),
-  coating: z.enum(PICKET_COATING_TYPES, {
-    errorMap: () => ({ message: 'Недопустимое покрытие' }),
-  }),
-  picketShape: z.enum(PICKET_SHAPE_TYPES, {
-    errorMap: () => ({ message: 'Недопустимый тип евроштакетника' }),
-  }),
-  picketCoating: z.enum(PICKET_COATING_FOR_CALCULATOR, {
-    errorMap: () => ({ message: 'Недопустимое покрытие для калькулятора' }),
-  }),
+  profileTypeId: z.string().min(1, 'Тип профиля обязателен'),
+  coatingId: z.string().min(1, 'Покрытие обязательно'),
   color: z.string()
     .max(50, 'Цвет не должен превышать 50 символов')
     .optional(),

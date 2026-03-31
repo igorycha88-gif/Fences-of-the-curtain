@@ -434,6 +434,187 @@ async function main() {
 
   console.log('[SEED] Panel3D createMany result - Count:', panel3DResult.count);
 
+  console.log('[SEED] Seeding PicketProfileType...');
+  await prisma.picketProfileType.createMany({
+    data: [
+      { name: 'П-образный', description: 'П-образный профиль евроштакетника', sortOrder: 0, active: true },
+      { name: 'М-образный', description: 'М-образный профиль евроштакетника', sortOrder: 1, active: true },
+      { name: 'Полукруглый (С-образный)', description: 'Полукруглый (С-образный) профиль евроштакетника', sortOrder: 2, active: true },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('[SEED] PicketProfileType seeded successfully');
+
+  console.log('[SEED] Seeding PicketCoating...');
+  await prisma.picketCoating.createMany({
+    data: [
+      { name: 'Пластизол', description: 'Покрытие Пластизол', sortOrder: 0, active: true },
+      { name: 'Пурал', description: 'Покрытие Пурал', sortOrder: 1, active: true },
+      { name: 'PVDF', description: 'Покрытие PVDF', sortOrder: 2, active: true },
+      { name: 'Printech', description: 'Покрытие Printech', sortOrder: 3, active: true },
+      { name: 'Глянцевый полиэстер', description: 'Глянцевый полиэстер', sortOrder: 4, active: true },
+      { name: 'Матовый полиэстер', description: 'Матовый полиэстер', sortOrder: 5, active: true },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('[SEED] PicketCoating seeded successfully');
+
+  console.log('[SEED] Checking existing PicketType records...');
+  const existingPickets = await prisma.picketType.findMany({ include: { profileType: true, coating: true } });
+  console.log('[SEED] Found', existingPickets.length, 'existing PicketType records');
+  existingPickets.forEach(p => {
+    console.log(`[SEED] Existing: ${p.name} - Profile: ${p.profileType?.name || 'N/A'}, Coating: ${p.coating?.name || 'N/A'}`);
+  });
+
+  const profileTypes = await prisma.picketProfileType.findMany();
+  const coatings = await prisma.picketCoating.findMany();
+
+  const pProfileMap: Record<string, string> = {};
+  profileTypes.forEach(p => { pProfileMap[p.name] = p.id; });
+
+  const coatingMap: Record<string, string> = {};
+  coatings.forEach(c => { coatingMap[c.name] = c.id; });
+
+  if (profileTypes.length > 0 && coatings.length > 0) {
+    const picketData = [
+      {
+        name: 'Евроштакетник П-образный 1.5м',
+        description: 'П-образный евроштакетник высотой 1.5 метра',
+        metalThickness: 0.45,
+        width: 115,
+        length: 1500,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 45,
+        retailPricePerMeter: 65,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['П-образный'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник П-образный 1.8м',
+        description: 'П-образный евроштакетник высотой 1.8 метра',
+        metalThickness: 0.45,
+        width: 115,
+        length: 1800,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 50,
+        retailPricePerMeter: 72,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['П-образный'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник П-образный 2.0м',
+        description: 'П-образный евроштакетник высотой 2.0 метра',
+        metalThickness: 0.45,
+        width: 115,
+        length: 2000,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 55,
+        retailPricePerMeter: 78,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['П-образный'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник М-образный 1.5м',
+        description: 'М-образный евроштакетник высотой 1.5 метра',
+        metalThickness: 0.45,
+        width: 110,
+        length: 1500,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 48,
+        retailPricePerMeter: 68,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['М-образный'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник М-образный 1.8м',
+        description: 'М-образный евроштакетник высотой 1.8 метра',
+        metalThickness: 0.45,
+        width: 110,
+        length: 1800,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 52,
+        retailPricePerMeter: 75,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['М-образный'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник М-образный 2.0м',
+        description: 'М-образный евроштакетник высотой 2.0 метра',
+        metalThickness: 0.45,
+        width: 110,
+        length: 2000,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 58,
+        retailPricePerMeter: 82,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['М-образный'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник Полукруглый 1.5м',
+        description: 'Полукруглый евроштакетник высотой 1.5 метра',
+        metalThickness: 0.45,
+        width: 120,
+        length: 1500,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 50,
+        retailPricePerMeter: 72,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['Полукруглый (С-образный)'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник Полукруглый 1.8м',
+        description: 'Полукруглый евроштакетник высотой 1.8 метра',
+        metalThickness: 0.45,
+        width: 120,
+        length: 1800,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 55,
+        retailPricePerMeter: 78,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['Полукруглый (С-образный)'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+      {
+        name: 'Евроштакетник Полукруглый 2.0м',
+        description: 'Полукруглый евроштакетник высотой 2.0 метра',
+        metalThickness: 0.45,
+        width: 120,
+        length: 2000,
+        color: 'RAL 8017',
+        purchasePricePerMeter: 60,
+        retailPricePerMeter: 85,
+        active: true,
+        priority: 0,
+        profileTypeId: pProfileMap['Полукруглый (С-образный)'],
+        coatingId: coatingMap['Глянцевый полиэстер'],
+      },
+    ];
+
+    const picketResult = await prisma.picketType.createMany({
+      data: picketData,
+      skipDuplicates: true,
+    });
+
+    console.log('[SEED] PicketType createMany result - Count:', picketResult.count);
+  } else {
+    console.log('[SEED] Skipping PicketType seeding - missing profile types or coatings');
+  }
+
   console.log('Database seeded successfully!');
 }
 

@@ -6,13 +6,28 @@ import { Modal } from '@/components/ui/modal';
 import { getMarginEmoji } from '@/lib/utils/marginCalculator';
 import { calculatePricePerUnit, calculatePicketMargin } from '@/lib/utils/priceCalculator';
 import { formatDimension, formatPrice } from '@/lib/utils/formatters';
-import { PICKET_COATING_TYPES } from '@/lib/validators/picketType';
 import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { RelatedMountingHardware } from '@/components/admin/References/RelatedMountingHardware';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
 import { RelatedWorksByReference } from '@/components/admin/Works/RelatedWorksByReference';
+
+interface PicketProfileType {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  active: boolean;
+}
+
+interface PicketCoating {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  active: boolean;
+}
 
 interface PicketType {
   id: string;
@@ -21,9 +36,6 @@ interface PicketType {
   metalThickness: number;
   width: number;
   length: number;
-  coating: string;
-  picketShape: string;
-  picketCoating: string;
   color: string | null;
   purchasePricePerMeter: number | null;
   retailPricePerMeter: number;
@@ -36,6 +48,10 @@ interface PicketType {
   priority: number;
   createdAt: string;
   updatedAt: string;
+  profileTypeId: string;
+  coatingId: string;
+  picketProfile?: PicketProfileType;
+  picketCoatingType?: PicketCoating;
 }
 
 interface SessionUser {
@@ -62,6 +78,8 @@ export default function PicketPage() {
   const [editingItem, setEditingItem] = useState<PicketType | null>(null);
   const [formValues, setFormValues] = useState<Partial<PicketType>>({});
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [profileTypes, setProfileTypes] = useState<PicketProfileType[]>([]);
+  const [coatings, setCoatings] = useState<PicketCoating[]>([]);
 
   const pageSize = 20;
 
@@ -74,6 +92,24 @@ export default function PicketPage() {
         }
       })
       .catch((err) => console.error('Error fetching session:', err));
+
+    fetch('/api/admin/picket-profile-types')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setProfileTypes(data);
+        }
+      })
+      .catch((err) => console.error('Error fetching profile types:', err));
+
+    fetch('/api/admin/picket-coatings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCoatings(data);
+        }
+      })
+      .catch((err) => console.error('Error fetching coatings:', err));
   }, []);
 
   const fetchPickets = async () => {
@@ -115,9 +151,8 @@ export default function PicketPage() {
       metalThickness: 0.5,
       width: 125,
       length: 2000,
-      coating: 'Полиэстер',
-      picketShape: 'P_SHAPED',
-      picketCoating: 'PLASTISOL',
+      profileTypeId: profileTypes[0]?.id || '',
+      coatingId: coatings[0]?.id || '',
       color: '',
       purchasePricePerMeter: null,
       retailPricePerMeter: 0,
@@ -136,9 +171,8 @@ export default function PicketPage() {
       metalThickness: item.metalThickness,
       width: item.width,
       length: item.length,
-      coating: item.coating,
-      picketShape: item.picketShape as any,
-      picketCoating: item.picketCoating as any,
+      profileTypeId: item.profileTypeId,
+      coatingId: item.coatingId,
       color: item.color || '',
       purchasePricePerMeter: item.purchasePricePerMeter,
       retailPricePerMeter: item.retailPricePerMeter,
@@ -282,7 +316,8 @@ export default function PicketPage() {
       label: 'Длина (мм)', 
       render: (item: PicketType) => formatDimension(item.length)
     },
-    { key: 'coating', label: 'Покрытие' },
+    { key: 'picketProfile', label: 'Тип профиля', render: (item: PicketType) => item.picketProfile?.name || '-' },
+    { key: 'picketCoatingType', label: 'Покрытие', render: (item: PicketType) => item.picketCoatingType?.name || '-' },
     { key: 'color', label: 'Цвет', render: (item: PicketType) => item.color || '-' },
     {
       key: 'retailPricePerUnit',
@@ -460,15 +495,30 @@ export default function PicketPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Покрытие *</label>
+              <label className="block text-sm font-medium mb-1">Тип профиля *</label>
               <select
-                value={formValues.coating || 'Полиэстер'}
-                onChange={(e) => handleFormChange('coating', e.target.value)}
+                value={formValues.profileTypeId || ''}
+                onChange={(e) => handleFormChange('profileTypeId', e.target.value)}
                 className="w-full border rounded px-3 py-2"
                 required
               >
-                {PICKET_COATING_TYPES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                <option value="">Выберите тип профиля</option>
+                {profileTypes.map((pt) => (
+                  <option key={pt.id} value={pt.id}>{pt.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Покрытие *</label>
+              <select
+                value={formValues.coatingId || ''}
+                onChange={(e) => handleFormChange('coatingId', e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                required
+              >
+                <option value="">Выберите покрытие</option>
+                {coatings.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -481,41 +531,6 @@ export default function PicketPage() {
                 className="w-full border rounded px-3 py-2"
                 placeholder="Например: RAL 8017"
               />
-            </div>
-          </div>
-
-          <div className="border-t pt-4">
-            <h4 className="font-medium mb-3">Параметры для калькулятора</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Тип евроштакетника *</label>
-                <select
-                  value={formValues.picketShape || 'P_SHAPED'}
-                  onChange={(e) => handleFormChange('picketShape', e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  required
-                >
-                  <option value="P_SHAPED">П-образный</option>
-                  <option value="M_SHAPED">М-образный</option>
-                  <option value="SEMICIRCULAR">Полукруглый (С-образный)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Покрытие евроштакетника *</label>
-                <select
-                  value={formValues.picketCoating || 'PLASTISOL'}
-                  onChange={(e) => handleFormChange('picketCoating', e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  required
-                >
-                  <option value="PLASTISOL">Пластизол</option>
-                  <option value="PURAL">Пурал</option>
-                  <option value="PVDF">PVDF</option>
-                  <option value="PRINTECH">Printech</option>
-                  <option value="GLOSSY_POLYESTER">Глянцевый полиэстер</option>
-                  <option value="MATTE_POLYESTER">Матовый полиэстер</option>
-                </select>
-              </div>
             </div>
           </div>
 
