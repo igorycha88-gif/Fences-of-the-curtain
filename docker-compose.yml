@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
+    image: fencesofthecurtain-app:master2
     container_name: fences-app
     restart: unless-stopped
     expose:
