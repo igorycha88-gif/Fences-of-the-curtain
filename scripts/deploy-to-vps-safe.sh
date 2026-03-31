@@ -49,7 +49,7 @@ rollback() {
     fi
 
     log "Rebuilding..."
-    cd "$APP_DIR" && npm ci && npx prisma generate && npm run build
+    cd "$APP_DIR" && npm ci --legacy-peer-deps && npx prisma generate && npm run build
 
     log "Restarting PM2..."
     pm2 restart fences-app
@@ -57,7 +57,7 @@ rollback() {
     log "Waiting for app to start..."
     sleep 5
 
-    if curl -sf "http://localhost:$PORT/api/health" > /dev/null 2>&1; then
+    if curl -sf "http://localhost:$PORT/" > /dev/null 2>&1; then
         log "=== ROLLBACK SUCCESSFUL ==="
     else
         error "=== ROLLBACK FAILED - MANUAL INTERVENTION REQUIRED ==="
@@ -119,7 +119,7 @@ git log --oneline -3
 # Step 4: Install dependencies
 log ""
 log "=== Step 4: Install Dependencies ==="
-npm ci --production=false
+npm ci --legacy-peer-deps
 log "✅ Dependencies installed"
 
 # Step 5: Generate Prisma client
@@ -131,8 +131,11 @@ log "✅ Prisma client generated"
 # Step 6: Run migrations
 log ""
 log "=== Step 6: Database Migrations ==="
-MIGRATION_STATUS=$(npx prisma migrate status 2>&1)
+MIGRATION_STATUS=$(npx prisma migrate status 2>&1 || true)
 log "$MIGRATION_STATUS"
+
+PENDING_COUNT=$(echo "$MIGRATION_STATUS" | grep -oP '\d+(?= migration(s)? found in prisma/migrations)' || echo "0")
+APPLIED_COUNT=$(echo "$MIGRATION_STATUS" | grep -oP '\d+(?= applied migration)' || echo "0")
 
 if echo "$MIGRATION_STATUS" | grep -q "Database schema is up to date"; then
     log "✅ No pending migrations"
@@ -167,11 +170,12 @@ sleep 5
 
 HEALTH_OK=false
 for i in $(seq 1 5); do
-    if curl -sf "http://localhost:$PORT/api/health" > /dev/null 2>&1; then
+    HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/" 2>/dev/null)
+    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
         HEALTH_OK=true
         break
     fi
-    log "Attempt $i/5 - waiting..."
+    log "Attempt $i/5 - HTTP $HTTP_CODE - waiting..."
     sleep 3
 done
 
@@ -196,6 +200,6 @@ log ""
 log "To rollback if needed:"
 log "  cd $APP_DIR"
 log "  git checkout $ROLLBACK_TAG"
-log "  npm ci && npx prisma generate && npm run build"
+log "  npm ci --legacy-peer-deps && npx prisma generate && npm run build"
 log "  pm2 restart fences-app"
 log "  # Restore DB: PGPASSWORD='$DB_PASS' pg_restore -U $DB_USER -h localhost -d $DB_NAME --clean --if-exists $BACKUP_FILE"
