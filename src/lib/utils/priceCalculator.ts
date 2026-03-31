@@ -59,17 +59,15 @@ export function calculateProfnastilMargin(
 }
 
 export function calculatePicketMargin(
-  retailPricePerMeter: number,
-  purchasePricePerMeter: number | null | undefined,
-  widthMm: number,
-  lengthMm: number
+  retailPricePerUnit: number,
+  purchasePricePerUnit: number | null | undefined
 ): {
   marginPerMeterPercent: number | null;
   marginPerMeterAbsolute: number | null;
   marginPerUnitPercent: number | null;
   marginPerUnitAbsolute: number | null;
 } {
-  if (purchasePricePerMeter === null || purchasePricePerMeter === undefined) {
+  if (purchasePricePerUnit === null || purchasePricePerUnit === undefined) {
     return {
       marginPerMeterPercent: null,
       marginPerMeterAbsolute: null,
@@ -78,24 +76,14 @@ export function calculatePicketMargin(
     };
   }
 
-  const marginPerMeterAbsolute = retailPricePerMeter - purchasePricePerMeter;
-  const marginPerMeterPercent = retailPricePerMeter > 0 
-    ? (marginPerMeterAbsolute / retailPricePerMeter) * 100 
+  const marginPerUnitAbsolute = retailPricePerUnit - purchasePricePerUnit;
+  const marginPerUnitPercent = retailPricePerUnit > 0 
+    ? (marginPerUnitAbsolute / retailPricePerUnit) * 100 
     : 0;
 
-  const purchasePricePerUnit = calculatePricePerUnit(widthMm, lengthMm, purchasePricePerMeter);
-  const retailPricePerUnit = calculatePricePerUnit(widthMm, lengthMm, retailPricePerMeter);
-
-  const marginPerUnitAbsolute = retailPricePerUnit !== null && purchasePricePerUnit !== null
-    ? retailPricePerUnit - purchasePricePerUnit
-    : null;
-  const marginPerUnitPercent = retailPricePerUnit !== null && retailPricePerUnit > 0 && marginPerUnitAbsolute !== null
-    ? (marginPerUnitAbsolute / retailPricePerUnit) * 100
-    : null;
-
   return {
-    marginPerMeterPercent: marginPerMeterPercent !== null ? Math.round(marginPerMeterPercent * 100) / 100 : null,
-    marginPerMeterAbsolute: marginPerMeterAbsolute !== null ? Math.round(marginPerMeterAbsolute * 100) / 100 : null,
+    marginPerMeterPercent: null,
+    marginPerMeterAbsolute: null,
     marginPerUnitPercent: marginPerUnitPercent !== null ? Math.round(marginPerUnitPercent * 100) / 100 : null,
     marginPerUnitAbsolute: marginPerUnitAbsolute !== null ? Math.round(marginPerUnitAbsolute * 100) / 100 : null,
   };

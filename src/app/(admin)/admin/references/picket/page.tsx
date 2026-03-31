@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/References/DataTable';
 import { Modal } from '@/components/ui/modal';
 import { getMarginEmoji } from '@/lib/utils/marginCalculator';
-import { calculatePricePerUnit, calculatePicketMargin } from '@/lib/utils/priceCalculator';
+import { calculatePicketMargin } from '@/lib/utils/priceCalculator';
 import { formatDimension, formatPrice } from '@/lib/utils/formatters';
 import { PriorityColumn } from '@/components/admin/References/shared';
 import toast from 'react-hot-toast';
@@ -37,10 +37,8 @@ interface PicketType {
   width: number;
   length: number;
   color: string | null;
-  purchasePricePerMeter: number | null;
-  retailPricePerMeter: number;
-  purchasePricePerUnit?: number | null;
-  retailPricePerUnit?: number | null;
+  purchasePricePerUnit: number | null;
+  retailPricePerUnit: number;
   validFrom: string | null;
   validUntil: string | null;
   active: boolean;
@@ -84,7 +82,7 @@ export default function PicketPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -93,7 +91,7 @@ export default function PicketPage() {
       })
       .catch((err) => console.error('Error fetching session:', err));
 
-    fetch('/api/admin/picket-profile-types')
+    fetch('/api/admin/picket-profile-types', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -102,7 +100,7 @@ export default function PicketPage() {
       })
       .catch((err) => console.error('Error fetching profile types:', err));
 
-    fetch('/api/admin/picket-coatings')
+    fetch('/api/admin/picket-coatings', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -123,13 +121,15 @@ export default function PicketPage() {
         ...(search && { search }),
       });
 
-      const response = await fetch(`/api/admin/picket-types?${params}`);
+      const response = await fetch(`/api/admin/picket-types?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setPickets(data.pickets);
-        setTotal(data.total);
+        setPickets(data.pickets || []);
+        setTotal(data.total || 0);
       } else {
+        setPickets([]);
+        setTotal(0);
         console.error('Error fetching picket types:', data.error);
       }
     } catch (error) {
@@ -154,8 +154,8 @@ export default function PicketPage() {
       profileTypeId: profileTypes[0]?.id || '',
       coatingId: coatings[0]?.id || '',
       color: '',
-      purchasePricePerMeter: null,
-      retailPricePerMeter: 0,
+      purchasePricePerUnit: null,
+      retailPricePerUnit: 0,
       active: true,
       validFrom: null,
       validUntil: null,
@@ -174,8 +174,8 @@ export default function PicketPage() {
       profileTypeId: item.profileTypeId,
       coatingId: item.coatingId,
       color: item.color || '',
-      purchasePricePerMeter: item.purchasePricePerMeter,
-      retailPricePerMeter: item.retailPricePerMeter,
+      purchasePricePerUnit: item.purchasePricePerUnit,
+      retailPricePerUnit: item.retailPricePerUnit,
       active: item.active,
       validFrom: item.validFrom,
       validUntil: item.validUntil,
@@ -189,6 +189,7 @@ export default function PicketPage() {
     try {
       const response = await fetch(`/api/admin/picket-types/${item.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -208,6 +209,7 @@ export default function PicketPage() {
     try {
       const response = await fetch(`/api/admin/picket-types/${item.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -228,6 +230,7 @@ export default function PicketPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, newPriority }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -255,6 +258,7 @@ export default function PicketPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -282,20 +286,14 @@ export default function PicketPage() {
 
   const isAdmin = currentUser?.role === 'ADMIN';
 
-  const calculatedPurchasePricePerUnit = formValues.width && formValues.length && formValues.purchasePricePerMeter
-    ? calculatePricePerUnit(formValues.width, formValues.length, formValues.purchasePricePerMeter)
-    : null;
+  const calculatedPurchasePricePerUnit = formValues.purchasePricePerUnit ?? null;
 
-  const calculatedRetailPricePerUnit = formValues.width && formValues.length && formValues.retailPricePerMeter
-    ? calculatePricePerUnit(formValues.width, formValues.length, formValues.retailPricePerMeter)
-    : null;
+  const calculatedRetailPricePerUnit = formValues.retailPricePerUnit ?? null;
 
-  const marginInfo = formValues.width && formValues.length && formValues.retailPricePerMeter
+  const marginInfo = formValues.retailPricePerUnit
     ? calculatePicketMargin(
-        formValues.retailPricePerMeter,
-        formValues.purchasePricePerMeter,
-        formValues.width,
-        formValues.length
+        formValues.retailPricePerUnit,
+        formValues.purchasePricePerUnit
       )
     : null;
 
@@ -323,8 +321,7 @@ export default function PicketPage() {
       key: 'retailPricePerUnit',
       label: 'Розница за ед. (₽)',
       render: (item: PicketType) => {
-        const price = item.retailPricePerUnit ?? calculatePricePerUnit(item.width, item.length, item.retailPricePerMeter);
-        return price !== null ? formatPrice(price) : '-';
+        return item.retailPricePerUnit !== null ? formatPrice(item.retailPricePerUnit) : '-';
       }
     },
     {
@@ -349,15 +346,13 @@ export default function PicketPage() {
       key: 'purchasePricePerUnit' as const,
       label: 'Закупка за ед. (₽)',
       render: (item: PicketType) => {
-        const price = item.purchasePricePerUnit ?? calculatePricePerUnit(item.width, item.length, item.purchasePricePerMeter);
-        if (price === null) {
+        const price = item.purchasePricePerUnit;
+        if (price === null || price === undefined) {
           return <span className="text-gray-400">Не указана</span>;
         }
         const marginInfo = calculatePicketMargin(
-          item.retailPricePerMeter,
-          item.purchasePricePerMeter,
-          item.width,
-          item.length
+          item.retailPricePerUnit,
+          item.purchasePricePerUnit
         );
         const marginEmoji = getMarginEmoji(marginInfo?.marginPerUnitPercent ?? null);
         return (
@@ -539,54 +534,39 @@ export default function PicketPage() {
             
             {isAdmin && (
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Цена за м.п. закупка (₽)</label>
+                <label className="block text-sm font-medium mb-1">Цена закупки за ед. (₽)</label>
                 <input
                   type="number"
-                  value={formValues.purchasePricePerMeter ?? ''}
-                  onChange={(e) => handleFormChange('purchasePricePerMeter', e.target.value ? parseFloat(e.target.value) : null)}
+                  value={formValues.purchasePricePerUnit ?? ''}
+                  onChange={(e) => handleFormChange('purchasePricePerUnit', e.target.value ? parseFloat(e.target.value) : null)}
                   className="w-full border rounded px-3 py-2"
                   min={0}
                   step={0.01}
                 />
-                <div className="text-sm text-gray-500 mt-1">
-                  ↳ Цена закупки за ед.: {calculatedPurchasePricePerUnit !== null ? `${formatPrice(calculatedPurchasePricePerUnit)} ₽` : 'Не указана'}
-                </div>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium mb-1">Розничная стоимость за м.п. (₽) *</label>
+              <label className="block text-sm font-medium mb-1">Розничная стоимость за ед. (₽) *</label>
               <input
                 type="number"
-                value={formValues.retailPricePerMeter || ''}
-                onChange={(e) => handleFormChange('retailPricePerMeter', parseFloat(e.target.value))}
+                value={formValues.retailPricePerUnit || ''}
+                onChange={(e) => handleFormChange('retailPricePerUnit', parseFloat(e.target.value))}
                 className="w-full border rounded px-3 py-2"
                 min={0}
                 step={0.01}
                 required
               />
-              <div className="text-sm text-gray-500 mt-1">
-                ↳ Розничная стоимость за ед.: {calculatedRetailPricePerUnit !== null ? `${formatPrice(calculatedRetailPricePerUnit)} ₽` : '-'}
-              </div>
             </div>
 
-            {isAdmin && marginInfo && marginInfo.marginPerMeterPercent !== null && (
+            {isAdmin && marginInfo && marginInfo.marginPerUnitPercent !== null && (
               <div className="mt-4 p-4 bg-gray-50 rounded border">
                 <h5 className="font-medium mb-2">Расчет маржи</h5>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-gray-600">За метр погонный:</span>
-                    <div className="ml-4">
-                      Маржа: {marginInfo.marginPerMeterPercent.toFixed(1)}% {getMarginEmoji(marginInfo.marginPerMeterPercent)}
-                      <span className="ml-2 text-gray-500">
-                        ({marginInfo.marginPerMeterAbsolute?.toFixed(2)} ₽/м.п.)
-                      </span>
-                    </div>
-                  </div>
-                  <div>
                     <span className="text-gray-600">За единицу (шт):</span>
                     <div className="ml-4">
-                      Маржа: {marginInfo.marginPerUnitPercent?.toFixed(1)}% {getMarginEmoji(marginInfo.marginPerUnitPercent)}
+                      Маржа: {marginInfo.marginPerUnitPercent.toFixed(1)}% {getMarginEmoji(marginInfo.marginPerUnitPercent)}
                       <span className="ml-2 text-gray-500">
                         ({marginInfo.marginPerUnitAbsolute?.toFixed(2)} ₽/шт)
                       </span>

@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { PicketTypeInput, PicketTypeUpdate } from '@/lib/validators/picketType';
-import { calculatePricePerUnit, calculatePicketMargin } from '@/lib/utils/priceCalculator';
 import { getNextPriority } from '@/lib/utils/priorityUtils';
 import { priorityService } from '@/services/admin/priorityService';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
@@ -83,8 +82,8 @@ export class PicketTypeService {
 
     const picketsWithPrices = pickets.map((item) => ({
       ...item,
-      purchasePricePerUnit: calculatePricePerUnit(item.width, item.length, item.purchasePricePerMeter),
-      retailPricePerUnit: calculatePricePerUnit(item.width, item.length, item.retailPricePerMeter),
+      purchasePricePerUnit: item.purchasePricePerUnit,
+      retailPricePerUnit: item.retailPricePerUnit,
     }));
 
     return {
@@ -105,8 +104,8 @@ export class PicketTypeService {
 
     return {
       ...item,
-      purchasePricePerUnit: calculatePricePerUnit(item.width, item.length, item.purchasePricePerMeter),
-      retailPricePerUnit: calculatePricePerUnit(item.width, item.length, item.retailPricePerMeter),
+      purchasePricePerUnit: item.purchasePricePerUnit,
+      retailPricePerUnit: item.retailPricePerUnit,
     };
   }
 
@@ -141,8 +140,8 @@ export class PicketTypeService {
         profileTypeId: data.profileTypeId,
         coatingId: data.coatingId,
         color: data.color,
-        purchasePricePerMeter: data.purchasePricePerMeter,
-        retailPricePerMeter: data.retailPricePerMeter,
+        purchasePricePerUnit: data.purchasePricePerUnit,
+        retailPricePerUnit: data.retailPricePerUnit,
         validFrom: data.validFrom,
         validUntil: data.validUntil,
         image: data.image,

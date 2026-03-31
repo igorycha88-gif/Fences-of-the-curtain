@@ -52,7 +52,7 @@ export async function calculatePicket(
   const reserveCoef = 1.03;
   const finalCount = Math.ceil(baseCount * reserveCoef);
 
-  const pricePerUnit = selectedPicket.retailPricePerMeter * (selectedPicket.length / 1000);
+  const pricePerUnit = selectedPicket.retailPricePerUnit;
   const totalPrice = finalCount * pricePerUnit;
 
   return {

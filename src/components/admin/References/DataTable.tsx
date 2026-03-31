@@ -170,7 +170,7 @@ export function DataTable<T extends { id: string; active?: boolean }>({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.length === 0 ? (
+                {!data || data.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={columns.length + 1}

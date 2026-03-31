@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { workService } from '@/services/admin/workService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { updateWorkSchema } from '@/lib/validators/work';
 import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
@@ -14,15 +12,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
 
     const item = await workService.getById(params.id);
 
@@ -42,21 +33,15 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
     
     const validatedData = updateWorkSchema.parse(body);
 
-    await workService.update(params.id, validatedData, session.user.id);
+    await workService.update(params.id, validatedData, session.userId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -79,17 +64,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await workService.delete(params.id, session.user.id);
+    await workService.delete(params.id, session.userId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -108,17 +91,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const item = await workService.toggleActive(params.id, session.user.id);
+    const item = await workService.toggleActive(params.id, session.userId);
 
     return NextResponse.json(item);
   } catch (error: any) {

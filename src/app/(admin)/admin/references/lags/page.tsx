@@ -84,7 +84,7 @@ export default function LagsPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -105,13 +105,15 @@ export default function LagsPage() {
         ...(search && { search }),
       });
 
-      const response = await fetch(`/api/admin/lag-types?${params}`);
+      const response = await fetch(`/api/admin/lag-types?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setLags(data.lags);
-        setTotal(data.total);
+        setLags(data.lags || []);
+        setTotal(data.total || 0);
       } else {
+        setLags([]);
+        setTotal(0);
         console.error('Error fetching lag types:', data.error);
       }
     } catch (error) {
@@ -169,6 +171,7 @@ export default function LagsPage() {
     try {
       const response = await fetch(`/api/admin/lag-types/${lag.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -188,6 +191,7 @@ export default function LagsPage() {
     try {
       const response = await fetch(`/api/admin/lag-types/${lag.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -208,6 +212,7 @@ export default function LagsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, newPriority }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -254,6 +259,7 @@ export default function LagsPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
+        credentials: 'include',
       });
 
       const data = await response.json();

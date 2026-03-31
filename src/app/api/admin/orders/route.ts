@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { ordersService } from '@/services/admin/ordersService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { safeParseInt } from '@/lib/parse-params';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'orders')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'orders');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const searchParams = request.nextUrl.searchParams;
     const params = {
@@ -42,15 +34,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'orders')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'orders');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
 
@@ -58,7 +44,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    const result = await ordersService.batchUpdateOrders(body.ids, body.data, session.user.id);
+    const result = await ordersService.batchUpdateOrders(body.ids, body.data, session.userId);
 
     return NextResponse.json({ success: true, updated: result.length });
   } catch (error) {

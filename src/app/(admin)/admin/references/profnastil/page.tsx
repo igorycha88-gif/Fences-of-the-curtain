@@ -68,7 +68,7 @@ export default function ProfnastilPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -90,13 +90,15 @@ export default function ProfnastilPage() {
         ...(coatingFilter !== 'all' && { coating: coatingFilter }),
       });
 
-      const response = await fetch(`/api/admin/profnastil-types?${params}`);
+      const response = await fetch(`/api/admin/profnastil-types?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setProfnastil(data.profnastil);
-        setTotal(data.total);
+        setProfnastil(data.profnastil || []);
+        setTotal(data.total || 0);
       } else {
+        setProfnastil([]);
+        setTotal(0);
         console.error('Error fetching profnastil types:', data.error);
       }
     } catch (error) {
@@ -169,6 +171,7 @@ export default function ProfnastilPage() {
     try {
       const response = await fetch(`/api/admin/profnastil-types/${item.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -188,6 +191,7 @@ export default function ProfnastilPage() {
     try {
       const response = await fetch(`/api/admin/profnastil-types/${item.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -208,6 +212,7 @@ export default function ProfnastilPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, newPriority }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -235,6 +240,7 @@ export default function ProfnastilPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
+        credentials: 'include',
       });
 
       const data = await response.json();

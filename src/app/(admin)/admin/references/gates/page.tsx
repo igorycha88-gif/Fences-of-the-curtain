@@ -88,7 +88,7 @@ export default function GatesPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -110,13 +110,15 @@ export default function GatesPage() {
         ...(search && { search }),
       });
 
-      const response = await fetch(`/api/admin/gate-types?${params}`);
+      const response = await fetch(`/api/admin/gate-types?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setGates(data.gates);
-        setTotal(data.total);
+        setGates(data.gates || []);
+        setTotal(data.total || 0);
       } else {
+        setGates([]);
+        setTotal(0);
         console.error('Error fetching gate types:', data.error);
       }
     } catch (error) {
@@ -176,6 +178,7 @@ export default function GatesPage() {
     try {
       const response = await fetch(`/api/admin/gate-types/${gate.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -195,6 +198,7 @@ export default function GatesPage() {
     try {
       const response = await fetch(`/api/admin/gate-types/${gate.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -215,6 +219,7 @@ export default function GatesPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, newPriority }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -246,6 +251,7 @@ export default function GatesPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
+        credentials: 'include',
       });
 
       const data = await response.json();

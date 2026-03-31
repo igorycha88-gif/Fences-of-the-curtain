@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { portfolioService } from '@/services/admin/portfolioService';
 import { portfolioInputSchema, portfolioListParamsSchema } from '@/lib/validators/portfolio';
 import { ZodError } from 'zod';
@@ -10,11 +9,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !['ADMIN', 'CONTENT_MANAGER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
 
     const { searchParams } = new URL(request.url);
     const params = portfolioListParamsSchema.parse({
@@ -35,20 +31,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!['ADMIN', 'CONTENT_MANAGER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
     const validatedData = portfolioInputSchema.parse(body);
 
-    const result = await portfolioService.create(validatedData, session.user.id);
+    const result = await portfolioService.create(validatedData, session.userId);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error: any) {

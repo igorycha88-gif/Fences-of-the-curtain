@@ -63,7 +63,7 @@ export default function WicketsPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -84,13 +84,15 @@ export default function WicketsPage() {
         ...(search && { search }),
       });
 
-      const response = await fetch(`/api/admin/wicket-types?${params}`);
+      const response = await fetch(`/api/admin/wicket-types?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setWickets(data.wickets);
-        setTotal(data.total);
+        setWickets(data.wickets || []);
+        setTotal(data.total || 0);
       } else {
+        setWickets([]);
+        setTotal(0);
         console.error('Error fetching wicket types:', data.error);
       }
     } catch (error) {
@@ -148,6 +150,7 @@ export default function WicketsPage() {
     try {
       const response = await fetch(`/api/admin/wicket-types/${wicket.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -167,6 +170,7 @@ export default function WicketsPage() {
     try {
       const response = await fetch(`/api/admin/wicket-types/${wicket.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -187,6 +191,7 @@ export default function WicketsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, newPriority }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -218,6 +223,7 @@ export default function WicketsPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
+        credentials: 'include',
       });
 
       const data = await response.json();

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { usersService } from '@/services/admin/usersService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { safeParseInt } from '@/lib/parse-params';
 import { z } from 'zod';
 
@@ -19,15 +17,8 @@ const createUserSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'users')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'users');
+    if (authResult instanceof NextResponse) return authResult;
 
     const searchParams = request.nextUrl.searchParams;
     const params = {
@@ -49,15 +40,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'users')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'users');
+    if (authResult instanceof NextResponse) return authResult;
 
     const body = await request.json();
     const validated = createUserSchema.parse(body);

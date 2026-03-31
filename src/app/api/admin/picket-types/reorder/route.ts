@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions/rbac';
+import { requireAdmin } from '@/lib/admin-auth';
 import { priorityService } from '@/services/admin/priorityService';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
@@ -15,15 +13,9 @@ const reorderSchema = z.object({
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
     const validatedData = reorderSchema.parse(body);
@@ -32,7 +24,7 @@ export async function PATCH(request: NextRequest) {
       'picketType',
       validatedData.id,
       validatedData.newPriority,
-      session.user.id
+      session.userId
     );
 
     return NextResponse.json(result);

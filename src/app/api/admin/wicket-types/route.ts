@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { ZodError } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { wicketTypeService } from '@/services/admin/wicketTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { wicketTypeSchema } from '@/lib/validators/wicketType';
 import { safeParseInt } from '@/lib/parse-params';
+import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
@@ -37,7 +29,7 @@ export async function GET(request: NextRequest) {
       validityFilter,
     });
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
     
     if (!isAdmin && result.wickets) {
       result.wickets = result.wickets.map((wicket: any) => {
@@ -57,15 +49,12 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[WICKET-TYPES POST] Starting create wicket type...');
     
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      console.log('[WICKET-TYPES POST] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      console.log('[WICKET-TYPES POST] Forbidden - not admin, role:', session.user.role);
+    if (session.role !== 'ADMIN') {
+      console.log('[WICKET-TYPES POST] Forbidden - not admin, role:', session.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -74,7 +63,7 @@ export async function POST(request: NextRequest) {
     const validatedData = wicketTypeSchema.parse(body);
     console.log('[WICKET-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const result = await wicketTypeService.create(validatedData, session.user.id);
+    const result = await wicketTypeService.create(validatedData, session.userId);
 
     console.log('[WICKET-TYPES POST] Created wicket with id:', result.id);
 

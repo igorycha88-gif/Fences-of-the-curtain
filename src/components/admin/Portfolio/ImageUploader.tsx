@@ -15,6 +15,7 @@ export function ImageUploader({ images,  onChange,
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [imgErrors, setImgErrors] = useState<Set<number>>(new Set());
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     const validFiles = Array.from(files).filter(file => {
@@ -124,11 +125,18 @@ export function ImageUploader({ images,  onChange,
               }
             }}
           >
-            <img
-              src={getThumbnailUrl(image)}
-              alt={`Изображение ${index + 1}`}
-              className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
-            />
+            {imgErrors.has(index) ? (
+              <div className="w-24 h-24 bg-gray-200 rounded-lg border-2 border-gray-200 flex items-center justify-center text-xs text-gray-400">
+                Нет
+              </div>
+            ) : (
+              <img
+                src={getThumbnailUrl(image)}
+                alt={`Изображение ${index + 1}`}
+                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
+                onError={() => setImgErrors(prev => new Set(prev).add(index))}
+              />
+            )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
               <span className="text-white text-xs font-medium">
                 {index === 0 ? 'Главное' : `#${index + 1}`}

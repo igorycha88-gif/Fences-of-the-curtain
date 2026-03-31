@@ -33,7 +33,7 @@ export default function ContactInfoPage() {
   const fetchContactInfo = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/contact-info');
+      const response = await fetch('/api/admin/contact-info', { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
@@ -68,6 +68,7 @@ export default function ContactInfoPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
+        credentials: 'include',
       });
 
       const data = await response.json();

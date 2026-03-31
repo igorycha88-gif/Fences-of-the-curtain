@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
+import { createOrderSchema, individualOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
 import { prisma } from '@/lib/prisma';
 import { getSessionFromCookie } from '@/lib/session';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
@@ -31,100 +31,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sessionId = await getSessionFromCookie();
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'SESSION_EXPIRED', message: 'Время сессии истекло. Пожалуйста, выполните расчет заново.' },
-        { status: 400, headers: rlHeaders }
-      );
-    }
-
-    const estimate = await prisma.fenceEstimate.findFirst({
-      where: { sessionId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!estimate) {
-      return NextResponse.json(
-        { error: 'SESSION_EXPIRED', message: 'Время сессии истекло. Пожалуйста, выполните расчет заново.' },
-        { status: 400, headers: rlHeaders }
-      );
-    }
-
     const body = await req.json();
-    const validatedData = createOrderSchema.parse(body);
 
-    const order = await prisma.order.create({
-      data: {
-        clientName: validatedData.clientName,
-        phone: validatedData.phone,
-        email: validatedData.email || null,
-        serviceType: 'fence',
-        parameters: {
-          message: validatedData.message || null,
-          fenceType: estimate.fenceTypeId,
-          length: estimate.length,
-          height: estimate.height,
-          lagRows: estimate.lagRows,
-          coating: estimate.coating,
-          hasGate: estimate.hasGate,
-          gateLength: estimate.gateLength,
-          hasWicket: estimate.hasWicket,
-          wicketWidth: estimate.wicketWidth,
-        },
-        calculatedCost: estimate.grandTotal,
-        status: 'NEW',
-        estimateId: estimate.id,
-        statusHistory: [
-          {
-            status: 'NEW',
-            changedAt: new Date().toISOString(),
-            changedBy: 'system',
-            changedByName: 'Система',
-            data: {},
-          },
-        ],
-      },
-      include: {
-        estimate: {
-          select: {
-            id: true,
-            grandTotal: true,
-          },
-        },
-      },
-    });
+    if (body.isIndividualRequest) {
+      return await createIndividualOrder(body, rlHeaders);
+    }
 
-    getSystemUserId().then((systemUserId) => {
-      createAuditLogAsync({
-        userId: systemUserId,
-        action: 'CREATE_ORDER',
-        entityType: 'Order',
-        entityId: order.id,
-        oldValues: null,
-        newValues: {
-          clientName: validatedData.clientName,
-          phone: validatedData.phone,
-          email: validatedData.email,
-          serviceType: 'fence',
-          parameters: order.parameters,
-          calculatedCost: estimate.grandTotal,
-        },
-      });
-    });
-
-    return NextResponse.json(
-      {
-        id: order.id,
-        status: order.status,
-        statusLabel: STATUS_LABELS[order.status],
-        estimateId: estimate.id,
-        calculatedCost: estimate.grandTotal,
-        createdAt: order.createdAt,
-      },
-      { status: 201, headers: rlHeaders }
-    );
+    return await createStandardOrder(body, rlHeaders);
   } catch (error) {
     if (error instanceof Error) {
       console.error('Order creation error:', error);
@@ -147,4 +60,159 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function createStandardOrder(body: unknown, rlHeaders: Record<string, string>) {
+  const sessionId = await getSessionFromCookie();
+
+  if (!sessionId) {
+    return NextResponse.json(
+      { error: 'SESSION_EXPIRED', message: 'Время сессии истекло. Пожалуйста, выполните расчет заново.' },
+      { status: 400, headers: rlHeaders }
+    );
+  }
+
+  const estimate = await prisma.fenceEstimate.findFirst({
+    where: { sessionId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!estimate) {
+    return NextResponse.json(
+      { error: 'SESSION_EXPIRED', message: 'Время сессии истекло. Пожалуйста, выполните расчет заново.' },
+      { status: 400, headers: rlHeaders }
+    );
+  }
+
+  const validatedData = createOrderSchema.parse(body);
+
+  const order = await prisma.order.create({
+    data: {
+      clientName: validatedData.clientName,
+      phone: validatedData.phone,
+      email: validatedData.email || null,
+      serviceType: 'fence',
+      parameters: {
+        message: validatedData.message || null,
+        fenceType: estimate.fenceTypeId,
+        length: estimate.length,
+        height: estimate.height,
+        lagRows: estimate.lagRows,
+        coating: estimate.coating,
+        hasGate: estimate.hasGate,
+        gateLength: estimate.gateLength,
+        hasWicket: estimate.hasWicket,
+        wicketWidth: estimate.wicketWidth,
+      },
+      calculatedCost: estimate.grandTotal,
+      status: 'NEW',
+      estimateId: estimate.id,
+      statusHistory: [
+        {
+          status: 'NEW',
+          changedAt: new Date().toISOString(),
+          changedBy: 'system',
+          changedByName: 'Система',
+          data: {},
+        },
+      ],
+    },
+    include: {
+      estimate: {
+        select: {
+          id: true,
+          grandTotal: true,
+        },
+      },
+    },
+  });
+
+  getSystemUserId().then((systemUserId) => {
+    createAuditLogAsync({
+      userId: systemUserId,
+      action: 'CREATE_ORDER',
+      entityType: 'Order',
+      entityId: order.id,
+      oldValues: null,
+      newValues: {
+        clientName: validatedData.clientName,
+        phone: validatedData.phone,
+        email: validatedData.email,
+        serviceType: 'fence',
+        parameters: order.parameters,
+        calculatedCost: estimate.grandTotal,
+      },
+    });
+  });
+
+  return NextResponse.json(
+    {
+      id: order.id,
+      status: order.status,
+      statusLabel: STATUS_LABELS[order.status],
+      estimateId: estimate.id,
+      calculatedCost: estimate.grandTotal,
+      createdAt: order.createdAt,
+    },
+    { status: 201, headers: rlHeaders }
+  );
+}
+
+async function createIndividualOrder(body: unknown, rlHeaders: Record<string, string>) {
+  const validatedData = individualOrderSchema.parse(body);
+
+  const order = await prisma.order.create({
+    data: {
+      clientName: validatedData.clientName,
+      phone: validatedData.phone,
+      email: validatedData.email || null,
+      serviceType: 'INDIVIDUAL_CALCULATION',
+      parameters: {
+        ...validatedData.fenceParameters,
+        message: validatedData.message || null,
+      },
+      calculatedCost: 0,
+      status: 'NEW',
+      statusHistory: [
+        {
+          status: 'NEW',
+          changedAt: new Date().toISOString(),
+          changedBy: 'system',
+          changedByName: 'Система',
+          data: {},
+        },
+      ],
+    },
+  });
+
+  getSystemUserId().then((systemUserId) => {
+    createAuditLogAsync({
+      userId: systemUserId,
+      action: 'CREATE_INDIVIDUAL_ORDER',
+      entityType: 'Order',
+      entityId: order.id,
+      oldValues: null,
+      newValues: {
+        clientName: validatedData.clientName,
+        phone: validatedData.phone,
+        email: validatedData.email,
+        serviceType: 'INDIVIDUAL_CALCULATION',
+        parameters: order.parameters,
+        calculatedCost: 0,
+      },
+    });
+  });
+
+  return NextResponse.json(
+    {
+      id: order.id,
+      status: order.status,
+      statusLabel: STATUS_LABELS[order.status],
+      estimateId: null,
+      calculatedCost: 0,
+      isIndividualRequest: true,
+      createdAt: order.createdAt,
+    },
+    { status: 201, headers: rlHeaders }
+  );
 }

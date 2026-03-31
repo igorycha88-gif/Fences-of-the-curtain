@@ -104,7 +104,7 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/estimates/${resolvedParams.id}`);
+      const res = await fetch(`/api/admin/estimates/${resolvedParams.id}`, { credentials: 'include' });
       if (!res.ok) {
         throw new Error('Смета не найдена');
       }
@@ -131,7 +131,7 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
     if (!estimate) return;
     
     try {
-      const res = await fetch(`/api/admin/estimates/${resolvedParams.id}/export`);
+      const res = await fetch(`/api/admin/estimates/${resolvedParams.id}/export`, { credentials: 'include' });
       if (!res.ok) throw new Error('Ошибка экспорта');
       
       const blob = await res.blob();

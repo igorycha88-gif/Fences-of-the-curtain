@@ -394,16 +394,38 @@ export async function calculateFenceEstimate(
   const fenceTypeMountingWorks = fenceTypeWorks.filter((w) => w.category === 'MOUNTING');
   console.log('[fenceEstimate] Mounting works:', { count: fenceTypeMountingWorks.length, works: fenceTypeMountingWorks.map(w => ({ id: w.id, name: w.name, unit: w.unit, category: w.category })) });
 
+  const referenceQuantityMap: Record<string, number> = {};
+  if (picketResult) {
+    referenceQuantityMap[`PICKET:${picketResult.nomenclatureId}`] = picketResult.quantity;
+  }
+  if (profnastilResult) {
+    referenceQuantityMap[`PROFNASTIL:${profnastilResult.nomenclatureId}`] = profnastilResult.quantity;
+  }
+  if (panel3dResult) {
+    referenceQuantityMap[`PANEL_3D:${panel3dResult.nomenclatureId}`] = panel3dResult.quantity;
+  }
+
   for (const work of fenceTypeMountingWorks) {
     let quantity = 1;
     let totalPrice = work.price;
+
+    const hasReferenceRelation = work.relations?.some(
+      (rel) => rel.referenceType && rel.referenceId
+    );
 
     if (work.unit === 'MP') {
       quantity = correctedLength;
       totalPrice = correctedLength * work.price;
     } else if (work.unit === 'PCS') {
-      quantity = 1;
-      totalPrice = work.price;
+      if (hasReferenceRelation) {
+        const matchingRel = work.relations?.find(
+          (rel) => rel.referenceType && rel.referenceId && referenceQuantityMap[`${rel.referenceType}:${rel.referenceId}`]
+        );
+        if (matchingRel) {
+          quantity = referenceQuantityMap[`${matchingRel.referenceType}:${matchingRel.referenceId}`];
+        }
+      }
+      totalPrice = quantity * work.price;
     } else if (work.unit === 'FIXED') {
       quantity = 1;
       totalPrice = work.price;
@@ -468,8 +490,19 @@ export async function calculateFenceEstimate(
   const panel3dInstallationTotal = panel3dInstallationWorks.reduce((sum, work) => sum + work.price * (panel3dResult ? panel3dResult.quantity : 1), 0);
 
   const fenceTypeMountingWorksTotal = fenceTypeMountingWorks.reduce((sum, work) => {
+    const hasReferenceRelation = work.relations?.some(
+      (rel) => rel.referenceType && rel.referenceId
+    );
     if (work.unit === 'MP') {
       return sum + (correctedLength * work.price);
+    } else if (work.unit === 'PCS' && hasReferenceRelation) {
+      const matchingRel = work.relations?.find(
+        (rel) => rel.referenceType && rel.referenceId && referenceQuantityMap[`${rel.referenceType}:${rel.referenceId}`]
+      );
+      if (matchingRel) {
+        const qty = referenceQuantityMap[`${matchingRel.referenceType}:${matchingRel.referenceId}`];
+        return sum + (qty * work.price);
+      }
     }
     return sum + work.price;
   }, 0);

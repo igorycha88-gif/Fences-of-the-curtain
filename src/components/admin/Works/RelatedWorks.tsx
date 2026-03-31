@@ -27,10 +27,12 @@ export function RelatedWorks({ fenceType }: RelatedWorksProps) {
     const fetchWorks = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/admin/works/by-fence-type?fenceType=${fenceType}`);
+        const response = await fetch(`/api/admin/works/by-fence-type?fenceType=${fenceType}`, {
+          credentials: 'include',
+        });
         const data = await response.json();
         if (response.ok) {
-          setWorks(data.items);
+          setWorks(data.items || []);
         }
       } catch (error) {
         console.error('Error fetching related works:', error);

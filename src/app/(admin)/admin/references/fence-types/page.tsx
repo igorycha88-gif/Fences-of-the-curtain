@@ -45,13 +45,15 @@ export default function FenceTypesPage() {
         ...(search && { search }),
       });
 
-      const response = await fetch(`/api/admin/materials/fence-types?${params}`);
+      const response = await fetch(`/api/admin/materials/fence-types?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setTypes(data.types);
-        setTotal(data.total);
+        setTypes(data.types || []);
+        setTotal(data.total || 0);
       } else {
+        setTypes([]);
+        setTotal(0);
         console.error('Error fetching fence types:', data.error);
       }
     } catch (error) {
@@ -100,6 +102,7 @@ export default function FenceTypesPage() {
     try {
       const response = await fetch(`/api/admin/materials/fence-types/${type.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -119,6 +122,7 @@ export default function FenceTypesPage() {
     try {
       const response = await fetch(`/api/admin/materials/fence-types/${type.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -139,6 +143,7 @@ export default function FenceTypesPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, newPriority }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -169,6 +174,7 @@ export default function FenceTypesPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
+        credentials: 'include',
       });
 
       if (response.ok) {

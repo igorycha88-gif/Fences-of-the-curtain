@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin, requireAuth } from '@/lib/admin-auth';
 import { fenceTypeService } from '@/services/admin/fenceTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { fenceTypeSchema } from '@/lib/validators/fenceType';
 import { safeParseInt } from '@/lib/parse-params';
 import { ZodError } from 'zod';
@@ -12,15 +10,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
@@ -44,27 +36,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[FENCE-TYPES POST] Starting create fence type...');
-    
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      console.log('[FENCE-TYPES POST] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      console.log('[FENCE-TYPES POST] Forbidden - no permission, role:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
 
     const validatedData = fenceTypeSchema.parse(body);
-    console.log('[FENCE-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const result = await fenceTypeService.create(validatedData, session.user.id);
-    console.log('[FENCE-TYPES POST] Created fence type with id:', result.id);
+    const result = await fenceTypeService.create(validatedData, session.userId);
 
     return NextResponse.json({ id: result.id }, { status: 201 });
   } catch (error: any) {

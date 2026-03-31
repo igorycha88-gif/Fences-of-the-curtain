@@ -14,7 +14,7 @@ export interface PicketLookupResult {
   length: number;
   width: number;
   metalThickness: number;
-  retailPricePerMeter: number;
+  retailPricePerUnit: number;
   profileTypeName: string;
   coatingName: string;
   color: string | null;
@@ -92,7 +92,7 @@ export async function findPicketByParams(
     length: selectedPicket.length,
     width: selectedPicket.width,
     metalThickness: selectedPicket.metalThickness,
-    retailPricePerMeter: selectedPicket.retailPricePerMeter,
+    retailPricePerUnit: selectedPicket.retailPricePerUnit,
     profileTypeName: selectedPicket.picketProfile.name,
     coatingName: selectedPicket.picketCoatingType.name,
     color: selectedPicket.color,

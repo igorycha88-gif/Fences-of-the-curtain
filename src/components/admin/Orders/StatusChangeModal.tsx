@@ -59,6 +59,7 @@ export function StatusChangeModal({
           status: newStatus,
           data,
         }),
+        credentials: 'include',
       });
 
       const result = await res.json();

@@ -120,7 +120,7 @@ export default function MountingHardwarePage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -131,7 +131,7 @@ export default function MountingHardwarePage() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/admin/mounting-hardware/references')
+    fetch('/api/admin/mounting-hardware/references', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.options) {
@@ -151,13 +151,15 @@ export default function MountingHardwarePage() {
         ...(search && { search }),
       });
 
-      const response = await fetch(`/api/admin/mounting-hardware?${params}`);
+      const response = await fetch(`/api/admin/mounting-hardware?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setItems(data.items);
-        setTotal(data.total);
+        setItems(data.items || []);
+        setTotal(data.total || 0);
       } else {
+        setItems([]);
+        setTotal(0);
         console.error('Error fetching mounting hardware:', data.error);
       }
     } catch (error) {
@@ -216,6 +218,7 @@ export default function MountingHardwarePage() {
     try {
       const response = await fetch(`/api/admin/mounting-hardware/${item.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -235,6 +238,7 @@ export default function MountingHardwarePage() {
     try {
       const response = await fetch(`/api/admin/mounting-hardware/${item.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -333,6 +337,7 @@ export default function MountingHardwarePage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
+        credentials: 'include',
       });
 
       const data = await response.json();

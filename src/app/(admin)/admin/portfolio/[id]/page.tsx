@@ -24,7 +24,7 @@ export default function EditPortfolioPage() {
   useEffect(() => {
     const fetchItem = async () => {
       try {
-        const res = await fetch(`/api/admin/portfolio/${id}`);
+        const res = await fetch(`/api/admin/portfolio/${id}`, { credentials: 'include' });
         if (!res.ok) {
           throw new Error('Элемент не найден');
         }
@@ -45,6 +45,7 @@ export default function EditPortfolioPage() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+      credentials: 'include',
     });
 
     if (!res.ok) {

@@ -7,6 +7,37 @@ export const createOrderSchema = z.object({
   message: z.string().max(1000).optional(),
 });
 
+export const fenceParametersSchema = z.object({
+  fenceTypeId: z.string(),
+  fenceTypeName: z.string(),
+  length: z.number().min(1),
+  height: z.number().min(1),
+  coating: z.string().optional(),
+  hasGate: z.boolean().optional(),
+  gateType: z.string().optional(),
+  gateWidth: z.number().optional(),
+  hasWicket: z.boolean().optional(),
+  wicketWidth: z.number().optional(),
+  soilType: z.string().optional(),
+  lagRows: z.number().optional(),
+  picketProfileType: z.string().optional(),
+  picketCoating: z.string().optional(),
+  picketStep: z.number().optional(),
+  picketMountingType: z.string().optional(),
+});
+
+export const individualOrderSchema = z.object({
+  clientName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  phone: z.string().regex(/^\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}$/, 'Формат: +7 (XXX) XXX-XX-XX'),
+  email: z.string().email('Некорректный email').optional().or(z.literal('')),
+  message: z.string().max(1000, 'Комментарий не более 1000 символов').optional().or(z.literal('')),
+  isIndividualRequest: z.literal(true),
+  fenceParameters: fenceParametersSchema,
+});
+
+export type FenceParameters = z.infer<typeof fenceParametersSchema>;
+export type IndividualOrderRequest = z.infer<typeof individualOrderSchema>;
+
 export const ORDER_STATUSES = [
   'NEW',
   'ESTIMATE_APPROVAL',

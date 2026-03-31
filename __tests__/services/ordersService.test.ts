@@ -43,9 +43,34 @@ describe('OrdersService', () => {
 
       const result = await ordersService.getOrders({ page: 1, pageSize: 20 });
 
-      expect(result.orders).toEqual(mockOrders);
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0].id).toBe('1');
+      expect(result.orders[0].statusLabel).toBe('Новая');
+      expect(result.orders[0].isIndividualRequest).toBe(false);
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
+    });
+
+    it('should mark individual requests', async () => {
+      const mockOrders = [
+        {
+          id: '1',
+          clientName: 'Иван Иванов',
+          phone: '+79001234567',
+          serviceType: 'INDIVIDUAL_CALCULATION',
+          calculatedCost: 0,
+          status: 'NEW',
+          statusLabel: 'Новая',
+          createdAt: new Date('2026-03-01'),
+        },
+      ];
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(1);
+
+      const result = await ordersService.getOrders({ page: 1, pageSize: 20 });
+
+      expect(result.orders[0].isIndividualRequest).toBe(true);
     });
 
     it('should filter by status', async () => {
@@ -95,6 +120,7 @@ describe('OrdersService', () => {
         clientName: 'Иван Иванов',
         phone: '+7 (900) 123-45-67',
         email: 'test@example.com',
+        serviceType: 'fence',
         status: 'PRODUCTION',
         calculatedCost: 165000,
         createdAt: new Date('2026-03-15'),
@@ -174,6 +200,7 @@ describe('OrdersService', () => {
         clientName: 'Иван Иванов',
         phone: '+7 (900) 123-45-67',
         email: 'test@example.com',
+        serviceType: 'fence',
         status: 'PRODUCTION',
         calculatedCost: 165000,
         createdAt: new Date('2026-03-15'),
@@ -249,6 +276,7 @@ describe('OrdersService', () => {
         clientName: 'Иван Иванов',
         phone: '+7 (900) 123-45-67',
         email: 'test@example.com',
+        serviceType: 'fence',
         status: 'PRODUCTION',
         calculatedCost: 165000,
         createdAt: new Date('2026-03-15'),
@@ -325,12 +353,13 @@ describe('OrdersService', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null estimate when order has no estimate', async () => {
+    it('should return order with parameters for individual request', async () => {
       const mockOrder = {
         id: 'order1',
         clientName: 'Иван Иванов',
         phone: '+7 (900) 123-45-67',
         email: 'test@example.com',
+        serviceType: 'INDIVIDUAL_CALCULATION',
         status: 'NEW',
         calculatedCost: 0,
         createdAt: new Date('2026-03-15'),
@@ -340,7 +369,13 @@ describe('OrdersService', () => {
         cancellationReason: null,
         completionDate: null,
         assignedTo: null,
-        parameters: {},
+        parameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+          message: 'Нужен индивидуальный расчёт',
+        },
         statusHistory: [],
         assignedUser: null,
         estimate: null,
@@ -352,7 +387,8 @@ describe('OrdersService', () => {
       const result = await ordersService.getOrderFull('order1', 'ADMIN');
 
       expect(result).not.toBeNull();
-      expect(result!.order).toBeDefined();
+      expect(result!.order.serviceType).toBe('INDIVIDUAL_CALCULATION');
+      expect(result!.order.parameters).toEqual(mockOrder.parameters);
       expect(result!.estimate).toBeNull();
     });
   });

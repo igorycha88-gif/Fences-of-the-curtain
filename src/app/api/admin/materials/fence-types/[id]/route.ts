@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { fenceTypeService } from '@/services/admin/fenceTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { fenceTypeUpdateSchema } from '@/lib/validators/fenceType';
 import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
@@ -14,15 +12,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
 
     const fenceType = await fenceTypeService.getById(params.id);
 
@@ -44,24 +35,16 @@ export async function PUT(
   try {
     console.log('[FENCE-TYPES PUT] Starting update fence type, id:', params.id);
     
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      console.log('[FENCE-TYPES PUT] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      console.log('[FENCE-TYPES PUT] Forbidden - no permission, role:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
 
     const validatedData = fenceTypeUpdateSchema.parse(body);
     console.log('[FENCE-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    await fenceTypeService.update(params.id, validatedData, session.user.id);
+    await fenceTypeService.update(params.id, validatedData, session.userId);
     console.log('[FENCE-TYPES PUT] Updated successfully');
 
     return NextResponse.json({ success: true });
@@ -86,17 +69,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await fenceTypeService.delete(params.id, session.user.id);
+    await fenceTypeService.delete(params.id, session.userId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -119,17 +100,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const fenceType = await fenceTypeService.toggleActive(params.id, session.user.id);
+    const fenceType = await fenceTypeService.toggleActive(params.id, session.userId);
 
     return NextResponse.json(fenceType);
   } catch (error: any) {

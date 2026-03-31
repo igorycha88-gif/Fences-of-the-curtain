@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { getConfig, updateConfig } from '@/lib/rate-limit';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
@@ -14,11 +13,8 @@ const updateConfigSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(new Request(new URL('/api/admin/rate-limit/config', process.env.NEXTAUTH_URL || 'http://localhost:3000')) as any, 'users');
+    if (authResult instanceof NextResponse) return authResult;
 
     const config = await getConfig();
 
@@ -38,11 +34,9 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'users');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await req.json();
     const validatedData = updateConfigSchema.parse(body);
@@ -50,7 +44,7 @@ export async function PUT(req: NextRequest) {
     await updateConfig(validatedData.maxAttempts, validatedData.windowMs);
 
     console.log(
-      `[RATE LIMIT API] Config updated by ${session.user.email}: maxAttempts=${validatedData.maxAttempts}, windowMs=${validatedData.windowMs}`
+      `[RATE LIMIT API] Config updated by ${session.email}: maxAttempts=${validatedData.maxAttempts}, windowMs=${validatedData.windowMs}`
     );
 
     return NextResponse.json({ success: true });

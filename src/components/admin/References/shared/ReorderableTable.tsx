@@ -138,6 +138,7 @@ export function ReorderableTable<T extends PriorityItem>({
             id: movedItem.id,
             newPriority: newIndex + 1,
           }),
+          credentials: 'include',
         });
 
         if (!response.ok) {

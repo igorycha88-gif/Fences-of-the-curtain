@@ -1,29 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { statisticsService } from '@/services/admin/statisticsService';
-import { hasPermission } from '@/lib/permissions/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('[DASHBOARD API] Fetching session...');
-    const session = await getServerSession(authOptions);
-    
-    console.log('[DASHBOARD API] Session:', session ? 'Found' : 'Not found');
-    console.log('[DASHBOARD API] Session user:', session?.user ? 'authenticated' : 'null');
-    console.log('[DASHBOARD API] Session role:', session?.user?.role);
-
-    if (!session?.user) {
-      console.log('[DASHBOARD API] No session found, returning 401');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'dashboard')) {
-      console.log('[DASHBOARD API] User does not have dashboard permission:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'dashboard');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const searchParams = request.nextUrl.searchParams;
     const period = (searchParams.get('period') as 'day' | 'week' | 'month' | 'quarter' | 'year') || 'month';

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { portfolioService } from '@/services/admin/portfolioService';
 import { portfolioUpdateSchema } from '@/lib/validators/portfolio';
 import { ZodError } from 'zod';
@@ -13,11 +12,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !['ADMIN', 'CONTENT_MANAGER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
 
     const { id } = await params;
     const item = await portfolioService.getById(id);
@@ -38,21 +34,15 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!['ADMIN', 'CONTENT_MANAGER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { id } = await params;
     const body = await request.json();
     const validatedData = portfolioUpdateSchema.parse(body);
 
-    const result = await portfolioService.update(id, validatedData, session.user.id);
+    const result = await portfolioService.update(id, validatedData, session.userId);
 
     return NextResponse.json(result);
   } catch (error: any) {
@@ -75,18 +65,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!['ADMIN', 'CONTENT_MANAGER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { id } = await params;
-    await portfolioService.delete(id, session.user.id);
+    await portfolioService.delete(id, session.userId);
 
     return NextResponse.json({ success: true, message: 'Portfolio item deleted' });
   } catch (error: any) {
@@ -105,18 +89,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!['ADMIN', 'CONTENT_MANAGER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { id } = await params;
-    const result = await portfolioService.toggleActive(id, session.user.id);
+    const result = await portfolioService.toggleActive(id, session.userId);
 
     return NextResponse.json(result);
   } catch (error: any) {

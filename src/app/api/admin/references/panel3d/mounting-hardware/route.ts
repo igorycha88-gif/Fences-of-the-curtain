@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { panel3dService } from '@/services/admin/panel3dService';
 import { createAuditLogAsync } from '@/lib/audit';
 
@@ -7,10 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
 
     const { searchParams } = new URL(req.url);
     const active = searchParams.get('active') === 'true' ? true : searchParams.get('active') === 'false' ? false : undefined;
@@ -51,13 +49,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await req.json();
-    const userId = session.user!.id;
+    const userId = session.userId;
 
     const result = await panel3dService.create(body, userId);
 

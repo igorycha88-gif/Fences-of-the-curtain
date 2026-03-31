@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { ordersService } from '@/services/admin/ordersService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { updateOrderStatusSchema, getStatusTransitionSchema } from '@/lib/validators/order';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
@@ -16,19 +14,11 @@ export async function PATCH(
   try {
     console.log('[API] PATCH /api/admin/orders/[id]/status - Start', { orderId: params.id });
 
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'orders');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session?.user?.id) {
-      console.log('[API] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log('[API] Session user:', { id: session.user.id, role: session.user.role });
-
-    if (!hasPermission(session.user.role as any, 'orders')) {
-      console.log('[API] Forbidden - no permission');
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    console.log('[API] Session user:', { id: session.userId, role: session.role });
 
     const body = await request.json();
 
@@ -74,7 +64,7 @@ export async function PATCH(
       params.id,
       validatedData.status as any,
       validatedData.data,
-      session.user.id
+      session.userId
     );
 
     console.log('[API] Status updated successfully:', { 

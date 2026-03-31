@@ -96,10 +96,10 @@ export async function getPurchasePrice(
     case 'Евроштакетник': {
       const item = await prisma.picketType.findUnique({
         where: { id: nomenclatureId },
-        select: { purchasePricePerMeter: true },
+        select: { purchasePricePerUnit: true },
       });
       console.log('[marginCalculator] picket lookup result:', item);
-      return item?.purchasePricePerMeter ?? null;
+      return item?.purchasePricePerUnit ?? null;
     }
     case 'gates':
     case 'Ворота': {

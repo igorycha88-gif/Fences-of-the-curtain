@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { panel3dService } from '@/services/admin/panel3dService';
 import { createAuditLogAsync } from '@/lib/audit';
 
@@ -8,10 +7,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await req.json();
     const { workId } = body;
@@ -20,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Не указан ID работы' }, { status: 400 });
     }
 
-    const userId = session.user!.id;
+    const userId = session.userId;
     await panel3dService.addWork(params.id, workId, userId);
 
     await createAuditLogAsync({
@@ -43,12 +41,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string; workId: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    const userId = session.user!.id;
+    const userId = session.userId;
     await panel3dService.removeWork(params.id, params.workId);
 
     await createAuditLogAsync({

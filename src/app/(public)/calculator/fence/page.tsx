@@ -5,6 +5,7 @@ import { Calculator, Send, Zap, Shield, Clock, AlertCircle } from 'lucide-react'
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import OrderForm from '@/components/calculator/OrderForm';
+import NomenclatureNotFoundModal from '@/components/calculator/NomenclatureNotFoundModal';
 
 interface FenceType {
   id: string;
@@ -129,6 +130,7 @@ export default function FenceCalculatorPage() {
   const [gateWarning, setGateWarning] = useState<string | null>(null);
   const [wicketWarning, setWicketWarning] = useState<string | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [showNomenclatureNotFoundModal, setShowNomenclatureNotFoundModal] = useState(false);
 
   useEffect(() => {
     const fetchFenceTypes = async () => {
@@ -277,7 +279,18 @@ export default function FenceCalculatorPage() {
         setResult(data);
       } else {
         const errorData = await response.json();
-        alert(errorData.message || errorData.error || 'Ошибка расчета');
+        const nomenclatureErrors = [
+          'NO_PROFNASTIL_FOUND',
+          'NO_GATE_FOUND',
+          'NO_WICKET_FOUND',
+          'NO_PICKET_FOUND',
+          'CALCULATOR_NOT_IMPLEMENTED',
+        ];
+        if (nomenclatureErrors.includes(errorData.error)) {
+          setShowNomenclatureNotFoundModal(true);
+        } else {
+          alert(errorData.message || errorData.error || 'Ошибка расчета');
+        }
       }
     } catch (error) {
       console.error('Calculation error:', error);
@@ -706,6 +719,30 @@ export default function FenceCalculatorPage() {
           onSuccess={() => setShowOrderForm(false)}
         />
       )}
+
+      <NomenclatureNotFoundModal
+        isOpen={showNomenclatureNotFoundModal}
+        onClose={() => setShowNomenclatureNotFoundModal(false)}
+        onSuccess={() => setShowNomenclatureNotFoundModal(false)}
+        fenceParameters={{
+          fenceTypeId: formData.fenceTypeId,
+          fenceTypeName: selectedFenceType?.name || '',
+          length: formData.length,
+          height: formData.height,
+          coating: formData.coating,
+          hasGate: formData.hasGate,
+          gateType: formData.gateType || undefined,
+          gateWidth: formData.gateWidth,
+          hasWicket: formData.hasWicket,
+          wicketWidth: formData.wicketWidth,
+          soilType: formData.soilType,
+          lagRows: parseInt(formData.lagRows),
+          picketProfileType: formData.picketProfileType,
+          picketCoating: formData.picketCoating,
+          picketStep: formData.picketStep,
+          picketMountingType: formData.picketMountingType,
+        }}
+      />
     </div>
   );
 }

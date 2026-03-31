@@ -24,7 +24,7 @@ export default function UsersPage() {
       if (filters.active) params.append('active', filters.active);
       if (filters.search) params.append('search', filters.search);
 
-      const res = await fetch(`/api/admin/users?${params.toString()}`);
+      const res = await fetch(`/api/admin/users?${params.toString()}`, { credentials: 'include' });
       const data = await res.json();
 
       if (isApiError(data)) {
@@ -48,6 +48,7 @@ export default function UsersPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !currentActive }),
+        credentials: 'include',
       });
       fetchUsers();
     } catch (error) {
@@ -61,6 +62,7 @@ export default function UsersPage() {
     try {
       await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       fetchUsers();
     } catch (error) {

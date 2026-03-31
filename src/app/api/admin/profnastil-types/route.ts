@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { ZodError } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { profnastilTypeService } from '@/services/admin/profnastilTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { profnastilTypeSchema } from '@/lib/validators/profnastilType';
 import { safeParseInt } from '@/lib/parse-params';
+import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
@@ -43,7 +35,7 @@ export async function GET(request: NextRequest) {
       sortOrder,
     });
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
 
     if (!isAdmin && result.profnastil) {
       result.profnastil = result.profnastil.map((item: any) => {
@@ -63,21 +55,13 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[PROFNASTIL-TYPES POST] Starting create profnastil type...');
     
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      console.log('[PROFNASTIL-TYPES POST] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      console.log('[PROFNASTIL-TYPES POST] Forbidden - no permission, role:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
 
     if (!isAdmin && body.purchasePricePerUnit !== undefined) {
       console.log('[PROFNASTIL-TYPES POST] Forbidden - non-admin trying to set purchase prices');
@@ -98,7 +82,7 @@ export async function POST(request: NextRequest) {
     const validatedData = profnastilTypeSchema.parse(body);
     console.log('[PROFNASTIL-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const result = await profnastilTypeService.create(validatedData, session.user.id);
+    const result = await profnastilTypeService.create(validatedData, session.userId);
     console.log('[PROFNASTIL-TYPES POST] Created profnastil with id:', result.id);
 
     return NextResponse.json({ id: result.id }, { status: 201 });

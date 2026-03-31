@@ -28,10 +28,12 @@ export function RelatedWorksByReference({ referenceType, referenceId }: RelatedW
     const fetchWorks = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/admin/works/by-reference?referenceType=${referenceType}&referenceId=${referenceId}`);
+        const response = await fetch(`/api/admin/works/by-reference?referenceType=${referenceType}&referenceId=${referenceId}`, {
+          credentials: 'include',
+        });
         const data = await response.json();
         if (response.ok) {
-          setWorks(data.items);
+          setWorks(data.items || []);
         }
       } catch (error) {
         console.error('Error fetching related works by reference:', error);

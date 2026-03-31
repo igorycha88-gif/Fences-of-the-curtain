@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { usersService } from '@/services/admin/usersService';
-import { hasPermission } from '@/lib/permissions/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'users')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'users');
+    if (authResult instanceof NextResponse) return authResult;
 
     const user = await usersService.getUserById(params.id);
 
@@ -33,15 +24,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'users')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'users');
+    if (authResult instanceof NextResponse) return authResult;
 
     const body = await request.json();
     const user = await usersService.updateUser(params.id, body);
@@ -55,17 +39,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'users');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'users')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    if (session.user.id === params.id) {
+    if (session.userId === params.id) {
       return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
     }
 

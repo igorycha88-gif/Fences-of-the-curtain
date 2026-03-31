@@ -460,7 +460,7 @@ export class WorkService {
         const filteredWorks = works.filter((work) => {
           const workRelations = work.relations || [];
           console.log(`[WorkService] Checking work: ${work.name}, category: ${work.category}, relations:`, workRelations);
-          const matches = workRelations.some((rel) => rel.fenceType === fenceType);
+          const matches = workRelations.some((rel) => rel.fenceType === fenceType || rel.referenceType === fenceType);
           console.log(`[WorkService] Work "${work.name}" matches: ${matches}`);
           return matches;
         });

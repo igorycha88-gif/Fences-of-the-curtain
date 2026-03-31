@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { ZodError } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { postTypeService } from '@/services/admin/postTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { postTypeSchema } from '@/lib/validators/postType';
 import { safeParseInt } from '@/lib/parse-params';
+import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
@@ -41,7 +33,7 @@ export async function GET(request: NextRequest) {
       validityFilter,
     });
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
     
     if (!isAdmin && result.posts) {
       result.posts = result.posts.map((post: any) => {
@@ -59,20 +51,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
     const validatedData = postTypeSchema.parse(body);
 
-    const result = await postTypeService.create(validatedData, session.user.id);
+    const result = await postTypeService.create(validatedData, session.userId);
     
     if (result && 'warning' in result) {
       return NextResponse.json(result, { status: 200 });

@@ -10,6 +10,8 @@ import {
   STATUS_LABELS,
   CONTACT_RESULT_LABELS,
   CANCELLATION_REASON_LABELS,
+  individualOrderSchema,
+  fenceParametersSchema,
 } from '@/lib/validators/order';
 
 describe('Order Validators', () => {
@@ -239,6 +241,176 @@ describe('Order Validators', () => {
       expect(CANCELLATION_REASON_LABELS.NOT_RESPONSIVE).toBe('Клиент не выходит на связь');
       expect(CANCELLATION_REASON_LABELS.PROJECT_POSTPONED).toBe('Проект отложен');
       expect(CANCELLATION_REASON_LABELS.OTHER).toBe('Другое');
+    });
+  });
+});
+
+describe('Individual Order Schema', () => {
+  describe('fenceParametersSchema', () => {
+    it('should validate minimal valid fence parameters', () => {
+      const data = {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 50,
+        height: 2.0,
+      };
+      expect(() => fenceParametersSchema.parse(data)).not.toThrow();
+    });
+
+    it('should validate full fence parameters', () => {
+      const data = {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 50,
+        height: 2.0,
+        coating: 'POLYMER_SINGLE',
+        hasGate: true,
+        gateType: 'SWING',
+        gateWidth: 4.0,
+        hasWicket: false,
+        soilType: 'normal',
+        lagRows: 2,
+      };
+      expect(() => fenceParametersSchema.parse(data)).not.toThrow();
+    });
+
+    it('should reject missing required fields', () => {
+      const data = {
+        fenceTypeId: 'clt123',
+      };
+      expect(() => fenceParametersSchema.parse(data)).toThrow();
+    });
+
+    it('should reject invalid length', () => {
+      const data = {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 0,
+        height: 2.0,
+      };
+      expect(() => fenceParametersSchema.parse(data)).toThrow();
+    });
+  });
+
+  describe('individualOrderSchema', () => {
+    it('should validate valid individual order request', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        email: 'ivan@example.com',
+        message: 'Нужен забор из профнастила',
+        isIndividualRequest: true,
+        fenceParameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).not.toThrow();
+    });
+
+    it('should validate with optional fields empty', () => {
+      const data = {
+        clientName: 'Иван',
+        phone: '+7 (900) 123-45-67',
+        email: '',
+        message: '',
+        isIndividualRequest: true,
+        fenceParameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).not.toThrow();
+    });
+
+    it('should reject short client name', () => {
+      const data = {
+        clientName: 'И',
+        phone: '+7 (900) 123-45-67',
+        isIndividualRequest: true,
+        fenceParameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should reject invalid phone format', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '89001234567',
+        isIndividualRequest: true,
+        fenceParameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should reject invalid email', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        email: 'not-an-email',
+        isIndividualRequest: true,
+        fenceParameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should reject isIndividualRequest !== true', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        isIndividualRequest: false,
+        fenceParameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should reject missing fenceParameters', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        isIndividualRequest: true,
+      };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should reject message over 1000 chars', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        message: 'a'.repeat(1001),
+        isIndividualRequest: true,
+        fenceParameters: {
+          fenceTypeId: 'clt123',
+          fenceTypeName: 'Профнастил',
+          length: 50,
+          height: 2.0,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
     });
   });
 });

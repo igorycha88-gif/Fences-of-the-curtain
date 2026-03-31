@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { requireAuth } from '@/lib/admin-auth';
 import { estimatesService } from '@/services/admin/estimatesService';
 import { prisma } from '@/lib/prisma';
 
@@ -12,16 +12,13 @@ export async function GET(
   try {
     console.log('[API] ===== GET ESTIMATE REQUEST =====');
     
-    const session = await getServerSession();
-    console.log('[API] Session:', session ? 'exists' : 'null');
-    console.log('[API] Session user:', session?.user ? 'authenticated' : 'null');
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
+    console.log('[API] Session:', 'exists');
+    console.log('[API] Session user:', 'authenticated');
     
-    if (!session) {
-      console.log('[API] ERROR: No session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userEmail = session.user?.email;
+    const userEmail = session.email;
     console.log('[API] User identified:', !!userEmail);
     
     if (!userEmail) {

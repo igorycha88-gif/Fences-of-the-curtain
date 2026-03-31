@@ -396,8 +396,8 @@ model PicketType {
   width                 Int
   length                Int
   color                 String?
-  purchasePricePerMeter Float?
-  retailPricePerMeter   Float
+  purchasePricePerUnit Float?
+  retailPricePerUnit   Float
   validFrom             DateTime?
   validUntil            DateTime?
   active                Boolean           @default(true)

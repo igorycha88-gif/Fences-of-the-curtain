@@ -93,6 +93,7 @@ export class OrdersService {
       ...order,
       statusLabel: STATUS_LABELS[order.status],
       calculatedCost: order.estimate?.grandTotal ?? order.calculatedCost,
+      isIndividualRequest: order.serviceType === 'INDIVIDUAL_CALCULATION',
     }));
 
     return {
@@ -446,6 +447,7 @@ export class OrdersService {
           phone: true,
           email: true,
           parameters: true,
+          serviceType: true,
           status: true,
           calculatedCost: true,
           createdAt: true,
@@ -503,6 +505,7 @@ export class OrdersService {
       message: (order.parameters as any)?.message || null,
       status: order.status,
       statusLabel: STATUS_LABELS[order.status],
+      serviceType: order.serviceType,
       calculatedCost: order.estimate?.grandTotal ?? order.calculatedCost,
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
@@ -518,6 +521,7 @@ export class OrdersService {
           }
         : null,
       statusHistory: formattedHistory,
+      parameters: order.parameters,
     };
 
     let estimate = null;

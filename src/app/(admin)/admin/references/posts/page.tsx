@@ -85,7 +85,7 @@ export default function PostsPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -105,13 +105,15 @@ export default function PostsPage() {
         ...(search && { search }),
       });
 
-      const response = await fetch(`/api/admin/post-types?${params}`);
+      const response = await fetch(`/api/admin/post-types?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setPosts(data.posts);
-        setTotal(data.total);
+        setPosts(data.posts || []);
+        setTotal(data.total || 0);
       } else {
+        setPosts([]);
+        setTotal(0);
         console.error('Error fetching post types:', data.error);
       }
     } catch (error) {
@@ -171,6 +173,7 @@ export default function PostsPage() {
     try {
       const response = await fetch(`/api/admin/post-types/${post.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -190,6 +193,7 @@ export default function PostsPage() {
     try {
       const response = await fetch(`/api/admin/post-types/${post.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -210,6 +214,7 @@ export default function PostsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, newPriority }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -252,6 +257,7 @@ export default function PostsPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formValues),
+        credentials: 'include',
       });
 
       const data = await response.json();

@@ -54,7 +54,9 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/orders/${orderId}/full`);
+      const res = await fetch(`/api/admin/orders/${orderId}/full`, {
+        credentials: 'include',
+      });
       console.log('[OrderDetailPage] Response status:', res.status);
       if (!res.ok) {
         if (res.status === 404) {
@@ -131,6 +133,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   }
 
   const { order, estimate, showPurchasePrices } = data;
+  const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || !estimate;
   const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
   const isAdmin = showPurchasePrices;
 
@@ -206,7 +209,11 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">Стоимость</p>
-          <p className="text-2xl font-bold text-primary">{formatCurrency(order.calculatedCost)}</p>
+          {isIndividualRequest ? (
+            <p className="text-lg font-bold text-amber-600">Индивидуальный расчёт</p>
+          ) : (
+            <p className="text-2xl font-bold text-primary">{formatCurrency(order.calculatedCost)}</p>
+          )}
         </div>
       </div>
 
@@ -269,9 +276,76 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
               />
             </>
           ) : (
-            <div className="bg-white rounded-xl shadow-md border p-6">
-              <p className="text-gray-500 text-center">Расчет не найден</p>
-            </div>
+            <>
+              {isIndividualRequest && order.parameters && (
+                <div className="bg-white rounded-xl shadow-md border p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded">
+                      Индивидуальный расчёт
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-bold mb-4">Параметры забора</h2>
+                  <div className="space-y-3">
+                    {(order.parameters as any).fenceTypeName && (
+                      <div>
+                        <label className="text-sm text-gray-500 block">Тип забора</label>
+                        <p className="font-medium">{(order.parameters as any).fenceTypeName}</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      {(order.parameters as any).length && (
+                        <div>
+                          <label className="text-sm text-gray-500 block">Длина</label>
+                          <p className="font-medium">{(order.parameters as any).length} м</p>
+                        </div>
+                      )}
+                      {(order.parameters as any).height && (
+                        <div>
+                          <label className="text-sm text-gray-500 block">Высота</label>
+                          <p className="font-medium">{(order.parameters as any).height} м</p>
+                        </div>
+                      )}
+                    </div>
+                    {(order.parameters as any).coating && (
+                      <div>
+                        <label className="text-sm text-gray-500 block">Покрытие</label>
+                        <p className="font-medium">{(order.parameters as any).coating}</p>
+                      </div>
+                    )}
+                    {(order.parameters as any).hasGate && (
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <label className="text-sm text-blue-600 block">Ворота</label>
+                        <p className="font-medium text-blue-800">
+                          {(order.parameters as any).gateType === 'SLIDING' ? 'Откатные' : 'Распашные'}
+                          {(order.parameters as any).gateWidth && `, ${(order.parameters as any).gateWidth} м`}
+                        </p>
+                      </div>
+                    )}
+                    {(order.parameters as any).hasWicket && (
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <label className="text-sm text-green-600 block">Калитка</label>
+                        <p className="font-medium text-green-800">
+                          {(order.parameters as any).wicketWidth && `${(order.parameters as any).wicketWidth} м`}
+                        </p>
+                      </div>
+                    )}
+                    {(order.parameters as any).message && (
+                      <div>
+                        <label className="text-sm text-gray-500 block">Комментарий клиента</label>
+                        <p className="font-medium text-gray-700 bg-gray-50 p-3 rounded-lg">
+                          {(order.parameters as any).message}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {!isIndividualRequest && (
+                <div className="bg-white rounded-xl shadow-md border p-6">
+                  <p className="text-gray-500 text-center">Расчет не найден</p>
+                </div>
+              )}
+            </>
           )}
 
           {showPurchasePrices && estimate && (

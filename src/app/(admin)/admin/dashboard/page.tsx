@@ -14,7 +14,7 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const res = await fetch('/api/admin/dashboard');
+      const res = await fetch('/api/admin/dashboard', { credentials: 'include' });
       const data = await res.json();
 
       if (isApiError(data)) {

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { mountingHardwareService } from '@/services/admin/mountingHardwareService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { mountingHardwareSchema, ReferenceType } from '@/lib/validators/mountingHardware';
 import { safeParseInt } from '@/lib/parse-params';
 import { ZodError } from 'zod';
@@ -12,15 +10,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
@@ -39,7 +31,7 @@ export async function GET(request: NextRequest) {
       pageSize,
     });
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
     
     if (!isAdmin && result.items) {
       result.items = result.items.map((item: any) => {
@@ -59,15 +51,12 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[MOUNTING-HARDWARE POST] Starting create...');
     
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      console.log('[MOUNTING-HARDWARE POST] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      console.log('[MOUNTING-HARDWARE POST] Forbidden - not admin, role:', session.user.role);
+    if (session.role !== 'ADMIN') {
+      console.log('[MOUNTING-HARDWARE POST] Forbidden - not admin, role:', session.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -76,7 +65,7 @@ export async function POST(request: NextRequest) {
     const validatedData = mountingHardwareSchema.parse(body);
     console.log('[MOUNTING-HARDWARE POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const result = await mountingHardwareService.create(validatedData, session.user.id);
+    const result = await mountingHardwareService.create(validatedData, session.userId);
 
     console.log('[MOUNTING-HARDWARE POST] Created with id:', result.id);
 

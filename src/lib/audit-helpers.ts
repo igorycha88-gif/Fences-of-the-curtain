@@ -6,7 +6,7 @@ const PRICE_FIELDS: Record<string, string[]> = {
   GateType: ['retailPrice', 'purchasePrice'],
   WicketType: ['retailPrice', 'purchasePrice'],
   ProfnastilType: ['retailPricePerUnit', 'purchasePricePerUnit'],
-  PicketType: ['retailPricePerMeter', 'purchasePricePerMeter'],
+  PicketType: ['retailPricePerUnit', 'purchasePricePerUnit'],
   MountingHardware: ['retailPrice', 'purchasePrice'],
   Work: ['price'],
 };

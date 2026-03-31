@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { ZodError } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { lagTypeService } from '@/services/admin/lagTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { lagTypeUpdateSchema } from '@/lib/validators/lagType';
+import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
@@ -14,15 +12,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const lag = await lagTypeService.getById(params.id);
 
@@ -30,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: 'Лага не найдена' }, { status: 404 });
     }
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
     
     if (!isAdmin) {
       const { purchasePricePerUnit, ...lagWithoutPurchasePrice } = lag;
@@ -51,21 +43,13 @@ export async function PUT(
   try {
     console.log('[LAG-TYPES PUT] Starting update lag type, id:', params.id);
     
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      console.log('[LAG-TYPES PUT] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      console.log('[LAG-TYPES PUT] Forbidden - no permission, role:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
     
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
 
     if (!isAdmin && body.purchasePricePerUnit !== undefined) {
       console.log('[LAG-TYPES PUT] Forbidden - non-admin trying to modify purchase prices');
@@ -78,7 +62,7 @@ export async function PUT(
     const validatedData = lagTypeUpdateSchema.parse(body);
     console.log('[LAG-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    await lagTypeService.update(params.id, validatedData, session.user.id);
+    await lagTypeService.update(params.id, validatedData, session.userId);
     console.log('[LAG-TYPES PUT] Updated successfully');
 
     return NextResponse.json({ success: true });
@@ -107,17 +91,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await lagTypeService.delete(params.id, session.user.id);
+    await lagTypeService.delete(params.id, session.userId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -136,17 +118,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const lag = await lagTypeService.toggleActive(params.id, session.user.id);
+    const lag = await lagTypeService.toggleActive(params.id, session.userId);
 
     return NextResponse.json(lag);
   } catch (error: any) {

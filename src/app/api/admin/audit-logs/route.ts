@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { auditLogService } from '@/services/admin/auditLogService';
-import { hasPermission } from '@/lib/permissions/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Forbidden', message: 'Only ADMIN can access audit logs' },
-        { status: 403 }
-      );
-    }
+    const authResult = await requireAdmin(req, 'users');
+    if (authResult instanceof NextResponse) return authResult;
 
     const { searchParams } = new URL(req.url);
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { panel3dService } from '@/services/admin/panel3dService';
 import { createAuditLogAsync } from '@/lib/audit';
 import { Panel3dUpdate, panel3dUpdateSchema } from '@/lib/validators/panel3d';
@@ -10,14 +9,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role === 'CONTENT_MANAGER') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
 
     const item = await panel3dService.getById(params.id);
 
@@ -42,19 +35,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (session.user.role === 'CONTENT_MANAGER') {
+    if (session.role === 'CONTENT_MANAGER') {
       return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
     }
 
-    const userId = session.user.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
-    }
+    const userId = session.userId;
 
     const body = await req.json();
 
@@ -97,19 +86,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (session.user.role === 'CONTENT_MANAGER') {
+    if (session.role === 'CONTENT_MANAGER') {
       return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
     }
 
-    const userId = session.user.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
-    }
+    const userId = session.userId;
 
     await panel3dService.delete(params.id, userId);
 
@@ -141,19 +126,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAdmin(req, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (session.user.role === 'CONTENT_MANAGER') {
+    if (session.role === 'CONTENT_MANAGER') {
       return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
     }
 
-    const userId = session.user.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
-    }
+    const userId = session.userId;
 
     const result = await panel3dService.toggleActive(params.id, userId);
 

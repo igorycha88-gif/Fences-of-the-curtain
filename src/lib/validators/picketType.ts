@@ -23,11 +23,11 @@ export const picketTypeBaseSchema = z.object({
   color: z.string()
     .max(50, 'Цвет не должен превышать 50 символов')
     .optional(),
-  purchasePricePerMeter: z.number()
+  purchasePricePerUnit: z.number()
     .min(0, 'Цена закупки должна быть не менее 0')
     .nullable()
     .optional(),
-  retailPricePerMeter: z.number()
+  retailPricePerUnit: z.number()
     .min(0, 'Розничная стоимость должна быть не менее 0'),
   validFrom: z.coerce.date().nullable().optional(),
   validUntil: z.coerce.date().nullable().optional(),

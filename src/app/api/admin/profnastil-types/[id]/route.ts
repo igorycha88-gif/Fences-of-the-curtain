@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { ZodError } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { profnastilTypeService } from '@/services/admin/profnastilTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { profnastilTypeUpdateSchema } from '@/lib/validators/profnastilType';
+import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
@@ -14,15 +12,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const profnastil = await profnastilTypeService.getById(params.id);
 
@@ -30,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: 'Номенклатура не найдена' }, { status: 404 });
     }
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
 
     if (!isAdmin) {
       const { purchasePricePerUnit, purchasePricePerLinearMeter, ...itemWithoutPurchasePrice } = profnastil as any;
@@ -51,21 +43,13 @@ export async function PUT(
   try {
     console.log('[PROFNASTIL-TYPES PUT] Starting update profnastil type, id:', params.id);
     
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      console.log('[PROFNASTIL-TYPES PUT] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      console.log('[PROFNASTIL-TYPES PUT] Forbidden - no permission, role:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
     
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
 
     if (!isAdmin && body.purchasePricePerUnit !== undefined) {
       console.log('[PROFNASTIL-TYPES PUT] Forbidden - non-admin trying to modify purchase prices');
@@ -86,7 +70,7 @@ export async function PUT(
     const validatedData = profnastilTypeUpdateSchema.parse(body);
     console.log('[PROFNASTIL-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const updated = await profnastilTypeService.update(params.id, validatedData, session.user.id);
+    const updated = await profnastilTypeService.update(params.id, validatedData, session.userId);
     console.log('[PROFNASTIL-TYPES PUT] Updated successfully');
 
     if (!isAdmin) {
@@ -120,17 +104,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await profnastilTypeService.delete(params.id, session.user.id);
+    await profnastilTypeService.delete(params.id, session.userId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -149,17 +131,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const profnastil = await profnastilTypeService.toggleActive(params.id, session.user.id);
+    const profnastil = await profnastilTypeService.toggleActive(params.id, session.userId);
 
     return NextResponse.json(profnastil);
   } catch (error: any) {

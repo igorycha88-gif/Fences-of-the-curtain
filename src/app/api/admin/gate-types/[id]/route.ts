@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { ZodError } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { gateTypeService } from '@/services/admin/gateTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { gateTypeUpdateSchema } from '@/lib/validators/gateType';
+import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
@@ -14,15 +12,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const gate = await gateTypeService.getById(params.id);
 
@@ -30,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: 'Ворота не найдены' }, { status: 404 });
     }
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
     
     if (!isAdmin) {
       const { purchasePrice, ...gateWithoutPurchasePrice } = gate;
@@ -51,21 +43,13 @@ export async function PUT(
   try {
     console.log('[GATE-TYPES PUT] Starting update gate type, id:', params.id);
     
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      console.log('[GATE-TYPES PUT] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      console.log('[GATE-TYPES PUT] Forbidden - no permission, role:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
     
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
 
     if (!isAdmin && body.purchasePrice !== undefined) {
       console.log('[GATE-TYPES PUT] Forbidden - non-admin trying to modify purchase prices');
@@ -78,7 +62,7 @@ export async function PUT(
     const validatedData = gateTypeUpdateSchema.parse(body);
     console.log('[GATE-TYPES PUT] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    await gateTypeService.update(params.id, validatedData, session.user.id);
+    await gateTypeService.update(params.id, validatedData, session.userId);
     console.log('[GATE-TYPES PUT] Updated successfully');
 
     return NextResponse.json({ success: true });
@@ -107,17 +91,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await gateTypeService.delete(params.id, session.user.id);
+    await gateTypeService.delete(params.id, session.userId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -136,17 +118,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const gate = await gateTypeService.toggleActive(params.id, session.user.id);
+    const gate = await gateTypeService.toggleActive(params.id, session.userId);
 
     return NextResponse.json(gate);
   } catch (error: any) {

@@ -118,7 +118,7 @@ export default function WorksPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
@@ -129,16 +129,16 @@ export default function WorksPage() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/admin/works/fence-types')
+    fetch('/api/admin/works/fence-types', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
-        setFenceTypes(data);
+        setFenceTypes(Array.isArray(data) ? data : []);
       })
       .catch((err) => console.error('Error fetching fence types:', err));
   }, []);
 
   useEffect(() => {
-    fetch('/api/admin/works/reference-options')
+    fetch('/api/admin/works/reference-options', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         setReferenceOptions(data.references || []);
@@ -157,13 +157,15 @@ export default function WorksPage() {
         ...(category && { category }),
       });
 
-      const response = await fetch(`/api/admin/works?${params}`);
+      const response = await fetch(`/api/admin/works?${params}`, { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {
-        setItems(data.items);
-        setTotal(data.total);
+        setItems(data.items || []);
+        setTotal(data.total || 0);
       } else {
+        setItems([]);
+        setTotal(0);
         console.error('Error fetching works:', data.error);
       }
     } catch (error) {
@@ -219,6 +221,7 @@ export default function WorksPage() {
     try {
       const response = await fetch(`/api/admin/works/${item.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -238,6 +241,7 @@ export default function WorksPage() {
     try {
       const response = await fetch(`/api/admin/works/${item.id}`, {
         method: 'PATCH',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -320,6 +324,7 @@ export default function WorksPage() {
           ...formValues,
           relations: validRelations,
         }),
+        credentials: 'include',
       });
 
       const data = await response.json();

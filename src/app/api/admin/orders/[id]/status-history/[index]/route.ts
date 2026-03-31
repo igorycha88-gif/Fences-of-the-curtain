@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { ordersService } from '@/services/admin/ordersService';
 import { statusHistoryUpdateSchema } from '@/lib/validators/order';
 import { safeParseInt } from '@/lib/parse-params';
@@ -12,13 +11,11 @@ export async function PATCH(
   { params }: { params: { id: string; index: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const authResult = await requireAdmin(request, 'orders');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'FORBIDDEN', message: 'Только администратор может редактировать историю' },
         { status: 403 }
@@ -40,7 +37,7 @@ export async function PATCH(
       params.id,
       historyIndex,
       validatedData.data,
-      session.user.id
+      session.userId
     );
 
     return NextResponse.json({ success: true, historyEntry });

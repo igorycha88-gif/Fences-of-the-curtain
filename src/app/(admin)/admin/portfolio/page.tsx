@@ -61,6 +61,7 @@ function SortableRow({ item, onEdit, onDelete, onToggleActive, isSelected, onSel
   };
 
   const thumbnailUrl = getThumbnailUrl((item.images as string[])[0]);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <tr ref={setNodeRef} style={style} className={isDragging ? 'bg-gray-50' : ''}>
@@ -78,11 +79,12 @@ function SortableRow({ item, onEdit, onDelete, onToggleActive, isSelected, onSel
         </div>
       </td>
       <td className="px-4 py-3">
-        {thumbnailUrl ? (
+        {thumbnailUrl && !imgError ? (
           <img 
             src={thumbnailUrl} 
             alt={item.title}
             className="w-16 h-12 object-cover rounded"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="w-16 h-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">
@@ -168,7 +170,7 @@ export default function PortfolioListPage() {
       if (categoryFilter) params.set('category', categoryFilter);
       if (activeFilter) params.set('active', activeFilter);
 
-      const res = await fetch(`/api/admin/portfolio?${params}`);
+      const res = await fetch(`/api/admin/portfolio?${params}`, { credentials: 'include' });
       const data = await res.json();
       
       if (res.ok) {
@@ -207,6 +209,7 @@ export default function PortfolioListPage() {
               sortOrder: index,
             })),
           }),
+          credentials: 'include',
         });
       } catch (error) {
         console.error('Error reordering:', error);
@@ -235,6 +238,7 @@ export default function PortfolioListPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids: deleteModal.ids }),
+          credentials: 'include',
         });
         const data = await res.json();
         if (res.ok) {
@@ -246,6 +250,7 @@ export default function PortfolioListPage() {
       } else if (deleteModal.item) {
         const res = await fetch(`/api/admin/portfolio/${deleteModal.item.id}`, {
           method: 'DELETE',
+          credentials: 'include',
         });
         const data = await res.json();
         if (res.ok) {
@@ -265,7 +270,7 @@ export default function PortfolioListPage() {
 
   const handleToggleActive = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/portfolio/${id}`, { method: 'PATCH' });
+      const res = await fetch(`/api/admin/portfolio/${id}`, { method: 'PATCH', credentials: 'include' });
       if (res.ok) {
         toast.success('Статус изменён');
         fetchItems();
@@ -286,6 +291,7 @@ export default function PortfolioListPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.from(selectedIds) }),
+        credentials: 'include',
       });
       const data = await res.json();
       if (res.ok) {

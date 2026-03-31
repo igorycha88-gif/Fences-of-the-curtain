@@ -17,6 +17,7 @@ interface Order {
   statusLabel: string;
   estimateId: string | null;
   createdAt: string;
+  isIndividualRequest?: boolean;
 }
 
 interface OrdersResponse {
@@ -67,11 +68,16 @@ export default function OrdersPage() {
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
 
-      const res = await fetch(`/api/admin/orders?${params.toString()}`);
+      const res = await fetch(`/api/admin/orders?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) {
+        setData({ orders: [], total: 0, page: 1, pageSize, totalPages: 0 });
+        return;
+      }
       const result = await res.json();
       setData(result);
     } catch (error) {
       console.error('Error fetching orders:', error);
+      setData({ orders: [], total: 0, page: 1, pageSize, totalPages: 0 });
     } finally {
       setLoading(false);
     }
@@ -201,7 +207,7 @@ export default function OrdersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data?.orders.map((order) => (
+                  {data?.orders?.map((order) => (
                     <tr key={order.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <Link
@@ -223,7 +229,10 @@ export default function OrdersPage() {
                       <td className="py-3 px-4 font-medium">{order.clientName}</td>
                       <td className="py-3 px-4">{order.phone}</td>
                       <td className="py-3 px-4 font-semibold">
-                        {formatCurrency(order.calculatedCost)}
+                        {order.calculatedCost === 0 && !order.estimateId
+                          ? 'Индивидуальный расчёт (0 ₽)'
+                          : formatCurrency(order.calculatedCost)
+                        }
                       </td>
                       <td className="py-3 px-4">{renderStatusCell(order)}</td>
                       <td className="py-3 px-4">

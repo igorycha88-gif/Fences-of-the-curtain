@@ -217,3 +217,187 @@ describe('POST /api/orders with rate limiting', () => {
     );
   });
 });
+
+describe('POST /api/orders - Individual Orders', () => {
+  let mockRedis: any;
+  let mockPrisma: any;
+  let mockSession: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRedis = require('@/lib/redis').redis;
+    mockPrisma = require('@/lib/prisma').prisma;
+    mockSession = require('@/lib/session');
+
+    mockRedis.incr.mockResolvedValue(1);
+    mockRedis.expire.mockResolvedValue(1);
+    mockRedis.ttl.mockResolvedValue(3600);
+
+    mockPrisma.order.create.mockResolvedValue({
+      id: 'individual-order-1',
+      status: 'NEW',
+      createdAt: new Date(),
+      serviceType: 'INDIVIDUAL_CALCULATION',
+      calculatedCost: 0,
+      estimateId: null,
+    });
+
+    mockSession.getSessionFromCookie.mockResolvedValue('session-123');
+  });
+
+  const createIndividualRequest = (body: any, ip: string = '192.168.1.100') => {
+    return new Request('http://localhost:3000/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': ip,
+      },
+      body: JSON.stringify(body),
+    }) as any;
+  };
+
+  it('should create individual order successfully', async () => {
+    const request = createIndividualRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      email: 'ivan@example.com',
+      message: 'Нужен забор из профнастила',
+      isIndividualRequest: true,
+      fenceParameters: {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 50,
+        height: 2.0,
+        coating: 'POLYMER_SINGLE',
+        hasGate: true,
+        gateType: 'SWING',
+        gateWidth: 4.0,
+      },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.isIndividualRequest).toBe(true);
+    expect(body.estimateId).toBe(null);
+    expect(body.calculatedCost).toBe(0);
+  });
+
+  it('should create individual order with minimal fields', async () => {
+    const request = createIndividualRequest({
+      clientName: 'Иван',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      fenceParameters: {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 50,
+        height: 2.0,
+      },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+  });
+
+  it('should reject individual order with invalid phone', async () => {
+    const request = createIndividualRequest({
+      clientName: 'Иван Петров',
+      phone: '89001234567',
+      isIndividualRequest: true,
+      fenceParameters: {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 50,
+        height: 2.0,
+      },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('should reject individual order with short name', async () => {
+    const request = createIndividualRequest({
+      clientName: 'И',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      fenceParameters: {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 50,
+        height: 2.0,
+      },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('should reject individual order without fenceParameters', async () => {
+    const request = createIndividualRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('should route to standard order when isIndividualRequest is false', async () => {
+    mockPrisma.fenceEstimate.findFirst.mockResolvedValue({
+      id: 'estimate-1',
+      fenceTypeId: 'PROFNASTIL',
+      length: 50,
+      height: 2,
+      lagRows: 2,
+      coating: 'Оцинковка',
+      hasGate: false,
+      gateLength: null,
+      hasWicket: false,
+      wicketWidth: null,
+      grandTotal: 50000,
+      createdAt: new Date(),
+    });
+
+    const request = createIndividualRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: false,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.estimateId).toBe('estimate-1');
+  });
+
+  it('should not require session for individual orders', async () => {
+    mockSession.getSessionFromCookie.mockResolvedValue(null);
+
+    const request = createIndividualRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      fenceParameters: {
+        fenceTypeId: 'clt123',
+        fenceTypeName: 'Профнастил',
+        length: 50,
+        height: 2.0,
+      },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+  });
+});

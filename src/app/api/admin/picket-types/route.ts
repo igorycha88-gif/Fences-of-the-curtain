@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { ZodError } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { picketTypeService } from '@/services/admin/picketTypeService';
-import { hasPermission } from '@/lib/permissions/rbac';
 import { picketTypeSchema } from '@/lib/validators/picketType';
 import { safeParseInt } from '@/lib/parse-params';
+import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
@@ -43,11 +35,11 @@ export async function GET(request: NextRequest) {
       sortOrder,
     });
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
     
     if (!isAdmin && result.pickets) {
       result.pickets = result.pickets.map((item: any) => {
-        const { purchasePricePerMeter, purchasePricePerUnit, ...itemWithoutPurchasePrice } = item;
+        const { purchasePricePerUnit, ...itemWithoutPurchasePrice } = item;
         return itemWithoutPurchasePrice;
       });
     }
@@ -63,23 +55,15 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[PICKET-TYPES POST] Starting create picket type...');
     
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user?.id) {
-      console.log('[PICKET-TYPES POST] Unauthorized - no session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role as any, 'materials')) {
-      console.log('[PICKET-TYPES POST] Forbidden - no permission, role:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request, 'materials');
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
     const body = await request.json();
 
-    const isAdmin = session.user.role === 'ADMIN';
+    const isAdmin = session.role === 'ADMIN';
 
-    if (!isAdmin && body.purchasePricePerMeter !== undefined) {
+    if (!isAdmin && body.purchasePricePerUnit !== undefined) {
       console.log('[PICKET-TYPES POST] Forbidden - non-admin trying to set purchase prices');
       return NextResponse.json(
         { error: 'Only ADMIN can set purchase prices' },
@@ -90,7 +74,7 @@ export async function POST(request: NextRequest) {
     const validatedData = picketTypeSchema.parse(body);
     console.log('[PICKET-TYPES POST] Validated data:', JSON.stringify(validatedData, null, 2));
 
-    const result = await picketTypeService.create(validatedData, session.user.id);
+    const result = await picketTypeService.create(validatedData, session.userId);
     console.log('[PICKET-TYPES POST] Created picket with id:', result.id);
 
     return NextResponse.json({ id: result.id }, { status: 201 });

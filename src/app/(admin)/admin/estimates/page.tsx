@@ -126,7 +126,7 @@ export default function EstimatesPage() {
   const fetchEstimateDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
     try {
-      const res = await fetch(`/api/admin/estimates/${id}`);
+      const res = await fetch(`/api/admin/estimates/${id}`, { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 404) {
           toast.error('Смета не найдена');
@@ -165,7 +165,7 @@ export default function EstimatesPage() {
 
   const fetchFenceTypes = async () => {
     try {
-      const res = await fetch('/api/admin/materials/fence-types');
+      const res = await fetch('/api/admin/materials/fence-types', { credentials: 'include' });
       const data = await res.json();
 
       if (isApiError(data)) {
@@ -191,7 +191,7 @@ export default function EstimatesPage() {
         if (value) params.append(key, value);
       });
 
-      const res = await fetch(`/api/admin/estimates?${params.toString()}`);
+      const res = await fetch(`/api/admin/estimates?${params.toString()}`, { credentials: 'include' });
       const data = await res.json();
 
       if (isApiError(data)) {

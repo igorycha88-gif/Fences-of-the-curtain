@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { requireAuth } from '@/lib/admin-auth';
 import { estimatesService } from '@/services/admin/estimatesService';
 import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
@@ -23,12 +23,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) return authResult;
+    const { session } = authResult;
 
-    const userEmail = session.user?.email;
+    const userEmail = session.email;
     if (!userEmail) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
