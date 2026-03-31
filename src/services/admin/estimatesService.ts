@@ -87,8 +87,18 @@ export class EstimatesService {
     if (search) {
       where.OR = [
         { city: { contains: search, mode: 'insensitive' } },
-        { user: { email: { contains: search, mode: 'insensitive' } } },
-        { user: { name: { contains: search, mode: 'insensitive' } } },
+        {
+          AND: [
+            { userId: { not: null } },
+            { user: { email: { contains: search, mode: 'insensitive' } } }
+          ]
+        },
+        {
+          AND: [
+            { userId: { not: null } },
+            { user: { name: { contains: search, mode: 'insensitive' } } }
+          ]
+        },
       ];
     }
 
