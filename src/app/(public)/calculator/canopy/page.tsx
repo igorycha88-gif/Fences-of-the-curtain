@@ -126,7 +126,7 @@ export default function CanopyCalculatorPage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Длина (м)</label>
                     <input
@@ -259,7 +259,7 @@ export default function CanopyCalculatorPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       className="flex-1 bg-secondary text-foreground py-3 rounded-lg font-semibold hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-2"
                       onClick={() => alert('PDF скачивание будет реализовано')}

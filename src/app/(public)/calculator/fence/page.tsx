@@ -343,7 +343,7 @@ export default function FenceCalculatorPage() {
             <div className="grid lg:grid-cols-5 gap-8">
               <div className="lg:col-span-3">
                 <AnimatedSection animation="fade-in-right">
-                  <div className="card-modern p-8">
+                  <div className="card-modern p-4 sm:p-8">
                     <div className="flex items-center gap-3 mb-8">
                       <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                         <Calculator className="w-6 h-6 text-primary" />
@@ -394,7 +394,7 @@ export default function FenceCalculatorPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">Длина (м)</label>
                           <input
@@ -420,7 +420,7 @@ export default function FenceCalculatorPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">Тип грунта</label>
                           <select
@@ -471,7 +471,7 @@ export default function FenceCalculatorPage() {
                         <div className="space-y-4 p-4 bg-primary/5 rounded-xl border border-primary/20">
                           <h3 className="font-semibold text-primary">Параметры евроштакетника</h3>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium mb-2">Тип профиля *</label>
                               {picketProfileTypes.length === 0 ? (
@@ -510,7 +510,7 @@ export default function FenceCalculatorPage() {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium mb-2">Шаг (см) *</label>
                               <input
@@ -570,7 +570,7 @@ export default function FenceCalculatorPage() {
                               {gateWarning}
                             </div>
                           )}
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium mb-2">Тип ворот</label>
                               <select

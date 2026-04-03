@@ -301,7 +301,7 @@ export default function NomenclatureNotFoundModal({
               <Ruler className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">Параметры вашего забора:</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               <div>
                 <span className="text-muted-foreground">Тип:</span>{' '}
                 <span className="font-medium">{fenceParameters.fenceTypeName}</span>
