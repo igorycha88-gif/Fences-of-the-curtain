@@ -141,8 +141,8 @@ log_success ".env обновлен"
 
 # 8. Установка зависимостей
 log_info "Установка зависимостей..."
-vps_cmd "cd $PROJECT_DIR && npm ci" || {
-    log_error "Ошибка npm ci!"
+vps_cmd "cd $PROJECT_DIR && npm install --legacy-peer-deps" || {
+    log_error "Ошибка npm install!"
     rollback
 }
 log_success "Зависимости установлены"
