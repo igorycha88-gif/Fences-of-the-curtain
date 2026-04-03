@@ -7,7 +7,9 @@ import { getSessionId } from '@/lib/session';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('[fence/estimate] Received body:', JSON.stringify(body, null, 2));
     const validatedData = fenceEstimateSchema.parse(body);
+    console.log('[fence/estimate] Validated data:', JSON.stringify(validatedData, null, 2));
 
     const sessionId = await getSessionId();
 

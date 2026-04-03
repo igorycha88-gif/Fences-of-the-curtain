@@ -747,7 +747,7 @@ export default function FenceCalculatorPage() {
           soilType: formData.soilType,
           lagRows: parseInt(formData.lagRows),
           picketProfileType: formData.picketProfileType,
-          picketCoating: formData.picketCoating,
+          picketCoating: picketCoatings.find(c => c.id === formData.picketCoating)?.name || '',
           picketStep: formData.picketStep,
           picketMountingType: formData.picketMountingType,
         }}
