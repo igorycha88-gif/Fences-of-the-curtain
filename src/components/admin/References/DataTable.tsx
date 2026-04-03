@@ -139,7 +139,7 @@ export function DataTable<T extends { id: string; active?: boolean }>({
               </Button>
             </div>
             {filters && filters.length > 0 && (
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
                 {filters.map((filter) => (
                   <div key={filter.key} className="flex items-center gap-2">
                     <label className="text-sm font-medium">{filter.label}:</label>
@@ -160,74 +160,132 @@ export function DataTable<T extends { id: string; active?: boolean }>({
           <div className="text-center py-8">Загрузка...</div>
         ) : (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((column) => (
-                    <TableHead key={String(column.key)}>{column.label}</TableHead>
-                  ))}
-                  <TableHead className="text-right">Действия</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!data || data.length === 0 ? (
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={columns.length + 1}
-                      className="text-center py-8"
-                    >
-                      Данные не найдены
-                    </TableCell>
+                    {columns.map((column) => (
+                      <TableHead key={String(column.key)}>{column.label}</TableHead>
+                    ))}
+                    <TableHead className="text-right">Действия</TableHead>
                   </TableRow>
-                ) : (
-                  data.map((item) => (
-                    <TableRow key={item.id}>
-                      {columns.map((column) => (
-                        <TableCell key={String(column.key)}>
-                          {renderCell(item, column)}
-                        </TableCell>
-                      ))}
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {onToggleActive && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onToggleActive(item)}
-                              title={item.active ? 'Деактивировать' : 'Активировать'}
-                            >
-                              <Power
-                                className={`h-4 w-4 ${
-                                  item.active ? 'text-green-600' : 'text-gray-400'
-                                }`}
-                              />
-                            </Button>
-                          )}
-                          {onEdit && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onEdit(item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {onDelete && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onDelete(item)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          )}
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {!data || data.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length + 1}
+                        className="text-center py-8"
+                      >
+                        Данные не найдены
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    data.map((item) => (
+                      <TableRow key={item.id}>
+                        {columns.map((column) => (
+                          <TableCell key={String(column.key)}>
+                            {renderCell(item, column)}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {onToggleActive && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onToggleActive(item)}
+                                title={item.active ? 'Деактивировать' : 'Активировать'}
+                              >
+                                <Power
+                                  className={`h-4 w-4 ${
+                                    item.active ? 'text-green-600' : 'text-gray-400'
+                                  }`}
+                                />
+                              </Button>
+                            )}
+                            {onEdit && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onEdit(item)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {onDelete && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDelete(item)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="md:hidden space-y-3">
+              {!data || data.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">Данные не найдены</div>
+              ) : (
+                data.map((item) => (
+                  <div key={item.id} className="bg-gray-50 rounded-lg p-3 border">
+                    <div className="space-y-2">
+                      {columns.slice(0, 4).map((column, idx) => (
+                        <div key={idx}>
+                          <span className="text-xs text-gray-500 block">{column.label}</span>
+                          <div className="text-sm text-gray-900 mt-0.5">{renderCell(item, column)}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {(onEdit || onDelete || onToggleActive) && (
+                      <div className="mt-3 pt-3 border-t flex gap-2">
+                        {onToggleActive && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onToggleActive(item)}
+                            className="flex-1 min-h-[44px]"
+                          >
+                            <Power className={`h-4 w-4 mr-1 ${item.active ? 'text-green-600' : 'text-gray-400'}`} />
+                            {item.active ? 'Деактив.' : 'Актив.'}
+                          </Button>
+                        )}
+                        {onEdit && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onEdit(item)}
+                            className="flex-1 min-h-[44px]"
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Изменить
+                          </Button>
+                        )}
+                        {onDelete && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onDelete(item)}
+                            className="flex-1 min-h-[44px] text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Удалить
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
 
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Download, X } from 'lucide-react';
+import { Download, X, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isApiError } from '@/lib/utils/apiResponse';
 
@@ -122,6 +122,7 @@ export default function EstimatesPage() {
     deviceType: '',
     search: '',
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchEstimateDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
@@ -241,27 +242,36 @@ export default function EstimatesPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Расчеты калькулятора</h1>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          Экспорт в Excel
-        </button>
+      <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 md:mb-8 gap-3">
+        <h1 className="text-xl md:text-3xl font-bold text-gray-900">Расчеты калькулятора</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="md:hidden flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <Filter className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleExport}
+            className="flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Экспорт в Excel</span>
+            <span className="sm:hidden">Excel</span>
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border mb-6">
-        <div className="p-6 space-y-4">
-          <div className="flex gap-4 flex-wrap">
+      <div className={`bg-white rounded-xl shadow-md border mb-6 ${showFilters ? 'block' : 'hidden md:block'}`}>
+        <div className="p-4 md:p-6 space-y-4">
+          <div className="flex gap-3 md:gap-4 flex-wrap">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Дата с</label>
               <input
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-[44px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
@@ -270,7 +280,7 @@ export default function EstimatesPage() {
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-[44px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
@@ -278,7 +288,7 @@ export default function EstimatesPage() {
               <select
                 value={filters.fenceTypeId}
                 onChange={(e) => setFilters({ ...filters, fenceTypeId: e.target.value })}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-[44px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Все</option>
                 {fenceTypes.map((ft) => (
@@ -307,13 +317,13 @@ export default function EstimatesPage() {
               />
             </div>
           </div>
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-3 md:gap-4 flex-wrap">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Ворота</label>
               <select
                 value={filters.hasGate}
                 onChange={(e) => setFilters({ ...filters, hasGate: e.target.value })}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-[44px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Все</option>
                 <option value="true">Да</option>
@@ -325,7 +335,7 @@ export default function EstimatesPage() {
               <select
                 value={filters.hasWicket}
                 onChange={(e) => setFilters({ ...filters, hasWicket: e.target.value })}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-[44px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Все</option>
                 <option value="true">Да</option>
@@ -337,7 +347,7 @@ export default function EstimatesPage() {
               <select
                 value={filters.deviceType}
                 onChange={(e) => setFilters({ ...filters, deviceType: e.target.value })}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-[44px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Все</option>
                 <option value="desktop">Десктоп</option>
@@ -351,13 +361,13 @@ export default function EstimatesPage() {
                 placeholder="Город, email..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full min-h-[44px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="flex items-end">
               <button
                 onClick={resetFilters}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50 transition-colors"
+                className="min-h-[44px] px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Сбросить
               </button>
@@ -372,79 +382,111 @@ export default function EstimatesPage() {
         ) : estimates.length === 0 ? (
           <div className="text-center py-8 text-gray-500">Нет расчетов</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Дата</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Тип забора</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Размер</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Стоимость</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Ворота</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Калитка</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Город</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Устройство</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Пользователь</th>
-                </tr>
-              </thead>
-              <tbody>
-                {estimates.map((estimate) => (
-                  <tr
-                    key={estimate.id}
-                    onClick={() => fetchEstimateDetail(estimate.id)}
-                    className="border-b hover:bg-gray-50 cursor-pointer"
-                  >
-                    <td className="py-3 px-4 text-sm text-gray-600">#{estimate.id.slice(0, 8)}</td>
-                    <td className="py-3 px-4 text-sm">
-                      {new Date(estimate.createdAt).toLocaleDateString('ru-RU')}
-                    </td>
-                    <td className="py-3 px-4">{estimate.fenceType?.name || '-'}</td>
-                    <td className="py-3 px-4">{estimate.length}м × {estimate.height}м</td>
-                    <td className="py-3 px-4 font-medium">{formatPrice(estimate.grandTotal)}</td>
-                    <td className="py-3 px-4">
-                      {estimate.hasGate ? (
-                        <span className="text-green-600">Да</span>
-                      ) : (
-                        <span className="text-gray-400">Нет</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {estimate.hasWicket ? (
-                        <span className="text-green-600">Да</span>
-                      ) : (
-                        <span className="text-gray-400">Нет</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">{estimate.city || '-'}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        estimate.deviceType === 'mobile'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {estimate.deviceType === 'mobile' ? 'Мобильный' : 'Десктоп'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {estimate.user ? (
-                        <div>
-                          <div className="font-medium">{estimate.user.name || 'Без имени'}</div>
-                          <div className="text-sm text-gray-500">{estimate.user.email}</div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">Гость</span>
-                      )}
-                    </td>
+          <>
+            {/* Mobile card view */}
+            <div className="md:hidden divide-y">
+              {estimates.map((estimate) => (
+                <div
+                  key={estimate.id}
+                  onClick={() => fetchEstimateDetail(estimate.id)}
+                  className="p-4 hover:bg-gray-50 cursor-pointer space-y-2"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-sm text-gray-500">#{estimate.id.slice(0, 8)}</span>
+                      <span className="ml-2 font-medium">{estimate.fenceType?.name || '-'}</span>
+                    </div>
+                    <span className="font-bold">{formatPrice(estimate.grandTotal)}</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {new Date(estimate.createdAt).toLocaleDateString('ru-RU')} · {estimate.length}м × {estimate.height}м
+                  </div>
+                  <div className="flex gap-3 text-sm">
+                    <span>Ворота: {estimate.hasGate ? <span className="text-green-600">Да</span> : <span className="text-gray-400">Нет</span>}</span>
+                    <span>Калитка: {estimate.hasWicket ? <span className="text-green-600">Да</span> : <span className="text-gray-400">Нет</span>}</span>
+                  </div>
+                  {estimate.city && (
+                    <div className="text-sm text-gray-500">{estimate.city}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table view */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">ID</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Дата</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Тип забора</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Размер</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Стоимость</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Ворота</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Калитка</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Город</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Устройство</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Пользователь</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {estimates.map((estimate) => (
+                    <tr
+                      key={estimate.id}
+                      onClick={() => fetchEstimateDetail(estimate.id)}
+                      className="border-b hover:bg-gray-50 cursor-pointer"
+                    >
+                      <td className="py-3 px-4 text-sm text-gray-600">#{estimate.id.slice(0, 8)}</td>
+                      <td className="py-3 px-4 text-sm">
+                        {new Date(estimate.createdAt).toLocaleDateString('ru-RU')}
+                      </td>
+                      <td className="py-3 px-4">{estimate.fenceType?.name || '-'}</td>
+                      <td className="py-3 px-4">{estimate.length}м × {estimate.height}м</td>
+                      <td className="py-3 px-4 font-medium">{formatPrice(estimate.grandTotal)}</td>
+                      <td className="py-3 px-4">
+                        {estimate.hasGate ? (
+                          <span className="text-green-600">Да</span>
+                        ) : (
+                          <span className="text-gray-400">Нет</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {estimate.hasWicket ? (
+                          <span className="text-green-600">Да</span>
+                        ) : (
+                          <span className="text-gray-400">Нет</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">{estimate.city || '-'}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          estimate.deviceType === 'mobile'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {estimate.deviceType === 'mobile' ? 'Мобильный' : 'Десктоп'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {estimate.user ? (
+                          <div>
+                            <div className="font-medium">{estimate.user.name || 'Без имени'}</div>
+                            <div className="text-sm text-gray-500">{estimate.user.email}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">Гость</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="flex flex-col md:flex-row items-center justify-between px-4 py-3 border-t gap-3">
             <div className="text-sm text-gray-500">
               Показано {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, total)} из {total}
             </div>
@@ -452,7 +494,7 @@ export default function EstimatesPage() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-h-[44px] min-w-[44px] px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 ←
               </button>
@@ -471,7 +513,7 @@ export default function EstimatesPage() {
                   <button
                     key={pageNum}
                     onClick={() => setPage(pageNum)}
-                    className={`px-3 py-1 border rounded ${
+                    className={`min-h-[44px] min-w-[44px] px-3 py-1 border rounded ${
                       page === pageNum
                         ? 'bg-primary text-white'
                         : 'hover:bg-gray-50'
@@ -484,7 +526,7 @@ export default function EstimatesPage() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-h-[44px] min-w-[44px] px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 →
               </button>
@@ -496,8 +538,8 @@ export default function EstimatesPage() {
       {selectedEstimate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Расчет #{selectedEstimate.id.slice(0, 8)}</h2>
+            <div className="sticky top-0 bg-white border-b px-4 md:px-6 py-4 flex justify-between items-center">
+              <h2 className="text-lg md:text-xl font-bold truncate">Расчет #{selectedEstimate.id.slice(0, 8)}</h2>
               <button
                 onClick={() => setSelectedEstimate(null)}
                 className="p-2 hover:bg-gray-100 rounded-lg"
@@ -509,10 +551,10 @@ export default function EstimatesPage() {
             {detailLoading ? (
               <div className="p-8 text-center text-gray-500">Загрузка...</div>
             ) : (
-              <div className="p-6 space-y-6">
+              <div className="p-4 md:p-6 space-y-4 md:space-y-6">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Основные параметры</h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div className="flex justify-between py-2 border-b">
                       <span className="text-gray-600">Тип забора:</span>
                       <span className="font-medium">{selectedEstimate.fenceType?.name}</span>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ChevronLeft, ChevronRight, ExternalLink, ChevronDown } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ExternalLink, ChevronDown, Filter } from 'lucide-react';
 import { STATUS_LABELS, VALID_STATUS_TRANSITIONS } from '@/lib/validators/order';
 import { StatusChangeModal } from '@/components/admin/Orders/StatusChangeModal';
 
@@ -48,6 +48,7 @@ export default function OrdersPage() {
     dateTo: '',
   });
   const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
   const pageSize = 20;
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -144,11 +145,60 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Заявки</h1>
+      <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-8">Заявки</h1>
 
-      <div className="bg-white rounded-xl shadow-md border">
-        <div className="p-6 space-y-4 border-b">
-          <div className="flex gap-4 flex-wrap">
+      <div className="bg-white rounded-lg md:rounded-xl shadow-md border">
+        <div className="p-3 md:p-6 border-b">
+          <div className="flex items-center gap-2 md:hidden mb-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm"
+            >
+              <Filter className="w-4 h-4" />
+              Фильтры
+            </button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Поиск..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="md:hidden space-y-3 mb-3 p-3 bg-gray-50 rounded-lg">
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              >
+                <option value="">Все статусы</option>
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                />
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="hidden md:flex gap-4 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -193,7 +243,7 @@ export default function OrdersPage() {
           <div className="text-center py-8 text-gray-500">Загрузка...</div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -261,26 +311,74 @@ export default function OrdersPage() {
               </table>
             </div>
 
+            <div className="md:hidden space-y-3 p-3">
+              {data?.orders?.map((order) => (
+                <Link
+                  key={order.id}
+                  href={`/admin/orders/${order.id}`}
+                  className="block bg-gray-50 rounded-lg p-3 border hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-900">#{order.id.slice(0, 8)}</span>
+                    {getStatusBadge(order.status)}
+                  </div>
+                  <div className="text-sm text-gray-700 mb-1">{order.clientName}</div>
+                  <div className="text-xs text-gray-500 mb-2">{order.phone}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">
+                      {new Date(order.createdAt).toLocaleDateString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {order.calculatedCost === 0 && !order.estimateId
+                        ? '0 ₽'
+                        : formatCurrency(order.calculatedCost)
+                      }
+                    </span>
+                  </div>
+                  {order.estimateId && (
+                    <div className="mt-2 pt-2 border-t flex items-center gap-1 text-blue-600 text-xs">
+                      <ExternalLink className="w-3 h-3" />
+                      Смета доступна
+                    </div>
+                  )}
+                </Link>
+              ))}
+              {data?.orders.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Заявки не найдены
+                </div>
+              )}
+            </div>
+
             {data && data.totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t">
-                <div className="text-sm text-gray-600">
-                  Показано {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, data.total)} из {data.total}
+              <div className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 border-t">
+                <div className="text-xs md:text-sm text-gray-600">
+                  <span className="hidden md:inline">
+                    Показано {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, data.total)} из {data.total}
+                  </span>
+                  <span className="md:hidden">
+                    {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, data.total)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-sm">
-                    Страница {page} из {data.totalPages}
+                  <span className="text-xs md:text-sm">
+                    {page}/{data.totalPages}
                   </span>
                   <button
                     onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
                     disabled={page === data.totalPages}
-                    className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

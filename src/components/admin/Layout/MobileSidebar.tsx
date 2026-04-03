@@ -1,29 +1,20 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { useEffect, useState } from 'react';
-import { Toaster } from 'react-hot-toast';
-import { LogOut, ChevronDown, ChevronRight, BookOpen, Menu } from 'lucide-react';
-import { MobileSidebar } from '@/components/admin/Layout/MobileSidebar';
+import { useSession } from 'next-auth/react';
+import { LogOut, BookOpen, ChevronDown, ChevronRight, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+interface MobileSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/admin/login');
-    }
-  }, [status, router]);
 
   useEffect(() => {
     const saved = localStorage.getItem('referencesCollapsed');
@@ -36,9 +27,16 @@ export default function AdminLayout({
     localStorage.setItem('referencesCollapsed', JSON.stringify(isReferencesCollapsed));
   }, [isReferencesCollapsed]);
 
-  const toggleReferences = () => {
-    setIsReferencesCollapsed(!isReferencesCollapsed);
-  };
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   const handleLogout = async () => {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
@@ -49,62 +47,44 @@ export default function AdminLayout({
     return pathname === path || pathname.startsWith(path + '/');
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-500">Загрузка...</div>
-      </div>
-    );
-  }
+  const handleNavClick = () => {
+    onClose();
+  };
 
-  if (status === 'unauthenticated' || !session) {
-    return null;
-  }
+  const toggleReferences = () => {
+    setIsReferencesCollapsed(!isReferencesCollapsed);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            style: {
-              background: '#22c55e',
-            },
-          },
-          error: {
-            style: {
-              background: '#ef4444',
-            },
-          },
-        }}
-      />
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      <MobileSidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-
-      <header className="sticky top-0 z-30 bg-white border-b px-4 py-3 flex items-center gap-3 md:hidden">
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="p-2 hover:bg-gray-100 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-        <h1 className="text-lg font-semibold text-gray-900">Админ-панель</h1>
-      </header>
-
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg border-r flex flex-col hidden md:flex">
-        <div className="p-6 flex-shrink-0">
-          <h1 className="text-xl font-bold text-gray-900">Админ-панель</h1>
+      <div
+        className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:hidden`}
+      >
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-bold text-gray-900">Админ-панель</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <nav className="flex-1 overflow-y-auto min-h-0">
-          <ul className="space-y-2 px-3 pb-4">
+
+        <nav className="flex-1 overflow-y-auto h-[calc(100%-140px)]">
+          <ul className="space-y-1 p-3">
             <li>
-              <a 
-                href="/admin/dashboard" 
+              <a
+                href="/admin/dashboard"
+                onClick={handleNavClick}
                 className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/dashboard')
                     ? 'bg-primary text-white font-semibold'
@@ -115,8 +95,9 @@ export default function AdminLayout({
               </a>
             </li>
             <li>
-              <a 
-                href="/admin/orders" 
+              <a
+                href="/admin/orders"
+                onClick={handleNavClick}
                 className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/orders')
                     ? 'bg-primary text-white font-semibold'
@@ -127,8 +108,9 @@ export default function AdminLayout({
               </a>
             </li>
             <li>
-              <a 
-                href="/admin/estimates" 
+              <a
+                href="/admin/estimates"
+                onClick={handleNavClick}
                 className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/estimates')
                     ? 'bg-primary text-white font-semibold'
@@ -157,8 +139,9 @@ export default function AdminLayout({
             {!isReferencesCollapsed && (
               <>
                 <li>
-                  <a 
-                    href="/admin/references/fence-types" 
+                  <a
+                    href="/admin/references/fence-types"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/fence-types')
                         ? 'bg-primary text-white font-semibold'
@@ -169,8 +152,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/lags" 
+                  <a
+                    href="/admin/references/lags"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/lags')
                         ? 'bg-primary text-white font-semibold'
@@ -181,8 +165,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/posts" 
+                  <a
+                    href="/admin/references/posts"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/posts')
                         ? 'bg-primary text-white font-semibold'
@@ -193,8 +178,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/profnastil" 
+                  <a
+                    href="/admin/references/profnastil"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/profnastil')
                         ? 'bg-primary text-white font-semibold'
@@ -205,8 +191,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/picket" 
+                  <a
+                    href="/admin/references/picket"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/picket')
                         ? 'bg-primary text-white font-semibold'
@@ -217,8 +204,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/panel3d" 
+                  <a
+                    href="/admin/references/panel3d"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/panel3d')
                         ? 'bg-primary text-white font-semibold'
@@ -229,8 +217,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/gates" 
+                  <a
+                    href="/admin/references/gates"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/gates')
                         ? 'bg-primary text-white font-semibold'
@@ -241,8 +230,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/wickets" 
+                  <a
+                    href="/admin/references/wickets"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/wickets')
                         ? 'bg-primary text-white font-semibold'
@@ -253,8 +243,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/mounting-hardware" 
+                  <a
+                    href="/admin/references/mounting-hardware"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/mounting-hardware')
                         ? 'bg-primary text-white font-semibold'
@@ -265,8 +256,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/works" 
+                  <a
+                    href="/admin/references/works"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/works')
                         ? 'bg-primary text-white font-semibold'
@@ -277,8 +269,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/references/contact-info" 
+                  <a
+                    href="/admin/references/contact-info"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/contact-info')
                         ? 'bg-primary text-white font-semibold'
@@ -289,8 +282,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/portfolio" 
+                  <a
+                    href="/admin/portfolio"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/portfolio')
                         ? 'bg-primary text-white font-semibold'
@@ -301,8 +295,9 @@ export default function AdminLayout({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="/admin/users" 
+                  <a
+                    href="/admin/users"
+                    onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/users')
                         ? 'bg-primary text-white font-semibold'
@@ -316,28 +311,26 @@ export default function AdminLayout({
             )}
           </ul>
         </nav>
-        <div className="flex-shrink-0 p-4 border-t bg-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
-              {session.user?.name?.[0] || 'A'}
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+              {session?.user?.name?.[0] || 'A'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-gray-900 truncate">{session.user?.name}</p>
-              <p className="text-sm text-gray-500 truncate">{session.user?.email}</p>
+              <p className="font-medium text-gray-900 truncate">{session?.user?.name}</p>
+              <p className="text-sm text-gray-500 truncate">{session?.user?.email}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
           >
             <LogOut className="w-4 h-4" />
             <span>Выйти</span>
           </button>
         </div>
-      </aside>
-      <main className="ml-0 md:ml-64 p-4 md:p-8">
-        {children}
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

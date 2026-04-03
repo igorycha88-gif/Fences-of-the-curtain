@@ -139,92 +139,93 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
-        <Link
-          href="/admin/orders"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">Заявка #{order.id.slice(0, 8)}</h1>
-            {availableTransitions.length > 0 ? (
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border flex items-center gap-1 outline-none focus:ring-2 focus:ring-primary/50 ${
-                      STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {STATUS_LABELS[order.status]}
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    className="bg-white border rounded-lg shadow-lg min-w-[180px] p-1 z-50 animate-in fade-in-0 zoom-in-95"
-                    sideOffset={4}
-                    collisionPadding={8}
-                    side="bottom"
-                    align="start"
-                  >
-                    {availableTransitions.map((status) => (
-                      <DropdownMenu.Item
-                        key={status}
-                        onClick={() => handleStatusSelect(status)}
-                        className={`px-3 py-2 text-sm rounded-md cursor-pointer outline-none select-none focus:bg-gray-50 ${
-                          STATUS_COLORS[status] || 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {STATUS_LABELS[status]}
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            ) : (
-              <span
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                  STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {STATUS_LABELS[order.status]}
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 mb-4 md:mb-6">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <Link
+            href="/admin/orders"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg md:text-3xl font-bold text-gray-900 truncate">Заявка #{order.id.slice(0, 8)}</h1>
+              {availableTransitions.length > 0 ? (
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <button
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border flex items-center gap-1 outline-none focus:ring-2 focus:ring-primary/50 ${
+                        STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {STATUS_LABELS[order.status]}
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content
+                      className="bg-white border rounded-lg shadow-lg min-w-[180px] p-1 z-50 animate-in fade-in-0 zoom-in-95"
+                      sideOffset={4}
+                      collisionPadding={8}
+                      side="bottom"
+                      align="start"
+                    >
+                      {availableTransitions.map((status) => (
+                        <DropdownMenu.Item
+                          key={status}
+                          onClick={() => handleStatusSelect(status)}
+                          className={`px-3 py-2 text-sm rounded-md cursor-pointer outline-none select-none focus:bg-gray-50 ${
+                            STATUS_COLORS[status] || 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {STATUS_LABELS[status]}
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Root>
+              ) : (
+                <span
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                    STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {STATUS_LABELS[order.status]}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-500 mt-1">
+              <span className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                Создана: {new Date(order.createdAt).toLocaleDateString('ru-RU', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </span>
-            )}
-          </div>
-          <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-            <span className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              Создана: {new Date(order.createdAt).toLocaleDateString('ru-RU', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-            <span>Обновлена: {new Date(order.updatedAt).toLocaleDateString('ru-RU')}</span>
+            </div>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-500">Стоимость</p>
+        <div className="text-left md:text-right w-full md:w-auto md:ml-auto">
+          <p className="text-xs md:text-sm text-gray-500">Стоимость</p>
           {isIndividualRequest ? (
-            <p className="text-lg font-bold text-amber-600">Индивидуальный расчёт</p>
+            <p className="text-base md:text-lg font-bold text-amber-600">Индивидуальный расчёт</p>
           ) : (
-            <p className="text-2xl font-bold text-primary">{formatCurrency(order.calculatedCost)}</p>
+            <p className="text-lg md:text-2xl font-bold text-primary">{formatCurrency(order.calculatedCost)}</p>
           )}
         </div>
       </div>
 
       {success && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 flex items-center gap-2">
+        <div className="mb-4 md:mb-6 bg-green-50 border border-green-200 text-green-700 rounded-lg p-3 flex items-center gap-2">
           <CheckCircle className="w-4 h-4" />
           Статус обновлен
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-6">
           <ClientInfo
             clientName={order.clientName}

@@ -50,7 +50,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Дашборд</h1>
+        <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-8">Дашборд</h1>
         <div className="text-center py-8 text-gray-500">Загрузка...</div>
       </div>
     );
@@ -58,30 +58,57 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Дашборд</h1>
+      <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-8">Дашборд</h1>
 
-      <div className="grid md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl p-6 shadow-md border">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Новые заявки</h3>
-          <p className="text-3xl font-bold text-gray-900">{stats?.newOrders || 0}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
+        <div className="bg-white rounded-lg md:rounded-xl p-3 md:p-6 shadow-md border">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Новые заявки</h3>
+          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats?.newOrders || 0}</p>
         </div>
-        <div className="bg-white rounded-xl p-6 shadow-md border">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">В работе</h3>
-          <p className="text-3xl font-bold text-gray-900">{stats?.ordersInProgress || 0}</p>
+        <div className="bg-white rounded-lg md:rounded-xl p-3 md:p-6 shadow-md border">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">В работе</h3>
+          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats?.ordersInProgress || 0}</p>
         </div>
-        <div className="bg-white rounded-xl p-6 shadow-md border">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Завершено</h3>
-          <p className="text-3xl font-bold text-gray-900">{stats?.completedOrders || 0}</p>
+        <div className="bg-white rounded-lg md:rounded-xl p-3 md:p-6 shadow-md border">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Завершено</h3>
+          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats?.completedOrders || 0}</p>
         </div>
-        <div className="bg-white rounded-xl p-6 shadow-md border">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Конверсия</h3>
-          <p className="text-3xl font-bold text-gray-900">{stats?.conversionRate || 0}%</p>
+        <div className="bg-white rounded-lg md:rounded-xl p-3 md:p-6 shadow-md border">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Конверсия</h3>
+          <p className="text-2xl md:text-3xl font-bold text-gray-900">{stats?.conversionRate || 0}%</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-md border">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Последние заявки</h2>
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-md border">
+        <h2 className="text-base md:text-xl font-semibold text-gray-900 mb-4 md:mb-6">Последние заявки</h2>
+        <div className="space-y-3 md:hidden">
+          {recentOrders.map((order) => (
+            <a
+              key={order.id}
+              href={`/admin/orders/${order.id}`}
+              className="block bg-gray-50 rounded-lg p-3 border hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-sm font-medium text-gray-900">#{order.id.slice(0, 8)}</span>
+                {getStatusBadge(order.status)}
+              </div>
+              <div className="text-sm text-gray-700 mb-1">{order.clientName}</div>
+              <div className="text-xs text-gray-500">{order.phone}</div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-gray-500">
+                  {order.serviceType === 'fence' ? 'Забор' : 'Навес'}
+                </span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {order.calculatedCost.toLocaleString('ru-RU')} ₽
+                </span>
+              </div>
+            </a>
+          ))}
+          {recentOrders.length === 0 && (
+            <div className="text-center py-8 text-gray-500">Нет заявок</div>
+          )}
+        </div>
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b">
