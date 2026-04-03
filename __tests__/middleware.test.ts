@@ -23,11 +23,14 @@ afterAll(() => {
 });
 
 describe('middleware', () => {
-  let mockResponse: { headers: { set: jest.Mock } };
+  let mockResponse: { headers: { set: jest.Mock }; cookies: { set: jest.Mock } };
 
   beforeEach(() => {
     mockResponse = {
       headers: {
+        set: jest.fn(),
+      },
+      cookies: {
         set: jest.fn(),
       },
     };
@@ -49,23 +52,26 @@ describe('middleware', () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest);
 
       expect(NextResponse.next).toHaveBeenCalled();
-      expect(mockResponse.headers.set).toHaveBeenCalledTimes(2);
+      expect(mockResponse.headers.set).toHaveBeenCalledTimes(5);
     });
 
     it('should generate unique nonces for different requests', () => {
       const mockRequest1 = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       const mockRequest2 = {
         nextUrl: { pathname: '/about' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest1);
@@ -85,6 +91,7 @@ describe('middleware', () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest);
@@ -104,6 +111,7 @@ describe('middleware', () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest);
@@ -122,6 +130,7 @@ describe('middleware', () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest);
@@ -148,6 +157,7 @@ describe('middleware', () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest);
@@ -164,6 +174,7 @@ describe('middleware', () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest);
@@ -181,6 +192,7 @@ describe('middleware', () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
+        cookies: { get: jest.fn() },
       } as any;
 
       middleware(mockRequest);

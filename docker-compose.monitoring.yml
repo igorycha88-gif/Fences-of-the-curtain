@@ -4,8 +4,7 @@ services:
     image: prom/prometheus:latest
     container_name: fences-prometheus
     restart: unless-stopped
-    ports:
-      - "9090:9090"
+    # No public ports - only accessible via internal Docker network
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -26,21 +25,26 @@ services:
     depends_on:
       - app
 
-  # Grafana - Visualization
+  # Grafana - Visualization (accessible via Nginx reverse proxy at /grafana)
   grafana:
     image: grafana/grafana:latest
     container_name: fences-grafana
     restart: unless-stopped
-    ports:
-      - "3001:3000"
+    # No public ports - only accessible via Nginx reverse proxy
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=redis-datasource
-      - GF_SERVER_ROOT_URL=http://localhost:3001
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost/grafana}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_AUTH_PROXY_ENABLED=true
+      - GF_AUTH_PROXY_HEADER_NAME=X-WEBAUTH-USER
+      - GF_AUTH_PROXY_HEADER_PROPERTY=username
+      - GF_AUTH_PROXY_AUTO_SIGN_UP=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -59,8 +63,7 @@ services:
     image: prom/node-exporter:latest
     container_name: fences-node-exporter
     restart: unless-stopped
-    ports:
-      - "9100:9100"
+    # No public ports - only accessible via internal Docker network
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -84,8 +87,7 @@ services:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: fences-postgres-exporter
     restart: unless-stopped
-    ports:
-      - "9187:9187"
+    # No public ports - only accessible via internal Docker network
     environment:
       - DATA_SOURCE_NAME=postgres
       - DATA_SOURCE_URI=postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/fences?sslmode=disable
@@ -103,8 +105,7 @@ services:
     image: oliver006/redis_exporter:latest
     container_name: fences-redis-exporter
     restart: unless-stopped
-    ports:
-      - "9121:9121"
+    # No public ports - only accessible via internal Docker network
     environment:
       - REDIS_ADDR=redis://:${REDIS_PASSWORD:-password}@redis:6379
       - REDIS_EXPORTER_WEB_LISTEN_ADDRESS=0.0.0.0:9121
@@ -122,8 +123,7 @@ services:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: fences-nginx-exporter
     restart: unless-stopped
-    ports:
-      - "9113:9113"
+    # No public ports - only accessible via internal Docker network
     environment:
       - NGINX_STATUS_URI=http://nginx:80
       - NGINX_STATUS_SCHEME=http

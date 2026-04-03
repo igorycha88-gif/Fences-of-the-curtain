@@ -53,6 +53,10 @@ next-env.d.ts
 /ssl/*.pem
 /ssl/*.key
 
+# Grafana basic auth (contains password hashes - generate at deploy time)
+docker/.htpasswd
+docker/.htpasswd.example
+
 # Monitoring configuration
 .env.monitoring
 prometheus.yml

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
+import { useAnalytics } from '@/lib/hooks/useAnalytics';
+import { EVENT_NAMES } from '@/types/analytics';
 
 interface ContactInfoData {
   address: string;
@@ -18,6 +20,7 @@ interface ContactInfoData {
 }
 
 export default function ContactsPage() {
+  const { trackEvent } = useAnalytics();
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -59,6 +62,7 @@ export default function ContactsPage() {
       if (response.ok) {
         setSuccess(true);
         setFormData({ name: '', phone: '', email: '', message: '' });
+        trackEvent(EVENT_NAMES.CONTACT_FORM_SUBMIT);
       }
     } catch (error) {
       console.error('Contact form error:', error);

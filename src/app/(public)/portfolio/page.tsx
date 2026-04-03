@@ -8,6 +8,8 @@ import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 import { isApiError } from '@/lib/utils/apiResponse';
+import { useAnalytics } from '@/lib/hooks/useAnalytics';
+import { EVENT_NAMES } from '@/types/analytics';
 
 interface PortfolioItem {
   id: string;
@@ -19,11 +21,17 @@ interface PortfolioItem {
 }
 
 export default function PortfolioPage() {
+  const { trackEvent } = useAnalytics();
   const [filter, setFilter] = useState<'all' | 'fence' | 'canopy'>('all');
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    trackEvent(EVENT_NAMES.PORTFOLIO_VIEW, { filter });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -161,6 +169,11 @@ export default function PortfolioPage() {
                     <Link
                       href={`/calculator/${item.category === 'fence' ? 'fence' : 'canopy'}`}
                       className="text-primary font-medium text-sm hover:underline inline-flex items-center gap-1"
+                      onClick={() => trackEvent(EVENT_NAMES.PORTFOLIO_ITEM_CLICK, {
+                        portfolio_id: item.id,
+                        title: item.title,
+                        category: item.category,
+                      })}
                     >
                       Рассчитать подобный проект →
                     </Link>

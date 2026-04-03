@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
+import { useAnalytics } from '@/lib/hooks/useAnalytics';
+import { EVENT_NAMES } from '@/types/analytics';
 import { 
   Calculator, 
   Shield, 
@@ -70,6 +72,8 @@ const advantages = [
 ];
 
 export default function ServicesPage() {
+  const { trackEvent } = useAnalytics();
+
   return (
     <div className="min-h-screen bg-background">
       <Header />

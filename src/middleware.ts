@@ -24,6 +24,20 @@ export function middleware(request: NextRequest) {
   response.headers.set('Content-Security-Policy', cspHeader);
   response.headers.set('x-nonce', nonce);
 
+  let sessionId = request.cookies.get('analytics_session_id')?.value;
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    response.cookies.set('analytics_session_id', sessionId, {
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+
+  response.headers.set('x-analytics-session-id', sessionId);
+  response.headers.set('x-request-path', request.nextUrl.pathname);
+  response.headers.set('x-request-referrer', request.headers.get('referer') || '');
+
   return response;
 }
 

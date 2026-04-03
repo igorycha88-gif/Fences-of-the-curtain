@@ -6,6 +6,8 @@ import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import OrderForm from '@/components/calculator/OrderForm';
 import NomenclatureNotFoundModal from '@/components/calculator/NomenclatureNotFoundModal';
+import { useAnalytics } from '@/lib/hooks/useAnalytics';
+import { EVENT_NAMES } from '@/types/analytics';
 
 interface FenceType {
   id: string;
@@ -94,6 +96,7 @@ interface CalculatorResult {
 }
 
 export default function FenceCalculatorPage() {
+  const { trackEvent } = useAnalytics();
   const [fenceTypes, setFenceTypes] = useState<FenceType[]>([]);
   const [fenceTypesLoading, setFenceTypesLoading] = useState(true);
   const [fenceTypesError, setFenceTypesError] = useState<string | null>(null);
@@ -183,6 +186,10 @@ export default function FenceCalculatorPage() {
 
   const handleFenceTypeSelect = (fenceType: FenceType) => {
     setSelectedFenceType(fenceType);
+    trackEvent(EVENT_NAMES.CALCULATOR_FENCE_TYPE_SELECT, {
+      fence_type: fenceType.name,
+      fence_type_id: fenceType.id,
+    });
     const isPicketType = fenceType.name === 'Евроштакетник';
     setFormData(prev => ({
       ...prev,
@@ -278,6 +285,14 @@ export default function FenceCalculatorPage() {
         const data = await response.json();
         console.log('[Calculator] Received result:', JSON.stringify(data, null, 2));
         setResult(data);
+        trackEvent(EVENT_NAMES.CALCULATOR_CALCULATE, {
+          fence_type: selectedFenceType?.name,
+          length: formData.length,
+          height: formData.height,
+          total_price: data.totals?.grandTotal,
+          has_gate: formData.hasGate,
+          has_wicket: formData.hasWicket,
+        });
       } else {
         const errorData = await response.json();
         const nomenclatureErrors = [
