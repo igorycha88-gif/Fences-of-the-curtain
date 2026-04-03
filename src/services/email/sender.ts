@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { prisma } from '@/lib/prisma';
 
 function escapeHtml(text: string): string {
   return text
@@ -44,18 +45,58 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
   }
 }
 
-export function sendOrderNotification(order: any) {
-  const html = `
+export async function sendEmailToAllRecipients(subject: string, html: string): Promise<void> {
+  try {
+    const recipients = await prisma.notificationRecipient.findMany({
+      where: { active: true },
+    });
+
+    if (recipients.length === 0) {
+      console.log('No active notification recipients found');
+      return;
+    }
+
+    const emailPromises = recipients.map((recipient: { email: string }) =>
+      sendEmail({
+        to: recipient.email,
+        subject,
+        html,
+      })
+    );
+
+    const results = await Promise.allSettled(emailPromises);
+    const failed = results.filter((r: { status: string }) => r.status === 'rejected');
+    if (failed.length > 0) {
+      console.error(`${failed.length} email(s) failed to send`);
+    }
+  } catch (error) {
+    console.error('Error sending emails to recipients:', error);
+  }
+}
+
+export function generateOrderNotificationHtml(order: {
+  id: string;
+  clientName: string;
+  phone: string;
+  email?: string | null;
+  serviceType: string;
+  calculatedCost: number;
+  createdAt: Date | string;
+}): string {
+  const createdAt =
+    typeof order.createdAt === 'string' ? new Date(order.createdAt) : order.createdAt;
+
+  return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #333; margin-bottom: 20px;">Новая заявка #${escapeHtml(String(order.id))}</h2>
+      <h2 style="color: #333; margin-bottom: 20px;">Новая заявка #${escapeHtml(order.id)}</h2>
       
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <p><strong>Клиент:</strong> ${escapeHtml(order.clientName)}</p>
         <p><strong>Телефон:</strong> ${escapeHtml(order.phone)}</p>
         ${order.email ? `<p><strong>Email:</strong> ${escapeHtml(order.email)}</p>` : ''}
-        <p><strong>Тип услуги:</strong> ${order.serviceType === 'fence' ? 'Забор' : 'Навес'}</p>
+        <p><strong>Тип услуги:</strong> ${order.serviceType === 'fence' ? 'Забор' : order.serviceType === 'canopy' ? 'Навес' : 'Индивидуальный расчет'}</p>
         <p><strong>Стоимость:</strong> ${Number(order.calculatedCost).toLocaleString('ru-RU')} ₽</p>
-        <p><strong>Дата:</strong> ${new Date(order.createdAt).toLocaleDateString('ru-RU')}</p>
+        <p><strong>Дата:</strong> ${createdAt.toLocaleDateString('ru-RU')}</p>
       </div>
 
       <p style="color: #666; font-size: 14px;">
@@ -63,23 +104,39 @@ export function sendOrderNotification(order: any) {
       </p>
     </div>
   `;
-
-  return sendEmail({
-    to: 'info@fences.ru',
-    subject: `Новая заявка #${order.id}`,
-    html,
-  });
 }
 
-export function sendClientConfirmation(order: any) {
+export async function sendOrderNotification(order: {
+  id: string;
+  clientName: string;
+  phone: string;
+  email?: string | null;
+  serviceType: string;
+  calculatedCost: number;
+  createdAt: Date | string;
+}): Promise<void> {
+  const html = generateOrderNotificationHtml(order);
+
+  await sendEmailToAllRecipients(`Новая заявка #${order.id}`, html);
+}
+
+export function sendClientConfirmation(order: {
+  id: string;
+  clientName: string;
+  email?: string | null;
+  serviceType: string;
+  calculatedCost: number;
+}) {
+  if (!order.email) return Promise.resolve(false);
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #333; margin-bottom: 20px;">Ваша заявка принята</h2>
       
       <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <p>Благодарим вас за заявку! Мы свяжемся с вами в ближайшее время.</p>
-        <p><strong>Номер заявки:</strong> #${escapeHtml(String(order.id))}</p>
-        <p><strong>Тип услуги:</strong> ${order.serviceType === 'fence' ? 'Забор' : 'Навес'}</p>
+        <p><strong>Номер заявки:</strong> #${escapeHtml(order.id)}</p>
+        <p><strong>Тип услуги:</strong> ${order.serviceType === 'fence' ? 'Забор' : order.serviceType === 'canopy' ? 'Навес' : 'Индивидуальный расчет'}</p>
         <p><strong>Стоимость:</strong> ${Number(order.calculatedCost).toLocaleString('ru-RU')} ₽</p>
       </div>
 
@@ -90,7 +147,7 @@ export function sendClientConfirmation(order: any) {
   `;
 
   return sendEmail({
-    to: order.email || order.clientName,
+    to: order.email,
     subject: `Заявка #${order.id} принята`,
     html,
   });

@@ -290,6 +290,18 @@ export default function AdminLayout({
                 </li>
                 <li>
                   <a 
+                    href="/admin/references/notification-recipients" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/notification-recipients')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Получатели уведомлений
+                  </a>
+                </li>
+                <li>
+                  <a 
                     href="/admin/portfolio" 
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/portfolio')

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { getSessionFromCookie } from '@/lib/session';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { applyRateLimitByEndpoint } from '@/lib/rate-limit';
+import { sendOrderNotification, sendClientConfirmation } from '@/services/email/sender';
+import { sendOrderNotification as sendTelegramNotification } from '@/services/telegram';
 
 function getClientIp(request: NextRequest): string {
   const xForwardedFor = request.headers.get('x-forwarded-for');
@@ -145,6 +147,18 @@ async function createStandardOrder(body: unknown, rlHeaders: Record<string, stri
     });
   });
 
+  sendOrderNotification(order).catch((err) =>
+    console.error('Failed to send order notification emails:', err)
+  );
+  sendTelegramNotification(order).catch((err) =>
+    console.error('Failed to send Telegram notification:', err)
+  );
+  if (validatedData.email) {
+    sendClientConfirmation(order).catch((err) =>
+      console.error('Failed to send client confirmation email:', err)
+    );
+  }
+
   return NextResponse.json(
     {
       id: order.id,
@@ -202,6 +216,18 @@ async function createIndividualOrder(body: unknown, rlHeaders: Record<string, st
       },
     });
   });
+
+  sendOrderNotification(order).catch((err) =>
+    console.error('Failed to send order notification emails:', err)
+  );
+  sendTelegramNotification(order).catch((err) =>
+    console.error('Failed to send Telegram notification:', err)
+  );
+  if (validatedData.email) {
+    sendClientConfirmation(order).catch((err) =>
+      console.error('Failed to send client confirmation email:', err)
+    );
+  }
 
   return NextResponse.json(
     {
