@@ -14,10 +14,15 @@ export interface AdminSession {
 export async function requireAuth(
   request: NextRequest
 ): Promise<{ session: AdminSession } | NextResponse> {
-  const token = await getToken({
-    req: request as any,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  let token;
+  try {
+    token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   if (!token || !token.id || !token.role) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
