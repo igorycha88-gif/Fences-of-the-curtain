@@ -28,7 +28,7 @@ export interface RateLimitResultExtended {
 
 const DEFAULT_CONFIGS: Record<EndpointType, RateLimitConfig> = {
   auth: { maxAttempts: 5, windowMs: 900000, keyPrefix: 'rate_limit:auth' },
-  orders: { maxAttempts: 5, windowMs: 3600000, keyPrefix: 'rate_limit:orders' },
+  orders: { maxAttempts: 5, windowMs: 600000, keyPrefix: 'rate_limit:orders' },
 };
 
 const DEFAULT_CONFIG = DEFAULT_CONFIGS.auth;
