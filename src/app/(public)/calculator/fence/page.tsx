@@ -362,22 +362,22 @@ export default function FenceCalculatorPage() {
     }
   };
 
-  const calculateAll = async () => {
+  const calculateAll = async (): Promise<boolean> => {
     const validCalculations = calculations.filter(c => c.formData.fenceTypeId);
     if (validCalculations.length === 0) {
       alert('Добавьте хотя бы один расчет с типом забора');
-      return;
+      return false;
     }
 
     for (const calc of validCalculations) {
       const totalOpening = (calc.formData.hasGate ? calc.formData.gateWidth : 0) + (calc.formData.hasWicket ? calc.formData.wicketWidth : 0);
       if (calc.formData.hasGate && calc.formData.gateWidth >= calc.formData.length) {
         alert(`Расчет "${getFenceTypeName(calc.formData.fenceTypeId)}": длина ворот превышает длину забора`);
-        return;
+        return false;
       }
       if (totalOpening >= calc.formData.length) {
         alert(`Расчет "${getFenceTypeName(calc.formData.fenceTypeId)}": ширина ворот и калитки превышает длину забора`);
-        return;
+        return false;
       }
     }
 
@@ -431,6 +431,7 @@ export default function FenceCalculatorPage() {
       if (response.ok) {
         const data = await response.json();
         setMultiResult(data);
+        return true;
       } else {
         const errorData = await response.json();
         const nomenclatureErrors = ['NO_PROFNASTIL_FOUND', 'NO_GATE_FOUND', 'NO_WICKET_FOUND', 'NO_PICKET_FOUND', 'CALCULATOR_NOT_IMPLEMENTED'];
@@ -439,10 +440,12 @@ export default function FenceCalculatorPage() {
         } else {
           alert(errorData.message || errorData.error || 'Ошибка расчета');
         }
+        return false;
       }
     } catch (error) {
       console.error('Multi-calculation error:', error);
       alert('Ошибка расчета');
+      return false;
     } finally {
       setLoadingAll(false);
     }
@@ -941,7 +944,18 @@ export default function FenceCalculatorPage() {
 
                       <div className="flex flex-col gap-3">
                         <button
-                          onClick={() => setShowOrderForm(true)}
+                          onClick={async () => {
+                            const resultsCount = calculations.filter(c => c.result).length;
+                            
+                            if (resultsCount > 1 && !multiResult) {
+                              const success = await calculateAll();
+                              if (success) {
+                                setShowOrderForm(true);
+                              }
+                            } else {
+                              setShowOrderForm(true);
+                            }
+                          }}
                           className="btn-primary flex items-center justify-center gap-2"
                         >
                           <Send className="w-4 h-4" />
