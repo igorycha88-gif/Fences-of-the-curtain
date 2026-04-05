@@ -37,7 +37,7 @@ export default function HomePage() {
     name: 'Заборы и Навесы',
     description: 'Профессиональная установка заборов и навесов. Онлайн-расчет стоимости, каталог услуг, портфолио работ.',
     url: siteUrl,
-    telephone: contactInfo?.phone || '+7 (900) 123-45-67',
+    telephone: contactInfo?.phone || '+74993901595',
     email: contactInfo?.email || 'info@fences.ru',
     address: {
       '@type': 'PostalAddress',
@@ -163,7 +163,7 @@ export default function HomePage() {
                 <h3 className="text-2xl font-bold mb-3">Мгновенный расчёт</h3>
                 <p className="text-muted-foreground mb-6">
                   Получите точную стоимость за 30 секунд. Наш калькулятор учитывает 
-                  все нюансы: тип материала, высоту, грунт и дополнительные опции.
+                  все нюансы: тип материала, высоту и дополнительные опции.
                 </p>
                 <div className="flex items-center gap-2 text-primary font-medium">
                   <Clock className="w-4 h-4" />

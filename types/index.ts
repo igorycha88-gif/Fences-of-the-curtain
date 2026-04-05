@@ -12,7 +12,6 @@ export interface FenceCalculatorInput {
   wicketWidth?: number;
   coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   color?: string;
-  soilType: string;
   region?: string;
 }
 
@@ -21,7 +20,6 @@ export interface FenceCalculatorResult {
   works: WorkItem[];
   materialsTotal: number;
   worksTotal: number;
-  soilSurcharge: number;
   grandTotal: number;
 }
 

@@ -16,12 +16,19 @@ export async function GET(req: NextRequest) {
     where.active = active === 'true';
   }
 
-  const materials = await prisma.fenceMaterial.findMany({
-    where,
-    orderBy: { sortOrder: 'asc' },
-  });
+  try {
+    const materials = await prisma.fenceMaterial.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
 
-  return NextResponse.json({ materials });
+    return NextResponse.json({ materials });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Invalid value')) {
+      return NextResponse.json({ materials: [] });
+    }
+    throw error;
+  }
 }
 
 export async function POST(req: NextRequest) {

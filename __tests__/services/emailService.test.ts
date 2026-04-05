@@ -1,9 +1,12 @@
-import { generateOrderNotificationHtml, sendEmailToAllRecipients } from '@/services/email/sender';
+import { generateOrderNotificationHtml, sendEmailToAllRecipients, sendClientConfirmation } from '@/services/email/sender';
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     notificationRecipient: {
       findMany: jest.fn(),
+    },
+    contactInfo: {
+      findFirst: jest.fn(),
     },
   },
 }));
@@ -138,6 +141,85 @@ describe('Email Service', () => {
       await expect(
         sendEmailToAllRecipients('Test Subject', '<p>Test HTML</p>')
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('sendClientConfirmation', () => {
+    it('should send confirmation email with contact phone from DB', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.contactInfo.findFirst.mockResolvedValue({
+        id: '1',
+        phone: '+7 (999) 888-77-66',
+        email: 'info@test.ru',
+        address: 'Test Address',
+      });
+
+      const order = {
+        id: 'order123',
+        clientName: 'Иван Иванов',
+        email: 'client@example.com',
+        serviceType: 'fence',
+        calculatedCost: 150000,
+      };
+
+      const result = await sendClientConfirmation(order);
+
+      expect(result).toBe(true);
+      expect(prisma.contactInfo.findFirst).toHaveBeenCalled();
+    });
+
+    it('should use fallback phone +74993901595 when contact info not found', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.contactInfo.findFirst.mockResolvedValue(null);
+
+      const order = {
+        id: 'order456',
+        clientName: 'Петр Петров',
+        email: 'client2@example.com',
+        serviceType: 'canopy',
+        calculatedCost: 200000,
+      };
+
+      const result = await sendClientConfirmation(order);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when email is missing', async () => {
+      const order = {
+        id: 'order789',
+        clientName: 'Анна Сидорова',
+        email: null,
+        serviceType: 'fence',
+        calculatedCost: 100000,
+      };
+
+      const result = await sendClientConfirmation(order);
+
+      expect(result).toBe(false);
+    });
+
+    it('should escape phone number in HTML', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.contactInfo.findFirst.mockResolvedValue({
+        id: '1',
+        phone: '+7 (999) <script>alert(1)</script>',
+        email: 'info@test.ru',
+        address: 'Test Address',
+      });
+
+      const order = {
+        id: 'order123',
+        clientName: 'Иван Иванов',
+        email: 'client@example.com',
+        serviceType: 'fence',
+        calculatedCost: 150000,
+      };
+
+      const result = await sendClientConfirmation(order);
+
+      expect(result).toBe(true);
+      expect(prisma.contactInfo.findFirst).toHaveBeenCalled();
     });
   });
 });

@@ -50,7 +50,6 @@ interface FenceCalculatorForm {
   wicketWidth: number;
   coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   color: string;
-  soilType: string;
   difficultyCoef?: number;
   postSpacing?: number;
   picketProfileType: string;
@@ -120,9 +119,8 @@ export default function FenceCalculatorPage() {
     gateWidth: 4.0,
     hasWicket: false,
     wicketWidth: 1.0,
-    coating: 'GALVANIZED',
+    coating: 'POLYMER_SINGLE',
     color: '5005',
-    soilType: 'normal',
     picketProfileType: '',
     picketCoating: '',
     picketStep: 5,
@@ -152,6 +150,7 @@ export default function FenceCalculatorPage() {
 
         if (data.types.length > 0 && !formData.fenceTypeId) {
           const firstType = data.types[0];
+          setSelectedFenceType(firstType);
           setFormData(prev => ({
             ...prev,
             fenceTypeId: firstType.id,
@@ -325,16 +324,9 @@ export default function FenceCalculatorPage() {
   };
 
   const coatings = [
-    { value: 'GALVANIZED', label: 'Оцинковка' },
     { value: 'POLYMER_SINGLE', label: 'Полимерное (одностороннее)' },
     { value: 'POLYMER_DOUBLE', label: 'Полимерное (двустороннее)' },
-  ];
-
-  const soilTypes = [
-    { value: 'normal', label: 'Нормальный' },
-    { value: 'concrete', label: 'Бетон/Асфальт (+15%)' },
-    { value: 'stones', label: 'Каменистый (+25%)' },
-    { value: 'swamp', label: 'Болотистый (+40%)' },
+    { value: 'GALVANIZED', label: 'Оцинковка' },
   ];
 
   return (
@@ -436,20 +428,6 @@ export default function FenceCalculatorPage() {
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Тип грунта</label>
-                          <select
-                            value={formData.soilType}
-                            onChange={(e) => setFormData({ ...formData, soilType: e.target.value })}
-                            className="select-modern"
-                          >
-                            {soilTypes.map((type) => (
-                              <option key={type.value} value={type.value}>
-                                {type.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
                         {!isPanel3D && (
                           <div>
                             <label className="block text-sm font-medium mb-2">Количество лаг</label>
@@ -759,7 +737,6 @@ export default function FenceCalculatorPage() {
           gateWidth: formData.gateWidth,
           hasWicket: formData.hasWicket,
           wicketWidth: formData.wicketWidth,
-          soilType: formData.soilType,
           lagRows: parseInt(formData.lagRows),
           picketProfileType: formData.picketProfileType,
           picketCoating: picketCoatings.find(c => c.id === formData.picketCoating)?.name || '',

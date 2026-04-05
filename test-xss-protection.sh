@@ -69,14 +69,9 @@ test_xss "Невалидный телефон" "/api/contact" \
 echo "=== 2. КАЛЬКУЛЯТОР ЗАБОРА ==="
 echo ""
 
-# Test 6: XSS in soilType
-test_xss "XSS: Script в soilType" "/api/calculator/fence" \
-    '{"fenceTypeId":"cmmxmvdd3001xhr5cwv1bqpgu","length":50,"height":2.0,"postType":"test","lagType":"test","lagRows":2,"hasGate":false,"hasWicket":false,"coating":"GALVANIZED","soilType":"<script>alert(1)</script>"}' \
-    200
-
-# Test 7: XSS in postType
+# Test 6: XSS in postType
 test_xss "XSS: Script в postType" "/api/calculator/fence" \
-    '{"fenceTypeId":"cmmxmvdd3001xhr5cwv1bqpgu","length":50,"height":2.0,"postType":"<script>alert(1)</script>","lagType":"test","lagRows":2,"hasGate":false,"hasWicket":false,"coating":"GALVANIZED","soilType":"test"}' \
+    '{"fenceTypeId":"cmmxmvdd3001xhr5cwv1bqpgu","length":50,"height":2.0,"postType":"<script>alert(1)</script>","lagType":"test","lagRows":2,"hasGate":false,"hasWicket":false,"coating":"GALVANIZED"}' \
     200
 
 echo "=== ИТОГИ ==="

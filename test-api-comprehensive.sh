@@ -126,7 +126,7 @@ main() {
     
     # 1.2 Calculator - Fence
     test_endpoint "POST" "/api/calculator/fence" \
-        '{"fenceType":"PROFNASTIL","length":50,"height":2.0,"postType":"test-post","lagType":"test-lag","lagRows":"2","hasGate":true,"gateType":"SWING","gateWidth":4.0,"hasWicket":true,"wicketWidth":1.0,"coating":"GALVANIZED","color":"5005","soilType":"test-soil","region":"test-region"}' \
+        '{"fenceType":"PROFNASTIL","length":50,"height":2.0,"postType":"test-post","lagType":"test-lag","lagRows":"2","hasGate":true,"gateType":"SWING","gateWidth":4.0,"hasWicket":true,"wicketWidth":1.0,"coating":"GALVANIZED","color":"5005","region":"test-region"}' \
         200 "Расчет стоимости забора"
     
     test_endpoint "POST" "/api/calculator/fence" \

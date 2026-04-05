@@ -28,7 +28,6 @@ export interface FenceCalculatorInput {
   wicketWidth?: number;
   coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   color?: string;
-  soilType: string;
   region?: string;
   difficultyCoef?: number;
   postSpacing?: number;
@@ -39,7 +38,6 @@ export interface FenceCalculatorResult {
   works: WorkItem[];
   materialsTotal: number;
   worksTotal: number;
-  soilSurcharge: number;
   grandTotal: number;
 }
 
@@ -54,7 +52,6 @@ export async function calculateFence(
     gateWidth = 4,
     hasWicket,
     wicketWidth = 1,
-    soilType,
     postSpacing = 2500,
     difficultyCoef = 1.0,
   } = input;
@@ -154,26 +151,11 @@ export async function calculateFence(
   const materialsTotal = materials.reduce((sum, m) => sum + m.total, 0);
   const worksTotal = works.reduce((sum, w) => sum + w.total, 0) * difficultyCoef;
 
-  const soilSurchargeCoef = getSoilSurcharge(soilType);
-  const soilSurcharge = (materialsTotal + worksTotal) * (soilSurchargeCoef - 1);
-
   return {
     materials,
     works,
     materialsTotal,
     worksTotal,
-    soilSurcharge,
-    grandTotal: materialsTotal + worksTotal + soilSurcharge,
+    grandTotal: materialsTotal + worksTotal,
   };
-}
-
-function getSoilSurcharge(soilType: string): number {
-  const soilCoefficients: Record<string, number> = {
-    normal: 1.0,
-    concrete: 1.15,
-    stones: 1.25,
-    swamp: 1.4,
-  };
-
-  return soilCoefficients[soilType] || 1.0;
 }

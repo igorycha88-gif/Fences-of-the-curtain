@@ -53,7 +53,6 @@ docker exec fences-db psql -U postgres -d fences -c "SELECT \"clientName\", stat
 - 7 материалов для заборов
 - 5 материалов для навесов
 - 4 типа заборов
-- 4 типа грунта
 - 3 типа навесов
 - 5 цен на работы
 - 3 тестовые заявки

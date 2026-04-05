@@ -268,7 +268,6 @@ describe('Individual Order Schema', () => {
         gateType: 'SWING',
         gateWidth: 4.0,
         hasWicket: false,
-        soilType: 'normal',
         lagRows: 2,
       };
       expect(() => fenceParametersSchema.parse(data)).not.toThrow();

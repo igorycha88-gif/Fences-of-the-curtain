@@ -80,7 +80,6 @@ export const contactFormSchema = z.object({
 export const fenceCalculatorSchema = z.object({
   postType: z.string().min(1).transform(val => sanitizeHtml(val)),
   lagType: z.string().min(1).transform(val => sanitizeHtml(val)),
-  soilType: z.string().min(1).transform(val => sanitizeHtml(val)),
   region: z.string().optional().transform(val => val ? sanitizeHtml(val) : val),
   color: z.string().optional().transform(val => val ? sanitizeHtml(val) : val),
   // ...
@@ -138,8 +137,7 @@ Tests:       15 passed, 15 total
 3. ✅ Mixed content в сообщении
 4. ✅ Валидные данные
 5. ✅ Невалидный телефон
-6. ✅ XSS в soilType
-7. ✅ XSS в postType
+6. ✅ XSS в postType
 
 **Результат:**
 ```
@@ -207,7 +205,7 @@ Stored: TestUser  ✅ (теги удалены)
 | Endpoint | Метод | Статус | Защищенные поля |
 |----------|-------|--------|-----------------|
 | /api/contact | POST | ✅ | name, message |
-| /api/calculator/fence | POST | ✅ | postType, lagType, soilType, region, color |
+| /api/calculator/fence | POST | ✅ | postType, lagType, region, color |
 | /api/calculator/canopy | POST | ✅ | frameMaterial, roofMaterial |
 | /api/orders | POST | ✅ | clientName, message |
 

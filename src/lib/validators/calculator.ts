@@ -18,7 +18,6 @@ export const fenceCalculatorSchema = z.object({
   wicketWidth: z.number().min(0.8).max(1.2).optional(),
   coating: z.enum(['GALVANIZED', 'POLYMER_SINGLE', 'POLYMER_DOUBLE']),
   color: z.string().optional(),
-  soilType: z.string().min(1),
   region: z.string().optional(),
   difficultyCoef: z.number().optional(),
   postSpacing: z.number().optional(),

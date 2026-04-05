@@ -32,7 +32,6 @@ Calculate fence cost.
   "wicketWidth": 1.0,
   "coating": "GALVANIZED|POLYMER_SINGLE|POLYMER_DOUBLE",
   "color": "5005",
-  "soilType": "string",
   "region": "string"
 }
 ```
@@ -60,7 +59,6 @@ Calculate fence cost.
   ],
   "materialsTotal": 50000,
   "worksTotal": 45000,
-  "soilSurcharge": 5000,
   "grandTotal": 100000
 }
 ```

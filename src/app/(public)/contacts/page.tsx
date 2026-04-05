@@ -271,7 +271,7 @@ export default function ContactsPage() {
                     className="inline-flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-xl font-semibold hover:bg-white/90 transition-colors"
                   >
                     <Phone className="w-4 h-4" />
-                    {contactInfoData?.phone || '+7 (900) 123-45-67'}
+                    {contactInfoData?.phone || '+74993901595'}
                   </a>
                 </div>
               </AnimatedSection>

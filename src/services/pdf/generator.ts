@@ -8,7 +8,6 @@ export interface PDFData {
     works: Array<{ name: string; quantity: number; unit: string; pricePerUnit: number; total: number }>;
     materialsTotal: number;
     worksTotal: number;
-    soilSurcharge?: number;
     grandTotal: number;
   };
 }
@@ -77,11 +76,6 @@ export function generatePDF(data: PDFData): Blob {
   doc.setFontSize(14);
   doc.text(`Итого работы: ${data.result.worksTotal.toLocaleString('ru-RU')} ₽`, 20, yPos);
   yPos += 15;
-
-  if (data.result.soilSurcharge) {
-    doc.text(`Наценка за грунт: ${data.result.soilSurcharge.toLocaleString('ru-RU')} ₽`, 20, yPos);
-    yPos += 10;
-  }
 
   yPos += 5;
   doc.setFontSize(16);

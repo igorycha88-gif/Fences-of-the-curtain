@@ -14,7 +14,6 @@ interface FenceParameters {
   gateWidth?: number;
   hasWicket?: boolean;
   wicketWidth?: number;
-  soilType?: string;
   lagRows?: number;
   picketProfileType?: string;
   picketCoating?: string;

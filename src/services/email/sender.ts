@@ -1,7 +1,8 @@
 import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
 
-function escapeHtml(text: string): string {
+function escapeHtml(text: string | undefined | null): string {
+  if (!text) return '';
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -20,11 +21,14 @@ export interface EmailData {
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
+  secure: parseInt(process.env.SMTP_PORT || '587') === 465,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 export async function sendEmail(data: EmailData): Promise<boolean> {
@@ -120,14 +124,17 @@ export async function sendOrderNotification(order: {
   await sendEmailToAllRecipients(`Новая заявка #${order.id}`, html);
 }
 
-export function sendClientConfirmation(order: {
+export async function sendClientConfirmation(order: {
   id: string;
   clientName: string;
   email?: string | null;
   serviceType: string;
   calculatedCost: number;
-}) {
-  if (!order.email) return Promise.resolve(false);
+}): Promise<boolean> {
+  if (!order.email) return false;
+
+  const contactInfo = await prisma.contactInfo.findFirst();
+  const phone = contactInfo?.phone || '+74993901595';
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -141,7 +148,7 @@ export function sendClientConfirmation(order: {
       </div>
 
       <p style="color: #666; font-size: 14px;">
-        Если у вас есть вопросы, свяжитесь с нами по телефону +7 (900) 123-45-67
+        Если у вас есть вопросы, свяжитесь с нами по телефону ${escapeHtml(phone)}
       </p>
     </div>
   `;

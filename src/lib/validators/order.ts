@@ -18,7 +18,6 @@ export const fenceParametersSchema = z.object({
   gateWidth: z.number().optional(),
   hasWicket: z.boolean().optional(),
   wicketWidth: z.number().optional(),
-  soilType: z.string().optional(),
   lagRows: z.number().optional(),
   picketProfileType: z.string().optional(),
   picketCoating: z.string().optional(),

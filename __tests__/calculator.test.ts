@@ -14,7 +14,6 @@ describe('Fence Calculator', () => {
       hasGate: false,
       hasWicket: false,
       coating: 'GALVANIZED',
-      soilType: 'normal',
     };
 
     const result = await calculateFence(input as any);
@@ -25,7 +24,7 @@ describe('Fence Calculator', () => {
     expect(result.works.length).toBeGreaterThan(0);
   });
 
-  it('should apply soil surcharge correctly', async () => {
+  it('should calculate fence with gate correctly', async () => {
     const input = {
       fenceType: 'PROFNASTIL',
       length: 50,
@@ -33,15 +32,17 @@ describe('Fence Calculator', () => {
       postType: 'standard',
       lagType: 'standard',
       lagRows: 2,
-      hasGate: false,
+      hasGate: true,
+      gateType: 'SWING',
+      gateWidth: 4,
       hasWicket: false,
       coating: 'GALVANIZED',
-      soilType: 'swamp',
     };
 
     const result = await calculateFence(input as any);
 
-    expect(result.soilSurcharge).toBeGreaterThan(0);
+    expect(result).toBeDefined();
+    expect(result.grandTotal).toBeGreaterThan(0);
   });
 });
 

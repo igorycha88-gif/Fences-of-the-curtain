@@ -306,16 +306,6 @@ model PostType {
   updatedAt    DateTime @updatedAt
 }
 
-// Типы грунта
-model SoilType {
-  id                String   @id @default(cuid())
-  name              String
-  surchargeCoef     Float    // Коэффициент удорожания (%)
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-}
-
 // Типы навесов
 model CanopyType {
   id                String   @id @default(cuid())
@@ -723,7 +713,6 @@ interface FenceCalculatorInput {
   wicketWidth?: number;
   coating: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
   color?: string;           // RAL код
-  soilType: string;         // ID типа грунта
   region?: string;
 }
 
@@ -744,7 +733,6 @@ interface FenceCalculatorResult {
   }[];
   materialsTotal: number;
   worksTotal: number;
-  soilSurcharge: number;
   grandTotal: number;
 }
 ```
@@ -753,7 +741,7 @@ interface FenceCalculatorResult {
 
 ```typescript
 export function calculateFence(input: FenceCalculatorInput): FenceCalculatorResult {
-  const { length, height, lagRows, hasGate, hasWicket, soilType } = input;
+  const { length, height, lagRows, hasGate, hasWicket } = input;
   
   // Количество столбов (шаг 2.5м)
   const postsCount = Math.ceil(length / 2.5) + 1;
@@ -770,21 +758,16 @@ export function calculateFence(input: FenceCalculatorInput): FenceCalculatorResu
   // Расчет стоимости работ
   const works = calculateWorks(input, postsCount);
   
-  // Коэффициент грунта
-  const soilSurchargeCoef = getSoilSurcharge(soilType);
-  
   // Итого
   const materialsTotal = materials.reduce((sum, m) => sum + m.total, 0);
   const worksTotal = works.reduce((sum, w) => sum + w.total, 0);
-  const soilSurcharge = (materialsTotal + worksTotal) * (soilSurchargeCoef - 1);
   
   return {
     materials,
     works,
     materialsTotal,
     worksTotal,
-    soilSurcharge,
-    grandTotal: materialsTotal + worksTotal + soilSurcharge
+    grandTotal: materialsTotal + worksTotal
   };
 }
 ```

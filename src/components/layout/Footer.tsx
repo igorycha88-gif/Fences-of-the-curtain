@@ -34,7 +34,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 text-center">
         <p className="mb-2">© 2026 Заборы и Навесы. Все права защищены.</p>
         <p className="text-gray-400">
-          {contactInfo?.phone || '+7 (900) 123-45-67'} {contactInfo?.email ? `| ${contactInfo.email}` : ''}
+          {contactInfo?.phone || '+74993901595'} {contactInfo?.email ? `| ${contactInfo.email}` : ''}
         </p>
       </div>
     </footer>

@@ -185,28 +185,6 @@ async function main() {
     skipDuplicates: true,
   });
 
-  await prisma.soilType.createMany({
-    data: [
-      {
-        name: 'Нормальный',
-        surchargeCoef: 1.0,
-      },
-      {
-        name: 'Бетон/Асфальт',
-        surchargeCoef: 1.15,
-      },
-      {
-        name: 'Каменистый',
-        surchargeCoef: 1.25,
-      },
-      {
-        name: 'Болотистый',
-        surchargeCoef: 1.4,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
   await prisma.review.createMany({
     data: [
       {
