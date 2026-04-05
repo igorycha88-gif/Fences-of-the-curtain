@@ -810,7 +810,7 @@ export default function FenceCalculatorPage() {
           </AnimatedSection>
 
           <div className="max-w-6xl mx-auto">
-            <div className="grid lg:grid-cols-5 gap-8">
+            <div className="grid lg:grid-cols-5 gap-8 lg:items-start">
               <div className="lg:col-span-3">
                 <AnimatedSection animation="fade-in-right">
                   <div className="card-modern p-4 sm:p-6">
@@ -841,10 +841,10 @@ export default function FenceCalculatorPage() {
                 </AnimatedSection>
               </div>
 
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 lg:sticky lg:top-28 lg:self-start">
                 {hasAnyResults ? (
                   <AnimatedSection animation="scale-in">
-                    <div className="card-modern p-6 sticky top-28">
+                    <div className="card-modern p-6">
                       <h2 className="text-xl font-bold mb-6">Результат расчёта</h2>
 
                       {multiResult ? (
@@ -952,7 +952,7 @@ export default function FenceCalculatorPage() {
                   </AnimatedSection>
                 ) : (
                   <AnimatedSection animation="fade-in-left">
-                    <div className="card-modern p-6 sticky top-28">
+                    <div className="card-modern p-6">
                       <h3 className="font-bold mb-4">Что включено в расчёт?</h3>
                       <ul className="space-y-3">
                         {[
