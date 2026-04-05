@@ -767,7 +767,7 @@ export default function FenceCalculatorPage() {
                 <div className="space-y-1">
                   {calc.result.items.map((item, i) => (
                     <div key={i} className="flex justify-between items-center text-sm py-1 border-b border-border/30">
-                      <span className="text-muted-foreground">{item.nomenclatureName} ({item.quantity} {item.unit})</span>
+                      <span className="text-muted-foreground">{item.nomenclatureName}</span>
                       <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
                     </div>
                   ))}
