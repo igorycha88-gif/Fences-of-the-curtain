@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, MessageSquare } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
-import { useAnalytics } from '@/lib/hooks/useAnalytics';
-import { EVENT_NAMES } from '@/types/analytics';
 
 interface ContactInfoData {
   address: string;
@@ -20,16 +18,6 @@ interface ContactInfoData {
 }
 
 export default function ContactsPage() {
-  const { trackEvent } = useAnalytics();
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    message: '',
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [contactInfoData, setContactInfoData] = useState<ContactInfoData | null>(null);
 
   useEffect(() => {
@@ -46,42 +34,6 @@ export default function ContactsPage() {
     } catch (error) {
       console.error('Error fetching contact info:', error);
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        setSuccess(true);
-        setFormData({ name: '', phone: '', email: '', message: '' });
-        trackEvent(EVENT_NAMES.CONTACT_FORM_SUBMIT);
-      }
-    } catch (error) {
-      console.error('Contact form error:', error);
-      alert('Ошибка отправки. Попробуйте позже.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatPhone = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 11) {
-      if (cleaned.length === 0) return '';
-      if (cleaned.length <= 1) return `+${cleaned}`;
-      if (cleaned.length <= 4) return `+${cleaned.slice(0, 1)} (${cleaned.slice(1)}`;
-      if (cleaned.length <= 7) return `+${cleaned.slice(0, 1)} (${cleaned.slice(1, 4)}) ${cleaned.slice(4)}`;
-      return `+${cleaned.slice(0, 1)} (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7, 11)}`;
-    }
-    return value;
   };
 
   const contactInfo = [
@@ -139,86 +91,7 @@ export default function ContactsPage() {
         </section>
 
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            <AnimatedSection animation="fade-in-right">
-              <div className="card-modern p-8">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                    <Send className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">Отправить заявку</h2>
-                    <p className="text-muted-foreground text-sm">Мы ответим в течение часа</p>
-                  </div>
-                </div>
-
-                {success && (
-                  <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 text-primary px-4 py-4 rounded-xl mb-6">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Имя *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="input-modern"
-                      placeholder="Ваше имя"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Телефон *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
-                      className="input-modern"
-                      placeholder="+7 (___) ___-__-__"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="input-modern"
-                      placeholder="email@example.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Сообщение *</label>
-                    <textarea
-                      required
-                      rows={5}
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="input-modern resize-none"
-                      placeholder="Опишите ваш вопрос или задачу"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full btn-primary py-4 flex items-center justify-center gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    {loading ? 'Отправка...' : 'Отправить заявку'}
-                  </button>
-                </form>
-              </div>
-            </AnimatedSection>
-
+          <div className="max-w-4xl mx-auto">
             <div className="space-y-6">
               <AnimatedSection animation="fade-in-left">
                 <div className="card-modern p-8">
