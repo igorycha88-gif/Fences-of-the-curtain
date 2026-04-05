@@ -1,12 +1,71 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Send, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface OrderFormProps {
+interface EstimateItem {
+  category: string;
+  nomenclatureId: string | null;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
+interface FenceEstimateData {
+  estimateId: string;
+  items: EstimateItem[];
+  totals: {
+    materials: number;
+    installation: number;
+    grandTotal: number;
+  };
+  parameters: {
+    fenceTypeId: string;
+    fenceTypeName: string;
+    length: number;
+    height: number;
+    lagRows: number;
+    coating?: string;
+    gate?: {
+      type: string;
+      length: number;
+      selectedName: string;
+    };
+    wicket?: {
+      width: number;
+      selectedName: string;
+    };
+  };
+  calculatedAt: string;
+}
+
+interface SingleOrderFormProps {
   calculatedCost: number;
   onClose: () => void;
   onSuccess: () => void;
+}
+
+interface MultiOrderFormProps {
+  multiEstimateId: string;
+  estimates: Array<{
+    index: number;
+    result: FenceEstimateData;
+  }>;
+  totals: {
+    totalMaterials: number;
+    totalInstallation: number;
+    grandTotal: number;
+  };
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+type OrderFormProps = SingleOrderFormProps | MultiOrderFormProps;
+
+function isMultiOrderFormProps(props: OrderFormProps): props is MultiOrderFormProps {
+  return 'multiEstimateId' in props && 'estimates' in props;
 }
 
 interface FormData {
@@ -42,7 +101,61 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export default function OrderForm({ calculatedCost, onClose, onSuccess }: OrderFormProps) {
+function EstimateBreakdown({ estimate, index }: { estimate: FenceEstimateData; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border border-border rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-4 bg-secondary/30 hover:bg-secondary/50 transition-colors"
+      >
+        <div className="text-left">
+          <p className="font-semibold">
+            Забор {index + 1}: {estimate.parameters.fenceTypeName}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {estimate.parameters.length} м × {estimate.parameters.height} м
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-primary">
+            {formatCurrency(estimate.totals.grandTotal)}
+          </span>
+          {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="p-4 space-y-3">
+          <div className="space-y-1">
+            {estimate.items.map((item, i) => (
+              <div key={i} className="flex justify-between items-center text-sm py-1 border-b border-border/30">
+                <span className="text-muted-foreground">{item.nomenclatureName}</span>
+                <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between text-sm pt-2">
+            <span className="text-muted-foreground">Материалы</span>
+            <span>{formatCurrency(estimate.totals.materials)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Монтаж</span>
+            <span>{formatCurrency(estimate.totals.installation)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function OrderForm(props: OrderFormProps) {
+  const isMulti = isMultiOrderFormProps(props);
+  const calculatedCost = isMulti ? props.totals.grandTotal : props.calculatedCost;
+
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,10 +198,19 @@ export default function OrderForm({ calculatedCost, onClose, onSuccess }: OrderF
 
     setLoading(true);
     try {
+      const requestBody: Record<string, unknown> = {
+        ...formData,
+      };
+
+      if (isMulti) {
+        requestBody.isMultiEstimate = true;
+        requestBody.multiEstimateId = props.multiEstimateId;
+      }
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -108,7 +230,7 @@ export default function OrderForm({ calculatedCost, onClose, onSuccess }: OrderF
 
       setSuccess(true);
       setTimeout(() => {
-        onSuccess();
+        props.onSuccess();
       }, 2000);
     } catch (err) {
       setError('Ошибка отправки заявки. Попробуйте позже.');
@@ -135,11 +257,11 @@ export default function OrderForm({ calculatedCost, onClose, onSuccess }: OrderF
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold">Оформить заявку</h3>
           <button
-            onClick={onClose}
+            onClick={props.onClose}
             className="p-2 hover:bg-secondary rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
@@ -154,6 +276,17 @@ export default function OrderForm({ calculatedCost, onClose, onSuccess }: OrderF
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isMulti && (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                Типы заборов ({props.estimates.length})
+              </h4>
+              {props.estimates.map(({ index, result }) => (
+                <EstimateBreakdown key={result.estimateId} estimate={result} index={index} />
+              ))}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-2">
               Ваше имя <span className="text-destructive">*</span>
@@ -231,19 +364,38 @@ export default function OrderForm({ calculatedCost, onClose, onSuccess }: OrderF
             />
           </div>
 
-          <div className="bg-primary/5 p-4 rounded-xl">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Стоимость по расчету:</span>
-              <span className="text-xl font-bold text-primary">
-                {formatCurrency(calculatedCost)}
-              </span>
-            </div>
+          <div className="bg-primary/5 p-4 rounded-xl space-y-2">
+            {isMulti ? (
+              <>
+                {props.estimates.map(({ index, result }) => (
+                  <div key={result.estimateId} className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">
+                      {result.parameters.fenceTypeName} ({result.parameters.length} м)
+                    </span>
+                    <span className="font-medium">{formatCurrency(result.totals.grandTotal)}</span>
+                  </div>
+                ))}
+                <div className="border-t border-primary/20 pt-2 flex justify-between items-center">
+                  <span className="font-bold">Итого:</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {formatCurrency(props.totals.grandTotal)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Стоимость по расчету:</span>
+                <span className="text-xl font-bold text-primary">
+                  {formatCurrency(calculatedCost)}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={props.onClose}
               className="flex-1 px-4 py-3 border border-border rounded-xl hover:bg-secondary transition-colors font-medium"
             >
               Отмена

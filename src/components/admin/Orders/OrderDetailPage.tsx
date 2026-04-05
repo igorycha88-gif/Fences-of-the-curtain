@@ -16,6 +16,7 @@ import { ClientInfo } from './ClientInfo';
 import { OrderStatusSection } from './OrderStatusSection';
 import { FenceParameters } from './FenceParameters';
 import { EstimateSection } from './EstimateSection';
+import { MultiEstimateSection } from './MultiEstimateSection';
 import { TechnicalInfo } from './TechnicalInfo';
 import { StatusChangeModal } from './StatusChangeModal';
 import { STATUS_LABELS, VALID_STATUS_TRANSITIONS } from '@/lib/validators/order';
@@ -132,8 +133,9 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     );
   }
 
-  const { order, estimate, showPurchasePrices } = data;
-  const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || !estimate;
+  const { order, estimate, multiEstimates, showPurchasePrices } = data;
+  const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !multiEstimates);
+  const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
   const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
   const isAdmin = showPurchasePrices;
 
@@ -248,7 +250,14 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
         </div>
 
         <div className="space-y-6">
-          {estimate ? (
+          {isMultiEstimate ? (
+            <>
+              <MultiEstimateSection
+                estimates={multiEstimates}
+                showPurchasePrices={showPurchasePrices}
+              />
+            </>
+          ) : estimate ? (
             <>
               <FenceParameters
                 fenceType={estimate.fenceType}

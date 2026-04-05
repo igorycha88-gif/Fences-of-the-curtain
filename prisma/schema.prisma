@@ -20,6 +20,7 @@ model User {
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   estimates            FenceEstimate[]
+  multiEstimates       MultiFenceEstimate[]
   ordersAssigned       Order[]                   @relation("AssignedOrders")
   priceHistory         PriceHistory[]
   referenceChangeLogs  ReferenceChangeLog[]
@@ -165,29 +166,32 @@ model WorkPrice {
 }
 
 model Order {
-  id                 String         @id @default(cuid())
+  id                 String             @id @default(cuid())
   clientName         String
   phone              String
   email              String?
   serviceType        String
   parameters         Json
   calculatedCost     Float
-  status             OrderStatus    @default(NEW)
+  status             OrderStatus        @default(NEW)
   managerComment     String?
   assignedTo         String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
   statusHistory      Json?
-  estimateId         String?        @unique
+  estimateId         String?            @unique
+  multiEstimateId    String?
   cancellationReason String?
   completionDate     DateTime?
   measurementAddress String?
   measurementDate    DateTime?
-  assignedUser       User?          @relation("AssignedOrders", fields: [assignedTo], references: [id])
-  estimate           FenceEstimate? @relation(fields: [estimateId], references: [id])
+  assignedUser       User?              @relation("AssignedOrders", fields: [assignedTo], references: [id])
+  estimate           FenceEstimate?     @relation(fields: [estimateId], references: [id])
+  multiEstimate      MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
 
   @@index([status])
   @@index([estimateId])
+  @@index([multiEstimateId])
   @@index([measurementDate])
   @@index([cancellationReason])
   @@index([completionDate])
@@ -465,6 +469,29 @@ model WicketType {
   @@index([sectionWidth, sectionHeight, metalThickness, wicketLength])
 }
 
+model MultiFenceEstimate {
+  id              String           @id @default(cuid())
+  totalMaterials  Float
+  totalInstallation Float
+  grandTotal      Float
+  estimatesCount  Int              @default(1)
+  userId          String?
+  sessionId       String?
+  userAgent       String?
+  ipAddress       String?
+  city            String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  estimates       FenceEstimate[]
+  orders          Order[]
+  user            User?            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([city])
+}
+
 model FenceEstimate {
   id                       String    @id @default(cuid())
   fenceTypeId              String
@@ -513,12 +540,15 @@ model FenceEstimate {
   fenceType                FenceType @relation(fields: [fenceTypeId], references: [id])
   user                     User?     @relation(fields: [userId], references: [id])
   order                    Order?
+  multiEstimateId          String?
+  multiEstimate            MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
 
   @@index([fenceTypeId])
   @@index([userId])
   @@index([createdAt])
   @@index([sessionId])
   @@index([city])
+  @@index([multiEstimateId])
 }
 
 model MountingHardware {

@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+export const multiEstimateOrderSchema = z.object({
+  clientName: z.string().min(2, 'Имя должно содержать минимум 2 символа').max(100),
+  phone: z.string().regex(/^\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}$/, 'Формат: +7 (XXX) XXX-XX-XX'),
+  email: z.string().email('Некорректный email').optional().or(z.literal('')),
+  message: z.string().max(1000).optional(),
+  multiEstimateId: z.string().min(1, 'ID мульти-расчета обязателен'),
+  isMultiEstimate: z.literal(true),
+});
+
 export const createOrderSchema = z.object({
   clientName: z.string().min(2, 'Имя должно содержать минимум 2 символа').max(100),
   phone: z.string().regex(/^\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}$/, 'Формат: +7 (XXX) XXX-XX-XX'),

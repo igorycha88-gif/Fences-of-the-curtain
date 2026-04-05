@@ -18,6 +18,8 @@ interface Order {
   estimateId: string | null;
   createdAt: string;
   isIndividualRequest?: boolean;
+  isMultiEstimate?: boolean;
+  estimateIds?: string[];
 }
 
 interface OrdersResponse {
@@ -286,14 +288,19 @@ export default function OrdersPage() {
                       </td>
                       <td className="py-3 px-4">{renderStatusCell(order)}</td>
                       <td className="py-3 px-4">
-                        {order.estimateId ? (
-                          <Link
-                            href={`/admin/estimates?open=${order.estimateId}`}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Смета
-                          </Link>
+                        {order.estimateIds && order.estimateIds.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {order.estimateIds.map((estimateId: string, idx: number) => (
+                              <Link
+                                key={estimateId}
+                                href={`/admin/estimates?open=${estimateId}`}
+                                className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета'}
+                              </Link>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-gray-400 text-sm">—</span>
                         )}
@@ -339,10 +346,14 @@ export default function OrdersPage() {
                       }
                     </span>
                   </div>
-                  {order.estimateId && (
-                    <div className="mt-2 pt-2 border-t flex items-center gap-1 text-blue-600 text-xs">
-                      <ExternalLink className="w-3 h-3" />
-                      Смета доступна
+                  {order.estimateIds && order.estimateIds.length > 0 && (
+                    <div className="mt-2 pt-2 border-t flex flex-col gap-1">
+                      {order.estimateIds.map((estimateId: string, idx: number) => (
+                        <div key={estimateId} className="flex items-center gap-1 text-blue-600 text-xs">
+                          <ExternalLink className="w-3 h-3" />
+                          {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета доступна'}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </Link>

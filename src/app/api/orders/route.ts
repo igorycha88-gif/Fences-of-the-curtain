@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createOrderSchema, individualOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
+import { createOrderSchema, individualOrderSchema, multiEstimateOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
 import { prisma } from '@/lib/prisma';
 import { getSessionFromCookie } from '@/lib/session';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
       return await createIndividualOrder(body, rlHeaders);
     }
 
+    if (body.isMultiEstimate) {
+      return await createMultiEstimateOrder(body, rlHeaders);
+    }
+
     return await createStandardOrder(body, rlHeaders);
   } catch (error) {
     if (error instanceof Error) {
@@ -62,6 +66,123 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function createMultiEstimateOrder(body: unknown, rlHeaders: Record<string, string>) {
+  const validatedData = multiEstimateOrderSchema.parse(body);
+
+  const multiEstimate = await prisma.multiFenceEstimate.findUnique({
+    where: { id: validatedData.multiEstimateId },
+    include: {
+      estimates: {
+        include: { fenceType: true },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  });
+
+  if (!multiEstimate) {
+    return NextResponse.json(
+      { error: 'ESTIMATE_NOT_FOUND', message: 'Расчет не найден. Пожалуйста, выполните расчет заново.' },
+      { status: 400, headers: rlHeaders }
+    );
+  }
+
+  const fenceParameters = multiEstimate.estimates.map((est) => ({
+    fenceTypeId: est.fenceTypeId,
+    fenceTypeName: est.fenceType.name,
+    length: est.length,
+    height: est.height,
+    lagRows: est.lagRows,
+    coating: est.coating,
+    hasGate: est.hasGate,
+    gateLength: est.gateLength,
+    hasWicket: est.hasWicket,
+    wicketWidth: est.wicketWidth,
+    grandTotal: est.grandTotal,
+  }));
+
+  const order = await prisma.order.create({
+    data: {
+      clientName: validatedData.clientName,
+      phone: validatedData.phone,
+      email: validatedData.email || null,
+      serviceType: 'fence',
+      parameters: {
+        message: validatedData.message || null,
+        isMultiEstimate: true,
+        estimatesCount: multiEstimate.estimatesCount,
+        totalMaterials: multiEstimate.totalMaterials,
+        totalInstallation: multiEstimate.totalInstallation,
+        fences: fenceParameters,
+      },
+      calculatedCost: multiEstimate.grandTotal,
+      status: 'NEW',
+      multiEstimateId: multiEstimate.id,
+      statusHistory: [
+        {
+          status: 'NEW',
+          changedAt: new Date().toISOString(),
+          changedBy: 'system',
+          changedByName: 'Система',
+          data: {},
+        },
+      ],
+    },
+    include: {
+      estimate: {
+        select: {
+          id: true,
+          grandTotal: true,
+        },
+      },
+    },
+  });
+
+  getSystemUserId().then((systemUserId) => {
+    createAuditLogAsync({
+      userId: systemUserId,
+      action: 'CREATE_MULTI_ESTIMATE_ORDER',
+      entityType: 'Order',
+      entityId: order.id,
+      oldValues: null,
+      newValues: {
+        clientName: validatedData.clientName,
+        phone: validatedData.phone,
+        email: validatedData.email,
+        serviceType: 'fence',
+        parameters: order.parameters,
+        calculatedCost: multiEstimate.grandTotal,
+        estimatesCount: multiEstimate.estimatesCount,
+      },
+    });
+  });
+
+  sendOrderNotification(order).catch((err) =>
+    console.error('Failed to send order notification emails:', err)
+  );
+  sendTelegramNotification(order).catch((err) =>
+    console.error('Failed to send Telegram notification:', err)
+  );
+  if (validatedData.email) {
+    sendClientConfirmation(order).catch((err) =>
+      console.error('Failed to send client confirmation email:', err)
+    );
+  }
+
+  return NextResponse.json(
+    {
+      id: order.id,
+      status: order.status,
+      statusLabel: STATUS_LABELS[order.status],
+      multiEstimateId: multiEstimate.id,
+      calculatedCost: multiEstimate.grandTotal,
+      estimatesCount: multiEstimate.estimatesCount,
+      isMultiEstimate: true,
+      createdAt: order.createdAt,
+    },
+    { status: 201, headers: rlHeaders }
+  );
 }
 
 async function createStandardOrder(body: unknown, rlHeaders: Record<string, string>) {

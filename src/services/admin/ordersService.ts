@@ -83,6 +83,19 @@ export class OrdersService {
               grandTotal: true,
             },
           },
+          multiEstimate: {
+            select: {
+              id: true,
+              grandTotal: true,
+              estimates: {
+                select: {
+                  id: true,
+                  grandTotal: true,
+                },
+                orderBy: { createdAt: 'asc' },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -92,8 +105,14 @@ export class OrdersService {
     const ordersWithLabels = orders.map((order) => ({
       ...order,
       statusLabel: STATUS_LABELS[order.status],
-      calculatedCost: order.estimate?.grandTotal ?? order.calculatedCost,
+      calculatedCost: order.estimate?.grandTotal ?? order.multiEstimate?.grandTotal ?? order.calculatedCost,
       isIndividualRequest: order.serviceType === 'INDIVIDUAL_CALCULATION',
+      isMultiEstimate: !!order.multiEstimate,
+      estimateIds: order.multiEstimate
+        ? order.multiEstimate.estimates.map((e: { id: string }) => e.id)
+        : order.estimateId
+          ? [order.estimateId]
+          : [],
     }));
 
     return {
@@ -457,6 +476,7 @@ export class OrdersService {
           cancellationReason: true,
           completionDate: true,
           statusHistory: true,
+          multiEstimateId: true,
           assignedUser: {
             select: {
               id: true,
@@ -474,6 +494,21 @@ export class OrdersService {
               },
             },
           },
+          multiEstimate: {
+            include: {
+              estimates: {
+                include: {
+                  fenceType: {
+                    select: { id: true, name: true },
+                  },
+                  user: {
+                    select: { id: true, name: true, role: true },
+                  },
+                },
+                orderBy: { createdAt: 'asc' },
+              },
+            },
+          },
         },
       });
       console.log('[getOrderFull] Order found:', !!order);
@@ -486,7 +521,52 @@ export class OrdersService {
 
     const showPurchasePrices = userRole === 'ADMIN';
 
-    const statusHistory = (order.statusHistory as any[]) || [];
+    let resolvedOrder = order;
+
+    if (!order.multiEstimateId && (order.parameters as any)?.isMultiEstimate) {
+      console.log('[getOrderFull] Order has isMultiEstimate but no multiEstimateId, searching fallback...');
+      const params = order.parameters as any;
+      const fallbackMulti = await prisma.multiFenceEstimate.findFirst({
+        where: {
+          grandTotal: order.calculatedCost,
+          totalMaterials: params.totalMaterials ?? undefined,
+          totalInstallation: params.totalInstallation ?? undefined,
+          estimatesCount: params.estimatesCount ?? undefined,
+        },
+        include: {
+          estimates: {
+            include: {
+              fenceType: {
+                select: { id: true, name: true },
+              },
+              user: {
+                select: { id: true, name: true, role: true },
+              },
+            },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (fallbackMulti) {
+        console.log('[getOrderFull] Found fallback MultiFenceEstimate:', fallbackMulti.id);
+        resolvedOrder = {
+          ...order,
+          multiEstimateId: fallbackMulti.id,
+          multiEstimate: fallbackMulti,
+        };
+
+        prisma.order.update({
+          where: { id: order.id },
+          data: { multiEstimateId: fallbackMulti.id },
+        }).catch(err => console.error('[getOrderFull] Failed to update order with multiEstimateId:', err));
+      } else {
+        console.log('[getOrderFull] No fallback MultiFenceEstimate found');
+      }
+    }
+
+    const statusHistory = (resolvedOrder.statusHistory as any[]) || [];
 
     const formattedHistory = statusHistory.map((entry) => ({
       status: entry.status,
@@ -498,36 +578,37 @@ export class OrdersService {
     }));
 
     const orderWithDetails = {
-      id: order.id,
-      clientName: order.clientName,
-      phone: order.phone,
-      email: order.email,
-      message: (order.parameters as any)?.message || null,
-      status: order.status,
-      statusLabel: STATUS_LABELS[order.status],
-      serviceType: order.serviceType,
-      calculatedCost: order.estimate?.grandTotal ?? order.calculatedCost,
-      createdAt: order.createdAt.toISOString(),
-      updatedAt: order.updatedAt.toISOString(),
-      measurementAddress: order.measurementAddress,
-      measurementDate: order.measurementDate?.toISOString() || null,
-      cancellationReason: order.cancellationReason,
-      completionDate: order.completionDate?.toISOString() || null,
-      assignedUser: order.assignedUser
+      id: resolvedOrder.id,
+      clientName: resolvedOrder.clientName,
+      phone: resolvedOrder.phone,
+      email: resolvedOrder.email,
+      message: (resolvedOrder.parameters as any)?.message || null,
+      status: resolvedOrder.status,
+      statusLabel: STATUS_LABELS[resolvedOrder.status],
+      serviceType: resolvedOrder.serviceType,
+      calculatedCost: resolvedOrder.estimate?.grandTotal ?? resolvedOrder.calculatedCost,
+      createdAt: resolvedOrder.createdAt.toISOString(),
+      updatedAt: resolvedOrder.updatedAt.toISOString(),
+      measurementAddress: resolvedOrder.measurementAddress,
+      measurementDate: resolvedOrder.measurementDate?.toISOString() || null,
+      cancellationReason: resolvedOrder.cancellationReason,
+      completionDate: resolvedOrder.completionDate?.toISOString() || null,
+      assignedUser: resolvedOrder.assignedUser
         ? {
-            id: order.assignedUser.id,
-            name: order.assignedUser.name || 'Неизвестный',
-            role: order.assignedUser.role,
+            id: resolvedOrder.assignedUser.id,
+            name: resolvedOrder.assignedUser.name || 'Неизвестный',
+            role: resolvedOrder.assignedUser.role,
           }
         : null,
       statusHistory: formattedHistory,
-      parameters: order.parameters,
+      parameters: resolvedOrder.parameters,
     };
 
     let estimate = null;
+    let multiEstimates = null;
 
-    if (order.estimate) {
-      const items = (order.estimate.items as any[]) || [];
+    if (resolvedOrder.estimate) {
+      const items = (resolvedOrder.estimate.items as any[]) || [];
 
       const COATING_LABELS: Record<string, string> = {
         GALVANIZED: 'Оцинковка',
@@ -552,8 +633,8 @@ export class OrdersService {
 
       if (showPurchasePrices) {
         purchaseTotal = items.reduce((sum, item) => sum + (item.purchaseTotal || 0), 0);
-        marginTotalRub = (order.estimate.grandTotal || 0) - purchaseTotal;
-        marginTotalPercent = purchaseTotal > 0 ? (marginTotalRub / order.estimate.grandTotal) * 100 : 0;
+        marginTotalRub = (resolvedOrder.estimate.grandTotal || 0) - purchaseTotal;
+        marginTotalPercent = purchaseTotal > 0 ? (marginTotalRub / resolvedOrder.estimate.grandTotal) * 100 : 0;
       }
 
       const formattedItems = items.map((item) => ({
@@ -573,51 +654,186 @@ export class OrdersService {
       }));
 
       estimate = {
-        id: order.estimate.id,
-        fenceType: order.estimate.fenceType,
-        length: order.estimate.length,
-        height: order.estimate.height,
-        lagRows: order.estimate.lagRows,
-        coating: order.estimate.coating,
-        coatingLabel: COATING_LABELS[order.estimate.coating] || order.estimate.coating,
-        hasGate: order.estimate.hasGate,
-        gateType: order.estimate.gateType,
-        gateTypeLabel: order.estimate.gateType
-          ? GATE_TYPE_LABELS[order.estimate.gateType] || order.estimate.gateType
+        id: resolvedOrder.estimate.id,
+        fenceType: resolvedOrder.estimate.fenceType,
+        length: resolvedOrder.estimate.length,
+        height: resolvedOrder.estimate.height,
+        lagRows: resolvedOrder.estimate.lagRows,
+        coating: resolvedOrder.estimate.coating,
+        coatingLabel: COATING_LABELS[resolvedOrder.estimate.coating] || resolvedOrder.estimate.coating,
+        hasGate: resolvedOrder.estimate.hasGate,
+        gateType: resolvedOrder.estimate.gateType,
+        gateTypeLabel: resolvedOrder.estimate.gateType
+          ? GATE_TYPE_LABELS[resolvedOrder.estimate.gateType] || resolvedOrder.estimate.gateType
           : null,
-        gateLength: order.estimate.gateLength,
-        gateNomenclatureName: order.estimate.gateNomenclatureName,
-        hasWicket: order.estimate.hasWicket,
-        wicketWidth: order.estimate.wicketWidth,
-        wicketNomenclatureName: order.estimate.wicketNomenclatureName,
-        city: order.estimate.city,
+        gateLength: resolvedOrder.estimate.gateLength,
+        gateNomenclatureName: resolvedOrder.estimate.gateNomenclatureName,
+        hasWicket: resolvedOrder.estimate.hasWicket,
+        wicketWidth: resolvedOrder.estimate.wicketWidth,
+        wicketNomenclatureName: resolvedOrder.estimate.wicketNomenclatureName,
+        city: resolvedOrder.estimate.city,
         items: formattedItems,
         materialsTotal,
         installationTotal,
-        grandTotal: order.estimate.grandTotal,
+        grandTotal: resolvedOrder.estimate.grandTotal,
         ...(showPurchasePrices && {
           purchaseTotal,
           marginTotalRub,
           marginTotalPercent,
         }),
-        userId: order.estimate.userId,
-        user: order.estimate.user
+        userId: resolvedOrder.estimate.userId,
+        user: resolvedOrder.estimate.user
           ? {
-              id: order.estimate.user.id,
-              name: order.estimate.user.name || 'Неизвестный',
-              role: order.estimate.user.role,
+              id: resolvedOrder.estimate.user.id,
+              name: resolvedOrder.estimate.user.name || 'Неизвестный',
+              role: resolvedOrder.estimate.user.role,
             }
           : null,
-        sessionId: order.estimate.sessionId,
-        ipAddress: order.estimate.ipAddress,
-        userAgent: order.estimate.userAgent,
-        createdAt: order.estimate.createdAt.toISOString(),
+        sessionId: resolvedOrder.estimate.sessionId,
+        ipAddress: resolvedOrder.estimate.ipAddress,
+        userAgent: resolvedOrder.estimate.userAgent,
+        createdAt: resolvedOrder.estimate.createdAt.toISOString(),
       };
+    }
+
+    if (resolvedOrder.multiEstimate && resolvedOrder.multiEstimate.estimates.length > 0) {
+      const COATING_LABELS: Record<string, string> = {
+        GALVANIZED: 'Оцинковка',
+        POLYMER_SINGLE: 'Полимерное одностороннее',
+        POLYMER_DOUBLE: 'Полимерное двустороннее',
+      };
+
+      const GATE_TYPE_LABELS: Record<string, string> = {
+        SWING: 'Распашные',
+        SLIDING: 'Откатные',
+      };
+
+      multiEstimates = resolvedOrder.multiEstimate.estimates.map((est) => {
+        const items = (est.items as any[]) || [];
+
+        const materialsItems = items.filter((item) => item.category !== 'installation');
+        const installationItems = items.filter((item) => item.category === 'installation');
+
+        const materialsTotal = materialsItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+        const installationTotal = installationItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+
+        let purchaseTotal = null;
+        let marginTotalRub = null;
+        let marginTotalPercent = null;
+
+        if (showPurchasePrices) {
+          purchaseTotal = items.reduce((sum, item) => sum + (item.purchaseTotal || 0), 0);
+          marginTotalRub = (est.grandTotal || 0) - purchaseTotal;
+          marginTotalPercent = purchaseTotal > 0 ? (marginTotalRub / est.grandTotal) * 100 : 0;
+        }
+
+        const formattedItems = items.map((item) => ({
+          category: item.category,
+          nomenclatureId: item.nomenclatureId,
+          nomenclatureName: item.nomenclatureName,
+          quantity: item.quantity,
+          unit: item.unit,
+          pricePerUnit: item.pricePerUnit,
+          totalPrice: item.totalPrice,
+          ...(showPurchasePrices && {
+            purchasePricePerUnit: item.purchasePricePerUnit || null,
+            purchaseTotal: item.purchaseTotal || null,
+            marginRub: item.marginRub || null,
+            marginPercent: item.marginPercent || null,
+          }),
+        }));
+
+        return {
+          id: est.id,
+          fenceType: est.fenceType,
+          length: est.length,
+          height: est.height,
+          lagRows: est.lagRows,
+          coating: est.coating,
+          coatingLabel: COATING_LABELS[est.coating] || est.coating,
+          hasGate: est.hasGate,
+          gateType: est.gateType,
+          gateTypeLabel: est.gateType
+            ? GATE_TYPE_LABELS[est.gateType] || est.gateType
+            : null,
+          gateLength: est.gateLength,
+          gateNomenclatureName: est.gateNomenclatureName,
+          hasWicket: est.hasWicket,
+          wicketWidth: est.wicketWidth,
+          wicketNomenclatureName: est.wicketNomenclatureName,
+          city: est.city,
+          items: formattedItems,
+          materialsTotal,
+          installationTotal,
+          grandTotal: est.grandTotal,
+          ...(showPurchasePrices && {
+            purchaseTotal,
+            marginTotalRub,
+            marginTotalPercent,
+          }),
+          userId: est.userId,
+          user: est.user
+            ? {
+                id: est.user.id,
+                name: est.user.name || 'Неизвестный',
+                role: est.user.role,
+              }
+            : null,
+          sessionId: est.sessionId,
+          ipAddress: est.ipAddress,
+          userAgent: est.userAgent,
+          createdAt: est.createdAt.toISOString(),
+        };
+      });
+    } else if ((resolvedOrder.parameters as any)?.isMultiEstimate && (resolvedOrder.parameters as any)?.fences) {
+      console.log('[getOrderFull] MultiEstimate has no estimates, using parameters.fences as fallback');
+      const params = resolvedOrder.parameters as any;
+      const fenceTypes = await prisma.fenceType.findMany({
+        where: { id: { in: params.fences.map((f: any) => f.fenceTypeId) } },
+      });
+
+      multiEstimates = params.fences.map((fence: any) => {
+        const fenceType = fenceTypes.find((ft) => ft.id === fence.fenceTypeId);
+        return {
+          id: `fallback-${fence.fenceTypeId}`,
+          fenceType: fenceType ? { id: fenceType.id, name: fenceType.name } : { id: fence.fenceTypeId, name: fence.fenceTypeName || 'Неизвестный' },
+          length: fence.length,
+          height: fence.height,
+          lagRows: fence.lagRows,
+          coating: fence.coating,
+          coatingLabel: fence.coating === 'GALVANIZED' ? 'Оцинковка' : fence.coating === 'POLYMER_SINGLE' ? 'Полимерное одностороннее' : 'Полимерное двустороннее',
+          hasGate: fence.hasGate,
+          gateType: null,
+          gateTypeLabel: null,
+          gateLength: fence.gateLength,
+          gateNomenclatureName: null,
+          hasWicket: fence.hasWicket,
+          wicketWidth: fence.wicketWidth,
+          wicketNomenclatureName: null,
+          city: null,
+          items: [],
+          materialsTotal: 0,
+          installationTotal: 0,
+          grandTotal: fence.grandTotal,
+          ...(showPurchasePrices && {
+            purchaseTotal: null,
+            marginTotalRub: null,
+            marginTotalPercent: null,
+          }),
+          userId: null,
+          user: null,
+          sessionId: null,
+          ipAddress: null,
+          userAgent: null,
+          createdAt: resolvedOrder.createdAt.toISOString(),
+        };
+      });
     }
 
     return {
       order: orderWithDetails,
       estimate,
+      multiEstimates,
       showPurchasePrices,
     };
   }
