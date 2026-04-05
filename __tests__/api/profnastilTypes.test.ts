@@ -1,10 +1,8 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { POST } from '@/app/api/admin/profnastil-types/route';
 import { PUT, GET } from '@/app/api/admin/profnastil-types/[id]/route';
-
-jest.mock('next-auth', () => ({
-  getServerSession: jest.fn(),
-}));
+import { NextResponse } from 'next/server';
+import * as adminAuth from '@/lib/admin-auth';
 
 jest.mock('@/services/admin/profnastilTypeService', () => ({
   profnastilTypeService: {
@@ -25,19 +23,23 @@ jest.mock('@/lib/validators/profnastilType', () => ({
   },
 }));
 
+jest.mock('@/lib/audit', () => ({
+  createAuditLogAsync: jest.fn(),
+}));
+
 describe('POST /api/admin/profnastil-types', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should auto-calculate purchasePricePerUnit', async () => {
-    const { getServerSession } = await import('next-auth');
-    (getServerSession as any).mockResolvedValue({
-      user: {
-        id: 'admin-id',
+    jest.spyOn(adminAuth, 'requireAdmin').mockResolvedValue({
+      session: {
+        userId: 'admin-id',
+        email: 'admin@example.com',
         role: 'ADMIN',
       },
-    });
+    } as any);
 
     const { profnastilTypeSchema } = await import('@/lib/validators/profnastilType');
     (profnastilTypeSchema.parse as any).mockReturnValue({
@@ -59,7 +61,7 @@ describe('POST /api/admin/profnastil-types', () => {
     });
 
     const request = {
-      json: (jest.fn as any)().mockResolvedValue({
+      json: () => Promise.resolve({
         name: 'Тестовый профнастил',
         metalThickness: 0.5,
         fullWidth: 1200,
@@ -90,16 +92,16 @@ describe('POST /api/admin/profnastil-types', () => {
   });
 
   it('should forbid non-admin from setting purchase prices', async () => {
-    const { getServerSession } = await import('next-auth');
-    (getServerSession as any).mockResolvedValue({
-      user: {
-        id: 'manager-id',
+    jest.spyOn(adminAuth, 'requireAdmin').mockResolvedValue({
+      session: {
+        userId: 'manager-id',
+        email: 'manager@example.com',
         role: 'MANAGER',
       },
-    });
+    } as any);
 
     const request = {
-      json: (jest.fn as any)().mockResolvedValue({
+      json: () => Promise.resolve({
         name: 'Тестовый профнастил',
         purchasePricePerLinearMeter: 350,
       }),
@@ -117,13 +119,13 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
   });
 
   it('should recalculate purchasePricePerUnit on update', async () => {
-    const { getServerSession } = await import('next-auth');
-    (getServerSession as any).mockResolvedValue({
-      user: {
-        id: 'admin-id',
+    jest.spyOn(adminAuth, 'requireAdmin').mockResolvedValue({
+      session: {
+        userId: 'admin-id',
+        email: 'admin@example.com',
         role: 'ADMIN',
       },
-    });
+    } as any);
 
     const { profnastilTypeUpdateSchema } = await import('@/lib/validators/profnastilType');
     (profnastilTypeUpdateSchema.parse as any).mockReturnValue({
@@ -140,7 +142,7 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
     });
 
     const request = {
-      json: (jest.fn as any)().mockResolvedValue({
+      json: () => Promise.resolve({
         length: 2500,
         purchasePricePerLinearMeter: 380,
       }),
@@ -160,16 +162,16 @@ describe('PUT /api/admin/profnastil-types/[id]', () => {
   });
 
   it('should forbid non-admin from modifying purchase prices', async () => {
-    const { getServerSession } = await import('next-auth');
-    (getServerSession as any).mockResolvedValue({
-      user: {
-        id: 'manager-id',
+    jest.spyOn(adminAuth, 'requireAdmin').mockResolvedValue({
+      session: {
+        userId: 'manager-id',
+        email: 'manager@example.com',
         role: 'MANAGER',
       },
-    });
+    } as any);
 
     const request = {
-      json: (jest.fn as any)().mockResolvedValue({
+      json: () => Promise.resolve({
         purchasePricePerLinearMeter: 400,
       }),
     } as any;
@@ -186,13 +188,13 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
   });
 
   it('should return both price fields for ADMIN', async () => {
-    const { getServerSession } = await import('next-auth');
-    (getServerSession as any).mockResolvedValue({
-      user: {
-        id: 'admin-id',
+    jest.spyOn(adminAuth, 'requireAdmin').mockResolvedValue({
+      session: {
+        userId: 'admin-id',
+        email: 'admin@example.com',
         role: 'ADMIN',
       },
-    });
+    } as any);
 
     const { profnastilTypeService } = await import('@/services/admin/profnastilTypeService');
     (profnastilTypeService.getById as any).mockResolvedValue({
@@ -213,13 +215,13 @@ describe('GET /api/admin/profnastil-types/[id]', () => {
   });
 
   it('should hide purchase price fields for MANAGER', async () => {
-    const { getServerSession } = await import('next-auth');
-    (getServerSession as any).mockResolvedValue({
-      user: {
-        id: 'manager-id',
+    jest.spyOn(adminAuth, 'requireAdmin').mockResolvedValue({
+      session: {
+        userId: 'manager-id',
+        email: 'manager@example.com',
         role: 'MANAGER',
       },
-    });
+    } as any);
 
     const { profnastilTypeService } = await import('@/services/admin/profnastilTypeService');
     (profnastilTypeService.getById as any).mockResolvedValue({
