@@ -294,60 +294,128 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                       Индивидуальный расчёт
                     </span>
                   </div>
-                  <h2 className="text-lg font-bold mb-4">Параметры забора</h2>
-                  <div className="space-y-3">
-                    {(order.parameters as any).fenceTypeName && (
-                      <div>
-                        <label className="text-sm text-gray-500 block">Тип забора</label>
-                        <p className="font-medium">{(order.parameters as any).fenceTypeName}</p>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-4">
-                      {(order.parameters as any).length && (
-                        <div>
-                          <label className="text-sm text-gray-500 block">Длина</label>
-                          <p className="font-medium">{(order.parameters as any).length} м</p>
+                  {(order.parameters as any).canopyTypeLabel ? (
+                    <>
+                      <h2 className="text-lg font-bold mb-4">Параметры навеса</h2>
+                      <div className="space-y-3">
+                        {(order.parameters as any).canopyTypeLabel && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Тип навеса</label>
+                            <p className="font-medium">{(order.parameters as any).canopyTypeLabel}</p>
+                          </div>
+                        )}
+                        {(order.parameters as any).purposeLabel && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Назначение</label>
+                            <p className="font-medium">{(order.parameters as any).purposeLabel}</p>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-3 gap-4">
+                          {(order.parameters as any).length && (
+                            <div>
+                              <label className="text-sm text-gray-500 block">Длина</label>
+                              <p className="font-medium">{(order.parameters as any).length} м</p>
+                            </div>
+                          )}
+                          {(order.parameters as any).width && (
+                            <div>
+                              <label className="text-sm text-gray-500 block">Ширина</label>
+                              <p className="font-medium">{(order.parameters as any).width} м</p>
+                            </div>
+                          )}
+                          {(order.parameters as any).height && (
+                            <div>
+                              <label className="text-sm text-gray-500 block">Высота</label>
+                              <p className="font-medium">{(order.parameters as any).height} м</p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {(order.parameters as any).height && (
-                        <div>
-                          <label className="text-sm text-gray-500 block">Высота</label>
-                          <p className="font-medium">{(order.parameters as any).height} м</p>
+                        {(order.parameters as any).installationTypeLabel && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Установка</label>
+                            <p className="font-medium">{(order.parameters as any).installationTypeLabel}</p>
+                          </div>
+                        )}
+                        {(order.parameters as any).roofMaterialLabel && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Кровля</label>
+                            <p className="font-medium">{(order.parameters as any).roofMaterialLabel}</p>
+                          </div>
+                        )}
+                        {(order.parameters as any).hasWaterSystem && (
+                          <div className="p-3 bg-blue-50 rounded-lg">
+                            <label className="text-sm text-blue-600 block">Водосточная система</label>
+                            <p className="font-medium text-blue-800">Да</p>
+                          </div>
+                        )}
+                        {(order.parameters as any).message && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Комментарий клиента</label>
+                            <p className="font-medium text-gray-700 bg-gray-50 p-3 rounded-lg">
+                              {(order.parameters as any).message}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-lg font-bold mb-4">Параметры забора</h2>
+                      <div className="space-y-3">
+                        {(order.parameters as any).fenceTypeName && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Тип забора</label>
+                            <p className="font-medium">{(order.parameters as any).fenceTypeName}</p>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-4">
+                          {(order.parameters as any).length && (
+                            <div>
+                              <label className="text-sm text-gray-500 block">Длина</label>
+                              <p className="font-medium">{(order.parameters as any).length} м</p>
+                            </div>
+                          )}
+                          {(order.parameters as any).height && (
+                            <div>
+                              <label className="text-sm text-gray-500 block">Высота</label>
+                              <p className="font-medium">{(order.parameters as any).height} м</p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    {(order.parameters as any).coating && (
-                      <div>
-                        <label className="text-sm text-gray-500 block">Покрытие</label>
-                        <p className="font-medium">{(order.parameters as any).coating}</p>
+                        {(order.parameters as any).coating && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Покрытие</label>
+                            <p className="font-medium">{(order.parameters as any).coating}</p>
+                          </div>
+                        )}
+                        {(order.parameters as any).hasGate && (
+                          <div className="p-3 bg-blue-50 rounded-lg">
+                            <label className="text-sm text-blue-600 block">Ворота</label>
+                            <p className="font-medium text-blue-800">
+                              {(order.parameters as any).gateType === 'SLIDING' ? 'Откатные' : 'Распашные'}
+                              {(order.parameters as any).gateWidth && `, ${(order.parameters as any).gateWidth} м`}
+                            </p>
+                          </div>
+                        )}
+                        {(order.parameters as any).hasWicket && (
+                          <div className="p-3 bg-green-50 rounded-lg">
+                            <label className="text-sm text-green-600 block">Калитка</label>
+                            <p className="font-medium text-green-800">
+                              {(order.parameters as any).wicketWidth && `${(order.parameters as any).wicketWidth} м`}
+                            </p>
+                          </div>
+                        )}
+                        {(order.parameters as any).message && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Комментарий клиента</label>
+                            <p className="font-medium text-gray-700 bg-gray-50 p-3 rounded-lg">
+                              {(order.parameters as any).message}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {(order.parameters as any).hasGate && (
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <label className="text-sm text-blue-600 block">Ворота</label>
-                        <p className="font-medium text-blue-800">
-                          {(order.parameters as any).gateType === 'SLIDING' ? 'Откатные' : 'Распашные'}
-                          {(order.parameters as any).gateWidth && `, ${(order.parameters as any).gateWidth} м`}
-                        </p>
-                      </div>
-                    )}
-                    {(order.parameters as any).hasWicket && (
-                      <div className="p-3 bg-green-50 rounded-lg">
-                        <label className="text-sm text-green-600 block">Калитка</label>
-                        <p className="font-medium text-green-800">
-                          {(order.parameters as any).wicketWidth && `${(order.parameters as any).wicketWidth} м`}
-                        </p>
-                      </div>
-                    )}
-                    {(order.parameters as any).message && (
-                      <div>
-                        <label className="text-sm text-gray-500 block">Комментарий клиента</label>
-                        <p className="font-medium text-gray-700 bg-gray-50 p-3 rounded-lg">
-                          {(order.parameters as any).message}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </div>
               )}
               {!isIndividualRequest && (

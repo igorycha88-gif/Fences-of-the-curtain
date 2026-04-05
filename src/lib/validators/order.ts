@@ -34,16 +34,35 @@ export const fenceParametersSchema = z.object({
   picketMountingType: z.string().optional(),
 });
 
+export const canopyParametersSchema = z.object({
+  canopyType: z.string(),
+  canopyTypeLabel: z.string(),
+  purpose: z.string(),
+  purposeLabel: z.string(),
+  length: z.number().min(1),
+  width: z.number().min(1),
+  height: z.number().min(1),
+  installationType: z.string(),
+  installationTypeLabel: z.string(),
+  roofMaterial: z.string(),
+  roofMaterialLabel: z.string(),
+  hasWaterSystem: z.boolean(),
+});
+
 export const individualOrderSchema = z.object({
   clientName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
   phone: z.string().regex(/^\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}$/, 'Формат: +7 (XXX) XXX-XX-XX'),
   email: z.string().email('Некорректный email').optional().or(z.literal('')),
   message: z.string().max(1000, 'Комментарий не более 1000 символов').optional().or(z.literal('')),
   isIndividualRequest: z.literal(true),
-  fenceParameters: fenceParametersSchema,
+  fenceParameters: fenceParametersSchema.optional(),
+  canopyParameters: canopyParametersSchema.optional(),
+}).refine((data) => data.fenceParameters || data.canopyParameters, {
+  message: 'Необходимы параметры забора или навеса',
 });
 
 export type FenceParameters = z.infer<typeof fenceParametersSchema>;
+export type CanopyParameters = z.infer<typeof canopyParametersSchema>;
 export type IndividualOrderRequest = z.infer<typeof individualOrderSchema>;
 
 export const ORDER_STATUSES = [

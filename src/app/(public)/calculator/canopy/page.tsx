@@ -1,9 +1,37 @@
 'use client';
 
 import { useState } from 'react';
-import { Calculator, Download, Send } from 'lucide-react';
-import Link from 'next/link';
+import { Calculator, Send } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import CanopyNomenclatureNotFoundModal from '@/components/calculator/CanopyNomenclatureNotFoundModal';
+
+const canopyTypeLabels: Record<string, string> = {
+  'single-slope': 'Односкатный',
+  'double-slope': 'Двускатный',
+  'arch': 'Арочный',
+};
+
+const purposeLabels: Record<string, string> = {
+  'car-1': 'Автомобиль (1)',
+  'car-2': 'Автомобиль (2)',
+  'car-3': 'Автомобиль (3)',
+  'gazebo': 'Беседка',
+  'terrace': 'Терраса',
+  'storage': 'Хозблок',
+};
+
+const installationTypeLabels: Record<string, string> = {
+  'ground': 'На землю (сваи)',
+  'wall': 'К стене',
+  'base': 'На основание',
+};
+
+const roofMaterialLabels: Record<string, string> = {
+  'polycarbonate-8': 'Поликарбонат 8мм',
+  'polycarbonate-10': 'Поликарбонат 10мм',
+  'profnastil': 'Профнастил',
+  'metal-tile': 'Металлочерепица',
+};
 
 interface CanopyCalculatorForm {
   canopyType: 'single-slope' | 'double-slope' | 'arch';
@@ -52,6 +80,7 @@ export default function CanopyCalculatorPage() {
 
   const [result, setResult] = useState<CalculatorResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showIndividualRequestModal, setShowIndividualRequestModal] = useState(false);
 
   const calculate = async () => {
     setLoading(true);
@@ -65,6 +94,7 @@ export default function CanopyCalculatorPage() {
       if (response.ok) {
         const data = await response.json();
         setResult(data);
+        setShowIndividualRequestModal(true);
       }
     } catch (error) {
       console.error('Calculation error:', error);
@@ -79,6 +109,25 @@ export default function CanopyCalculatorPage() {
       currency: 'RUB',
       maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const handleModalSuccess = () => {
+    setShowIndividualRequestModal(false);
+  };
+
+  const canopyParameters = {
+    canopyType: formData.canopyType,
+    canopyTypeLabel: canopyTypeLabels[formData.canopyType] || formData.canopyType,
+    purpose: formData.purpose,
+    purposeLabel: purposeLabels[formData.purpose] || formData.purpose,
+    length: formData.length,
+    width: formData.width,
+    height: formData.height,
+    installationType: formData.installationType,
+    installationTypeLabel: installationTypeLabels[formData.installationType] || formData.installationType,
+    roofMaterial: formData.roofMaterial,
+    roofMaterialLabel: roofMaterialLabels[formData.roofMaterial] || formData.roofMaterial,
+    hasWaterSystem: formData.hasWaterSystem,
   };
 
   return (
@@ -217,70 +266,72 @@ export default function CanopyCalculatorPage() {
 
             {result && (
               <div className="bg-white rounded-xl shadow-lg p-6 border">
-                <h2 className="text-2xl font-semibold mb-6">Результат расчета</h2>
+                <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+                  <Send className="w-6 h-6 text-primary" />
+                  Оформить заявку
+                </h2>
 
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-700">Материалы</h3>
-                    <div className="space-y-2">
-                      {result.materials.map((item, index) => (
-                        <div key={index} className="flex justify-between items-center py-2 border-b">
-                          <span className="text-gray-600">{item.name}</span>
-                          <span className="font-semibold">{formatCurrency(item.total)}</span>
-                        </div>
-                      ))}
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                    <p className="text-sm text-muted-foreground">
+                      Для выбранных вами параметров подготовлен расчёт. 
+                      Оставьте контакты — менеджер свяжется с вами, уточнит детали и подготовит персональное предложение.
+                    </p>
+                  </div>
+
+                  <div className="bg-secondary/30 border border-border/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calculator className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium">Параметры вашего навеса:</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b font-semibold">
-                      <span>Итого материалы</span>
-                      <span className="text-primary">{formatCurrency(result.materialsTotal)}</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Тип:</span>{' '}
+                        <span className="font-medium">{canopyParameters.canopyTypeLabel}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Назначение:</span>{' '}
+                        <span className="font-medium">{canopyParameters.purposeLabel}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Длина:</span>{' '}
+                        <span className="font-medium">{canopyParameters.length} м</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Ширина:</span>{' '}
+                        <span className="font-medium">{canopyParameters.width} м</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Высота:</span>{' '}
+                        <span className="font-medium">{canopyParameters.height} м</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Установка:</span>{' '}
+                        <span className="font-medium">{canopyParameters.installationTypeLabel}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-700">Работы</h3>
-                    <div className="space-y-2">
-                      {result.works.map((item, index) => (
-                        <div key={index} className="flex justify-between items-center py-2 border-b">
-                          <span className="text-gray-600">{item.name}</span>
-                          <span className="font-semibold">{formatCurrency(item.total)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b font-semibold">
-                      <span>Итого работы</span>
-                      <span className="text-primary">{formatCurrency(result.worksTotal)}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-primary/5 p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xl font-bold text-gray-900">Итого</span>
-                      <span className="text-2xl font-bold text-primary">{formatCurrency(result.grandTotal)}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      className="flex-1 bg-secondary text-foreground py-3 rounded-lg font-semibold hover:bg-secondary/80 transition-colors border flex items-center justify-center gap-2"
-                      onClick={() => alert('PDF скачивание будет реализовано')}
-                    >
-                      <Download className="w-5 h-5" />
-                      Скачать PDF
-                    </button>
-                    <Link
-                      href={`/calculator/canopy?order=true`}
-                      className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Send className="w-5 h-5" />
-                      Заказать расчет
-                    </Link>
-                  </div>
+                  <button
+                    onClick={() => setShowIndividualRequestModal(true)}
+                    className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                    Оформить заявку
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
       </main>
+
+      <CanopyNomenclatureNotFoundModal
+        isOpen={showIndividualRequestModal}
+        onClose={() => setShowIndividualRequestModal(false)}
+        onSuccess={handleModalSuccess}
+        canopyParameters={canopyParameters}
+      />
     </div>
   );
 }

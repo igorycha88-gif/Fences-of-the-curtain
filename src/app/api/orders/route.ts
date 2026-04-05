@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOrderSchema, individualOrderSchema, multiEstimateOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getSessionFromCookie } from '@/lib/session';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { applyRateLimitByEndpoint } from '@/lib/rate-limit';
@@ -296,16 +297,25 @@ async function createStandardOrder(body: unknown, rlHeaders: Record<string, stri
 async function createIndividualOrder(body: unknown, rlHeaders: Record<string, string>) {
   const validatedData = individualOrderSchema.parse(body);
 
+  const parameters: Record<string, unknown> = {
+    message: validatedData.message || null,
+  };
+
+  if (validatedData.fenceParameters) {
+    Object.assign(parameters, validatedData.fenceParameters);
+  }
+
+  if (validatedData.canopyParameters) {
+    Object.assign(parameters, validatedData.canopyParameters);
+  }
+
   const order = await prisma.order.create({
     data: {
       clientName: validatedData.clientName,
       phone: validatedData.phone,
       email: validatedData.email || null,
       serviceType: 'INDIVIDUAL_CALCULATION',
-      parameters: {
-        ...validatedData.fenceParameters,
-        message: validatedData.message || null,
-      },
+      parameters: parameters as Prisma.InputJsonValue,
       calculatedCost: 0,
       status: 'NEW',
       statusHistory: [

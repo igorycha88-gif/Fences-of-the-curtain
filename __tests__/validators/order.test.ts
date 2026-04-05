@@ -12,6 +12,7 @@ import {
   CANCELLATION_REASON_LABELS,
   individualOrderSchema,
   fenceParametersSchema,
+  canopyParametersSchema,
 } from '@/lib/validators/order';
 
 describe('Order Validators', () => {
@@ -410,6 +411,128 @@ describe('Individual Order Schema', () => {
         },
       };
       expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+  });
+
+  describe('canopyParametersSchema', () => {
+    it('should validate valid canopy parameters', () => {
+      const data = {
+        canopyType: 'single-slope',
+        canopyTypeLabel: 'Односкатный',
+        purpose: 'car-2',
+        purposeLabel: 'Автомобиль (2)',
+        length: 6,
+        width: 4,
+        height: 2.5,
+        installationType: 'ground',
+        installationTypeLabel: 'На землю (сваи)',
+        roofMaterial: 'polycarbonate-8',
+        roofMaterialLabel: 'Поликарбонат 8мм',
+        hasWaterSystem: false,
+      };
+      expect(() => canopyParametersSchema.parse(data)).not.toThrow();
+    });
+
+    it('should reject missing required fields', () => {
+      const data = {
+        canopyType: 'single-slope',
+      };
+      expect(() => canopyParametersSchema.parse(data)).toThrow();
+    });
+
+    it('should reject invalid length', () => {
+      const data = {
+        canopyType: 'single-slope',
+        canopyTypeLabel: 'Односкатный',
+        purpose: 'car-2',
+        purposeLabel: 'Автомобиль (2)',
+        length: 0,
+        width: 4,
+        height: 2.5,
+        installationType: 'ground',
+        installationTypeLabel: 'На землю (сваи)',
+        roofMaterial: 'polycarbonate-8',
+        roofMaterialLabel: 'Поликарбонат 8мм',
+        hasWaterSystem: false,
+      };
+      expect(() => canopyParametersSchema.parse(data)).toThrow();
+    });
+
+    it('should validate with water system enabled', () => {
+      const data = {
+        canopyType: 'arch',
+        canopyTypeLabel: 'Арочный',
+        purpose: 'terrace',
+        purposeLabel: 'Терраса',
+        length: 10,
+        width: 5,
+        height: 3,
+        installationType: 'wall',
+        installationTypeLabel: 'К стене',
+        roofMaterial: 'profnastil',
+        roofMaterialLabel: 'Профнастил',
+        hasWaterSystem: true,
+      };
+      expect(() => canopyParametersSchema.parse(data)).not.toThrow();
+    });
+  });
+
+  describe('individualOrderSchema with canopyParameters', () => {
+    it('should validate valid individual order with canopy parameters', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        email: 'ivan@example.com',
+        message: 'Нужен навес для машины',
+        isIndividualRequest: true,
+        canopyParameters: {
+          canopyType: 'single-slope',
+          canopyTypeLabel: 'Односкатный',
+          purpose: 'car-2',
+          purposeLabel: 'Автомобиль (2)',
+          length: 6,
+          width: 4,
+          height: 2.5,
+          installationType: 'ground',
+          installationTypeLabel: 'На землю (сваи)',
+          roofMaterial: 'polycarbonate-8',
+          roofMaterialLabel: 'Поликарбонат 8мм',
+          hasWaterSystem: false,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).not.toThrow();
+    });
+
+    it('should reject missing both fenceParameters and canopyParameters', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        isIndividualRequest: true,
+      };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should validate with only canopyParameters (no fenceParameters)', () => {
+      const data = {
+        clientName: 'Иван Петров',
+        phone: '+7 (900) 123-45-67',
+        isIndividualRequest: true,
+        canopyParameters: {
+          canopyType: 'arch',
+          canopyTypeLabel: 'Арочный',
+          purpose: 'gazebo',
+          purposeLabel: 'Беседка',
+          length: 5,
+          width: 3,
+          height: 2.8,
+          installationType: 'base',
+          installationTypeLabel: 'На основание',
+          roofMaterial: 'metal-tile',
+          roofMaterialLabel: 'Металлочерепица',
+          hasWaterSystem: true,
+        },
+      };
+      expect(() => individualOrderSchema.parse(data)).not.toThrow();
     });
   });
 });
