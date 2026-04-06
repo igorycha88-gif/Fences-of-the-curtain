@@ -5,7 +5,7 @@
       "models": {
         "glm-5": {
           "options": {
-            "temperature": 0.3
+            "temperature": 2
           }
         }
       }

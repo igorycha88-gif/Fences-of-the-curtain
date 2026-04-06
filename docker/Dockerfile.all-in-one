@@ -16,7 +16,7 @@ FROM base AS deps
 
 COPY package.json package-lock.json* ./
 
-RUN npm ci --legacy-peer-deps --only=production && \
+RUN npm ci --legacy-peer-deps && \
     npm cache clean --force
 
 # Prisma generation stage
@@ -25,7 +25,7 @@ FROM deps AS prisma-generate
 COPY prisma ./prisma
 COPY tsconfig.json next.config.js ./
 
-RUN npx prisma generate
+RUN npx prisma@5.22.0 generate
 
 # Builder stage
 FROM base AS builder
@@ -39,7 +39,7 @@ COPY --from=prisma-generate /app/prisma ./prisma
 COPY package.json package-lock.json* ./
 COPY src ./src
 COPY public ./public
-COPY tsconfig.json next.config.js ./
+COPY tsconfig.json next.config.js prisma.config.ts ./
 
 # Production optimizations
 ENV NODE_ENV=production

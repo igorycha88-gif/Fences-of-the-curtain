@@ -14,22 +14,30 @@ export class CacheService {
       if (this.redisAvailable) {
         const cached = await redis.get(key);
         if (cached) {
-          console.log(`[Cache] HIT: ${key}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Cache] HIT: ${key}`);
+          }
           return JSON.parse(cached) as T;
         }
       }
     } catch (error) {
-      console.error(`[Cache] Redis error, falling back to memory: ${key}`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Cache] Redis error, falling back to memory: ${key}`, error);
+      }
       this.redisAvailable = false;
     }
 
     const memoryEntry = this.memoryCache.get(key);
     if (memoryEntry && memoryEntry.expires > Date.now()) {
-      console.log(`[Cache] MEMORY HIT: ${key}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Cache] MEMORY HIT: ${key}`);
+      }
       return memoryEntry.value as T;
     }
 
-    console.log(`[Cache] MISS: ${key}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Cache] MISS: ${key}`);
+    }
     return null;
   }
 
@@ -41,10 +49,14 @@ export class CacheService {
     try {
       if (this.redisAvailable) {
         await redis.setex(key, ttlSeconds, JSON.stringify(value));
-        console.log(`[Cache] SET: ${key} (TTL: ${ttlSeconds}s)`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Cache] SET: ${key} (TTL: ${ttlSeconds}s)`);
+        }
       }
     } catch (error) {
-      console.error(`[Cache] Redis set error: ${key}`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Cache] Redis set error: ${key}`, error);
+      }
       this.redisAvailable = false;
     }
   }
@@ -55,10 +67,14 @@ export class CacheService {
     try {
       if (this.redisAvailable) {
         await redis.del(key);
-        console.log(`[Cache] DEL: ${key}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Cache] DEL: ${key}`);
+        }
       }
     } catch (error) {
-      console.error(`[Cache] Redis del error: ${key}`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Cache] Redis del error: ${key}`, error);
+      }
     }
   }
 
@@ -78,11 +94,15 @@ export class CacheService {
         const keys = await redis.keys(pattern);
         if (keys.length > 0) {
           await redis.del(...keys);
-          console.log(`[Cache] DEL PATTERN: ${pattern} (${keys.length} keys)`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Cache] DEL PATTERN: ${pattern} (${keys.length} keys)`);
+          }
         }
       }
     } catch (error) {
-      console.error(`[Cache] Redis delPattern error: ${pattern}`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Cache] Redis delPattern error: ${pattern}`, error);
+      }
     }
   }
 

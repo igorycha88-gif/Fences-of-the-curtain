@@ -19,6 +19,7 @@ import {
   Users,
   CheckCircle2
 } from 'lucide-react';
+import { YandexReviews } from '@/components/reviews/YandexReviews';
 
 interface ContactInfoData {
   phone: string;
@@ -286,6 +287,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <YandexReviews showReviews={true} maxReviews={3} />
 
         <section className="py-24 px-4 bg-primary text-primary-foreground">
           <div className="container mx-auto">
