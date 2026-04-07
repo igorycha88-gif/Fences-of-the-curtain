@@ -81,7 +81,16 @@ function getAuthOptions(): NextAuthOptions {
             }
 
             const ip = extractIP(req);
-            const allowed = await checkRateLimit(ip, credentials.email);
+            let allowed = true;
+            try {
+              allowed = await checkRateLimit(ip, credentials.email);
+            } catch (rateLimitError) {
+              console.error(
+                '[AUTH] Rate limit check failed, allowing login attempt. Error:',
+                rateLimitError instanceof Error ? rateLimitError.message : 'Unknown error'
+              );
+              allowed = true;
+            }
 
             if (!allowed) {
               console.log('[AUTH] Rate limit exceeded');

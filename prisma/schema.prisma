@@ -186,8 +186,10 @@ model Order {
   measurementAddress String?
   measurementDate    DateTime?
   assignedUser       User?              @relation("AssignedOrders", fields: [assignedTo], references: [id])
-  estimate           FenceEstimate?     @relation(fields: [estimateId], references: [id])
+  estimate           FenceEstimate?     @relation("OrderEstimate", fields: [estimateId], references: [id])
   multiEstimate      MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
+  adminEstimateId    String?            @unique
+  adminEstimate      FenceEstimate?     @relation("OrderAdminEstimate", fields: [adminEstimateId], references: [id])
 
   @@index([status])
   @@index([estimateId])
@@ -537,11 +539,20 @@ model FenceEstimate {
   picketMountingType       String?
   picketProfileType        String?
   picketCoatingName        String?
+  isEditedByAdmin          Boolean    @default(false)
+  sourceEstimateId         String?
+  editedByAdminId          String?
+  editedAt                 DateTime?
+  editComment              String?
+  manualQuantityOverrides  Json?
   fenceType                FenceType @relation(fields: [fenceTypeId], references: [id])
   user                     User?     @relation(fields: [userId], references: [id])
-  order                    Order?
+  order                    Order?    @relation("OrderEstimate")
+  adminOrder               Order?    @relation("OrderAdminEstimate")
   multiEstimateId          String?
   multiEstimate            MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
+  sourceEstimate           FenceEstimate?  @relation("AdminEstimateEdit", fields: [sourceEstimateId], references: [id])
+  adminEdits               FenceEstimate[] @relation("AdminEstimateEdit")
 
   @@index([fenceTypeId])
   @@index([userId])
@@ -549,6 +560,9 @@ model FenceEstimate {
   @@index([sessionId])
   @@index([city])
   @@index([multiEstimateId])
+  @@index([isEditedByAdmin])
+  @@index([sourceEstimateId])
+  @@index([editedByAdminId])
 }
 
 model MountingHardware {

@@ -113,6 +113,23 @@ export class AuditLogService {
     };
   }
 
+  async getEstimateEditHistory(entityIds: string | string[]) {
+    const ids = Array.isArray(entityIds) ? entityIds : [entityIds];
+    return prisma.auditLog.findMany({
+      where: {
+        action: { in: ['CREATE_ADMIN_ESTIMATE', 'UPDATE_ADMIN_ESTIMATE'] },
+        entityType: 'FenceEstimate',
+        entityId: { in: ids },
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async getActionsByUser(userId: string, limit: number = 100) {
     return prisma.auditLog.findMany({
       where: { userId },

@@ -10,6 +10,12 @@ import {
   RefreshCw,
   Calendar,
   CheckCircle,
+  Pencil,
+  FileText,
+  FilePenLine,
+  ArrowLeftRight,
+  User,
+  Clock,
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ClientInfo } from './ClientInfo';
@@ -17,9 +23,13 @@ import { OrderStatusSection } from './OrderStatusSection';
 import { FenceParameters } from './FenceParameters';
 import { EstimateSection } from './EstimateSection';
 import { MultiEstimateSection } from './MultiEstimateSection';
+import { EstimateEditor } from './EstimateEditor';
+import { EstimateComparisonView } from './EstimateComparisonView';
+import { EstimateEditHistory } from './EstimateEditHistory';
 import { TechnicalInfo } from './TechnicalInfo';
 import { StatusChangeModal } from './StatusChangeModal';
 import { STATUS_LABELS, VALID_STATUS_TRANSITIONS } from '@/lib/validators/order';
+import { cn } from '@/lib/utils';
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -44,6 +54,11 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
 
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [isEstimateEditorOpen, setIsEstimateEditorOpen] = useState(false);
+  const [editingEstimateId, setEditingEstimateId] = useState<string | null>(null);
+  const [activeEstimateTab, setActiveEstimateTab] = useState<'client' | 'admin'>('client');
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
 
   useEffect(() => {
     console.log('[OrderDetailPage] orderId:', orderId);
@@ -92,6 +107,24 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     setTimeout(() => setSuccess(false), 3000);
   };
 
+  const handleEditEstimate = (estimateId: string) => {
+    setEditingEstimateId(estimateId);
+    setIsEstimateEditorOpen(true);
+  };
+
+  const handleEstimateEditorClose = () => {
+    setIsEstimateEditorOpen(false);
+    setEditingEstimateId(null);
+  };
+
+  const handleEstimateEditorSave = () => {
+    setIsEstimateEditorOpen(false);
+    setEditingEstimateId(null);
+    fetchOrderFull();
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
@@ -133,11 +166,15 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     );
   }
 
-  const { order, estimate, multiEstimates, showPurchasePrices } = data;
+  const { order, estimate, adminEstimate, multiEstimates, showPurchasePrices } = data;
   const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !multiEstimates);
   const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
   const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
   const isAdmin = showPurchasePrices;
+
+  const editingEstimate = editingEstimateId
+    ? (isMultiEstimate && multiEstimates ? multiEstimates.find((e: any) => e.id === editingEstimateId) : estimate)
+    : null;
 
   return (
     <div>
@@ -255,6 +292,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
               <MultiEstimateSection
                 estimates={multiEstimates}
                 showPurchasePrices={showPurchasePrices}
+                onEditEstimate={handleEditEstimate}
               />
             </>
           ) : estimate ? (
@@ -283,6 +321,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                 materialsTotal={estimate.materialsTotal}
                 installationTotal={estimate.installationTotal}
                 grandTotal={estimate.grandTotal}
+                onEditEstimate={handleEditEstimate}
               />
             </>
           ) : (
@@ -427,6 +466,10 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           )}
 
           {showPurchasePrices && estimate && (
+            <EstimateEditHistory orderId={order.id} />
+          )}
+
+          {showPurchasePrices && estimate && (
             <TechnicalInfo
               estimateId={estimate.id}
               userId={estimate.userId}
@@ -447,6 +490,32 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           currentStatus={order.status}
           newStatus={selectedStatus}
           onSuccess={handleStatusUpdateSuccess}
+        />
+      )}
+
+      {isEstimateEditorOpen && editingEstimate && (
+        <EstimateEditor
+          isOpen={isEstimateEditorOpen}
+          onClose={handleEstimateEditorClose}
+          orderId={order.id}
+          estimateId={editingEstimate.id}
+          initialParams={{
+            length: editingEstimate.length,
+            height: editingEstimate.height,
+            coating: editingEstimate.coating,
+            lagRows: editingEstimate.lagRows,
+            hasGate: editingEstimate.hasGate,
+            gateType: editingEstimate.gateType,
+            gateWidth: editingEstimate.gateLength ? editingEstimate.gateLength / 1000 : null,
+            hasWicket: editingEstimate.hasWicket,
+            wicketWidth: editingEstimate.wicketWidth ? editingEstimate.wicketWidth / 1000 : null,
+          }}
+          initialItems={editingEstimate.items}
+          initialMaterialsTotal={editingEstimate.materialsTotal}
+          initialInstallationTotal={editingEstimate.installationTotal}
+          initialGrandTotal={editingEstimate.grandTotal}
+          onSaveSuccess={handleEstimateEditorSave}
+          existingAdminEstimateId={adminEstimate?.id}
         />
       )}
     </div>

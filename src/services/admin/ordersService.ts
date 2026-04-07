@@ -102,18 +102,27 @@ export class OrdersService {
       prisma.order.count({ where }),
     ]);
 
-    const ordersWithLabels = orders.map((order) => ({
-      ...order,
-      statusLabel: STATUS_LABELS[order.status],
-      calculatedCost: order.estimate?.grandTotal ?? order.multiEstimate?.grandTotal ?? order.calculatedCost,
-      isIndividualRequest: order.serviceType === 'INDIVIDUAL_CALCULATION',
-      isMultiEstimate: !!order.multiEstimate,
-      estimateIds: order.multiEstimate
-        ? order.multiEstimate.estimates.map((e: { id: string }) => e.id)
-        : order.estimateId
-          ? [order.estimateId]
-          : [],
-    }));
+    const ordersWithLabels = orders.map((order) => {
+      const multiEstChildren = order.multiEstimate?.estimates ?? [];
+      const hasLostChildren = order.multiEstimate && multiEstChildren.length === 0;
+
+      return {
+        ...order,
+        statusLabel: STATUS_LABELS[order.status],
+        calculatedCost: order.estimate?.grandTotal ?? order.multiEstimate?.grandTotal ?? order.calculatedCost,
+        isIndividualRequest: order.serviceType === 'INDIVIDUAL_CALCULATION',
+        isMultiEstimate: !!order.multiEstimate,
+        estimateIds: order.multiEstimate
+          ? multiEstChildren.length > 0
+            ? multiEstChildren.map((e: { id: string }) => e.id)
+            : hasLostChildren
+              ? [order.multiEstimate.id]
+              : []
+          : order.estimateId
+            ? [order.estimateId]
+            : [],
+      };
+    });
 
     return {
       orders: ordersWithLabels,
@@ -477,6 +486,7 @@ export class OrdersService {
           completionDate: true,
           statusHistory: true,
           multiEstimateId: true,
+          adminEstimateId: true,
           assignedUser: {
             select: {
               id: true,
@@ -485,6 +495,16 @@ export class OrdersService {
             },
           },
           estimate: {
+            include: {
+              fenceType: {
+                select: { id: true, name: true },
+              },
+              user: {
+                select: { id: true, name: true, role: true },
+              },
+            },
+          },
+          adminEstimate: {
             include: {
               fenceType: {
                 select: { id: true, name: true },
@@ -696,6 +716,101 @@ export class OrdersService {
       };
     }
 
+    let adminEstimate = null;
+
+    if (resolvedOrder.adminEstimate) {
+      const COATING_LABELS: Record<string, string> = {
+        GALVANIZED: 'Оцинковка',
+        POLYMER_SINGLE: 'Полимерное одностороннее',
+        POLYMER_DOUBLE: 'Полимерное двустороннее',
+      };
+
+      const GATE_TYPE_LABELS: Record<string, string> = {
+        SWING: 'Распашные',
+        SLIDING: 'Откатные',
+      };
+
+      const adminItems = (resolvedOrder.adminEstimate.items as any[]) || [];
+      const adminMaterialsItems = adminItems.filter((item) => item.category !== 'installation');
+      const adminInstallationItems = adminItems.filter((item) => item.category === 'installation');
+      const adminMaterialsTotal = adminMaterialsItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+      const adminInstallationTotal = adminInstallationItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+
+      let adminPurchaseTotal = null;
+      let adminMarginTotalRub = null;
+      let adminMarginTotalPercent = null;
+
+      if (showPurchasePrices) {
+        adminPurchaseTotal = adminItems.reduce((sum, item) => sum + (item.purchaseTotal || 0), 0);
+        adminMarginTotalRub = (resolvedOrder.adminEstimate.grandTotal || 0) - adminPurchaseTotal;
+        adminMarginTotalPercent = adminPurchaseTotal > 0 ? (adminMarginTotalRub / resolvedOrder.adminEstimate.grandTotal) * 100 : 0;
+      }
+
+      const adminFormattedItems = adminItems.map((item) => ({
+        category: item.category,
+        nomenclatureId: item.nomenclatureId,
+        nomenclatureName: item.nomenclatureName,
+        quantity: item.quantity,
+        unit: item.unit,
+        pricePerUnit: item.pricePerUnit,
+        totalPrice: item.totalPrice,
+        ...(showPurchasePrices && {
+          purchasePricePerUnit: item.purchasePricePerUnit || null,
+          purchaseTotal: item.purchaseTotal || null,
+          marginRub: item.marginRub || null,
+          marginPercent: item.marginPercent || null,
+        }),
+      }));
+
+      adminEstimate = {
+        id: resolvedOrder.adminEstimate.id,
+        fenceType: resolvedOrder.adminEstimate.fenceType,
+        length: resolvedOrder.adminEstimate.length,
+        height: resolvedOrder.adminEstimate.height,
+        lagRows: resolvedOrder.adminEstimate.lagRows,
+        coating: resolvedOrder.adminEstimate.coating,
+        coatingLabel: COATING_LABELS[resolvedOrder.adminEstimate.coating] || resolvedOrder.adminEstimate.coating,
+        hasGate: resolvedOrder.adminEstimate.hasGate,
+        gateType: resolvedOrder.adminEstimate.gateType,
+        gateTypeLabel: resolvedOrder.adminEstimate.gateType
+          ? GATE_TYPE_LABELS[resolvedOrder.adminEstimate.gateType] || resolvedOrder.adminEstimate.gateType
+          : null,
+        gateLength: resolvedOrder.adminEstimate.gateLength,
+        gateNomenclatureName: resolvedOrder.adminEstimate.gateNomenclatureName,
+        hasWicket: resolvedOrder.adminEstimate.hasWicket,
+        wicketWidth: resolvedOrder.adminEstimate.wicketWidth,
+        wicketNomenclatureName: resolvedOrder.adminEstimate.wicketNomenclatureName,
+        city: resolvedOrder.adminEstimate.city,
+        items: adminFormattedItems,
+        materialsTotal: adminMaterialsTotal,
+        installationTotal: adminInstallationTotal,
+        grandTotal: resolvedOrder.adminEstimate.grandTotal,
+        ...(showPurchasePrices && {
+          purchaseTotal: adminPurchaseTotal,
+          marginTotalRub: adminMarginTotalRub,
+          marginTotalPercent: adminMarginTotalPercent,
+        }),
+        userId: resolvedOrder.adminEstimate.userId,
+        user: resolvedOrder.adminEstimate.user
+          ? {
+              id: resolvedOrder.adminEstimate.user.id,
+              name: resolvedOrder.adminEstimate.user.name || 'Неизвестный',
+              role: resolvedOrder.adminEstimate.user.role,
+            }
+          : null,
+        sessionId: resolvedOrder.adminEstimate.sessionId,
+        ipAddress: resolvedOrder.adminEstimate.ipAddress,
+        userAgent: resolvedOrder.adminEstimate.userAgent,
+        createdAt: resolvedOrder.adminEstimate.createdAt.toISOString(),
+        isEditedByAdmin: resolvedOrder.adminEstimate.isEditedByAdmin,
+        sourceEstimateId: resolvedOrder.adminEstimate.sourceEstimateId,
+        editedByAdminId: resolvedOrder.adminEstimate.editedByAdminId,
+        editedAt: resolvedOrder.adminEstimate.editedAt?.toISOString() || null,
+        editComment: resolvedOrder.adminEstimate.editComment,
+        manualQuantityOverrides: resolvedOrder.adminEstimate.manualQuantityOverrides,
+      };
+    }
+
     if (resolvedOrder.multiEstimate && resolvedOrder.multiEstimate.estimates.length > 0) {
       const COATING_LABELS: Record<string, string> = {
         GALVANIZED: 'Оцинковка',
@@ -833,6 +948,7 @@ export class OrdersService {
     return {
       order: orderWithDetails,
       estimate,
+      adminEstimate,
       multiEstimates,
       showPurchasePrices,
     };

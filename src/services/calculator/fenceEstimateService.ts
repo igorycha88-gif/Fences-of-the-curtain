@@ -70,6 +70,28 @@ export interface WicketInfo {
   selectedName: string;
 }
 
+export interface FenceEstimateCoreResult {
+  items: EstimateItem[];
+  totals: {
+    materials: number;
+    installation: number;
+    grandTotal: number;
+  };
+  parameters: {
+    fenceTypeId: string;
+    fenceTypeName: string;
+    length: number;
+    height: number;
+    lagRows: 2 | 3;
+    coating?: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
+    gate?: GateInfo;
+    wicket?: WicketInfo;
+  };
+  correctedLength: number;
+  gateInfo?: GateInfo;
+  wicketInfo?: WicketInfo;
+}
+
 export interface FenceEstimateResult {
   estimateId: string;
   items: EstimateItem[];
@@ -97,10 +119,9 @@ export interface CalculationError {
   details?: Record<string, unknown>;
 }
 
-export async function calculateFenceEstimate(
-  input: FenceEstimateInput,
-  metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
-): Promise<FenceEstimateResult> {
+export async function calculateFenceEstimateCore(
+  input: FenceEstimateInput
+): Promise<FenceEstimateCoreResult> {
   const { fenceTypeId, length, height, lagRows, coating, hasGate, gateType, gateWidth } = input;
 
   const fenceType = await prisma.fenceType.findUnique({
@@ -511,47 +532,84 @@ export async function calculateFenceEstimate(
   const installation = gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + fenceTypeMountingWorksTotal;
   const grandTotal = materials + installation;
 
+  return {
+    items,
+    totals: {
+      materials,
+      installation,
+      grandTotal,
+    },
+    parameters: {
+      fenceTypeId,
+      fenceTypeName: fenceType.name,
+      length,
+      height,
+      lagRows: lagRows || 2,
+      coating,
+      ...(gateInfo ? { gate: gateInfo } : {}),
+      ...(wicketInfo ? { wicket: wicketInfo } : {}),
+    },
+    correctedLength,
+    gateInfo,
+    wicketInfo,
+  };
+}
+
+export async function calculateFenceEstimate(
+  input: FenceEstimateInput,
+  metadata?: { userId?: string; sessionId?: string; userAgent?: string; ipAddress?: string }
+): Promise<FenceEstimateResult> {
+  const coreResult = await calculateFenceEstimateCore(input);
+
   const estimate = await prisma.$transaction(async (tx) => {
     return await tx.fenceEstimate.create({
       data: {
         id: `estimate-${crypto.randomUUID()}`,
-        fenceTypeId,
-        length: correctedLength,
-        height,
-        lagRows: lagRows || 2,
-        coating,
-        hasGate: hasGate || false,
-        gateType: gateType || null,
-        gateLength: gateInfo?.length || null,
-        gateNomenclatureId: gateInfo ? gateInfo.id : null,
-        gateNomenclatureName: gateInfo ? gateInfo.selectedName : null,
-        postsTotal: postsResult.totalPrice,
-        lagsTotal: lagsResult?.totalPrice || 0,
-        profnastilTotal: profnastilResult?.totalPrice || 0,
-        mountingHardwareTotal,
-        gateTotal,
-        gateInstallationTotal,
+        fenceTypeId: input.fenceTypeId,
+        length: coreResult.correctedLength,
+        height: input.height,
+        lagRows: input.lagRows || 2,
+        coating: input.coating,
+        hasGate: input.hasGate || false,
+        gateType: input.gateType || null,
+        gateLength: coreResult.gateInfo?.length || null,
+        gateNomenclatureId: coreResult.gateInfo ? coreResult.gateInfo.id : null,
+        gateNomenclatureName: coreResult.gateInfo ? coreResult.gateInfo.selectedName : null,
+        postsTotal: (coreResult.items.find(i => i.category === 'posts')?.totalPrice || 0),
+        lagsTotal: (coreResult.items.find(i => i.category === 'lags')?.totalPrice || 0),
+        profnastilTotal: (coreResult.items.find(i => i.category === 'profnastil')?.totalPrice || 0),
+        mountingHardwareTotal: coreResult.items
+          .filter(i => i.category === 'mounting_hardware')
+          .reduce((sum, item) => sum + item.totalPrice, 0),
+        gateTotal: (coreResult.items.find(i => i.category === 'gates')?.totalPrice || 0),
+        gateInstallationTotal: coreResult.items
+          .filter(i => i.category === 'installation' && i.nomenclatureName.includes('ворот'))
+          .reduce((sum, item) => sum + item.totalPrice, 0),
         hasWicket: input.hasWicket || false,
-        wicketWidth: wicketInfo?.width || null,
-        wicketNomenclatureId: wicketInfo ? wicketInfo.id : null,
-        wicketNomenclatureName: wicketInfo ? wicketInfo.selectedName : null,
-        wicketTotal,
-        wicketInstallationTotal,
-        panel3dId: panel3dResult ? panel3dResult.nomenclatureId : null,
-        panel3dNomenclatureName: panel3dResult ? panel3dResult.nomenclatureName : null,
-        panel3dTotal: panel3dResult?.totalPrice || 0,
-        panel3dInstallationTotal,
-        picketNomenclatureId: picketResult ? picketResult.nomenclatureId : null,
-        picketNomenclatureName: picketResult ? picketResult.nomenclatureName : null,
-        picketTotal: picketResult?.totalPrice || 0,
+        wicketWidth: coreResult.wicketInfo?.width || null,
+        wicketNomenclatureId: coreResult.wicketInfo ? coreResult.wicketInfo.id : null,
+        wicketNomenclatureName: coreResult.wicketInfo ? coreResult.wicketInfo.selectedName : null,
+        wicketTotal: (coreResult.items.find(i => i.category === 'wickets')?.totalPrice || 0),
+        wicketInstallationTotal: coreResult.items
+          .filter(i => i.category === 'installation' && i.nomenclatureName.includes('калитк'))
+          .reduce((sum, item) => sum + item.totalPrice, 0),
+        panel3dId: (coreResult.items.find(i => i.category === 'panel3d') as Panel3DCalculationResult)?.nomenclatureId || null,
+        panel3dNomenclatureName: (coreResult.items.find(i => i.category === 'panel3d') as Panel3DCalculationResult)?.nomenclatureName || null,
+        panel3dTotal: (coreResult.items.find(i => i.category === 'panel3d')?.totalPrice || 0),
+        panel3dInstallationTotal: coreResult.items
+          .filter(i => i.category === 'installation' && i.nomenclatureName.includes('панел'))
+          .reduce((sum, item) => sum + item.totalPrice, 0),
+        picketNomenclatureId: (coreResult.items.find(i => i.category === 'picket') as PicketCalculationResult)?.nomenclatureId || null,
+        picketNomenclatureName: (coreResult.items.find(i => i.category === 'picket') as PicketCalculationResult)?.nomenclatureName || null,
+        picketTotal: (coreResult.items.find(i => i.category === 'picket')?.totalPrice || 0),
         picketStep: input.picketStep || null,
         picketMountingType: input.picketMountingType || null,
         picketProfileType: input.picketProfileType || null,
         picketCoatingName: input.picketCoating || null,
-        installationTotal: installation,
-        materialsTotal: materials,
-        grandTotal,
-        items: JSON.parse(JSON.stringify(items)),
+        installationTotal: coreResult.totals.installation,
+        materialsTotal: coreResult.totals.materials,
+        grandTotal: coreResult.totals.grandTotal,
+        items: JSON.parse(JSON.stringify(coreResult.items)),
         userId: metadata?.userId,
         sessionId: metadata?.sessionId,
         userAgent: metadata?.userAgent,
@@ -577,26 +635,24 @@ export async function calculateFenceEstimate(
 
   return {
     estimateId: estimate.id,
-    items,
-    totals: {
-      materials,
-      installation,
-      grandTotal,
-    },
-    parameters: {
-      fenceTypeId,
-      fenceTypeName: fenceType.name,
-      length,
-      height,
-      lagRows: lagRows || 2,
-      coating,
-      ...(gateInfo ? { gate: gateInfo } : {}),
-      ...(wicketInfo ? { wicket: wicketInfo } : {}),
-    },
+    items: coreResult.items,
+    totals: coreResult.totals,
+    parameters: coreResult.parameters,
     calculatedAt: estimate.createdAt.toISOString(),
   };
 }
 
+export async function calculateFenceEstimateDryRun(
+  input: FenceEstimateInput
+): Promise<Omit<FenceEstimateResult, 'estimateId' | 'calculatedAt'>> {
+  const coreResult = await calculateFenceEstimateCore(input);
+
+  return {
+    items: coreResult.items,
+    totals: coreResult.totals,
+    parameters: coreResult.parameters,
+  };
+}
 
 
 export async function getFenceEstimateById(id: string): Promise<FenceEstimateResult | null> {
