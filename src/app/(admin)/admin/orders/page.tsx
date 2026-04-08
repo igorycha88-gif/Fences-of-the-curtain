@@ -20,6 +20,7 @@ interface Order {
   isIndividualRequest?: boolean;
   isMultiEstimate?: boolean;
   estimateIds?: string[];
+  hasAdminEstimate?: boolean;
 }
 
 interface OrdersResponse {
@@ -290,16 +291,47 @@ export default function OrdersPage() {
                       <td className="py-3 px-4">
                         {order.estimateIds && order.estimateIds.length > 0 ? (
                           <div className="flex flex-col gap-1">
-                            {order.estimateIds.map((estimateId: string, idx: number) => (
-                              <Link
-                                key={estimateId}
-                                href={`/admin/estimates?open=${estimateId}`}
-                                className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                                {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета'}
-                              </Link>
-                            ))}
+                            {order.hasAdminEstimate && order.estimateIds[0] ? (
+                              <>
+                                <Link
+                                  href={`/admin/estimates?open=${order.estimateIds[0]}`}
+                                  className="inline-flex items-center gap-1 text-orange-700 bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded text-sm font-medium"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                  Скорректированная
+                                </Link>
+                                {order.estimateIds[1] && (
+                                  <Link
+                                    href={`/admin/estimates?open=${order.estimateIds[1]}`}
+                                    className="inline-flex items-center gap-1 text-blue-700 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded text-sm font-medium"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Исходная
+                                  </Link>
+                                )}
+                              </>
+                            ) : (
+                              order.isMultiEstimate && order.estimateIds.length === 1 && order.estimateIds[0]?.startsWith('multi-') ? (
+                                <Link
+                                  href={`/admin/orders/${order.id}`}
+                                  className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                  Мульти-смета
+                                </Link>
+                              ) : (
+                                order.estimateIds.map((estimateId: string, idx: number) => (
+                                  <Link
+                                    key={estimateId}
+                                    href={`/admin/estimates?open=${estimateId}`}
+                                    className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                    {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета'}
+                                  </Link>
+                                ))
+                              )
+                            )}
                           </div>
                         ) : (
                           <span className="text-gray-400 text-sm">—</span>
@@ -348,12 +380,34 @@ export default function OrdersPage() {
                   </div>
                   {order.estimateIds && order.estimateIds.length > 0 && (
                     <div className="mt-2 pt-2 border-t flex flex-col gap-1">
-                      {order.estimateIds.map((estimateId: string, idx: number) => (
-                        <div key={estimateId} className="flex items-center gap-1 text-blue-600 text-xs">
-                          <ExternalLink className="w-3 h-3" />
-                          {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета доступна'}
-                        </div>
-                      ))}
+                      {order.hasAdminEstimate && order.estimateIds[0] ? (
+                        <>
+                          <div className="flex items-center gap-1 text-orange-700 bg-orange-100 px-2 py-1 rounded text-xs font-medium">
+                            <ExternalLink className="w-3 h-3" />
+                            Скорректированная
+                          </div>
+                          {order.estimateIds[1] && (
+                            <div className="flex items-center gap-1 text-blue-700 bg-blue-100 px-2 py-1 rounded text-xs font-medium">
+                              <ExternalLink className="w-3 h-3" />
+                              Исходная
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        order.isMultiEstimate && order.estimateIds.length === 1 && order.estimateIds[0]?.startsWith('multi-') ? (
+                          <div className="flex items-center gap-1 text-blue-600 text-xs">
+                            <ExternalLink className="w-3 h-3" />
+                            Мульти-смета
+                          </div>
+                        ) : (
+                          order.estimateIds.map((estimateId: string, idx: number) => (
+                            <div key={estimateId} className="flex items-center gap-1 text-blue-600 text-xs">
+                              <ExternalLink className="w-3 h-3" />
+                              {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета доступна'}
+                            </div>
+                          ))
+                        )
+                      )}
                     </div>
                   )}
                 </Link>

@@ -96,6 +96,12 @@ export class OrdersService {
               },
             },
           },
+          adminEstimate: {
+            select: {
+              id: true,
+              grandTotal: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -106,21 +112,28 @@ export class OrdersService {
       const multiEstChildren = order.multiEstimate?.estimates ?? [];
       const hasLostChildren = order.multiEstimate && multiEstChildren.length === 0;
 
+      const estimateIds = order.multiEstimate
+        ? multiEstChildren.length > 0
+          ? multiEstChildren.map((e: { id: string }) => e.id)
+          : hasLostChildren
+            ? [order.multiEstimate.id]
+            : []
+        : order.estimateId
+          ? [order.estimateId]
+          : [];
+
+      const finalEstimateIds = order.adminEstimateId
+        ? [order.adminEstimateId, ...estimateIds]
+        : estimateIds;
+
       return {
         ...order,
         statusLabel: STATUS_LABELS[order.status],
-        calculatedCost: order.estimate?.grandTotal ?? order.multiEstimate?.grandTotal ?? order.calculatedCost,
+        calculatedCost: order.adminEstimate?.grandTotal ?? order.estimate?.grandTotal ?? order.multiEstimate?.grandTotal ?? order.calculatedCost,
+        hasAdminEstimate: !!order.adminEstimateId,
         isIndividualRequest: order.serviceType === 'INDIVIDUAL_CALCULATION',
         isMultiEstimate: !!order.multiEstimate,
-        estimateIds: order.multiEstimate
-          ? multiEstChildren.length > 0
-            ? multiEstChildren.map((e: { id: string }) => e.id)
-            : hasLostChildren
-              ? [order.multiEstimate.id]
-              : []
-          : order.estimateId
-            ? [order.estimateId]
-            : [],
+        estimateIds: finalEstimateIds,
       };
     });
 
@@ -597,6 +610,11 @@ export class OrdersService {
       data: entry.data || {},
     }));
 
+    const calculatedCost = resolvedOrder.adminEstimate?.grandTotal 
+      ?? resolvedOrder.estimate?.grandTotal 
+      ?? resolvedOrder.multiEstimate?.grandTotal 
+      ?? resolvedOrder.calculatedCost;
+
     const orderWithDetails = {
       id: resolvedOrder.id,
       clientName: resolvedOrder.clientName,
@@ -606,7 +624,7 @@ export class OrdersService {
       status: resolvedOrder.status,
       statusLabel: STATUS_LABELS[resolvedOrder.status],
       serviceType: resolvedOrder.serviceType,
-      calculatedCost: resolvedOrder.estimate?.grandTotal ?? resolvedOrder.calculatedCost,
+      calculatedCost,
       createdAt: resolvedOrder.createdAt.toISOString(),
       updatedAt: resolvedOrder.updatedAt.toISOString(),
       measurementAddress: resolvedOrder.measurementAddress,
@@ -762,6 +780,14 @@ export class OrdersService {
         }),
       }));
 
+      let editedByAdminUser = null;
+      if (resolvedOrder.adminEstimate.editedByAdminId) {
+        editedByAdminUser = await prisma.user.findUnique({
+          where: { id: resolvedOrder.adminEstimate.editedByAdminId! },
+          select: { id: true, name: true, role: true },
+        });
+      }
+
       adminEstimate = {
         id: resolvedOrder.adminEstimate.id,
         fenceType: resolvedOrder.adminEstimate.fenceType,
@@ -798,15 +824,22 @@ export class OrdersService {
               role: resolvedOrder.adminEstimate.user.role,
             }
           : null,
+        editedByAdminId: resolvedOrder.adminEstimate.editedByAdminId,
+        editedByAdmin: editedByAdminUser
+          ? {
+              id: editedByAdminUser.id,
+              name: editedByAdminUser.name || 'Неизвестный',
+              role: editedByAdminUser.role,
+            }
+          : null,
+        editedAt: resolvedOrder.adminEstimate.editedAt?.toISOString() || null,
+        editComment: resolvedOrder.adminEstimate.editComment,
         sessionId: resolvedOrder.adminEstimate.sessionId,
         ipAddress: resolvedOrder.adminEstimate.ipAddress,
         userAgent: resolvedOrder.adminEstimate.userAgent,
         createdAt: resolvedOrder.adminEstimate.createdAt.toISOString(),
         isEditedByAdmin: resolvedOrder.adminEstimate.isEditedByAdmin,
         sourceEstimateId: resolvedOrder.adminEstimate.sourceEstimateId,
-        editedByAdminId: resolvedOrder.adminEstimate.editedByAdminId,
-        editedAt: resolvedOrder.adminEstimate.editedAt?.toISOString() || null,
-        editComment: resolvedOrder.adminEstimate.editComment,
         manualQuantityOverrides: resolvedOrder.adminEstimate.manualQuantityOverrides,
       };
     }

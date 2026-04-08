@@ -16,6 +16,7 @@ import {
   ArrowLeftRight,
   User,
   Clock,
+  Download,
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ClientInfo } from './ClientInfo';
@@ -25,6 +26,7 @@ import { EstimateSection } from './EstimateSection';
 import { MultiEstimateSection } from './MultiEstimateSection';
 import { EstimateEditor } from './EstimateEditor';
 import { EstimateComparisonView } from './EstimateComparisonView';
+import { EstimateDiffView } from './EstimateDiffView';
 import { EstimateEditHistory } from './EstimateEditHistory';
 import { TechnicalInfo } from './TechnicalInfo';
 import { StatusChangeModal } from './StatusChangeModal';
@@ -59,6 +61,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   const [editingEstimateId, setEditingEstimateId] = useState<string | null>(null);
   const [activeEstimateTab, setActiveEstimateTab] = useState<'client' | 'admin'>('client');
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+  const [isExportingWord, setIsExportingWord] = useState(false);
 
   useEffect(() => {
     console.log('[OrderDetailPage] orderId:', orderId);
@@ -87,6 +90,9 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
       const result = await res.json();
       console.log('[OrderDetailPage] Data loaded successfully');
       setData(result);
+      if (result.adminEstimate) {
+        setActiveEstimateTab('admin');
+      }
     } catch (err: any) {
       console.error('[OrderDetailPage] Error:', err);
       setError(err.message || 'Ошибка загрузки');
@@ -112,6 +118,15 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     setIsEstimateEditorOpen(true);
   };
 
+  const handleEditAdminEstimate = () => {
+    if (adminEstimate) {
+      setEditingEstimateId(adminEstimate.id);
+    } else {
+      setEditingEstimateId(estimate.id);
+    }
+    setIsEstimateEditorOpen(true);
+  };
+
   const handleEstimateEditorClose = () => {
     setIsEstimateEditorOpen(false);
     setEditingEstimateId(null);
@@ -123,6 +138,34 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     fetchOrderFull();
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
+  };
+
+  const handleExportWord = async () => {
+    setIsExportingWord(true);
+    try {
+      const res = await fetch(
+        `/api/admin/orders/${orderId}/export-estimate-word`,
+        { credentials: 'include' }
+      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Ошибка экспорта');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `смета_заявка_${orderId.slice(0, 8)}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Word export error:', err);
+      alert(err.message || 'Ошибка экспорта в Word');
+    } finally {
+      setIsExportingWord(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -171,9 +214,14 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
   const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
   const isAdmin = showPurchasePrices;
+  const hasAdminEstimate = !!adminEstimate;
 
   const editingEstimate = editingEstimateId
-    ? (isMultiEstimate && multiEstimates ? multiEstimates.find((e: any) => e.id === editingEstimateId) : estimate)
+    ? (isMultiEstimate && multiEstimates
+        ? multiEstimates.find((e: any) => e.id === editingEstimateId)
+        : editingEstimateId === adminEstimate?.id
+          ? adminEstimate
+          : estimate)
     : null;
 
   return (
@@ -289,6 +337,91 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
         <div className="space-y-6">
           {isMultiEstimate ? (
             <>
+              {hasAdminEstimate && adminEstimate && (
+                <div className="bg-white rounded-xl shadow-md border border-orange-200">
+                  <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FilePenLine className="w-5 h-5 text-orange-600" />
+                          <span className="font-bold text-orange-900 text-base">Расчет отредактирован администратором</span>
+                        </div>
+                        {adminEstimate.editedAt && (
+                          <div className="text-sm text-gray-700 space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-orange-600" />
+                              <span className="font-medium">
+                                {new Date(adminEstimate.editedAt).toLocaleDateString('ru-RU', {
+                                  day: '2-digit',
+                                  month: 'long',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                            {adminEstimate.editedByAdmin && (
+                              <div className="flex items-center gap-1.5">
+                                <User className="w-4 h-4 text-orange-600" />
+                                <span className="font-medium">{adminEstimate.editedByAdmin.name || adminEstimate.editedByAdmin.email || 'Неизвестный'}</span>
+                              </div>
+                            )}
+                            {adminEstimate.editComment && (
+                              <div className="mt-2 p-3 bg-white rounded-lg border border-orange-300 text-gray-800">
+                                <span className="text-xs text-gray-500 block mb-1 font-medium">Комментарий:</span>
+                                <p className="text-sm leading-relaxed">{adminEstimate.editComment}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Link
+                        href={`/admin/estimates?open=${adminEstimate.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-orange-700 bg-orange-100 hover:bg-orange-200 rounded-md transition-all duration-200 border border-orange-300 shadow-sm hover:shadow"
+                        title="Посмотреть скорректированный расчет"
+                      >
+                        <FilePenLine className="w-3.5 h-3.5" />
+                        Скорректированный расчет
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center border-b">
+                    <button
+                      onClick={() => setActiveEstimateTab('admin')}
+                      className={cn(
+                        'flex-1 px-4 py-3 text-sm font-semibold transition-all duration-200 text-center',
+                        activeEstimateTab === 'admin'
+                          ? 'text-orange-700 border-b-2 border-orange-500 bg-gradient-to-b from-orange-50 to-orange-100'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <FilePenLine className="w-4 h-4" />
+                        Скорректированная смета
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="p-6">
+                    {activeEstimateTab === 'admin' && (
+                      <EstimateDiffView
+                        sourceItems={multiEstimates?.[0]?.items || []}
+                        adminItems={adminEstimate.items}
+                        adminMaterialsTotal={adminEstimate.materialsTotal}
+                        adminInstallationTotal={adminEstimate.installationTotal}
+                        adminGrandTotal={adminEstimate.grandTotal}
+                        sourceMaterialsTotal={multiEstimates?.[0]?.materialsTotal || 0}
+                        sourceInstallationTotal={multiEstimates?.[0]?.installationTotal || 0}
+                        sourceGrandTotal={multiEstimates?.[0]?.grandTotal || 0}
+                        showPurchasePrices={showPurchasePrices}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
               <MultiEstimateSection
                 estimates={multiEstimates}
                 showPurchasePrices={showPurchasePrices}
@@ -315,14 +448,151 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                 city={estimate.city}
               />
 
-              <EstimateSection
-                estimateId={estimate.id}
-                items={estimate.items}
-                materialsTotal={estimate.materialsTotal}
-                installationTotal={estimate.installationTotal}
-                grandTotal={estimate.grandTotal}
-                onEditEstimate={handleEditEstimate}
-              />
+              {hasAdminEstimate && (
+                <div className="bg-white rounded-xl shadow-md border border-orange-200">
+                  <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FilePenLine className="w-5 h-5 text-orange-600" />
+                          <span className="font-bold text-orange-900 text-base">Расчет отредактирован администратором</span>
+                        </div>
+                        {adminEstimate.editedAt && (
+                          <div className="text-sm text-gray-700 space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-orange-600" />
+                              <span className="font-medium">
+                                {new Date(adminEstimate.editedAt).toLocaleDateString('ru-RU', {
+                                  day: '2-digit',
+                                  month: 'long',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                            {adminEstimate.editedByAdmin && (
+                              <div className="flex items-center gap-1.5">
+                                <User className="w-4 h-4 text-orange-600" />
+                                <span className="font-medium">{adminEstimate.editedByAdmin.name || adminEstimate.editedByAdmin.email || 'Неизвестный'}</span>
+                              </div>
+                            )}
+                            {adminEstimate.editComment && (
+                              <div className="mt-2 p-3 bg-white rounded-lg border border-orange-300 text-gray-800">
+                                <span className="text-xs text-gray-500 block mb-1 font-medium">Комментарий:</span>
+                                <p className="text-sm leading-relaxed">{adminEstimate.editComment}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Link
+                        href={`/admin/estimates?open=${estimate.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-all duration-200 border border-blue-300 shadow-sm hover:shadow"
+                        title="Посмотреть исходный расчет от клиента"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Исходный расчет (от клиента)
+                      </Link>
+                      <Link
+                        href={`/admin/estimates?open=${adminEstimate.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-orange-700 bg-orange-100 hover:bg-orange-200 rounded-md transition-all duration-200 border border-orange-300 shadow-sm hover:shadow"
+                        title="Посмотреть скорректированный расчет"
+                      >
+                        <FilePenLine className="w-3.5 h-3.5" />
+                        Скорректированный расчет
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center border-b">
+                    <button
+                      onClick={() => setActiveEstimateTab('admin')}
+                      className={cn(
+                        'flex-1 px-4 py-3 text-sm font-semibold transition-all duration-200 text-center',
+                        activeEstimateTab === 'admin'
+                          ? 'text-orange-700 border-b-2 border-orange-500 bg-gradient-to-b from-orange-50 to-orange-100'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <FilePenLine className="w-4 h-4" />
+                        Смета с изменениями
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setActiveEstimateTab('client')}
+                      className={cn(
+                        'flex-1 px-4 py-3 text-sm font-semibold transition-all duration-200 text-center',
+                        activeEstimateTab === 'client'
+                          ? 'text-blue-700 border-b-2 border-blue-500 bg-gradient-to-b from-blue-50 to-blue-100'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Исходная смета
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setIsComparisonOpen(true)}
+                      className="px-4 py-3 text-sm font-medium text-gray-500 hover:text-purple-700 hover:bg-purple-50 transition-all duration-200 border-l"
+                      title="Сравнить сметы"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-6">
+                    {activeEstimateTab === 'admin' ? (
+                      <EstimateDiffView
+                        sourceItems={estimate.items}
+                        adminItems={adminEstimate.items}
+                        adminMaterialsTotal={adminEstimate.materialsTotal}
+                        adminInstallationTotal={adminEstimate.installationTotal}
+                        adminGrandTotal={adminEstimate.grandTotal}
+                        sourceMaterialsTotal={estimate.materialsTotal}
+                        sourceInstallationTotal={estimate.installationTotal}
+                        sourceGrandTotal={estimate.grandTotal}
+                        showPurchasePrices={showPurchasePrices}
+                        onExportWord={handleExportWord}
+                        isExporting={isExportingWord}
+                      />
+                    ) : (
+                      <EstimateSection
+                        estimateId={estimate.id}
+                        items={estimate.items}
+                        materialsTotal={estimate.materialsTotal}
+                        installationTotal={estimate.installationTotal}
+                        grandTotal={estimate.grandTotal}
+                      />
+                    )}
+                  </div>
+
+                  <div className="px-6 pb-4 flex items-center gap-2">
+                    <button
+                      onClick={handleEditAdminEstimate}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-orange-200"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Редактировать
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!hasAdminEstimate && (
+                <EstimateSection
+                  estimateId={estimate.id}
+                  items={estimate.items}
+                  materialsTotal={estimate.materialsTotal}
+                  installationTotal={estimate.installationTotal}
+                  grandTotal={estimate.grandTotal}
+                  onEditEstimate={handleEditEstimate}
+                />
+              )}
             </>
           ) : (
             <>
@@ -498,7 +768,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           isOpen={isEstimateEditorOpen}
           onClose={handleEstimateEditorClose}
           orderId={order.id}
-          estimateId={editingEstimate.id}
+          estimateId={editingEstimateId === adminEstimate?.id ? estimate.id : editingEstimate.id}
           initialParams={{
             length: editingEstimate.length,
             height: editingEstimate.height,
@@ -516,6 +786,49 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           initialGrandTotal={editingEstimate.grandTotal}
           onSaveSuccess={handleEstimateEditorSave}
           existingAdminEstimateId={adminEstimate?.id}
+        />
+      )}
+
+      {isComparisonOpen && hasAdminEstimate && estimate && (
+        <EstimateComparisonView
+          sourceEstimate={{
+            length: estimate.length,
+            height: estimate.height,
+            lagRows: estimate.lagRows,
+            coating: estimate.coating,
+            coatingLabel: estimate.coatingLabel,
+            hasGate: estimate.hasGate,
+            gateType: estimate.gateType,
+            gateTypeLabel: estimate.gateTypeLabel,
+            gateLength: estimate.gateLength,
+            hasWicket: estimate.hasWicket,
+            wicketWidth: estimate.wicketWidth,
+            items: estimate.items,
+            materialsTotal: estimate.materialsTotal,
+            installationTotal: estimate.installationTotal,
+            grandTotal: estimate.grandTotal,
+          }}
+          adminEstimate={{
+            length: adminEstimate.length,
+            height: adminEstimate.height,
+            lagRows: adminEstimate.lagRows,
+            coating: adminEstimate.coating,
+            coatingLabel: adminEstimate.coatingLabel,
+            hasGate: adminEstimate.hasGate,
+            gateType: adminEstimate.gateType,
+            gateTypeLabel: adminEstimate.gateTypeLabel,
+            gateLength: adminEstimate.gateLength,
+            hasWicket: adminEstimate.hasWicket,
+            wicketWidth: adminEstimate.wicketWidth,
+            items: adminEstimate.items,
+            materialsTotal: adminEstimate.materialsTotal,
+            installationTotal: adminEstimate.installationTotal,
+            grandTotal: adminEstimate.grandTotal,
+            editedAt: adminEstimate.editedAt,
+            editComment: adminEstimate.editComment,
+            user: adminEstimate.user,
+          }}
+          onClose={() => setIsComparisonOpen(false)}
         />
       )}
     </div>
