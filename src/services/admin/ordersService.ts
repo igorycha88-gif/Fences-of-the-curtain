@@ -8,6 +8,7 @@ import {
   getStatusTransitionSchema 
 } from '@/lib/validators/order';
 import { createAuditLogAsync } from '@/lib/audit';
+import { calculateExtendedItems, calculateSummary } from '@/lib/utils/marginCalculator';
 
 export class OrdersService {
   async getOrders(params: {
@@ -666,13 +667,25 @@ export class OrdersService {
       const installationTotal = installationItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
 
       let purchaseTotal = null;
-      let marginTotalRub = null;
-      let marginTotalPercent = null;
+      let materialMarginRub = null;
+      let materialMarginPercent = null;
 
       if (showPurchasePrices) {
-        purchaseTotal = items.reduce((sum, item) => sum + (item.purchaseTotal || 0), 0);
-        marginTotalRub = (resolvedOrder.estimate.grandTotal || 0) - purchaseTotal;
-        marginTotalPercent = purchaseTotal > 0 ? (marginTotalRub / resolvedOrder.estimate.grandTotal) * 100 : 0;
+        const extendedItems = await calculateExtendedItems(
+          items.map((item: any) => ({
+            category: item.category,
+            nomenclatureId: item.nomenclatureId,
+            nomenclatureName: item.nomenclatureName,
+            quantity: item.quantity,
+            unit: item.unit,
+            pricePerUnit: item.pricePerUnit,
+            totalPrice: item.totalPrice,
+          }))
+        );
+        const summary = calculateSummary(extendedItems);
+        purchaseTotal = summary.purchaseTotal;
+        materialMarginRub = summary.materialMarginRub;
+        materialMarginPercent = summary.materialMarginPercent;
       }
 
       const formattedItems = items.map((item) => ({
@@ -716,8 +729,8 @@ export class OrdersService {
         grandTotal: resolvedOrder.estimate.grandTotal,
         ...(showPurchasePrices && {
           purchaseTotal,
-          marginTotalRub,
-          marginTotalPercent,
+          materialMarginRub,
+          materialMarginPercent,
         }),
         userId: resolvedOrder.estimate.userId,
         user: resolvedOrder.estimate.user
@@ -755,13 +768,25 @@ export class OrdersService {
       const adminInstallationTotal = adminInstallationItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
 
       let adminPurchaseTotal = null;
-      let adminMarginTotalRub = null;
-      let adminMarginTotalPercent = null;
+      let adminMaterialMarginRub = null;
+      let adminMaterialMarginPercent = null;
 
       if (showPurchasePrices) {
-        adminPurchaseTotal = adminItems.reduce((sum, item) => sum + (item.purchaseTotal || 0), 0);
-        adminMarginTotalRub = (resolvedOrder.adminEstimate.grandTotal || 0) - adminPurchaseTotal;
-        adminMarginTotalPercent = adminPurchaseTotal > 0 ? (adminMarginTotalRub / resolvedOrder.adminEstimate.grandTotal) * 100 : 0;
+        const extItems = await calculateExtendedItems(
+          adminItems.map((item: any) => ({
+            category: item.category,
+            nomenclatureId: item.nomenclatureId,
+            nomenclatureName: item.nomenclatureName,
+            quantity: item.quantity,
+            unit: item.unit,
+            pricePerUnit: item.pricePerUnit,
+            totalPrice: item.totalPrice,
+          }))
+        );
+        const summary = calculateSummary(extItems);
+        adminPurchaseTotal = summary.purchaseTotal;
+        adminMaterialMarginRub = summary.materialMarginRub;
+        adminMaterialMarginPercent = summary.materialMarginPercent;
       }
 
       const adminFormattedItems = adminItems.map((item) => ({
@@ -813,8 +838,8 @@ export class OrdersService {
         grandTotal: resolvedOrder.adminEstimate.grandTotal,
         ...(showPurchasePrices && {
           purchaseTotal: adminPurchaseTotal,
-          marginTotalRub: adminMarginTotalRub,
-          marginTotalPercent: adminMarginTotalPercent,
+          materialMarginRub: adminMaterialMarginRub,
+          materialMarginPercent: adminMaterialMarginPercent,
         }),
         userId: resolvedOrder.adminEstimate.userId,
         user: resolvedOrder.adminEstimate.user
@@ -856,7 +881,7 @@ export class OrdersService {
         SLIDING: 'Откатные',
       };
 
-      multiEstimates = resolvedOrder.multiEstimate.estimates.map((est) => {
+      multiEstimates = await Promise.all(resolvedOrder.multiEstimate.estimates.map(async (est) => {
         const items = (est.items as any[]) || [];
 
         const materialsItems = items.filter((item) => item.category !== 'installation');
@@ -866,13 +891,25 @@ export class OrdersService {
         const installationTotal = installationItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
 
         let purchaseTotal = null;
-        let marginTotalRub = null;
-        let marginTotalPercent = null;
+        let materialMarginRub = null;
+        let materialMarginPercent = null;
 
         if (showPurchasePrices) {
-          purchaseTotal = items.reduce((sum, item) => sum + (item.purchaseTotal || 0), 0);
-          marginTotalRub = (est.grandTotal || 0) - purchaseTotal;
-          marginTotalPercent = purchaseTotal > 0 ? (marginTotalRub / est.grandTotal) * 100 : 0;
+          const extendedItems = await calculateExtendedItems(
+            items.map((item: any) => ({
+              category: item.category,
+              nomenclatureId: item.nomenclatureId,
+              nomenclatureName: item.nomenclatureName,
+              quantity: item.quantity,
+              unit: item.unit,
+              pricePerUnit: item.pricePerUnit,
+              totalPrice: item.totalPrice,
+            }))
+          );
+          const summary = calculateSummary(extendedItems);
+          purchaseTotal = summary.purchaseTotal;
+          materialMarginRub = summary.materialMarginRub;
+          materialMarginPercent = summary.materialMarginPercent;
         }
 
         const formattedItems = items.map((item) => ({
@@ -916,8 +953,8 @@ export class OrdersService {
           grandTotal: est.grandTotal,
           ...(showPurchasePrices && {
             purchaseTotal,
-            marginTotalRub,
-            marginTotalPercent,
+            materialMarginRub,
+            materialMarginPercent,
           }),
           userId: est.userId,
           user: est.user
@@ -932,7 +969,114 @@ export class OrdersService {
           userAgent: est.userAgent,
           createdAt: est.createdAt.toISOString(),
         };
-      });
+      }));
+
+      const estimateIds = multiEstimates.map(e => e.id).filter(id => !id.startsWith('fallback-'));
+      if (estimateIds.length > 0) {
+        const adminCorrections = await prisma.fenceEstimate.findMany({
+          where: {
+            sourceEstimateId: { in: estimateIds },
+            isEditedByAdmin: true,
+          },
+        });
+
+        const correctionsMap = new Map(
+          adminCorrections.map(c => [c.sourceEstimateId!, c])
+        );
+
+        multiEstimates = await Promise.all(multiEstimates.map(async (est: any) => {
+          const correction = correctionsMap.get(est.id);
+          if (!correction) return { ...est, adminCorrection: null };
+
+          const adminItems = (correction.items as any[]) || [];
+          const adminMaterialsItems = adminItems.filter((item: any) => item.category !== 'installation');
+          const adminInstallationItems = adminItems.filter((item: any) => item.category === 'installation');
+          const adminMaterialsTotal = adminMaterialsItems.reduce((sum: number, item: any) => sum + (item.totalPrice || 0), 0);
+          const adminInstallationTotal = adminInstallationItems.reduce((sum: number, item: any) => sum + (item.totalPrice || 0), 0);
+
+          let adminPurchaseTotal = null;
+          let adminMaterialMarginRub = null;
+          let adminMaterialMarginPercent = null;
+
+          if (showPurchasePrices) {
+            const extItems = await calculateExtendedItems(
+              adminItems.map((item: any) => ({
+                category: item.category,
+                nomenclatureId: item.nomenclatureId,
+                nomenclatureName: item.nomenclatureName,
+                quantity: item.quantity,
+                unit: item.unit,
+                pricePerUnit: item.pricePerUnit,
+                totalPrice: item.totalPrice,
+              }))
+            );
+            const summary = calculateSummary(extItems);
+            adminPurchaseTotal = summary.purchaseTotal;
+            adminMaterialMarginRub = summary.materialMarginRub;
+            adminMaterialMarginPercent = summary.materialMarginPercent;
+          }
+
+          let editedByAdminUser = null;
+          if (correction.editedByAdminId) {
+            editedByAdminUser = await prisma.user.findUnique({
+              where: { id: correction.editedByAdminId },
+              select: { id: true, name: true, role: true },
+            });
+          }
+
+          const adminFormattedItems = adminItems.map((item: any) => ({
+            category: item.category,
+            nomenclatureId: item.nomenclatureId,
+            nomenclatureName: item.nomenclatureName,
+            quantity: item.quantity,
+            unit: item.unit,
+            pricePerUnit: item.pricePerUnit,
+            totalPrice: item.totalPrice,
+          }));
+
+          return {
+            ...est,
+            adminCorrection: {
+              id: correction.id,
+              fenceType: est.fenceType,
+              length: correction.length,
+              height: correction.height,
+              lagRows: correction.lagRows,
+              coating: correction.coating,
+              coatingLabel: COATING_LABELS[correction.coating] || correction.coating,
+              hasGate: correction.hasGate,
+              gateType: correction.gateType,
+              gateTypeLabel: correction.gateType
+                ? GATE_TYPE_LABELS[correction.gateType] || correction.gateType
+                : null,
+              gateLength: correction.gateLength,
+              gateNomenclatureName: correction.gateNomenclatureName,
+              hasWicket: correction.hasWicket,
+              wicketWidth: correction.wicketWidth,
+              wicketNomenclatureName: correction.wicketNomenclatureName,
+              items: adminFormattedItems,
+              materialsTotal: adminMaterialsTotal,
+              installationTotal: adminInstallationTotal,
+              grandTotal: correction.grandTotal,
+              ...(showPurchasePrices && {
+                purchaseTotal: adminPurchaseTotal,
+                materialMarginRub: adminMaterialMarginRub,
+                materialMarginPercent: adminMaterialMarginPercent,
+              }),
+              editedAt: correction.editedAt?.toISOString() || null,
+              editComment: correction.editComment,
+              editedByAdmin: editedByAdminUser
+                ? {
+                    id: editedByAdminUser.id,
+                    name: editedByAdminUser.name || 'Неизвестный',
+                    role: editedByAdminUser.role,
+                  }
+                : null,
+              manualQuantityOverrides: correction.manualQuantityOverrides,
+            },
+          };
+        }));
+      }
     } else if ((resolvedOrder.parameters as any)?.isMultiEstimate && (resolvedOrder.parameters as any)?.fences) {
       console.log('[getOrderFull] MultiEstimate has no estimates, using parameters.fences as fallback');
       const params = resolvedOrder.parameters as any;
@@ -965,8 +1109,8 @@ export class OrdersService {
           grandTotal: fence.grandTotal,
           ...(showPurchasePrices && {
             purchaseTotal: null,
-            marginTotalRub: null,
-            marginTotalPercent: null,
+            materialMarginRub: null,
+            materialMarginPercent: null,
           }),
           userId: null,
           user: null,
@@ -974,6 +1118,7 @@ export class OrdersService {
           ipAddress: null,
           userAgent: null,
           createdAt: resolvedOrder.createdAt.toISOString(),
+          adminCorrection: null,
         };
       });
     }

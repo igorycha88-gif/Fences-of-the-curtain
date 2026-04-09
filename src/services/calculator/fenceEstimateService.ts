@@ -268,17 +268,16 @@ export async function calculateFenceEstimateCore(
   } else if (fenceType.name === '3D-панели') {
     panel3dResult = await calculatePanel3D(correctedLength, height);
   } else if (fenceType.name === 'Евроштакетник') {
-    if (!input.picketProfileType || !input.picketCoating || !input.picketStep || !input.picketMountingType) {
+    if (!input.picketProfileType || !input.picketStep || !input.picketMountingType) {
       throw {
         error: 'MISSING_PICKET_PARAMS',
-        message: 'Для расчёта Евроштакетника необходимо указать тип профиля, покрытие, шаг и тип монтажа',
+        message: 'Для расчёта Евроштакетника необходимо указать тип профиля, шаг и тип монтажа',
       } as CalculationError;
     }
     picketResult = await calculatePicket({
       fenceLengthM: correctedLength,
       fenceHeightM: height,
       profileTypeName: input.picketProfileType,
-      coatingName: input.picketCoating,
       stepCm: input.picketStep,
       mountingType: input.picketMountingType as MountingType,
     });

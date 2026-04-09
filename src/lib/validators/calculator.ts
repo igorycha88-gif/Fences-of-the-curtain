@@ -61,3 +61,20 @@ export const contactFormSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   message: z.string().min(5).max(1000),
 });
+
+export function validateLength(length: number | ''): string | null {
+  if (length === '' || length === null || length === undefined) {
+    return 'Укажите длину забора в метрах';
+  }
+  const num = Number(length);
+  if (isNaN(num)) {
+    return 'Введите числовое значение';
+  }
+  if (num < 10) {
+    return 'Минимальная длина — 10 м';
+  }
+  if (num > 1000) {
+    return 'Максимальная длина — 1 000 м';
+  }
+  return null;
+}

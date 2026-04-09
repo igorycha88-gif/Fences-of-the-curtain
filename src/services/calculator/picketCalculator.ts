@@ -23,7 +23,6 @@ export interface PicketCalculationParams {
   fenceLengthM: number;
   fenceHeightM: number;
   profileTypeName: string;
-  coatingName: string;
   stepCm: number;
   mountingType: MountingType;
 }
@@ -36,7 +35,6 @@ export async function calculatePicket(
   const selectedPicket = await findPicketByParams({
     lengthMm: fenceHeightMm,
     profileTypeName: params.profileTypeName,
-    coatingName: params.coatingName,
   });
 
   const fenceLengthMm = params.fenceLengthM * 1000;

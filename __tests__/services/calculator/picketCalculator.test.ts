@@ -51,13 +51,12 @@ describe('picketLookup', () => {
   });
 
   describe('findPicketByParams', () => {
-    it('should find picket by length, profile type and coating', async () => {
+    it('should find picket by length and profile type', async () => {
       (cache.getOrSet as jest.Mock).mockResolvedValue([mockPicket]);
 
       const params: PicketLookupParams = {
         lengthMm: 2000,
         profileTypeName: 'П-образный',
-        coatingName: 'Глянцевый полиэстер',
       };
 
       const result = await findPicketByParams(params);
@@ -81,7 +80,6 @@ describe('picketLookup', () => {
       const params: PicketLookupParams = {
         lengthMm: 2000,
         profileTypeName: 'М-образный',
-        coatingName: 'Пурал',
       };
 
       await expect(findPicketByParams(params)).rejects.toMatchObject({
@@ -96,7 +94,6 @@ describe('picketLookup', () => {
       const params: PicketLookupParams = {
         lengthMm: 1800,
         profileTypeName: 'П-образный',
-        coatingName: 'Глянцевый полиэстер',
       };
 
       await expect(findPicketByParams(params)).rejects.toMatchObject({
@@ -119,7 +116,6 @@ describe('picketCalculator', () => {
         fenceLengthM: 10,
         fenceHeightM: 2.0,
         profileTypeName: 'П-образный',
-        coatingName: 'Глянцевый полиэстер',
         stepCm: 5,
         mountingType: 'SINGLE',
       };
@@ -145,7 +141,6 @@ describe('picketCalculator', () => {
         fenceLengthM: 10,
         fenceHeightM: 2.0,
         profileTypeName: 'П-образный',
-        coatingName: 'Глянцевый полиэстер',
         stepCm: 5,
         mountingType: 'CHESS',
       };
@@ -168,7 +163,6 @@ describe('picketCalculator', () => {
         fenceLengthM: 10,
         fenceHeightM: 2.0,
         profileTypeName: 'П-образный',
-        coatingName: 'Глянцевый полиэстер',
         stepCm: 5,
         mountingType: 'SINGLE',
       };

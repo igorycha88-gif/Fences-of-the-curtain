@@ -16,7 +16,6 @@ interface FenceParameters {
   wicketWidth?: number;
   lagRows?: number;
   picketProfileType?: string;
-  picketCoating?: string;
   picketStep?: number;
   picketMountingType?: string;
 }
@@ -313,12 +312,7 @@ export default function NomenclatureNotFoundModal({
                 <span className="text-muted-foreground">Высота:</span>{' '}
                 <span className="font-medium">{fenceParameters.height} м</span>
               </div>
-              {fenceParameters.picketCoating ? (
-                <div>
-                  <span className="text-muted-foreground">Покрытие:</span>{' '}
-                  <span className="font-medium">{fenceParameters.picketCoating}</span>
-                </div>
-              ) : fenceParameters.coating ? (
+              {fenceParameters.coating ? (
                 <div>
                   <span className="text-muted-foreground">Покрытие:</span>{' '}
                   <span className="font-medium">{coatingLabels[fenceParameters.coating] || fenceParameters.coating}</span>

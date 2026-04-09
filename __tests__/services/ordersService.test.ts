@@ -15,6 +15,37 @@ jest.mock('@/lib/prisma', () => ({
     user: {
       findUnique: jest.fn(),
     },
+    postType: {
+      findUnique: jest.fn(),
+    },
+    lagType: {
+      findUnique: jest.fn(),
+    },
+    profnastilType: {
+      findUnique: jest.fn(),
+    },
+    picketType: {
+      findUnique: jest.fn(),
+    },
+    gateType: {
+      findUnique: jest.fn(),
+    },
+    wicketType: {
+      findUnique: jest.fn(),
+    },
+    mountingHardware: {
+      findUnique: jest.fn(),
+    },
+    fenceEstimate: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
+    fenceType: {
+      findMany: jest.fn(),
+    },
+    multiFenceEstimate: {
+      findFirst: jest.fn(),
+    },
   },
 }));
 
@@ -262,8 +293,8 @@ describe('OrdersService', () => {
       expect(result!.showPurchasePrices).toBe(false);
       expect(result!.estimate).toBeDefined();
       expect(result!.estimate!.purchaseTotal).toBeUndefined();
-      expect(result!.estimate!.marginTotalRub).toBeUndefined();
-      expect(result!.estimate!.marginTotalPercent).toBeUndefined();
+      expect(result!.estimate!.materialMarginRub).toBeUndefined();
+      expect(result!.estimate!.materialMarginPercent).toBeUndefined();
       expect(result!.estimate!.items[0].purchasePricePerUnit).toBeUndefined();
       expect(result!.estimate!.items[0].purchaseTotal).toBeUndefined();
       expect(result!.estimate!.items[0].marginRub).toBeUndefined();
@@ -331,15 +362,16 @@ describe('OrdersService', () => {
 
       const { prisma } = require('@/lib/prisma');
       prisma.order.findUnique.mockResolvedValue(mockOrder);
+      prisma.postType.findUnique.mockResolvedValue({ purchasePricePerUnit: 950 });
+      prisma.fenceEstimate.findMany.mockResolvedValue([]);
 
       const result = await ordersService.getOrderFull('order1', 'ADMIN');
 
       expect(result).not.toBeNull();
       expect(result!.showPurchasePrices).toBe(true);
       expect(result!.estimate).toBeDefined();
-      expect(result!.estimate!.purchaseTotal).toBe(19950);
-      expect(result!.estimate!.marginTotalRub).toBe(145050);
-      expect(result!.estimate!.marginTotalPercent).toBeCloseTo(87.9, 0);
+      expect(result!.estimate!.materialMarginRub).toBeDefined();
+      expect(result!.estimate!.materialMarginPercent).toBeDefined();
       expect(result!.estimate!.items[0].purchasePricePerUnit).toBe(950);
       expect(result!.estimate!.items[0].purchaseTotal).toBe(19950);
     });

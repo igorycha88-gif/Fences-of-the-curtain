@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Calculator, Send, Zap, Shield, Clock, AlertCircle, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
@@ -8,6 +8,7 @@ import OrderForm from '@/components/calculator/OrderForm';
 import NomenclatureNotFoundModal from '@/components/calculator/NomenclatureNotFoundModal';
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
 import { EVENT_NAMES } from '@/types/analytics';
+import { validateLength } from '@/lib/validators/calculator';
 
 interface FenceType {
   id: string;
@@ -21,14 +22,6 @@ interface FenceType {
 }
 
 interface PicketProfileType {
-  id: string;
-  name: string;
-  description?: string;
-  sortOrder: number;
-  active: boolean;
-}
-
-interface PicketCoating {
   id: string;
   name: string;
   description?: string;
@@ -53,7 +46,6 @@ interface FenceCalculatorForm {
   difficultyCoef?: number;
   postSpacing?: number;
   picketProfileType: string;
-  picketCoating: string;
   picketStep: number;
   picketMountingType: 'SINGLE' | 'CHESS';
 }
@@ -127,7 +119,6 @@ const defaultFormData = (): FenceCalculatorForm => ({
   coating: 'POLYMER_SINGLE',
   color: '5005',
   picketProfileType: '',
-  picketCoating: '',
   picketStep: 5,
   picketMountingType: 'SINGLE',
 });
@@ -139,7 +130,8 @@ export default function FenceCalculatorPage() {
   const [fenceTypesError, setFenceTypesError] = useState<string | null>(null);
 
   const [picketProfileTypes, setPicketProfileTypes] = useState<PicketProfileType[]>([]);
-  const [picketCoatings, setPicketCoatings] = useState<PicketCoating[]>([]);
+
+  const lengthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [calculations, setCalculations] = useState<Array<{
     id: string;
@@ -148,6 +140,7 @@ export default function FenceCalculatorPage() {
     loading: boolean;
     gateWarning: string | null;
     wicketWarning: string | null;
+    lengthError: string | null;
     expanded: boolean;
   }>>([{
     id: crypto.randomUUID(),
@@ -156,6 +149,7 @@ export default function FenceCalculatorPage() {
     loading: false,
     gateWarning: null,
     wicketWarning: null,
+    lengthError: null,
     expanded: true,
   }]);
 
@@ -163,6 +157,7 @@ export default function FenceCalculatorPage() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showNomenclatureNotFoundModal, setShowNomenclatureNotFoundModal] = useState(false);
   const [nomenclatureNotFoundCalcIndex, setNomenclatureNotFoundCalcIndex] = useState<number | null>(null);
+  const [focusedCalcId, setFocusedCalcId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFenceTypes = async () => {
@@ -209,13 +204,6 @@ export default function FenceCalculatorPage() {
         if (Array.isArray(data)) setPicketProfileTypes(data);
       })
       .catch(err => console.error('Error loading profile types:', err));
-
-    fetch('/api/calculator/picket-coatings')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setPicketCoatings(data);
-      })
-      .catch(err => console.error('Error loading coatings:', err));
   }, []);
 
   const updateCalcFormData = useCallback((calcId: string, updates: Partial<FenceCalculatorForm>) => {
@@ -234,11 +222,10 @@ export default function FenceCalculatorPage() {
       difficultyCoef: fenceType.difficultyCoef,
       postSpacing: fenceType.postSpacing,
       picketProfileType: isPicketType ? (picketProfileTypes[0]?.id || '') : '',
-      picketCoating: isPicketType ? (picketCoatings[0]?.id || '') : '',
       picketStep: isPicketType ? 5 : 5,
       picketMountingType: isPicketType ? 'SINGLE' : 'SINGLE',
     });
-  }, [picketProfileTypes, picketCoatings, updateCalcFormData]);
+  }, [picketProfileTypes, updateCalcFormData]);
 
   const addCalculation = useCallback(() => {
     setCalculations(prev => {
@@ -257,6 +244,7 @@ export default function FenceCalculatorPage() {
         loading: false,
         gateWarning: null,
         wicketWarning: null,
+        lengthError: null,
         expanded: true,
       }];
     });
@@ -290,8 +278,9 @@ export default function FenceCalculatorPage() {
     }
 
     if (formData.length === '' || isNaN(Number(formData.length)) || Number(formData.length) < 10 || Number(formData.length) > 1000) {
-      alert('Укажите длину забора от 10 до 1000 метров');
-      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, loading: false } : c));
+      const error = validateLength(formData.length);
+      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, lengthError: error, loading: false } : c));
+      lengthInputRefs.current[calcId]?.focus();
       return;
     }
 
@@ -325,9 +314,7 @@ export default function FenceCalculatorPage() {
 
       if (isPicket) {
         const selectedProfile = picketProfileTypes.find(p => p.id === formData.picketProfileType);
-        const selectedCoating = picketCoatings.find(c => c.id === formData.picketCoating);
         requestBody.picketProfileType = selectedProfile?.name || '';
-        requestBody.picketCoating = selectedCoating?.name || '';
         requestBody.picketStep = formData.picketStep;
         requestBody.picketMountingType = formData.picketMountingType;
       }
@@ -377,12 +364,32 @@ export default function FenceCalculatorPage() {
       return false;
     }
 
-    for (const calc of validCalculations) {
-      if (calc.formData.length === '' || isNaN(Number(calc.formData.length)) || Number(calc.formData.length) < 10 || Number(calc.formData.length) > 1000) {
-        alert(`Расчет "${getFenceTypeName(calc.formData.fenceTypeId)}": укажите длину забора от 10 до 1000 метров`);
-        return false;
-      }
+    let firstInvalidCalcId: string | null = null;
 
+    const updatedCalculations = [...calculations];
+    for (const calc of validCalculations) {
+      const error = validateLength(calc.formData.length);
+      const idx = updatedCalculations.findIndex(c => c.id === calc.id);
+      if (idx !== -1) {
+        updatedCalculations[idx] = { ...updatedCalculations[idx], lengthError: error };
+      }
+      if (error && !firstInvalidCalcId) {
+        firstInvalidCalcId = calc.id;
+      }
+    }
+
+    if (firstInvalidCalcId) {
+      setCalculations(updatedCalculations);
+      setTimeout(() => {
+        lengthInputRefs.current[firstInvalidCalcId!]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        lengthInputRefs.current[firstInvalidCalcId!]?.focus();
+      }, 100);
+      return false;
+    }
+
+    setCalculations(updatedCalculations);
+
+    for (const calc of validCalculations) {
       const length = Number(calc.formData.length);
       const totalOpening = (calc.formData.hasGate ? calc.formData.gateWidth : 0) + (calc.formData.hasWicket ? calc.formData.wicketWidth : 0);
       if (calc.formData.hasGate && calc.formData.gateWidth >= length) {
@@ -415,9 +422,7 @@ export default function FenceCalculatorPage() {
 
         if (isPicket) {
           const selectedProfile = picketProfileTypes.find(p => p.id === calc.formData.picketProfileType);
-          const selectedCoating = picketCoatings.find(c => c.id === calc.formData.picketCoating);
           estimate.picketProfileType = selectedProfile?.name || '';
-          estimate.picketCoating = selectedCoating?.name || '';
           estimate.picketStep = calc.formData.picketStep;
           estimate.picketMountingType = calc.formData.picketMountingType;
         }
@@ -567,14 +572,39 @@ export default function FenceCalculatorPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">Длина (м) *</label>
                 <input
+                  ref={(el) => { lengthInputRefs.current[calc.id] = el; }}
                   type="number"
                   value={formData.length}
-                  onChange={(e) => updateCalcFormData(calc.id, { length: e.target.value === '' ? '' : Number(e.target.value) })}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? '' : Number(e.target.value);
+                    updateCalcFormData(calc.id, { length: val });
+                    if (calc.lengthError) {
+                      const error = validateLength(val);
+                      if (!error) {
+                        setCalculations(prev => prev.map(c =>
+                          c.id === calc.id ? { ...c, lengthError: null } : c
+                        ));
+                      }
+                    }
+                  }}
+                  onFocus={() => setFocusedCalcId(calc.id)}
+                  onBlur={() => {
+                    setFocusedCalcId(null);
+                    const error = validateLength(formData.length);
+                    setCalculations(prev => prev.map(c =>
+                      c.id === calc.id ? { ...c, lengthError: error } : c
+                    ));
+                  }}
                   min="10"
                   max="1000"
-                  className="input-modern"
+                  className={`input-modern ${
+                    calc.lengthError && focusedCalcId !== calc.id ? 'border-destructive' : ''
+                  }`}
                   required
                 />
+                {calc.lengthError && (
+                  <p className="text-sm text-destructive mt-1">{calc.lengthError}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Высота (м)</label>
@@ -638,24 +668,6 @@ export default function FenceCalculatorPage() {
                         <option value="">Выберите тип</option>
                         {picketProfileTypes.map((pt) => (
                           <option key={pt.id} value={pt.id}>{pt.name}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Покрытие *</label>
-                    {picketCoatings.length === 0 ? (
-                      <div className="h-12 bg-secondary/50 rounded-xl animate-pulse" />
-                    ) : (
-                      <select
-                        value={formData.picketCoating}
-                        onChange={(e) => updateCalcFormData(calc.id, { picketCoating: e.target.value })}
-                        className="select-modern"
-                        required
-                      >
-                        <option value="">Выберите покрытие</option>
-                        {picketCoatings.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     )}
@@ -1056,7 +1068,6 @@ export default function FenceCalculatorPage() {
                 wicketWidth: calculations[nomenclatureNotFoundCalcIndex]?.formData.wicketWidth,
                 lagRows: parseInt(calculations[nomenclatureNotFoundCalcIndex]?.formData.lagRows || '2'),
                 picketProfileType: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketProfileType,
-                picketCoating: picketCoatings.find(c => c.id === calculations[nomenclatureNotFoundCalcIndex]?.formData.picketCoating)?.name || '',
                 picketStep: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketStep,
                 picketMountingType: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketMountingType,
               }
@@ -1072,7 +1083,6 @@ export default function FenceCalculatorPage() {
                 wicketWidth: 0,
                 lagRows: 2,
                 picketProfileType: '',
-                picketCoating: '',
                 picketStep: 0,
                 picketMountingType: 'SINGLE',
               }

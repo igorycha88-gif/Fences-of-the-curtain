@@ -55,23 +55,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { session } = authResult;
 
     const { id: orderId } = await params;
-
-    const order = await estimateEditorService.getAdminEstimateForOrder(orderId);
-    if (!order) {
-      return NextResponse.json(
-        { error: 'ADMIN_ESTIMATE_NOT_FOUND', message: 'Откорректированный расчет не найден' },
-        { status: 404 },
-      );
-    }
-
     const body = await req.json();
     const parsed = updateAdminEstimateSchema.safeParse(body);
     if (!parsed.success) {
       return validationError(parsed.error);
     }
 
+    let adminEstimateId: string | null = null;
+
+    const sourceEstimateId = parsed.data.sourceEstimateId;
+    if (sourceEstimateId) {
+      const correction = await estimateEditorService.getAdminCorrectionForEstimate(sourceEstimateId);
+      adminEstimateId = correction?.id ?? null;
+    }
+
+    if (!adminEstimateId) {
+      const order = await estimateEditorService.getAdminEstimateForOrder(orderId);
+      adminEstimateId = order?.id ?? null;
+    }
+
+    if (!adminEstimateId) {
+      return NextResponse.json(
+        { error: 'ADMIN_ESTIMATE_NOT_FOUND', message: 'Откорректированный расчет не найден' },
+        { status: 404 },
+      );
+    }
+
     const result = await estimateEditorService.updateAdminEstimate(
-      order.id,
+      adminEstimateId,
       session.userId,
       parsed.data,
     );

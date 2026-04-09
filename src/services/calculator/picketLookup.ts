@@ -5,7 +5,6 @@ import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 export interface PicketLookupParams {
   lengthMm: number;
   profileTypeName: string;
-  coatingName: string;
 }
 
 export interface PicketLookupResult {
@@ -66,8 +65,7 @@ export async function findPicketByParams(
   const matchingPickets = pickets.filter(
     p =>
       p.length === params.lengthMm &&
-      p.picketProfile.name === params.profileTypeName &&
-      p.picketCoatingType.name === params.coatingName
+      p.picketProfile.name === params.profileTypeName
   );
 
   if (matchingPickets.length === 0) {
@@ -77,7 +75,7 @@ export async function findPicketByParams(
       details: {
         requiredLength: params.lengthMm,
         profileType: params.profileTypeName,
-        coating: params.coatingName,
+        coating: '',
         suggestion: 'Попробуйте выбрать другие параметры или свяжитесь с нами',
       },
     };

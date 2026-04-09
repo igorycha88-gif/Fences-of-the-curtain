@@ -92,10 +92,15 @@ export class EstimateEditorService {
   ): Promise<AdminEstimateResult> {
     const { sourceEstimateId, editComment, parameters, items: itemChanges } = input;
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, multiEstimateId: true, adminEstimateId: true },
+    });
     if (!order) {
       throw new Error('Order not found');
     }
+
+    const isMultiEstimate = !!order.multiEstimateId;
 
     const sourceEstimate = await prisma.fenceEstimate.findUnique({
       where: { id: sourceEstimateId },
@@ -261,7 +266,11 @@ export class EstimateEditorService {
 
       await tx.order.update({
         where: { id: orderId },
-        data: { adminEstimateId: estimate.id, calculatedCost: grandTotal },
+        data: {
+          ...(isMultiEstimate
+            ? {}
+            : { adminEstimateId: estimate.id }),
+        },
       });
 
       return estimate;
@@ -445,10 +454,17 @@ export class EstimateEditorService {
         },
       });
 
-      await tx.order.updateMany({
+      const relatedOrder = await tx.order.findFirst({
         where: { adminEstimateId: adminEstimateId },
-        data: { calculatedCost: grandTotal },
+        select: { id: true, multiEstimateId: true },
       });
+
+      if (relatedOrder && !relatedOrder.multiEstimateId) {
+        await tx.order.update({
+          where: { id: relatedOrder.id },
+          data: { calculatedCost: grandTotal },
+        });
+      }
 
       return estimate;
     });
@@ -487,6 +503,22 @@ export class EstimateEditorService {
     }
 
     return this.formatResult(adminEstimate);
+  }
+
+  async getAdminCorrectionForEstimate(sourceEstimateId: string): Promise<AdminEstimateResult | null> {
+    const correction = await prisma.fenceEstimate.findFirst({
+      where: {
+        sourceEstimateId,
+        isEditedByAdmin: true,
+      },
+      orderBy: { editedAt: 'desc' },
+    });
+
+    if (!correction) {
+      return null;
+    }
+
+    return this.formatResult(correction);
   }
 
   private buildMergedParams(

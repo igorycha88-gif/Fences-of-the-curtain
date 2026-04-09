@@ -42,6 +42,7 @@ export const createAdminEstimateSchema = z.object({
 });
 
 export const updateAdminEstimateSchema = z.object({
+  sourceEstimateId: z.string().min(1).optional(),
   editComment: z.string().max(500).optional(),
   parameters: recalculateParamsSchema.optional(),
   items: z.object({
