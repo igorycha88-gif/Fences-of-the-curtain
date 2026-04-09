@@ -145,7 +145,7 @@ STEP=7
 log "Проверка Grafana..."
 
 GRAFANA_HEALTH=$(vps_ssh "curl -sf http://localhost:3002/api/health 2>/dev/null || echo 'FAILED'")
-if echo "$GRAFANA_HEALTH" | grep -q '"status":"ok"'\|"database":"ok"; then
+if echo "$GRAFANA_HEALTH" | grep -q '"database":"ok"'; then
     echo -e "  ${GREEN}OK${NC}: Grafana health: ${GRAFANA_HEALTH}"
 else
     echo -e "  ${RED}FAIL${NC}: Grafana health: ${GRAFANA_HEALTH}"
@@ -179,16 +179,22 @@ STEP=8
 log "Проверка SMTP..."
 
 SMTP_TEST=$(vps_ssh "cd ${VPS_DIR} && node -e \"
-require('dotenv').config();
+const fs = require('fs');
+const envContent = fs.readFileSync('.env', 'utf8');
+const env = {};
+envContent.split('\\n').forEach(line => {
+  const match = line.match(/^([A-Z_]+)=\"?([^\"]*)\"?/);
+  if (match) env[match[1]] = match[2];
+});
 const nodemailer = require('nodemailer');
-const port = parseInt(process.env.SMTP_PORT || '587');
+const port = parseInt(env.SMTP_PORT || '587');
 const secure = port === 465;
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
+  host: env.SMTP_HOST,
   port: port,
   secure: secure,
   requireTLS: !secure,
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
   tls: { rejectUnauthorized: false }
 });
 transporter.verify()
