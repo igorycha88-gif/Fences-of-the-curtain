@@ -39,6 +39,7 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "docx": "^9.6.1",
     "dompurify": "^3.3.3",
     "ioredis": "^5.10.0",
     "isomorphic-dompurify": "^3.5.1",

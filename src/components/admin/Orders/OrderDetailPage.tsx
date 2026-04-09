@@ -126,6 +126,21 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     );
   }, [data]);
 
+  const effectiveGrandTotalCalc = useMemo(() => {
+    if (!data) return 0;
+    const { order, estimate, adminEstimate, multiEstimates } = data;
+    const isMulti = !!multiEstimates && multiEstimates.length > 0;
+    if (isMulti && multiEstimates) {
+      return multiEstimates.reduce((sum: number, est: any) => {
+        const effective = est.adminCorrection ?? est;
+        return sum + effective.grandTotal;
+      }, 0);
+    }
+    if (adminEstimate) return adminEstimate.grandTotal;
+    if (estimate) return estimate.grandTotal;
+    return order?.calculatedCost ?? 0;
+  }, [data]);
+
   useEffect(() => {
     fetchOrderFull();
   }, [orderId]);
@@ -181,6 +196,11 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     } else {
       setEditingEstimateId(estimate.id);
     }
+    setIsEstimateEditorOpen(true);
+  };
+
+  const handleEditMultiAdminEstimate = (sourceEstimateId: string, correctionId: string) => {
+    setEditingEstimateId(correctionId);
     setIsEstimateEditorOpen(true);
   };
 
@@ -272,9 +292,20 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   const isAdmin = showPurchasePrices;
   const hasAdminEstimate = !!adminEstimate;
 
+  const effectiveGrandTotal = effectiveGrandTotalCalc;
+
   const editingEstimate = editingEstimateId
     ? (isMultiEstimate && multiEstimates
-        ? multiEstimates.find((e: any) => e.id === editingEstimateId)
+        ? (() => {
+            const found = multiEstimates.find((e: any) => e.id === editingEstimateId);
+            if (found) return found;
+            for (const est of multiEstimates) {
+              if ((est as any).adminCorrection?.id === editingEstimateId) {
+                return (est as any).adminCorrection;
+              }
+            }
+            return null;
+          })()
         : editingEstimateId === adminEstimate?.id
           ? adminEstimate
           : estimate)
@@ -356,7 +387,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           {isIndividualRequest ? (
             <p className="text-base md:text-lg font-bold text-amber-600">Индивидуальный расчёт</p>
           ) : (
-            <p className="text-lg md:text-2xl font-bold text-primary">{formatCurrency(order.calculatedCost)}</p>
+            <p className="text-lg md:text-2xl font-bold text-primary">{formatCurrency(effectiveGrandTotal)}</p>
           )}
         </div>
       </div>
@@ -391,6 +422,22 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
         </div>
 
         <div className="space-y-6">
+          {!isIndividualRequest && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleExportWord}
+                disabled={isExportingWord}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:opacity-90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isExportingWord ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Сохранить в Word
+              </button>
+            </div>
+          )}
           {isMultiEstimate ? (
             <>
               {hasAdminEstimate && adminEstimate && (
@@ -458,10 +505,10 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                   <div className="px-6 pb-4 flex items-center gap-2">
                     <button
                       onClick={handleEditAdminEstimate}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-orange-200"
+                      className="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                      title="Редактировать корректировку"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Редактировать корректировку
+                      <Pencil className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -470,6 +517,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                 estimates={multiEstimates}
                 showPurchasePrices={showPurchasePrices}
                 onEditEstimate={handleEditEstimate}
+                onEditAdminEstimate={handleEditMultiAdminEstimate}
               />
             </>
           ) : estimate ? (
@@ -613,10 +661,10 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                   <div className="px-6 pb-4 flex items-center gap-2">
                     <button
                       onClick={handleEditAdminEstimate}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-orange-200"
+                      className="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                      title="Редактировать корректировку"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Редактировать
+                      <Pencil className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -634,10 +682,10 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                   <div className="mt-3">
                     <button
                       onClick={() => handleEditEstimate(estimate.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-blue-200"
+                      className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Редактировать"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Редактировать расчет
+                      <Pencil className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -817,7 +865,15 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           isOpen={isEstimateEditorOpen}
           onClose={handleEstimateEditorClose}
           orderId={order.id}
-          estimateId={editingEstimateId === adminEstimate?.id ? estimate.id : editingEstimate.id}
+          estimateId={(() => {
+            if (isMultiEstimate && multiEstimates) {
+              const sourceEst = multiEstimates.find((e: any) =>
+                (e as any).adminCorrection?.id === editingEstimateId
+              );
+              if (sourceEst) return sourceEst.id;
+            }
+            return editingEstimateId === adminEstimate?.id ? estimate?.id || editingEstimateId : editingEstimateId;
+          })()}
           initialParams={{
             length: editingEstimate.length,
             height: editingEstimate.height,
@@ -834,7 +890,20 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           initialInstallationTotal={editingEstimate.installationTotal}
           initialGrandTotal={editingEstimate.grandTotal}
           onSaveSuccess={handleEstimateEditorSave}
-          existingAdminEstimateId={adminEstimate?.id}
+          existingAdminEstimateId={(() => {
+            if (isMultiEstimate && multiEstimates) {
+              const sourceEst = multiEstimates.find((e: any) =>
+                (e as any).adminCorrection?.id === editingEstimateId
+              );
+              if (sourceEst) return editingEstimateId;
+              const estWithCorrection = multiEstimates.find((e: any) =>
+                e.id === editingEstimateId && (e as any).adminCorrection
+              );
+              if (estWithCorrection) return (estWithCorrection as any).adminCorrection.id;
+              return null;
+            }
+            return adminEstimate?.id;
+          })()}
         />
       )}
 
