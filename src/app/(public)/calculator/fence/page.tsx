@@ -38,7 +38,7 @@ interface PicketCoating {
 
 interface FenceCalculatorForm {
   fenceTypeId: string;
-  length: number;
+  length: number | '';
   height: number;
   postType: string;
   lagType: string;
@@ -114,7 +114,7 @@ const RECOMMENDED_MAX_CALCULATIONS = 4;
 
 const defaultFormData = (): FenceCalculatorForm => ({
   fenceTypeId: '',
-  length: 50,
+  length: '',
   height: 2.0,
   postType: 'standard',
   lagType: 'standard',
@@ -277,7 +277,7 @@ export default function FenceCalculatorPage() {
 
   const calculateSingle = async (calcId: string) => {
     setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, loading: true, gateWarning: null, wicketWarning: null } : c));
-    
+
     const calc = calculations.find(c => c.id === calcId);
     if (!calc) return;
 
@@ -289,24 +289,32 @@ export default function FenceCalculatorPage() {
       return;
     }
 
+    if (formData.length === '' || isNaN(Number(formData.length)) || Number(formData.length) < 10 || Number(formData.length) > 1000) {
+      alert('Укажите длину забора от 10 до 1000 метров');
+      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, loading: false } : c));
+      return;
+    }
+
     const isPanel3D = selectedFenceType.name === '3D-панели';
     const isPicket = selectedFenceType.name === 'Евроштакетник';
 
-    if (formData.hasGate && formData.gateWidth >= formData.length) {
-      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, gateWarning: `Длина ворот (${formData.gateWidth} м) превышает длину забора (${formData.length} м)`, loading: false } : c));
+    const length = Number(formData.length);
+
+    if (formData.hasGate && formData.gateWidth >= length) {
+      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, gateWarning: `Длина ворот (${formData.gateWidth} м) превышает длину забора (${length} м)`, loading: false } : c));
       return;
     }
 
     const totalOpening = (formData.hasGate ? formData.gateWidth : 0) + (formData.hasWicket ? formData.wicketWidth : 0);
-    if (totalOpening >= formData.length) {
-      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, wicketWarning: `Ширина калитки (${formData.wicketWidth} м) + ворот (${formData.hasGate ? formData.gateWidth : 0} м) превышает длину забора (${formData.length} м)`, loading: false } : c));
+    if (totalOpening >= length) {
+      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, wicketWarning: `Ширина калитки (${formData.wicketWidth} м) + ворот (${formData.hasGate ? formData.gateWidth : 0} м) превышает длину забора (${length} м)`, loading: false } : c));
       return;
     }
 
     try {
       const requestBody: Record<string, unknown> = {
         fenceTypeId: formData.fenceTypeId,
-        length: formData.length,
+        length: Number(formData.length),
         height: formData.height,
         coating: formData.coating,
       };
@@ -370,12 +378,18 @@ export default function FenceCalculatorPage() {
     }
 
     for (const calc of validCalculations) {
+      if (calc.formData.length === '' || isNaN(Number(calc.formData.length)) || Number(calc.formData.length) < 10 || Number(calc.formData.length) > 1000) {
+        alert(`Расчет "${getFenceTypeName(calc.formData.fenceTypeId)}": укажите длину забора от 10 до 1000 метров`);
+        return false;
+      }
+
+      const length = Number(calc.formData.length);
       const totalOpening = (calc.formData.hasGate ? calc.formData.gateWidth : 0) + (calc.formData.hasWicket ? calc.formData.wicketWidth : 0);
-      if (calc.formData.hasGate && calc.formData.gateWidth >= calc.formData.length) {
+      if (calc.formData.hasGate && calc.formData.gateWidth >= length) {
         alert(`Расчет "${getFenceTypeName(calc.formData.fenceTypeId)}": длина ворот превышает длину забора`);
         return false;
       }
-      if (totalOpening >= calc.formData.length) {
+      if (totalOpening >= length) {
         alert(`Расчет "${getFenceTypeName(calc.formData.fenceTypeId)}": ширина ворот и калитки превышает длину забора`);
         return false;
       }
@@ -390,7 +404,7 @@ export default function FenceCalculatorPage() {
 
         const estimate: Record<string, unknown> = {
           fenceTypeId: calc.formData.fenceTypeId,
-          length: calc.formData.length,
+          length: Number(calc.formData.length),
           height: calc.formData.height,
           coating: calc.formData.coating,
         };
@@ -551,14 +565,15 @@ export default function FenceCalculatorPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Длина (м)</label>
+                <label className="block text-sm font-medium mb-2">Длина (м) *</label>
                 <input
                   type="number"
                   value={formData.length}
-                  onChange={(e) => updateCalcFormData(calc.id, { length: Number(e.target.value) })}
+                  onChange={(e) => updateCalcFormData(calc.id, { length: e.target.value === '' ? '' : Number(e.target.value) })}
                   min="10"
                   max="1000"
                   className="input-modern"
+                  required
                 />
               </div>
               <div>
