@@ -18,11 +18,14 @@ export interface EmailData {
   text?: string;
 }
 
+const useLocalSMTP = process.env.USE_LOCAL_SMTP === 'true';
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: parseInt(process.env.SMTP_PORT || '587') === 465,
-  auth: {
+  host: useLocalSMTP ? 'mailhog' : process.env.SMTP_HOST,
+  port: useLocalSMTP ? 1025 : parseInt(process.env.SMTP_PORT || '587'),
+  secure: false, // Всегда false для STARTTLS (порт 587)
+  requireTLS: !useLocalSMTP, // Использовать TLS
+  auth: useLocalSMTP ? undefined : {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },

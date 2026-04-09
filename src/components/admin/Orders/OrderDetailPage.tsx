@@ -26,7 +26,7 @@ import { EstimateSection } from './EstimateSection';
 import { MultiEstimateSection } from './MultiEstimateSection';
 import { EstimateEditor } from './EstimateEditor';
 import { EstimateComparisonView } from './EstimateComparisonView';
-import { EstimateDiffView } from './EstimateDiffView';
+
 import { EstimateEditHistory } from './EstimateEditHistory';
 import { TechnicalInfo } from './TechnicalInfo';
 import { StatusChangeModal } from './StatusChangeModal';
@@ -407,16 +407,12 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
 
                   <div className="p-6">
                     {activeEstimateTab === 'admin' && (
-                      <EstimateDiffView
-                        sourceItems={multiEstimates?.[0]?.items || []}
-                        adminItems={adminEstimate.items}
-                        adminMaterialsTotal={adminEstimate.materialsTotal}
-                        adminInstallationTotal={adminEstimate.installationTotal}
-                        adminGrandTotal={adminEstimate.grandTotal}
-                        sourceMaterialsTotal={multiEstimates?.[0]?.materialsTotal || 0}
-                        sourceInstallationTotal={multiEstimates?.[0]?.installationTotal || 0}
-                        sourceGrandTotal={multiEstimates?.[0]?.grandTotal || 0}
-                        showPurchasePrices={showPurchasePrices}
+                      <EstimateSection
+                        estimateId={adminEstimate.id}
+                        items={adminEstimate.items}
+                        materialsTotal={adminEstimate.materialsTotal}
+                        installationTotal={adminEstimate.installationTotal}
+                        grandTotal={adminEstimate.grandTotal}
                       />
                     )}
                   </div>
@@ -425,7 +421,6 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
               <MultiEstimateSection
                 estimates={multiEstimates}
                 showPurchasePrices={showPurchasePrices}
-                onEditEstimate={handleEditEstimate}
               />
             </>
           ) : estimate ? (
@@ -547,18 +542,12 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
 
                   <div className="p-6">
                     {activeEstimateTab === 'admin' ? (
-                      <EstimateDiffView
-                        sourceItems={estimate.items}
-                        adminItems={adminEstimate.items}
-                        adminMaterialsTotal={adminEstimate.materialsTotal}
-                        adminInstallationTotal={adminEstimate.installationTotal}
-                        adminGrandTotal={adminEstimate.grandTotal}
-                        sourceMaterialsTotal={estimate.materialsTotal}
-                        sourceInstallationTotal={estimate.installationTotal}
-                        sourceGrandTotal={estimate.grandTotal}
-                        showPurchasePrices={showPurchasePrices}
-                        onExportWord={handleExportWord}
-                        isExporting={isExportingWord}
+                      <EstimateSection
+                        estimateId={adminEstimate.id}
+                        items={adminEstimate.items}
+                        materialsTotal={adminEstimate.materialsTotal}
+                        installationTotal={adminEstimate.installationTotal}
+                        grandTotal={adminEstimate.grandTotal}
                       />
                     ) : (
                       <EstimateSection
@@ -590,7 +579,6 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                   materialsTotal={estimate.materialsTotal}
                   installationTotal={estimate.installationTotal}
                   grandTotal={estimate.grandTotal}
-                  onEditEstimate={handleEditEstimate}
                 />
               )}
             </>
