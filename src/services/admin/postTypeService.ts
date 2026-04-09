@@ -241,20 +241,24 @@ export class PostTypeService {
       throw new Error('Столб не найден');
     }
 
-    if (
-      data.sectionWidth !== undefined ||
-      data.sectionHeight !== undefined ||
-      data.wallThickness !== undefined
-    ) {
-      const width = data.sectionWidth ?? oldPost.sectionWidth;
-      const height = data.sectionHeight ?? oldPost.sectionHeight;
-      const thickness = data.wallThickness ?? oldPost.wallThickness;
+    const newSectionWidth = data.sectionWidth ?? oldPost.sectionWidth;
+    const newSectionHeight = data.sectionHeight ?? oldPost.sectionHeight;
+    const newWallThickness = data.wallThickness ?? oldPost.wallThickness;
+    const newLength = data.length ?? oldPost.length;
 
+    const uniqueFieldsChanged =
+      newSectionWidth !== oldPost.sectionWidth ||
+      newSectionHeight !== oldPost.sectionHeight ||
+      newWallThickness !== oldPost.wallThickness ||
+      newLength !== oldPost.length;
+
+    if (uniqueFieldsChanged) {
       const existingPost = await prisma.postType.findFirst({
         where: {
-          sectionWidth: width,
-          sectionHeight: height,
-          wallThickness: thickness,
+          sectionWidth: newSectionWidth,
+          sectionHeight: newSectionHeight,
+          wallThickness: newWallThickness,
+          length: newLength,
           id: { not: id },
         },
       });

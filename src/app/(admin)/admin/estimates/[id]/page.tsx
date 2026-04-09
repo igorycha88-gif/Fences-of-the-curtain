@@ -2,7 +2,9 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Download } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Loader2, Download, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface ExtendedEstimateItem {
   category: string;
@@ -92,9 +94,24 @@ const categoryLabels: Record<string, string> = {
 
 export default function EstimateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
+  const router = useRouter();
   const [estimate, setEstimate] = useState<EstimateDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((sData) => {
+        if (sData.user?.role === 'ADMIN') {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchEstimate();
@@ -148,6 +165,27 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
     }
   };
 
+  const handleDeleteEstimate = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/estimates/${resolvedParams.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Ошибка удаления');
+      }
+      toast.success('Смета удалена');
+      router.push('/admin/estimates');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка удаления');
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -195,12 +233,32 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
         {showPurchasePrices && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Экспорт сметы
+            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setDeleteConfirm(true)}
+                className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Удалить
+              </button>
+            )}
+          </div>
+        )}
+        {!showPurchasePrices && isAdmin && (
           <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            onClick={() => setDeleteConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
           >
-            <Download className="w-4 h-4" />
-            Экспорт сметы
+            <Trash2 className="w-4 h-4" />
+            Удалить
           </button>
         )}
       </div>
@@ -474,6 +532,33 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
           </>
         );
       })()}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Удалить смету?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Смета будет помечена как удалённая и перестанет отображаться в списке расчётов.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm font-medium"
+                disabled={deleting}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleDeleteEstimate}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

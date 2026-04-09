@@ -190,6 +190,7 @@ model Order {
   multiEstimate      MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
   adminEstimateId    String?            @unique
   adminEstimate      FenceEstimate?     @relation("OrderAdminEstimate", fields: [adminEstimateId], references: [id])
+  active             Boolean            @default(true)
 
   @@index([status])
   @@index([estimateId])
@@ -197,6 +198,7 @@ model Order {
   @@index([measurementDate])
   @@index([cancellationReason])
   @@index([completionDate])
+  @@index([active])
 }
 
 model PortfolioItem {
@@ -553,6 +555,7 @@ model FenceEstimate {
   multiEstimate            MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
   sourceEstimate           FenceEstimate?  @relation("AdminEstimateEdit", fields: [sourceEstimateId], references: [id])
   adminEdits               FenceEstimate[] @relation("AdminEstimateEdit")
+  active                   Boolean         @default(true)
 
   @@index([fenceTypeId])
   @@index([userId])
@@ -563,6 +566,7 @@ model FenceEstimate {
   @@index([isEditedByAdmin])
   @@index([sourceEstimateId])
   @@index([editedByAdminId])
+  @@index([active])
 }
 
 model MountingHardware {

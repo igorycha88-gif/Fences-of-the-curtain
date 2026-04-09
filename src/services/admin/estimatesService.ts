@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getCityByIP } from './ipLookupService';
+import { createAuditLogAsync } from '@/lib/audit';
 import {
   calculateExtendedItems,
   calculateSummary,
@@ -48,7 +49,7 @@ export class EstimatesService {
     const limit = Math.min(pageSize, 100);
     const skip = (page - 1) * limit;
 
-    const where: Prisma.FenceEstimateWhereInput = {};
+    const where: Prisma.FenceEstimateWhereInput = { active: true };
 
     if (dateFrom || dateTo) {
       where.createdAt = {};
@@ -146,8 +147,8 @@ export class EstimatesService {
   }
 
   async getEstimateById(id: string) {
-    const estimate = await prisma.fenceEstimate.findUnique({
-      where: { id },
+    const estimate = await prisma.fenceEstimate.findFirst({
+      where: { id, active: true },
       include: {
         fenceType: {
           select: { id: true, name: true },
@@ -206,8 +207,8 @@ export class EstimatesService {
     items: ExtendedEstimateItem[];
     summary?: EstimateSummary;
   } | null> {
-    const estimate = await prisma.fenceEstimate.findUnique({
-      where: { id },
+    const estimate = await prisma.fenceEstimate.findFirst({
+      where: { id, active: true },
       include: {
         fenceType: {
           select: { id: true, name: true },
@@ -312,6 +313,35 @@ export class EstimatesService {
       where: { active: true },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
+    });
+  }
+
+  async deleteEstimate(id: string, userId: string) {
+    const estimate = await prisma.fenceEstimate.findFirst({
+      where: { id, active: true },
+    });
+
+    if (!estimate) {
+      throw new Error('Смета не найдена');
+    }
+
+    createAuditLogAsync({
+      userId,
+      action: 'SOFT_DELETE_ESTIMATE',
+      entityType: 'FenceEstimate',
+      entityId: id,
+      oldValues: {
+        fenceTypeId: estimate.fenceTypeId,
+        length: estimate.length,
+        height: estimate.height,
+        grandTotal: estimate.grandTotal,
+      },
+      newValues: { active: false },
+    });
+
+    return prisma.fenceEstimate.update({
+      where: { id },
+      data: { active: false },
     });
   }
 }

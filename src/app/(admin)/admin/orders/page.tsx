@@ -2,9 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ChevronLeft, ChevronRight, ExternalLink, ChevronDown, Filter } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ExternalLink, ChevronDown, Filter, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { STATUS_LABELS, VALID_STATUS_TRANSITIONS } from '@/lib/validators/order';
 import { StatusChangeModal } from '@/components/admin/Orders/StatusChangeModal';
+
+interface SessionUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: 'ADMIN' | 'MANAGER' | 'CONTENT_MANAGER';
+}
 
 interface Order {
   id: string;
@@ -56,6 +64,20 @@ export default function OrdersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedNewStatus, setSelectedNewStatus] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Order | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((sData) => {
+        if (sData.user) {
+          setCurrentUser(sData.user);
+        }
+      })
+      .catch((err) => console.error('Error fetching session:', err));
+  }, []);
 
   useEffect(() => {
     fetchOrders();
@@ -86,6 +108,29 @@ export default function OrdersPage() {
       setLoading(false);
     }
   };
+
+  const handleDeleteOrder = async (order: Order) => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Ошибка удаления');
+      }
+      toast.success('Заявка удалена');
+      setDeleteConfirm(null);
+      fetchOrders();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка удаления');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const getStatusBadge = (status: string) => {
     const color = STATUS_COLORS[status] || 'bg-gray-100 text-gray-800';
@@ -257,6 +302,7 @@ export default function OrdersPage() {
                     <th className="text-left py-3 px-4 font-medium text-gray-600">Сумма</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">Статус</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">Смета</th>
+                    {isAdmin && <th className="text-left py-3 px-4 font-medium text-gray-600 w-12"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -337,11 +383,25 @@ export default function OrdersPage() {
                           <span className="text-gray-400 text-sm">—</span>
                         )}
                       </td>
+                      {isAdmin && (
+                        <td className="py-3 px-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirm(order);
+                            }}
+                            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Удалить заявку"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {data?.orders.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-gray-500">
+                      <td colSpan={isAdmin ? 8 : 7} className="text-center py-8 text-gray-500">
                         Заявки не найдены
                       </td>
                     </tr>
@@ -352,65 +412,82 @@ export default function OrdersPage() {
 
             <div className="md:hidden space-y-3 p-3">
               {data?.orders?.map((order) => (
-                <Link
+                <div
                   key={order.id}
-                  href={`/admin/orders/${order.id}`}
                   className="block bg-gray-50 rounded-lg p-3 border hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-900">#{order.id.slice(0, 8)}</span>
-                    {getStatusBadge(order.status)}
-                  </div>
-                  <div className="text-sm text-gray-700 mb-1">{order.clientName}</div>
-                  <div className="text-xs text-gray-500 mb-2">{order.phone}</div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('ru-RU', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                      })}
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {order.calculatedCost === 0 && !order.estimateId
-                        ? '0 ₽'
-                        : formatCurrency(order.calculatedCost)
-                      }
-                    </span>
-                  </div>
-                  {order.estimateIds && order.estimateIds.length > 0 && (
-                    <div className="mt-2 pt-2 border-t flex flex-col gap-1">
-                      {order.hasAdminEstimate && order.estimateIds[0] ? (
-                        <>
-                          <div className="flex items-center gap-1 text-orange-700 bg-orange-100 px-2 py-1 rounded text-xs font-medium">
-                            <ExternalLink className="w-3 h-3" />
-                            Скорректированная
-                          </div>
-                          {order.estimateIds[1] && (
-                            <div className="flex items-center gap-1 text-blue-700 bg-blue-100 px-2 py-1 rounded text-xs font-medium">
-                              <ExternalLink className="w-3 h-3" />
-                              Исходная
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        order.isMultiEstimate && order.estimateIds.length === 1 && order.estimateIds[0]?.startsWith('multi-') ? (
-                          <div className="flex items-center gap-1 text-blue-600 text-xs">
-                            <ExternalLink className="w-3 h-3" />
-                            Мульти-смета
-                          </div>
-                        ) : (
-                          order.estimateIds.map((estimateId: string, idx: number) => (
-                            <div key={estimateId} className="flex items-center gap-1 text-blue-600 text-xs">
-                              <ExternalLink className="w-3 h-3" />
-                              {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета доступна'}
-                            </div>
-                          ))
-                        )
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="text-sm font-medium text-gray-900 hover:underline"
+                    >
+                      #{order.id.slice(0, 8)}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(order.status)}
+                      {isAdmin && (
+                        <button
+                          onClick={() => setDeleteConfirm(order)}
+                          className="p-1 hover:bg-red-50 rounded transition-colors"
+                          title="Удалить заявку"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
                       )}
                     </div>
-                  )}
-                </Link>
+                  </div>
+                  <Link href={`/admin/orders/${order.id}`}>
+                    <div className="text-sm text-gray-700 mb-1">{order.clientName}</div>
+                    <div className="text-xs text-gray-500 mb-2">{order.phone}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">
+                        {new Date(order.createdAt).toLocaleDateString('ru-RU', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {order.calculatedCost === 0 && !order.estimateId
+                          ? '0 ₽'
+                          : formatCurrency(order.calculatedCost)
+                        }
+                      </span>
+                    </div>
+                    {order.estimateIds && order.estimateIds.length > 0 && (
+                      <div className="mt-2 pt-2 border-t flex flex-col gap-1">
+                        {order.hasAdminEstimate && order.estimateIds[0] ? (
+                          <>
+                            <div className="flex items-center gap-1 text-orange-700 bg-orange-100 px-2 py-1 rounded text-xs font-medium">
+                              <ExternalLink className="w-3 h-3" />
+                              Скорректированная
+                            </div>
+                            {order.estimateIds[1] && (
+                              <div className="flex items-center gap-1 text-blue-700 bg-blue-100 px-2 py-1 rounded text-xs font-medium">
+                                <ExternalLink className="w-3 h-3" />
+                                Исходная
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          order.isMultiEstimate && order.estimateIds.length === 1 && order.estimateIds[0]?.startsWith('multi-') ? (
+                            <div className="flex items-center gap-1 text-blue-600 text-xs">
+                              <ExternalLink className="w-3 h-3" />
+                              Мульти-смета
+                            </div>
+                          ) : (
+                            order.estimateIds.map((estimateId: string, idx: number) => (
+                              <div key={estimateId} className="flex items-center gap-1 text-blue-600 text-xs">
+                                <ExternalLink className="w-3 h-3" />
+                                {order.estimateIds && order.estimateIds.length > 1 ? `Смета ${idx + 1}` : 'Смета доступна'}
+                              </div>
+                            ))
+                          )
+                        )}
+                      </div>
+                    )}
+                  </Link>
+                </div>
               ))}
               {data?.orders.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
@@ -463,6 +540,33 @@ export default function OrdersPage() {
           newStatus={selectedNewStatus}
           onSuccess={handleStatusUpdateSuccess}
         />
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Удалить заявку?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Заявка <span className="font-medium">#{deleteConfirm.id.slice(0, 8)}</span> от {deleteConfirm.clientName} будет помечена как удалённая и перестанет отображаться в списке.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm font-medium"
+                disabled={deleting}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => handleDeleteOrder(deleteConfirm)}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

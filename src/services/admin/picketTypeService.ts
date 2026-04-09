@@ -177,14 +177,25 @@ export class PicketTypeService {
       throw new Error('Номенклатура не найдена');
     }
 
-    if (data.name || data.metalThickness || data.coatingId || data.color !== undefined) {
+    const newName = data.name ?? oldItem.name;
+    const newMetalThickness = data.metalThickness ?? oldItem.metalThickness;
+    const newCoatingId = data.coatingId ?? oldItem.coatingId;
+    const newColor = data.color !== undefined ? data.color : oldItem.color;
+
+    const uniqueFieldsChanged =
+      newName !== oldItem.name ||
+      newMetalThickness !== oldItem.metalThickness ||
+      newCoatingId !== oldItem.coatingId ||
+      newColor !== oldItem.color;
+
+    if (uniqueFieldsChanged) {
       const existing = await prisma.picketType.findFirst({
         where: {
           id: { not: id },
-          name: data.name || oldItem.name,
-          metalThickness: data.metalThickness ?? oldItem.metalThickness,
-          coatingId: data.coatingId || oldItem.coatingId,
-          color: data.color !== undefined ? data.color : oldItem.color,
+          name: newName,
+          metalThickness: newMetalThickness,
+          coatingId: newCoatingId,
+          color: newColor,
         },
       });
 

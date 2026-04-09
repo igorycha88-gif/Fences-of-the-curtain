@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
+import { canDelete } from '@/lib/permissions/rbac';
 import { ordersService } from '@/services/admin/ordersService';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const authResult = await requireAdmin(request, 'orders');
     if (authResult instanceof NextResponse) return authResult;
     const { session } = authResult;
+
+    if (!canDelete(session.role)) {
+      return NextResponse.json({ error: 'Forbidden: admin only' }, { status: 403 });
+    }
 
     await ordersService.deleteOrder(params.id, session.userId);
 

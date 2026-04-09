@@ -17,7 +17,9 @@ import {
   User,
   Clock,
   Download,
+  Trash2,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ClientInfo } from './ClientInfo';
 import { OrderStatusSection } from './OrderStatusSection';
@@ -116,6 +118,8 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   const [activeEstimateTab, setActiveEstimateTab] = useState<'client' | 'admin'>('client');
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [isExportingWord, setIsExportingWord] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const adminDiff: DiffInfo | undefined = useMemo(() => {
     if (!data?.adminEstimate || !data?.estimate) return undefined;
@@ -252,6 +256,27 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     }).format(value);
   };
 
+  const handleDeleteOrder = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Ошибка удаления');
+      }
+      toast.success('Заявка удалена');
+      router.push('/admin/orders');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка удаления');
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -382,12 +407,23 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
             </div>
           </div>
         </div>
-        <div className="text-left md:text-right w-full md:w-auto md:ml-auto">
-          <p className="text-xs md:text-sm text-gray-500">Стоимость</p>
-          {isIndividualRequest ? (
-            <p className="text-base md:text-lg font-bold text-amber-600">Индивидуальный расчёт</p>
-          ) : (
-            <p className="text-lg md:text-2xl font-bold text-primary">{formatCurrency(effectiveGrandTotal)}</p>
+        <div className="flex items-center gap-3 w-full md:w-auto md:ml-auto">
+          <div className="text-left md:text-right flex-1">
+            <p className="text-xs md:text-sm text-gray-500">Стоимость</p>
+            {isIndividualRequest ? (
+              <p className="text-base md:text-lg font-bold text-amber-600">Индивидуальный расчёт</p>
+            ) : (
+              <p className="text-lg md:text-2xl font-bold text-primary">{formatCurrency(effectiveGrandTotal)}</p>
+            )}
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-2 px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden md:inline">Удалить</span>
+            </button>
           )}
         </div>
       </div>
@@ -948,6 +984,33 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           }}
           onClose={() => setIsComparisonOpen(false)}
         />
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Удалить заявку?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Заявка <span className="font-medium">#{order.id.slice(0, 8)}</span> от {order.clientName} будет помечена как удалённая и перестанет отображаться в списке.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm font-medium"
+                disabled={deleting}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleDeleteOrder}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

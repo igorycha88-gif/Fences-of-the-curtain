@@ -206,13 +206,31 @@ export class Panel3dService {
       throw new Error('3D-панель не найдена');
     }
 
-    if (data.name || data.panelHeight || data.panelWidth !== undefined) {
+    const newName = data.name ?? oldItem.name;
+    const newPanelHeight = data.panelHeight ?? oldItem.panelHeight;
+    const newPanelWidth = data.panelWidth ?? oldItem.panelWidth;
+    const newRodDiameter = data.rodDiameter ?? oldItem.rodDiameter;
+    const newCellWidth = data.cellWidth ?? oldItem.cellWidth;
+    const newCellHeight = data.cellHeight ?? oldItem.cellHeight;
+
+    const uniqueFieldsChanged =
+      newName !== oldItem.name ||
+      newPanelHeight !== oldItem.panelHeight ||
+      newPanelWidth !== oldItem.panelWidth ||
+      newRodDiameter !== oldItem.rodDiameter ||
+      newCellWidth !== oldItem.cellWidth ||
+      newCellHeight !== oldItem.cellHeight;
+
+    if (uniqueFieldsChanged) {
       const existing = await prisma.panel3D.findFirst({
         where: {
           id: { not: id },
-          name: data.name || oldItem.name,
-          panelHeight: data.panelHeight ?? oldItem.panelHeight,
-          panelWidth: data.panelWidth ?? oldItem.panelWidth,
+          name: newName,
+          panelHeight: newPanelHeight,
+          panelWidth: newPanelWidth,
+          rodDiameter: newRodDiameter,
+          cellWidth: newCellWidth,
+          cellHeight: newCellHeight,
         },
       });
 

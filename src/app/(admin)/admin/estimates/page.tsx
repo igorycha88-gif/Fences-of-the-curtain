@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Download, X, Filter } from 'lucide-react';
+import { Download, X, Filter, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isApiError } from '@/lib/utils/apiResponse';
 
@@ -83,6 +83,13 @@ interface FenceType {
   name: string;
 }
 
+interface SessionUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: 'ADMIN' | 'MANAGER' | 'CONTENT_MANAGER';
+}
+
 const coatingLabels: Record<string, string> = {
   GALVANIZED: 'Оцинкованный',
   POLYMER_SINGLE: 'Односторонний полимер',
@@ -124,6 +131,20 @@ export default function EstimatesPage() {
     search: '',
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Estimate | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((sData) => {
+        if (sData.user) {
+          setCurrentUser(sData.user);
+        }
+      })
+      .catch((err) => console.error('Error fetching session:', err));
+  }, []);
 
   const fetchEstimateDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
@@ -239,6 +260,30 @@ export default function EstimatesPage() {
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ru-RU') + ' ₽';
+  };
+
+  const isAdmin = currentUser?.role === 'ADMIN';
+
+  const handleDeleteEstimate = async (estimate: Estimate) => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/estimates/${estimate.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Ошибка удаления');
+      }
+      toast.success('Смета удалена');
+      setDeleteConfirm(null);
+      setSelectedEstimate(null);
+      fetchEstimates();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка удаления');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -433,6 +478,7 @@ export default function EstimatesPage() {
                     <th className="text-left py-3 px-4 font-medium text-gray-600">Город</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">Устройство</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">Пользователь</th>
+                    {isAdmin && <th className="text-left py-3 px-4 font-medium text-gray-600 w-12"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -489,6 +535,17 @@ export default function EstimatesPage() {
                           <span className="text-gray-400">Гость</span>
                         )}
                       </td>
+                      {isAdmin && (
+                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setDeleteConfirm(estimate)}
+                            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Удалить смету"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -552,12 +609,23 @@ export default function EstimatesPage() {
           <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-4 md:px-6 py-4 flex justify-between items-center">
               <h2 className="text-lg md:text-xl font-bold truncate">Расчет #{selectedEstimate.id.slice(0, 8)}</h2>
-              <button
-                onClick={() => setSelectedEstimate(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <button
+                    onClick={() => setDeleteConfirm(selectedEstimate)}
+                    className="flex items-center gap-1 px-3 py-1.5 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Удалить
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedEstimate(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {detailLoading ? (
@@ -830,6 +898,32 @@ export default function EstimatesPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Удалить смету?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Смета <span className="font-medium">#{deleteConfirm.id.slice(0, 8)}</span> ({deleteConfirm.fenceType?.name}, {formatPrice(deleteConfirm.grandTotal)}) будет помечена как удалённая и перестанет отображаться в списке.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm font-medium"
+                disabled={deleting}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => handleDeleteEstimate(deleteConfirm)}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
           </div>
         </div>
       )}

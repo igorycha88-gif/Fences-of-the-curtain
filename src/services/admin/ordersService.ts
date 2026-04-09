@@ -33,7 +33,7 @@ export class OrdersService {
     } = params;
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.OrderWhereInput = {};
+    const where: Prisma.OrderWhereInput = { active: true };
 
     if (status) {
       where.status = status;
@@ -148,8 +148,8 @@ export class OrdersService {
   }
 
   async getOrderById(id: string) {
-    const order = await prisma.order.findUnique({
-      where: { id },
+    const order = await prisma.order.findFirst({
+      where: { id, active: true },
       include: {
         assignedUser: {
           select: {
@@ -395,7 +395,7 @@ export class OrdersService {
 
     createAuditLogAsync({
       userId,
-      action: 'DELETE_ORDER',
+      action: 'SOFT_DELETE_ORDER',
       entityType: 'Order',
       entityId: id,
       oldValues: {
@@ -410,11 +410,12 @@ export class OrdersService {
         assignedTo: order.assignedTo,
         estimateId: order.estimateId,
       },
-      newValues: null,
+      newValues: { active: false },
     });
 
-    return prisma.order.delete({
+    return prisma.order.update({
       where: { id },
+      data: { active: false },
     });
   }
 
@@ -481,8 +482,8 @@ export class OrdersService {
     
     let order;
     try {
-      order = await prisma.order.findUnique({
-        where: { id },
+      order = await prisma.order.findFirst({
+        where: { id, active: true },
         select: {
           id: true,
           clientName: true,

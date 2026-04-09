@@ -191,14 +191,25 @@ export class ProfnastilTypeService {
       throw new Error('Номенклатура не найдена');
     }
 
-    if (data.name || data.metalThickness || data.coating || data.color !== undefined) {
+    const newName = data.name ?? oldItem.name;
+    const newMetalThickness = data.metalThickness ?? oldItem.metalThickness;
+    const newCoating = data.coating ?? oldItem.coating;
+    const newColor = data.color !== undefined ? data.color : oldItem.color;
+
+    const uniqueFieldsChanged =
+      newName !== oldItem.name ||
+      newMetalThickness !== oldItem.metalThickness ||
+      newCoating !== oldItem.coating ||
+      newColor !== oldItem.color;
+
+    if (uniqueFieldsChanged) {
       const existing = await prisma.profnastilType.findFirst({
         where: {
           id: { not: id },
-          name: data.name || oldItem.name,
-          metalThickness: data.metalThickness ?? oldItem.metalThickness,
-          coating: data.coating || oldItem.coating,
-          color: data.color !== undefined ? data.color : oldItem.color,
+          name: newName,
+          metalThickness: newMetalThickness,
+          coating: newCoating,
+          color: newColor,
         },
       });
 
