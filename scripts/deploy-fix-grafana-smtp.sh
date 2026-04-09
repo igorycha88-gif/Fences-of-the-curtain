@@ -144,7 +144,7 @@ sleep 30
 STEP=7
 log "Проверка Grafana..."
 
-GRAFANA_HEALTH=$(vps_ssh "curl -sf http://localhost:3002/api/health 2>/dev/null | tr -d '\\n' || echo 'FAILED'")
+GRAFANA_HEALTH=$(vps_ssh "curl -sf http://localhost:3002/api/health 2>/dev/null | tr -d '[:space:]' || echo 'FAILED'")
 if echo "$GRAFANA_HEALTH" | grep -q '"database":"ok"'; then
     echo -e "  ${GREEN}OK${NC}: Grafana is healthy"
 else
@@ -190,7 +190,7 @@ const secure = port === 465;
 const t = nodemailer.createTransport({ host: process.env.SMTP_HOST, port, secure, requireTLS: !secure, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }, tls: { rejectUnauthorized: false } });
 t.verify().then(() => { console.log('SMTP_OK'); process.exit(0); }).catch(e => { console.log('SMTP_FAIL: ' + e.message); process.exit(1); });
 JSEOF
-node /tmp/smtp-test.js 2>&1 || echo 'SMTP_ERROR'")
+NODE_PATH=${VPS_DIR}/node_modules node /tmp/smtp-test.js 2>&1 || echo 'SMTP_ERROR'")
 
 if echo "$SMTP_TEST" | grep -q "SMTP_OK"; then
     echo -e "  ${GREEN}OK${NC}: SMTP подключение успешно"
