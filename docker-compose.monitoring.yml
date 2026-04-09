@@ -1,10 +1,10 @@
 services:
-  # Prometheus - Time Series Database
   prometheus:
     image: prom/prometheus:latest
     container_name: fences-prometheus
     restart: unless-stopped
-    # No public ports - only accessible via internal Docker network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -22,29 +22,24 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    depends_on:
-      - app
 
-  # Grafana - Visualization (accessible via Nginx reverse proxy at /grafana)
   grafana:
     image: grafana/grafana:latest
     container_name: fences-grafana
     restart: unless-stopped
-    # No public ports - only accessible via Nginx reverse proxy
+    ports:
+      - "3002:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-SecureGrafanaPass2026!}
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=redis-datasource
-      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost/grafana}
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=http://37.143.13.196:3002
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
       - GF_AUTH_DISABLE_LOGIN_FORM=false
-      - GF_AUTH_PROXY_ENABLED=true
-      - GF_AUTH_PROXY_HEADER_NAME=X-WEBAUTH-USER
-      - GF_AUTH_PROXY_HEADER_PROPERTY=username
-      - GF_AUTH_PROXY_AUTO_SIGN_UP=true
       - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_LOG_LEVEL=info
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -56,14 +51,13 @@ services:
       retries: 3
       start_period: 40s
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
 
-  # Node Exporter - System Metrics
   node_exporter:
     image: prom/node-exporter:latest
     container_name: fences-node-exporter
     restart: unless-stopped
-    # No public ports - only accessible via internal Docker network
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -73,8 +67,6 @@ services:
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    depends_on:
-      - app
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
       interval: 30s
@@ -82,17 +74,15 @@ services:
       retries: 3
       start_period: 40s
 
-  # PostgreSQL Exporter - Database Metrics
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: fences-postgres-exporter
     restart: unless-stopped
-    # No public ports - only accessible via internal Docker network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DATA_SOURCE_NAME=postgres
-      - DATA_SOURCE_URI=postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/fences?sslmode=disable
-    depends_on:
-      - db
+      - DATA_SOURCE_URI=postgresql://postgres:${POSTGRES_PASSWORD:-password}@host.docker.internal:5432/fences?sslmode=disable
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9187/metrics"]
       interval: 30s
@@ -100,31 +90,25 @@ services:
       retries: 3
       start_period: 40s
 
-  # Redis Exporter - Cache Metrics
   redis_exporter:
     image: oliver006/redis_exporter:latest
     container_name: fences-redis-exporter
     restart: unless-stopped
-    # No public ports - only accessible via internal Docker network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      - REDIS_ADDR=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_ADDR=redis://host.docker.internal:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_EXPORTER_WEB_LISTEN_ADDRESS=0.0.0.0:9121
-    depends_on:
-      - redis
 
-  # Nginx Exporter - Proxy Metrics
   nginx_exporter:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: fences-nginx-exporter
     restart: unless-stopped
-    # No public ports - only accessible via internal Docker network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      - SCRAPE_URI=http://nginx:80/nginx_status
-    external_links:
-      - nginx
-    depends_on:
-      - nginx
+      - SCRAPE_URI=http://host.docker.internal:80/nginx_status
 
 volumes:
   prometheus_data:
