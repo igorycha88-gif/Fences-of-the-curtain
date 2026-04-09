@@ -122,6 +122,7 @@ export class EstimatesService {
     const estimatesWithDeviceType = estimates.map((estimate) => ({
       ...estimate,
       deviceType: getDeviceType(estimate.userAgent),
+      isEditedByAdmin: estimate.isEditedByAdmin ?? false,
     }));
 
     if (deviceType) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,7 +22,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ClientInfo } from './ClientInfo';
 import { OrderStatusSection } from './OrderStatusSection';
 import { FenceParameters } from './FenceParameters';
-import { EstimateSection } from './EstimateSection';
+import { EstimateSection, DiffInfo } from './EstimateSection';
 import { MultiEstimateSection } from './MultiEstimateSection';
 import { EstimateEditor } from './EstimateEditor';
 import { EstimateComparisonView } from './EstimateComparisonView';
@@ -43,8 +43,62 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: 'bg-red-100 text-red-800 border-red-200',
 };
 
+interface EstimateItem {
+  category: string;
+  nomenclatureId: string | null;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
+
 interface OrderDetailPageProps {
   orderId: string;
+}
+
+function computeDiff(
+  sourceItems: EstimateItem[],
+  adminItems: EstimateItem[],
+  manualOverrides: Record<string, { auto: number; manual: number }> | null
+): DiffInfo {
+  const sourceMap = new Map(
+    sourceItems.filter((i) => i.nomenclatureId).map((i) => [i.nomenclatureId!, i])
+  );
+  const adminMap = new Map(
+    adminItems.filter((i) => i.nomenclatureId).map((i) => [i.nomenclatureId!, i])
+  );
+
+  const added = new Set<string>();
+  const deleted = new Set<string>();
+  const modifiedQty = new Map<string, { auto: number; manual: number }>();
+
+  for (const [id] of adminMap) {
+    if (!sourceMap.has(id)) {
+      added.add(id);
+    }
+  }
+
+  for (const [id, sourceItem] of sourceMap) {
+    if (!adminMap.has(id)) {
+      deleted.add(id);
+    } else {
+      const adminItem = adminMap.get(id)!;
+      if (sourceItem.quantity !== adminItem.quantity) {
+        modifiedQty.set(id, { auto: sourceItem.quantity, manual: adminItem.quantity });
+      }
+    }
+  }
+
+  if (manualOverrides) {
+    for (const [id, override] of Object.entries(manualOverrides)) {
+      if (!modifiedQty.has(id) && override.auto !== override.manual) {
+        modifiedQty.set(id, { auto: override.auto, manual: override.manual });
+      }
+    }
+  }
+
+  return { added, deleted, modifiedQty };
 }
 
 export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
@@ -63,38 +117,40 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [isExportingWord, setIsExportingWord] = useState(false);
 
+  const adminDiff: DiffInfo | undefined = useMemo(() => {
+    if (!data?.adminEstimate || !data?.estimate) return undefined;
+    return computeDiff(
+      data.estimate.items || [],
+      data.adminEstimate.items || [],
+      data.adminEstimate.manualQuantityOverrides
+    );
+  }, [data]);
+
   useEffect(() => {
-    console.log('[OrderDetailPage] orderId:', orderId);
     fetchOrderFull();
   }, [orderId]);
 
   const fetchOrderFull = async () => {
-    console.log('[OrderDetailPage] Fetching order full data for:', orderId);
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/full`, {
         credentials: 'include',
       });
-      console.log('[OrderDetailPage] Response status:', res.status);
       if (!res.ok) {
         if (res.status === 404) {
-          console.log('[OrderDetailPage] Order not found, redirecting to /admin/orders');
           router.push('/admin/orders');
           return;
         }
         const errorData = await res.json().catch(() => ({}));
-        console.log('[OrderDetailPage] Error response:', errorData);
         throw new Error(errorData.message || 'Ошибка загрузки данных');
       }
       const result = await res.json();
-      console.log('[OrderDetailPage] Data loaded successfully');
       setData(result);
       if (result.adminEstimate) {
         setActiveEstimateTab('admin');
       }
     } catch (err: any) {
-      console.error('[OrderDetailPage] Error:', err);
       setError(err.message || 'Ошибка загрузки');
     } finally {
       setLoading(false);
@@ -119,6 +175,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   };
 
   const handleEditAdminEstimate = () => {
+    const { adminEstimate, estimate } = data;
     if (adminEstimate) {
       setEditingEstimateId(adminEstimate.id);
     } else {
@@ -161,7 +218,6 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      console.error('Word export error:', err);
       alert(err.message || 'Ошибка экспорта в Word');
     } finally {
       setIsExportingWord(false);
@@ -388,39 +444,32 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center border-b">
-                    <button
-                      onClick={() => setActiveEstimateTab('admin')}
-                      className={cn(
-                        'flex-1 px-4 py-3 text-sm font-semibold transition-all duration-200 text-center',
-                        activeEstimateTab === 'admin'
-                          ? 'text-orange-700 border-b-2 border-orange-500 bg-gradient-to-b from-orange-50 to-orange-100'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      )}
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        <FilePenLine className="w-4 h-4" />
-                        Скорректированная смета
-                      </span>
-                    </button>
+                  <div className="p-6">
+                    <EstimateSection
+                      estimateId={adminEstimate.id}
+                      items={adminEstimate.items}
+                      materialsTotal={adminEstimate.materialsTotal}
+                      installationTotal={adminEstimate.installationTotal}
+                      grandTotal={adminEstimate.grandTotal}
+                      diff={adminDiff}
+                    />
                   </div>
 
-                  <div className="p-6">
-                    {activeEstimateTab === 'admin' && (
-                      <EstimateSection
-                        estimateId={adminEstimate.id}
-                        items={adminEstimate.items}
-                        materialsTotal={adminEstimate.materialsTotal}
-                        installationTotal={adminEstimate.installationTotal}
-                        grandTotal={adminEstimate.grandTotal}
-                      />
-                    )}
+                  <div className="px-6 pb-4 flex items-center gap-2">
+                    <button
+                      onClick={handleEditAdminEstimate}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-orange-200"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Редактировать корректировку
+                    </button>
                   </div>
                 </div>
               )}
               <MultiEstimateSection
                 estimates={multiEstimates}
                 showPurchasePrices={showPurchasePrices}
+                onEditEstimate={handleEditEstimate}
               />
             </>
           ) : estimate ? (
@@ -548,6 +597,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                         materialsTotal={adminEstimate.materialsTotal}
                         installationTotal={adminEstimate.installationTotal}
                         grandTotal={adminEstimate.grandTotal}
+                        diff={adminDiff}
                       />
                     ) : (
                       <EstimateSection
@@ -573,13 +623,24 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
               )}
 
               {!hasAdminEstimate && (
-                <EstimateSection
-                  estimateId={estimate.id}
-                  items={estimate.items}
-                  materialsTotal={estimate.materialsTotal}
-                  installationTotal={estimate.installationTotal}
-                  grandTotal={estimate.grandTotal}
-                />
+                <div className="relative">
+                  <EstimateSection
+                    estimateId={estimate.id}
+                    items={estimate.items}
+                    materialsTotal={estimate.materialsTotal}
+                    installationTotal={estimate.installationTotal}
+                    grandTotal={estimate.grandTotal}
+                  />
+                  <div className="mt-3">
+                    <button
+                      onClick={() => handleEditEstimate(estimate.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-blue-200"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Редактировать расчет
+                    </button>
+                  </div>
+                </div>
               )}
             </>
           ) : (

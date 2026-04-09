@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface EstimateItem {
   category: string;
@@ -13,17 +14,107 @@ interface EstimateItem {
   totalPrice: number;
 }
 
+export interface DiffInfo {
+  added: Set<string>;
+  deleted: Set<string>;
+  modifiedQty: Map<string, { auto: number; manual: number }>;
+}
+
 interface EstimateSectionProps {
   estimateId: string;
   items: EstimateItem[];
   materialsTotal: number;
   installationTotal: number;
   grandTotal: number;
+  diff?: DiffInfo;
 }
 
 const formatPrice = (price: number) => {
   return price.toLocaleString('ru-RU') + ' ₽';
 };
+
+function DiffBadge({ type, autoQty, manualQty }: { type: 'added' | 'deleted' | 'modified'; autoQty?: number; manualQty?: number }) {
+  if (type === 'added') {
+    return (
+      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-200 text-green-800 whitespace-nowrap">
+        Добавлено
+      </span>
+    );
+  }
+  if (type === 'deleted') {
+    return (
+      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-200 text-red-800 whitespace-nowrap">
+        Удалено
+      </span>
+    );
+  }
+  return (
+    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800 whitespace-nowrap">
+      Кол-во: {autoQty} &rarr; {manualQty}
+    </span>
+  );
+}
+
+function ItemRow({
+  item,
+  index,
+  diff,
+}: {
+  item: EstimateItem;
+  index: number;
+  diff?: DiffInfo;
+}) {
+  const id = item.nomenclatureId || '';
+  const isAdded = diff?.added.has(id);
+  const isDeleted = diff?.deleted.has(id);
+  const qtyChange = diff?.modifiedQty.get(id);
+
+  if (!isAdded && !isDeleted && !qtyChange) {
+    return (
+      <tr className="border-b hover:bg-gray-50">
+        <td className="p-2 text-gray-500">{index + 1}</td>
+        <td className="p-2">{item.nomenclatureName}</td>
+        <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+        <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
+        <td className="p-2 text-right whitespace-nowrap">{formatPrice(item.pricePerUnit)}</td>
+        <td className="p-2 text-right font-medium whitespace-nowrap">{formatPrice(item.totalPrice)}</td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr
+      className={cn(
+        'border-b',
+        isAdded && 'bg-green-50',
+        isDeleted && 'bg-red-50',
+        qtyChange && 'bg-amber-50'
+      )}
+    >
+      <td className="p-2 text-gray-500">{index + 1}</td>
+      <td className={cn('p-2', isDeleted && 'line-through text-gray-500')}>
+        {item.nomenclatureName}
+        {isAdded && <DiffBadge type="added" />}
+        {isDeleted && <DiffBadge type="deleted" />}
+        {qtyChange && <DiffBadge type="modified" autoQty={qtyChange.auto} manualQty={qtyChange.manual} />}
+      </td>
+      <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
+      <td className="p-2 text-right whitespace-nowrap">
+        {qtyChange ? (
+          <span>
+            <span className="line-through text-gray-400">{qtyChange.auto}</span>
+            {' → '}
+            <span className="font-medium text-amber-700">{qtyChange.manual}</span>
+          </span>
+        ) : (
+          item.quantity
+        )}
+      </td>
+      <td className="p-2 text-right whitespace-nowrap">{formatPrice(item.pricePerUnit)}</td>
+      <td className="p-2 text-right font-medium whitespace-nowrap">{formatPrice(item.totalPrice)}</td>
+    </tr>
+  );
+}
 
 export function EstimateSection({
   estimateId,
@@ -31,9 +122,36 @@ export function EstimateSection({
   materialsTotal,
   installationTotal,
   grandTotal,
+  diff,
 }: EstimateSectionProps) {
   const materialItems = items.filter((item) => item.category !== 'installation');
   const workItems = items.filter((item) => item.category === 'installation');
+
+  const sortedMaterialItems = diff
+    ? [
+        ...materialItems.filter((item) => {
+          const id = item.nomenclatureId || '';
+          return !diff.deleted.has(id);
+        }),
+        ...materialItems.filter((item) => {
+          const id = item.nomenclatureId || '';
+          return diff.deleted.has(id);
+        }),
+      ]
+    : materialItems;
+
+  const sortedWorkItems = diff
+    ? [
+        ...workItems.filter((item) => {
+          const id = item.nomenclatureId || '';
+          return !diff.deleted.has(id);
+        }),
+        ...workItems.filter((item) => {
+          const id = item.nomenclatureId || '';
+          return diff.deleted.has(id);
+        }),
+      ]
+    : workItems;
 
   return (
     <div className="bg-white rounded-xl shadow-md border p-6">
@@ -51,7 +169,7 @@ export function EstimateSection({
         </Link>
       </div>
 
-      {materialItems.length > 0 && (
+      {sortedMaterialItems.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold text-gray-700 mb-3 pb-2 border-b">Материалы</h3>
           <div className="overflow-x-auto">
@@ -67,15 +185,8 @@ export function EstimateSection({
                 </tr>
               </thead>
               <tbody>
-                {materialItems.map((item, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="p-2 text-gray-500">{index + 1}</td>
-                    <td className="p-2">{item.nomenclatureName}</td>
-                    <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
-                    <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
-                    <td className="p-2 text-right whitespace-nowrap">{formatPrice(item.pricePerUnit)}</td>
-                    <td className="p-2 text-right font-medium whitespace-nowrap">{formatPrice(item.totalPrice)}</td>
-                  </tr>
+                {sortedMaterialItems.map((item, index) => (
+                  <ItemRow key={item.nomenclatureId || `m-${index}`} item={item} index={index} diff={diff} />
                 ))}
               </tbody>
               <tfoot>
@@ -89,7 +200,7 @@ export function EstimateSection({
         </div>
       )}
 
-      {workItems.length > 0 && (
+      {sortedWorkItems.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold text-gray-700 mb-3 pb-2 border-b">Работы</h3>
           <div className="overflow-x-auto">
@@ -105,15 +216,8 @@ export function EstimateSection({
                 </tr>
               </thead>
               <tbody>
-                {workItems.map((item, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="p-2 text-gray-500">{index + 1}</td>
-                    <td className="p-2">{item.nomenclatureName}</td>
-                    <td className="p-2 text-gray-500 whitespace-nowrap">{item.unit}</td>
-                    <td className="p-2 text-right whitespace-nowrap">{item.quantity}</td>
-                    <td className="p-2 text-right whitespace-nowrap">{formatPrice(item.pricePerUnit)}</td>
-                    <td className="p-2 text-right font-medium whitespace-nowrap">{formatPrice(item.totalPrice)}</td>
-                  </tr>
+                {sortedWorkItems.map((item, index) => (
+                  <ItemRow key={item.nomenclatureId || `w-${index}`} item={item} index={index} diff={diff} />
                 ))}
               </tbody>
               <tfoot>

@@ -17,6 +17,7 @@ interface Estimate {
   hasWicket: boolean;
   city: string | null;
   deviceType: string;
+  isEditedByAdmin?: boolean;
   user: {
     id: string;
     name: string | null;
@@ -395,6 +396,11 @@ export default function EstimatesPage() {
                     <div>
                       <span className="text-sm text-gray-500">#{estimate.id.slice(0, 8)}</span>
                       <span className="ml-2 font-medium">{estimate.fenceType?.name || '-'}</span>
+                      {estimate.isEditedByAdmin && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                          ✏️ Корректировка
+                        </span>
+                      )}
                     </div>
                     <span className="font-bold">{formatPrice(estimate.grandTotal)}</span>
                   </div>
@@ -436,7 +442,13 @@ export default function EstimatesPage() {
                       onClick={() => fetchEstimateDetail(estimate.id)}
                       className="border-b hover:bg-gray-50 cursor-pointer"
                     >
-                      <td className="py-3 px-4 text-sm text-gray-600">#{estimate.id.slice(0, 8)}</td>
+                      <td className="py-3 px-4 text-sm text-gray-600">#{estimate.id.slice(0, 8)}
+                        {estimate.isEditedByAdmin && (
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                            ✏️ Корректировка
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3 px-4 text-sm">
                         {new Date(estimate.createdAt).toLocaleDateString('ru-RU')}
                       </td>

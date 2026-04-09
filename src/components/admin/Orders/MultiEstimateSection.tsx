@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Pencil } from 'lucide-react';
 
 interface EstimateItem {
   category: string;
@@ -51,6 +51,7 @@ interface Estimate {
 interface MultiEstimateSectionProps {
   estimates: Estimate[];
   showPurchasePrices?: boolean;
+  onEditEstimate?: (estimateId: string) => void;
 }
 
 const formatPrice = (price: number) => {
@@ -60,6 +61,7 @@ const formatPrice = (price: number) => {
 export function MultiEstimateSection({
   estimates,
   showPurchasePrices = false,
+  onEditEstimate,
 }: MultiEstimateSectionProps) {
   if (!estimates || estimates.length === 0) return null;
 
@@ -94,17 +96,28 @@ export function MultiEstimateSection({
                   {estimate.length} м × {estimate.height} м, {estimate.lagRows} лаг{estimate.lagRows === 1 ? 'а' : estimate.lagRows < 5 ? 'и' : ''}
                 </p>
               </div>
-              {!isFallback ? (
-                <Link
-                  href={`/admin/estimates?open=${estimate.id}`}
-                  className="inline-flex items-center gap-1 text-primary hover:underline text-sm font-medium"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Открыть смету
-                </Link>
-              ) : (
-                <span className="text-xs text-gray-400 italic">Детали сметы недоступны</span>
-              )}
+              <div className="flex items-center gap-2">
+                {onEditEstimate && !isFallback && (
+                  <button
+                    onClick={() => onEditEstimate(estimate.id)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-orange-200"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Редактировать
+                  </button>
+                )}
+                {!isFallback ? (
+                  <Link
+                    href={`/admin/estimates?open=${estimate.id}`}
+                    className="inline-flex items-center gap-1 text-primary hover:underline text-sm font-medium"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Открыть смету
+                  </Link>
+                ) : (
+                  <span className="text-xs text-gray-400 italic">Детали сметы недоступны</span>
+                )}
+              </div>
             </div>
 
             {materialItems.length > 0 && (

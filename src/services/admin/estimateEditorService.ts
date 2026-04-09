@@ -261,7 +261,7 @@ export class EstimateEditorService {
 
       await tx.order.update({
         where: { id: orderId },
-        data: { adminEstimateId: estimate.id },
+        data: { adminEstimateId: estimate.id, calculatedCost: grandTotal },
       });
 
       return estimate;
@@ -403,45 +403,54 @@ export class EstimateEditorService {
       .reduce((sum, i) => sum + i.totalPrice, 0);
     const grandTotal = materialsTotal + installationTotal;
 
-    const updated = await prisma.fenceEstimate.update({
-      where: { id: adminEstimateId },
-      data: {
-        length: parameters?.length ?? existing.length,
-        height: parameters?.height ?? existing.height,
-        lagRows: parameters?.lagRows ?? existing.lagRows,
-        coating: parameters?.coating ?? existing.coating,
-        postsTotal: currentItems.find((i) => i.category === 'posts')?.totalPrice ?? 0,
-        lagsTotal: currentItems.find((i) => i.category === 'lags')?.totalPrice ?? 0,
-        profnastilTotal: currentItems.find((i) => i.category === 'profnastil')?.totalPrice ?? 0,
-        mountingHardwareTotal: currentItems
-          .filter((i) => i.category === 'mounting_hardware')
-          .reduce((s, i) => s + i.totalPrice, 0),
-        gateTotal: currentItems.find((i) => i.category === 'gates')?.totalPrice ?? 0,
-        gateInstallationTotal: currentItems
-          .filter((i) => i.category === 'installation' && i.nomenclatureName.toLowerCase().includes('ворот'))
-          .reduce((s, i) => s + i.totalPrice, 0),
-        hasGate: parameters?.hasGate ?? existing.hasGate,
-        gateType: parameters?.gateType ?? existing.gateType,
-        gateLength: parameters?.gateWidth ? Math.round(parameters.gateWidth * 1000) : existing.gateLength,
-        hasWicket: parameters?.hasWicket ?? existing.hasWicket,
-        wicketWidth: parameters?.wicketWidth ? Math.round(parameters.wicketWidth * 1000) : existing.wicketWidth,
-        wicketTotal: currentItems.find((i) => i.category === 'wickets')?.totalPrice ?? 0,
-        wicketInstallationTotal: currentItems
-          .filter((i) => i.category === 'installation' && i.nomenclatureName.toLowerCase().includes('калитк'))
-          .reduce((s, i) => s + i.totalPrice, 0),
-        panel3dTotal: currentItems.find((i) => i.category === 'panel3d')?.totalPrice ?? 0,
-        panel3dInstallationTotal: currentItems
-          .filter((i) => i.category === 'installation' && i.nomenclatureName.toLowerCase().includes('панел'))
-          .reduce((s, i) => s + i.totalPrice, 0),
-        picketTotal: currentItems.find((i) => i.category === 'picket')?.totalPrice ?? 0,
-        installationTotal,
-        materialsTotal,
-        grandTotal,
-        items: JSON.parse(JSON.stringify(currentItems)),
-        editedAt: new Date(),
-        editComment: editComment !== undefined ? editComment ?? null : existing.editComment,
-        manualQuantityOverrides: Object.keys(overrides).length > 0 ? overrides : Prisma.JsonNull,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const estimate = await tx.fenceEstimate.update({
+        where: { id: adminEstimateId },
+        data: {
+          length: parameters?.length ?? existing.length,
+          height: parameters?.height ?? existing.height,
+          lagRows: parameters?.lagRows ?? existing.lagRows,
+          coating: parameters?.coating ?? existing.coating,
+          postsTotal: currentItems.find((i) => i.category === 'posts')?.totalPrice ?? 0,
+          lagsTotal: currentItems.find((i) => i.category === 'lags')?.totalPrice ?? 0,
+          profnastilTotal: currentItems.find((i) => i.category === 'profnastil')?.totalPrice ?? 0,
+          mountingHardwareTotal: currentItems
+            .filter((i) => i.category === 'mounting_hardware')
+            .reduce((s, i) => s + i.totalPrice, 0),
+          gateTotal: currentItems.find((i) => i.category === 'gates')?.totalPrice ?? 0,
+          gateInstallationTotal: currentItems
+            .filter((i) => i.category === 'installation' && i.nomenclatureName.toLowerCase().includes('ворот'))
+            .reduce((s, i) => s + i.totalPrice, 0),
+          hasGate: parameters?.hasGate ?? existing.hasGate,
+          gateType: parameters?.gateType ?? existing.gateType,
+          gateLength: parameters?.gateWidth ? Math.round(parameters.gateWidth * 1000) : existing.gateLength,
+          hasWicket: parameters?.hasWicket ?? existing.hasWicket,
+          wicketWidth: parameters?.wicketWidth ? Math.round(parameters.wicketWidth * 1000) : existing.wicketWidth,
+          wicketTotal: currentItems.find((i) => i.category === 'wickets')?.totalPrice ?? 0,
+          wicketInstallationTotal: currentItems
+            .filter((i) => i.category === 'installation' && i.nomenclatureName.toLowerCase().includes('калитк'))
+            .reduce((s, i) => s + i.totalPrice, 0),
+          panel3dTotal: currentItems.find((i) => i.category === 'panel3d')?.totalPrice ?? 0,
+          panel3dInstallationTotal: currentItems
+            .filter((i) => i.category === 'installation' && i.nomenclatureName.toLowerCase().includes('панел'))
+            .reduce((s, i) => s + i.totalPrice, 0),
+          picketTotal: currentItems.find((i) => i.category === 'picket')?.totalPrice ?? 0,
+          installationTotal,
+          materialsTotal,
+          grandTotal,
+          items: JSON.parse(JSON.stringify(currentItems)),
+          editedAt: new Date(),
+          editComment: editComment !== undefined ? editComment ?? null : existing.editComment,
+          manualQuantityOverrides: Object.keys(overrides).length > 0 ? overrides : Prisma.JsonNull,
+        },
+      });
+
+      await tx.order.updateMany({
+        where: { adminEstimateId: adminEstimateId },
+        data: { calculatedCost: grandTotal },
+      });
+
+      return estimate;
     });
 
     createAuditLogAsync({

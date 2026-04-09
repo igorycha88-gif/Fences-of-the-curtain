@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { X, Plus, Trash2, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { NomenclaturePickerModal, SelectedNomenclatureItem } from './NomenclaturePickerModal';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -144,6 +144,8 @@ export function EstimateEditor({
   const prevIsOpenRef = useRef(false);
   const initialParamsRef = useRef(initialParams);
   const initialItemsRef = useRef(initialItems);
+  const recalcTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentParamsRef = useRef<EditorParams>(initialParams);
   initialParamsRef.current = initialParams;
   initialItemsRef.current = initialItems;
 
@@ -167,23 +169,17 @@ export function EstimateEditor({
       setEditComment('');
       setError(null);
       setLastRecalcParams(null);
+      currentParamsRef.current = initialParamsRef.current;
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);
 
-  const handleParamChange = (
-    key: keyof EditorParams,
-    value: string | number | boolean | null
-  ) => {
-    setParams((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleRecalculate = async () => {
+  const handleRecalculate = useCallback(async (paramsToUse: EditorParams) => {
     setIsRecalculating(true);
     setError(null);
 
     try {
-      const recalculateParams = computeParamDiff(params, initialParams);
+      const recalculateParams = computeParamDiff(paramsToUse, initialParamsRef.current);
 
       const response = await fetch(
         `/api/admin/orders/${orderId}/recalculate-estimate`,
@@ -208,7 +204,7 @@ export function EstimateEditor({
       setDeletedIds(new Set());
       setQuantityOverrides(new Map());
       setAddedItems([]);
-      setLastRecalcParams({ ...params });
+      setLastRecalcParams({ ...paramsToUse });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ошибка пересчета';
       console.error('Recalculate error:', err);
@@ -216,6 +212,41 @@ export function EstimateEditor({
     } finally {
       setIsRecalculating(false);
     }
+  }, [orderId, estimateId, initialParams]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const baseParams = lastRecalcParams || initialParamsRef.current;
+    const hasChange = hasAnyParamChange(params, baseParams);
+
+    if (recalcTimerRef.current) {
+      clearTimeout(recalcTimerRef.current);
+      recalcTimerRef.current = null;
+    }
+
+    if (hasChange && !isRecalculating) {
+      recalcTimerRef.current = setTimeout(() => {
+        handleRecalculate(currentParamsRef.current);
+      }, 800);
+    }
+
+    return () => {
+      if (recalcTimerRef.current) {
+        clearTimeout(recalcTimerRef.current);
+      }
+    };
+  }, [params, isOpen, isRecalculating, lastRecalcParams, handleRecalculate]);
+
+  const handleParamChange = (
+    key: keyof EditorParams,
+    value: string | number | boolean | null
+  ) => {
+    setParams((prev) => {
+      const next = { ...prev, [key]: value };
+      currentParamsRef.current = next;
+      return next;
+    });
   };
 
   const handleDeleteItem = (nomenclatureId: string) => {
@@ -368,7 +399,15 @@ export function EstimateEditor({
 
         <div className="relative w-full max-w-6xl transform rounded-lg bg-white shadow-xl transition-all">
           <div className="flex items-center justify-between border-b p-4 sticky top-0 bg-white z-10">
-            <h3 className="text-lg font-semibold">Редактирование расчета</h3>
+            <h3 className="text-lg font-semibold">
+              Редактирование расчета
+              {isRecalculating && (
+                <span className="ml-3 inline-flex items-center gap-1 text-sm font-normal text-blue-600">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Пересчет...
+                </span>
+              )}
+            </h3>
             <button
               onClick={onClose}
               className="rounded-full p-1 hover:bg-gray-100 transition-colors"
@@ -381,13 +420,26 @@ export function EstimateEditor({
             {error && (
               <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm">{error}</span>
+                <span className="text-sm flex-1">{error}</span>
+                {needsRecalculation && (
+                  <button
+                    onClick={() => handleRecalculate(currentParamsRef.current)}
+                    className="text-xs font-medium text-red-700 hover:text-red-800 underline"
+                  >
+                    Повторить
+                  </button>
+                )}
               </div>
             )}
 
             <div className="mb-6">
               <h4 className="font-semibold text-gray-700 mb-3">
                 Параметры забора
+                {needsRecalculation && !isRecalculating && (
+                  <span className="ml-2 text-xs font-normal text-blue-500">
+                    (параметры изменены — пересчет автоматически)
+                  </span>
+                )}
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
@@ -636,31 +688,6 @@ export function EstimateEditor({
                       </select>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {needsRecalculation && (
-                <div className="mt-4 flex items-center gap-2">
-                  <button
-                    onClick={handleRecalculate}
-                    disabled={isRecalculating}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                  >
-                    {isRecalculating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Пересчет...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4" />
-                        Пересчитать
-                      </>
-                    )}
-                  </button>
-                  <span className="text-sm text-amber-600">
-                    Параметры изменены — нажмите для пересчета
-                  </span>
                 </div>
               )}
             </div>
@@ -992,7 +1019,7 @@ function ItemRow({
             />
             {isOverridden && (
               <span className="text-xs text-gray-400 whitespace-nowrap">
-                {'\u0430\u0432\u0442\u043E: '}
+                {'авто: '}
                 {item.quantity}
               </span>
             )}
