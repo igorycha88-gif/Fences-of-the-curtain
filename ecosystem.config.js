@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'fences-app',
       script: 'npx',
-      args: 'next start -p 3000',
+      args: 'next start -p 3001',
       cwd: '/root/Fences-of-the-curtain',
       instances: 1,
       exec_mode: 'fork',
