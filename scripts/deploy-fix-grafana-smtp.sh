@@ -144,9 +144,9 @@ sleep 30
 STEP=7
 log "Проверка Grafana..."
 
-GRAFANA_HEALTH=$(vps_ssh "curl -sf http://localhost:3002/api/health 2>/dev/null || echo 'FAILED'")
+GRAFANA_HEALTH=$(vps_ssh "curl -sf http://localhost:3002/api/health 2>/dev/null | tr -d '\\n' || echo 'FAILED'")
 if echo "$GRAFANA_HEALTH" | grep -q '"database":"ok"'; then
-    echo -e "  ${GREEN}OK${NC}: Grafana health: ${GRAFANA_HEALTH}"
+    echo -e "  ${GREEN}OK${NC}: Grafana is healthy"
 else
     echo -e "  ${RED}FAIL${NC}: Grafana health: ${GRAFANA_HEALTH}"
 
@@ -178,29 +178,19 @@ fi
 STEP=8
 log "Проверка SMTP..."
 
-SMTP_TEST=$(vps_ssh "cd ${VPS_DIR} && node -e \"
+SMTP_TEST=$(vps_ssh "cd ${VPS_DIR} && cat > /tmp/smtp-test.js << 'JSEOF'
 const fs = require('fs');
-const envContent = fs.readFileSync('.env', 'utf8');
-const env = {};
-envContent.split('\\n').forEach(line => {
-  const match = line.match(/^([A-Z_]+)=\"?([^\"]*)\"?/);
-  if (match) env[match[1]] = match[2];
-});
+try {
+  const lines = fs.readFileSync('.env', 'utf8').split('\n');
+  lines.forEach(l => { const i = l.indexOf('='); if (i > 0) { const k = l.slice(0,i).trim(); const v = l.slice(i+1).trim().replace(/\"/g,''); if (k.match(/^[A-Z]/)) process.env[k] = v; }});
+} catch(e) {}
 const nodemailer = require('nodemailer');
-const port = parseInt(env.SMTP_PORT || '587');
+const port = parseInt(process.env.SMTP_PORT || '587');
 const secure = port === 465;
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: port,
-  secure: secure,
-  requireTLS: !secure,
-  auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
-  tls: { rejectUnauthorized: false }
-});
-transporter.verify()
-  .then(() => { console.log('SMTP_OK'); process.exit(0); })
-  .catch((e) => { console.log('SMTP_FAIL: ' + e.message); process.exit(1); })
-\" 2>&1 || echo 'SMTP_ERROR'")
+const t = nodemailer.createTransport({ host: process.env.SMTP_HOST, port, secure, requireTLS: !secure, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }, tls: { rejectUnauthorized: false } });
+t.verify().then(() => { console.log('SMTP_OK'); process.exit(0); }).catch(e => { console.log('SMTP_FAIL: ' + e.message); process.exit(1); });
+JSEOF
+node /tmp/smtp-test.js 2>&1 || echo 'SMTP_ERROR'")
 
 if echo "$SMTP_TEST" | grep -q "SMTP_OK"; then
     echo -e "  ${GREEN}OK${NC}: SMTP подключение успешно"
