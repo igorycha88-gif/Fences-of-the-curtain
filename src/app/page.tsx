@@ -244,7 +244,7 @@ export default function HomePage() {
               {[
                 { step: '01', title: 'Рассчитайте', desc: 'Используйте онлайн калькулятор' },
                 { step: '02', title: 'Закажите', desc: 'Оставьте заявку на сайте' },
-                { step: '03', title: 'Замер', desc: 'Бесплатный выезд специалиста' },
+                { step: '03', title: 'Замер', desc: 'Замер и консультация' },
                 { step: '04', title: 'Установка', desc: 'Монтаж в удобное время' },
               ].map((item, index) => (
                 <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
