@@ -519,13 +519,15 @@ export default function FenceCalculatorPage() {
           </div>
           <div className="flex items-center gap-2">
             {calculations.length > 1 && (
-              <button
-                type="button"
+              <span
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); removeCalculation(calc.id); } }}
                 onClick={(e) => { e.stopPropagation(); removeCalculation(calc.id); }}
-                className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors text-muted-foreground hover:text-destructive"
+                className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors text-muted-foreground hover:text-destructive cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
-              </button>
+              </span>
             )}
             {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </div>

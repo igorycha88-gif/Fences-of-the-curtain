@@ -82,7 +82,7 @@
           "refId": "A"
         }
       ],
-      "title": "Commands per Second",
+      "title": "Команды в секунду",
       "type": "timeseries"
     },
     {
@@ -149,7 +149,7 @@
           "refId": "A"
         }
       ],
-      "title": "Connected Clients",
+      "title": "Подключённые клиенты",
       "type": "timeseries"
     },
     {
@@ -216,7 +216,7 @@
           "refId": "A"
         }
       ],
-      "title": "Memory Usage",
+      "title": "Использование памяти",
       "type": "timeseries"
     },
     {
@@ -283,7 +283,7 @@
           "refId": "A"
         }
       ],
-      "title": "Total Keys",
+      "title": "Всего ключей",
       "type": "timeseries"
     }
   ],
@@ -299,7 +299,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Redis Metrics",
+  "title": "Метрики Redis",
   "uid": "redis-metrics",
   "version": 1
 }

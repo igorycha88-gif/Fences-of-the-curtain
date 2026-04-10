@@ -82,7 +82,7 @@
           "refId": "A"
         }
       ],
-      "title": "Active Connections",
+      "title": "Активные подключения",
       "type": "timeseries"
     },
     {
@@ -149,7 +149,7 @@
           "refId": "A"
         }
       ],
-      "title": "Transaction Rate",
+      "title": "Скорость транзакций",
       "type": "timeseries"
     },
     {
@@ -216,7 +216,7 @@
           "refId": "A"
         }
       ],
-      "title": "Queries per Second",
+      "title": "Запросы в секунду",
       "type": "timeseries"
     },
     {
@@ -283,7 +283,7 @@
           "refId": "A"
         }
       ],
-      "title": "Disk Read Rate",
+      "title": "Скорость чтения с диска",
       "type": "timeseries"
     }
   ],
@@ -299,7 +299,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "PostgreSQL Metrics",
+  "title": "Метрики PostgreSQL",
   "uid": "postgres-metrics",
   "version": 1
 }

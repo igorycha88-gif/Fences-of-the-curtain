@@ -438,10 +438,10 @@ async function main() {
   console.log('[SEED] PicketCoating seeded successfully');
 
   console.log('[SEED] Checking existing PicketType records...');
-  const existingPickets = await prisma.picketType.findMany({ include: { profileType: true, coating: true } });
+  const existingPickets = await prisma.picketType.findMany({ include: { picketProfile: true, picketCoatingType: true } });
   console.log('[SEED] Found', existingPickets.length, 'existing PicketType records');
   existingPickets.forEach(p => {
-    console.log(`[SEED] Existing: ${p.name} - Profile: ${p.profileType?.name || 'N/A'}, Coating: ${p.coating?.name || 'N/A'}`);
+    console.log(`[SEED] Existing: ${p.name} - Profile: ${p.picketProfile?.name || 'N/A'}, Coating: ${p.picketCoatingType?.name || 'N/A'}`);
   });
 
   const profileTypes = await prisma.picketProfileType.findMany();

@@ -38,7 +38,26 @@
             "stacking": { "group": "A", "mode": "none" },
             "thresholdsStyle": { "mode": "off" }
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "page_view": { "color": "blue", "index": 0, "text": "Просмотр страницы" },
+                "calculator_open": { "color": "green", "index": 1, "text": "Открытие калькулятора" },
+                "calculator_fence_type_select": { "color": "green", "index": 2, "text": "Выбор типа забора" },
+                "calculator_configure": { "color": "green", "index": 3, "text": "Настройка параметров" },
+                "calculator_calculate": { "color": "green", "index": 4, "text": "Расчёт стоимости" },
+                "calculator_export": { "color": "green", "index": 5, "text": "Экспорт расчёта" },
+                "portfolio_view": { "color": "orange", "index": 6, "text": "Просмотр портфолио" },
+                "portfolio_item_click": { "color": "orange", "index": 7, "text": "Клик по работе" },
+                "contacts_view": { "color": "purple", "index": 8, "text": "Просмотр контактов" },
+                "contact_form_submit": { "color": "red", "index": 9, "text": "Отправка заявки" },
+                "services_view": { "color": "yellow", "index": 10, "text": "Просмотр услуг" },
+                "phone_click": { "color": "cyan", "index": 11, "text": "Клик по телефону" },
+                "session_end": { "color": "gray", "index": 12, "text": "Завершение сессии" }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
           "unit": "short"
         },
@@ -53,8 +72,8 @@
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "rate(analytics_events_total[5m]) * 60",
-          "legendFormat": "{{event_name}} ({{page}})",
+          "expr": "sum by (event_name) (rate(analytics_events_total[5m]) * 60)",
+          "legendFormat": "{{event_name}}",
           "refId": "A"
         }
       ],
@@ -156,7 +175,26 @@
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
             "scaleDistribution": { "type": "linear" }
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "page_view": { "color": "blue", "index": 0, "text": "Просмотр страницы" },
+                "calculator_open": { "color": "green", "index": 1, "text": "Открытие калькулятора" },
+                "calculator_fence_type_select": { "color": "green", "index": 2, "text": "Выбор типа забора" },
+                "calculator_configure": { "color": "green", "index": 3, "text": "Настройка параметров" },
+                "calculator_calculate": { "color": "green", "index": 4, "text": "Расчёт стоимости" },
+                "calculator_export": { "color": "green", "index": 5, "text": "Экспорт расчёта" },
+                "portfolio_view": { "color": "orange", "index": 6, "text": "Просмотр портфолио" },
+                "portfolio_item_click": { "color": "orange", "index": 7, "text": "Клик по работе" },
+                "contacts_view": { "color": "purple", "index": 8, "text": "Просмотр контактов" },
+                "contact_form_submit": { "color": "red", "index": 9, "text": "Отправка заявки" },
+                "services_view": { "color": "yellow", "index": 10, "text": "Просмотр услуг" },
+                "phone_click": { "color": "cyan", "index": 11, "text": "Клик по телефону" },
+                "session_end": { "color": "gray", "index": 12, "text": "Завершение сессии" }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         },
         "overrides": []
@@ -200,7 +238,18 @@
             "stacking": { "group": "A", "mode": "none" },
             "thresholdsStyle": { "mode": "off" }
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "page_view": { "color": "blue", "index": 0, "text": "Просмотр страницы" },
+                "calculator_open": { "color": "green", "index": 1, "text": "Открытие калькулятора" },
+                "calculator_configure": { "color": "green", "index": 2, "text": "Настройка параметров" },
+                "calculator_calculate": { "color": "green", "index": 3, "text": "Расчёт стоимости" },
+                "contact_form_submit": { "color": "red", "index": 4, "text": "Отправка заявки" }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
           "unit": "short"
         },
@@ -227,54 +276,6 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisLabel": "Секунды",
-            "drawStyle": "heatmap",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "lineWidth": 1,
-            "scaleDistribution": { "type": "linear" },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
-          },
-          "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
-      "id": 6,
-      "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "single", "sort": "none" }
-      },
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, sum(rate(session_duration_seconds_bucket[5m])) by (le, exit_page))",
-          "legendFormat": "p95 ({{exit_page}})",
-          "refId": "A"
-        },
-        {
-          "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, sum(rate(session_duration_seconds_bucket[5m])) by (le, exit_page))",
-          "legendFormat": "p50 ({{exit_page}})",
-          "refId": "B"
-        }
-      ],
-      "title": "Длительность сессий (p50/p95)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
@@ -282,8 +283,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 32 },
-      "id": 7,
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 24 },
+      "id": 6,
       "options": {
         "colorMode": "background",
         "graphMode": "area",
@@ -314,8 +315,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 32 },
-      "id": 8,
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 24 },
+      "id": 7,
       "options": {
         "colorMode": "background",
         "graphMode": "area",
@@ -346,8 +347,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 32 },
-      "id": 9,
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 24 },
+      "id": 8,
       "options": {
         "colorMode": "background",
         "graphMode": "area",
@@ -378,8 +379,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 32 },
-      "id": 10,
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 24 },
+      "id": 9,
       "options": {
         "colorMode": "background",
         "graphMode": "area",
@@ -408,5 +409,5 @@
   "timezone": "browser",
   "title": "User Analytics - Fences",
   "uid": "user-analytics-fences",
-  "version": 1
+  "version": 2
 }

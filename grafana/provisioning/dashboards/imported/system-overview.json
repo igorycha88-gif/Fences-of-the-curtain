@@ -62,7 +62,7 @@
           "refId": "A"
         }
       ],
-      "title": "CPU Usage",
+      "title": "Использование CPU",
       "type": "gauge"
     },
     {
@@ -117,7 +117,7 @@
           "refId": "A"
         }
       ],
-      "title": "Memory Usage",
+      "title": "Использование памяти",
       "type": "gauge"
     },
     {
@@ -172,7 +172,7 @@
           "refId": "A"
         }
       ],
-      "title": "Disk Usage",
+      "title": "Использование диска",
       "type": "gauge"
     },
     {
@@ -219,7 +219,7 @@
           "refId": "A"
         }
       ],
-      "title": "Network In",
+      "title": "Сетевой входящий трафик",
       "type": "gauge"
     }
   ],
@@ -235,7 +235,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "System Overview",
+  "title": "Обзор системы",
   "uid": "system-overview",
   "version": 1
 }

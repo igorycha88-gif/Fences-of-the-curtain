@@ -37,6 +37,8 @@ export const EVENT_NAMES = {
   SERVICES_VIEW: 'services_view',
   PHONE_CLICK: 'phone_click',
   SESSION_END: 'session_end',
+  LEAD_SUBMIT: 'lead_submit',
+  PHONE_CALL_SUCCESS: 'phone_call_success',
 } as const;
 
 export type EventName = (typeof EVENT_NAMES)[keyof typeof EVENT_NAMES];
