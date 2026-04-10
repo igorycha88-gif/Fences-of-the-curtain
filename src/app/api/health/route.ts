@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import Redis from 'ioredis';
+import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 import logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
-
-const prisma = new PrismaClient();
 
 async function checkDatabase(): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
   const start = Date.now();
@@ -19,21 +17,13 @@ async function checkDatabase(): Promise<{ ok: boolean; latencyMs?: number; error
 }
 
 async function checkRedis(): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+  const start = Date.now();
   try {
-    const redisUrl = process.env.REDIS_URL;
-    if (!redisUrl) {
-      return { ok: true, latencyMs: 0, error: 'not configured' };
-    }
-
-    const start = Date.now();
-    const client = new Redis(redisUrl);
-    await client.ping();
-    const latencyMs = Date.now() - start;
-    client.disconnect();
-    return { ok: true, latencyMs };
+    await redis.ping();
+    return { ok: true, latencyMs: Date.now() - start };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return { ok: true, latencyMs: 0, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: msg };
   }
 }
 

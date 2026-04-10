@@ -1,19 +1,19 @@
-import * as XLSX from 'xlsx';
-
 export interface ExportOptions {
   filename: string;
   format: 'xlsx' | 'csv';
 }
 
 export class ExportService {
-  exportToExcel(data: any[], filename: string) {
+  async exportToExcel(data: any[], filename: string) {
+    const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
     XLSX.writeFile(workbook, `${filename}.xlsx`);
   }
 
-  exportToCSV(data: any[], filename: string) {
+  async exportToCSV(data: any[], filename: string) {
+    const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(data);
     const csv = XLSX.utils.sheet_to_csv(worksheet);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

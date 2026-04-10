@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf';
-
 export interface PDFData {
   type: 'fence' | 'canopy';
   parameters: any;
@@ -12,7 +10,8 @@ export interface PDFData {
   };
 }
 
-export function generatePDF(data: PDFData): Blob {
+export async function generatePDF(data: PDFData): Promise<Blob> {
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF();
 
   let yPos = 20;

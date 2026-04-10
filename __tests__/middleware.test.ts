@@ -7,6 +7,18 @@ jest.mock('next/server', () => ({
   },
 }));
 
+jest.mock('@/lib/redis', () => ({
+  redis: {
+    set: jest.fn().mockResolvedValue('OK'),
+    get: jest.fn().mockResolvedValue(null),
+    incrby: jest.fn().mockResolvedValue(1),
+  },
+}));
+
+jest.mock('@/lib/prometheus', () => ({
+  recordSessionDuration: jest.fn().mockResolvedValue(undefined),
+}));
+
 const mockGetRandomValues = jest.fn();
 const originalCrypto = global.crypto;
 
@@ -48,20 +60,20 @@ describe('middleware', () => {
   });
 
   describe('nonce generation', () => {
-    it('should generate nonce and set headers', () => {
+    it('should generate nonce and set headers', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest);
+      await middleware(mockRequest);
 
       expect(NextResponse.next).toHaveBeenCalled();
       expect(mockResponse.headers.set).toHaveBeenCalledTimes(5);
     });
 
-    it('should generate unique nonces for different requests', () => {
+    it('should generate unique nonces for different requests', async () => {
       const mockRequest1 = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
@@ -74,12 +86,12 @@ describe('middleware', () => {
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest1);
+      await middleware(mockRequest1);
       const calls1 = [...mockResponse.headers.set.mock.calls];
       const nonce1Call = calls1.find((call: string[]) => call[0] === 'x-nonce');
 
       mockResponse.headers.set.mockClear();
-      middleware(mockRequest2);
+      await middleware(mockRequest2);
       const calls2 = [...mockResponse.headers.set.mock.calls];
       const nonce2Call = calls2.find((call: string[]) => call[0] === 'x-nonce');
 
@@ -87,14 +99,14 @@ describe('middleware', () => {
       expect(nonce2Call).toBeDefined();
     });
 
-    it('should generate base64 encoded nonce', () => {
+    it('should generate base64 encoded nonce', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest);
+      await middleware(mockRequest);
 
       const nonceCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'x-nonce'
@@ -107,14 +119,14 @@ describe('middleware', () => {
   });
 
   describe('Content-Security-Policy header', () => {
-    it('should set CSP header with nonce', () => {
+    it('should set CSP header with nonce', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest);
+      await middleware(mockRequest);
 
       const cspCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'Content-Security-Policy'
@@ -126,14 +138,14 @@ describe('middleware', () => {
       expect(cspCall?.[1]).toContain('https://mc.yandex.ru');
     });
 
-    it('should include all required CSP directives', () => {
+    it('should include all required CSP directives', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest);
+      await middleware(mockRequest);
 
       const cspCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'Content-Security-Policy'
@@ -153,14 +165,14 @@ describe('middleware', () => {
       expect(csp).toContain("frame-ancestors 'self'");
     });
 
-    it('should allow Yandex Metrika domains', () => {
+    it('should allow Yandex Metrika domains', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest);
+      await middleware(mockRequest);
 
       const cspCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'Content-Security-Policy'
@@ -170,14 +182,14 @@ describe('middleware', () => {
       expect(csp).toContain('https://mc.yandex.ru');
     });
 
-    it('should allow Google reCAPTCHA domains', () => {
+    it('should allow Google reCAPTCHA domains', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest);
+      await middleware(mockRequest);
 
       const cspCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'Content-Security-Policy'
@@ -188,14 +200,14 @@ describe('middleware', () => {
       expect(csp).toContain('https://www.gstatic.com');
     });
 
-    it('should use same nonce in CSP and x-nonce header', () => {
+    it('should use same nonce in CSP and x-nonce header', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
         cookies: { get: jest.fn() },
       } as any;
 
-      middleware(mockRequest);
+      await middleware(mockRequest);
 
       const nonceCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'x-nonce'

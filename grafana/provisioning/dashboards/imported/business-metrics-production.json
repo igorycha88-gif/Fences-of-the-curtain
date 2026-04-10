@@ -1,0 +1,257 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "Prometheus",
+        "enable": true,
+        "hideTime": true,
+        "iconColor": "#73bf69"
+      },
+      {
+        "builtIn": 1,
+        "datasource": "Prometheus",
+        "enable": true,
+        "hideTime": true,
+        "iconColor": "#5744fa"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStart": 2024",
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "overrides": []
+    },
+      "gridPos": {
+        "h": 12,
+        "w": 12
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "app_uptime",
+          "legendFormat": "Время работы",
+          "refId": "app_uptime",
+          "type": "gauge"
+        },
+        {
+          "expr": "http_requests_total",
+          "legendFormat": "HTTP запросы",
+          "refId": "http_requests_total",
+          "type": "graph"
+        },
+        {
+          "expr": "http_request_duration_seconds",
+          "legendFormat": "Время обработки (p95)",
+          "refId": "httpRequestDuration",
+          "type": "graph"
+        }
+      ]
+    },
+    "title": "Приложение и API"
+  },
+  {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "overrides": []
+    },
+      "gridPos": {
+        "h": 12,
+        "w": 12
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "contact_form_submissions_rate",
+          "legendFormat": "Заявки/минуту",
+          "refId": "contactFormSubmissionsRate",
+          "type": "gauge"
+        },
+        {
+          "expr": "conversion_funnel_completion_rate",
+          "legendFormat": "Конверсия %",
+          "refId": "conversionFunnelCompletionRate",
+          "type": "gauge"
+        },
+        {
+          "expr": "average_session_duration_seconds",
+          "legendFormat": "Средняя сессия (сек)",
+          "refId": "averageSessionDuration",
+          "type": "gauge"
+        },
+        {
+          "expr": "unique_users_today",
+          "legendFormat": "Уникальных сегодня",
+          "refId": "uniqueUsersToday",
+          "type": "stat"
+        }
+      ]
+    },
+    "title": "Бизнес и конверсия"
+  },
+  {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "overrides": []
+    },
+      "gridPos": {
+        "h": 12,
+        "w": 12
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "user_retention_rate",
+          "legendFormat": "Удержание (день)",
+          "refId": "userRetentionRate",
+          "type": "graph"
+        },
+        {
+          "expr": "user_retention_rate",
+          "legendFormat": "Удержание (неделя)",
+          "refId": "userRetentionRate",
+          "type": "graph"
+        }
+      ]
+    },
+    "title": "Пользователи и аудитория"
+  },
+  {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "overrides": []
+    },
+      "gridPos": {
+        "h": 12,
+        "w": 12
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "lead_submissions_total",
+          "legendFormat": "Лиды всего",
+          "refId": "leadSubmissionsTotal",
+          "type": "stat"
+        },
+        {
+          "expr": "phone_calls_total",
+          "legendFormat": "Звонки всего",
+          "refId": "phoneCallsTotal",
+          "type": "stat"
+        },
+        {
+          "expr": "histogram_quantile(lead_response_time_seconds, 0.5)",
+          "legendFormat": "Время ответа p50",
+          "refId": "leadResponseTime",
+          "type": "stat"
+        },
+        {
+          "expr": "histogram_quantile(lead_response_time_seconds, 0.95)",
+          "legendFormat": "Время ответа p95",
+          "refId": "leadResponseTime",
+          "type": "stat"
+        },
+        {
+          "expr": "histogram_quantile(lead_response_time_seconds, 0.99)",
+          "legendFormat": "Время ответа p99",
+          "refId": "leadResponseTime",
+          "type": "stat"
+        }
+      ]
+    },
+    "title": "Лиды и звонки"
+  },
+  {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "overrides": []
+    },
+      "gridPos": {
+        "h": 12,
+        "w": 12
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "database_connections_active",
+          "legendFormat": "Подключения БД",
+          "refId": "databaseConnectionsActive",
+          "type": "stat"
+        },
+        {
+          "expr": "database_connections_active",
+          "legendFormat": "Подключения Redis",
+          "refId": "databaseConnectionsActive",
+          "type": "stat"
+        }
+      ]
+    },
+    "title": "Системные метрики"
+  }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["business", "monitoring"],
+  "timezone": "browser",
+  "uid": "business-metrics-production",
+  "title": "Business Metrics - Production",
+  "version": 2
+}

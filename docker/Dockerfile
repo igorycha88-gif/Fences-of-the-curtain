@@ -40,19 +40,19 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
+ENV NODE_OPTIONS="--max-old-space-size=512"
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs && \
     mkdir -p /app/public/uploads/portfolio && \
     chown -R nextjs:nodejs /app
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-RUN rm -rf /app/public
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
 RUN mkdir -p /app/public/uploads/portfolio && chown -R nextjs:nodejs /app/public
 
 USER nextjs
@@ -60,6 +60,6 @@ USER nextjs
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://127.0.0.1:3000/api/health || exit 1
+    CMD curl -f http://127.0.0.1:3001/api/health || exit 1
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

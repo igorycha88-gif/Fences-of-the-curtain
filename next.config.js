@@ -32,6 +32,7 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   
   images: {
     domains: ['localhost', '37.143.13.196', 'zabor-i-naves.ru'],
@@ -88,7 +89,7 @@ const nextConfig = {
   },
   
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'docx', 'xlsx', 'jspdf'],
   },
 };
 

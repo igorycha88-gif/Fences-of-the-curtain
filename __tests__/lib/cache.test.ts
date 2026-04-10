@@ -5,7 +5,7 @@ jest.mock('../../src/lib/redis', () => ({
     get: jest.fn(),
     setex: jest.fn(),
     del: jest.fn(),
-    keys: jest.fn(),
+    scan: jest.fn(),
     ping: jest.fn(),
   },
 }));
@@ -98,17 +98,19 @@ describe('CacheService', () => {
       const pattern = 'calculator:*';
       const matchingKeys = ['calculator:posts', 'calculator:lags'];
 
-      mockRedis.keys.mockResolvedValueOnce(matchingKeys);
+      mockRedis.scan
+        .mockResolvedValueOnce(['1', ['calculator:posts']])
+        .mockResolvedValueOnce(['0', ['calculator:lags']]);
       mockRedis.del.mockResolvedValueOnce(2);
 
       await cacheService.delPattern(pattern);
 
-      expect(mockRedis.keys).toHaveBeenCalledWith(pattern);
+      expect(mockRedis.scan).toHaveBeenCalled();
       expect(mockRedis.del).toHaveBeenCalledWith(...matchingKeys);
     });
 
     it('should not call del when no keys match', async () => {
-      mockRedis.keys.mockResolvedValueOnce([]);
+      mockRedis.scan.mockResolvedValueOnce(['0', []]);
 
       await cacheService.delPattern('empty:*');
 

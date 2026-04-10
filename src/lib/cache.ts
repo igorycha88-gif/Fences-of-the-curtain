@@ -5,9 +5,38 @@ interface MemoryCacheEntry<T> {
   expires: number;
 }
 
+const MAX_MEMORY_CACHE_SIZE = 500;
+
 export class CacheService {
   private memoryCache: Map<string, MemoryCacheEntry<unknown>> = new Map();
   private redisAvailable: boolean = true;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    this.cleanupInterval = setInterval(() => this.evictExpired(), 60000);
+    if (this.cleanupInterval && typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
+      this.cleanupInterval.unref();
+    }
+  }
+
+  private evictExpired(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.memoryCache.entries()) {
+      if (entry.expires <= now) {
+        this.memoryCache.delete(key);
+      }
+    }
+  }
+
+  private enforceMaxSize(): void {
+    if (this.memoryCache.size > MAX_MEMORY_CACHE_SIZE) {
+      const entries = [...this.memoryCache.entries()];
+      const toDelete = entries.length - MAX_MEMORY_CACHE_SIZE;
+      for (let i = 0; i < toDelete; i++) {
+        this.memoryCache.delete(entries[i][0]);
+      }
+    }
+  }
 
   async get<T>(key: string): Promise<T | null> {
     try {
@@ -45,6 +74,7 @@ export class CacheService {
     const expires = Date.now() + ttlSeconds * 1000;
 
     this.memoryCache.set(key, { value, expires });
+    this.enforceMaxSize();
 
     try {
       if (this.redisAvailable) {
@@ -91,12 +121,15 @@ export class CacheService {
 
     try {
       if (this.redisAvailable) {
-        const keys = await redis.keys(pattern);
-        if (keys.length > 0) {
-          await redis.del(...keys);
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[Cache] DEL PATTERN: ${pattern} (${keys.length} keys)`);
-          }
+        let cursor = '0';
+        const keysToDelete: string[] = [];
+        do {
+          const [nextCursor, batch] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+          cursor = nextCursor;
+          keysToDelete.push(...batch);
+        } while (cursor !== '0');
+        if (keysToDelete.length > 0) {
+          await redis.del(...keysToDelete);
         }
       }
     } catch (error) {

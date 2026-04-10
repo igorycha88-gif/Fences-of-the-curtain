@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64');
   const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -25,9 +25,18 @@ export function middleware(request: NextRequest) {
   response.headers.set('x-nonce', nonce);
 
   let sessionId = request.cookies.get('analytics_session_id')?.value;
+  let sessionStartTime = request.cookies.get('analytics_session_start')?.value ?? null;
+
   if (!sessionId) {
     sessionId = crypto.randomUUID();
+    sessionStartTime = new Date().toISOString();
+
     response.cookies.set('analytics_session_id', sessionId, {
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    response.cookies.set('analytics_session_start', sessionStartTime, {
       httpOnly: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 30,

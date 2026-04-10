@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/admin-auth';
 import { estimatesService } from '@/services/admin/estimatesService';
-import * as XLSX from 'xlsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +48,7 @@ export async function GET(request: NextRequest) {
       'Телефон': e.user?.phone || '-',
     }));
 
+    const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Расчеты');

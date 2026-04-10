@@ -7,6 +7,9 @@ jest.mock('prom-client', () => {
   const mockHistogram = {
     observe: jest.fn(),
   };
+  const mockGauge = {
+    set: jest.fn(),
+  };
   const mockRegistry = {
     metrics: jest.fn().mockResolvedValue('# HELP test Test metric\n# TYPE test counter\ntest 0'),
   };
@@ -15,13 +18,17 @@ jest.mock('prom-client', () => {
     Registry: jest.fn(() => mockRegistry),
     Counter: jest.fn(() => mockCounter),
     Histogram: jest.fn(() => mockHistogram),
+    Gauge: jest.fn(() => mockGauge),
   };
 });
 
 jest.mock('@/lib/redis', () => ({
   redis: {
-    keys: jest.fn().mockResolvedValue([]),
+    scan: jest.fn().mockResolvedValue(['0', []]),
     hgetall: jest.fn().mockResolvedValue({}),
+    get: jest.fn().mockResolvedValue('0'),
+    hincrby: jest.fn().mockResolvedValue(1),
+    ping: jest.fn().mockResolvedValue('PONG'),
   },
 }));
 
@@ -53,18 +60,18 @@ describe('Prometheus Metrics', () => {
   });
 
   describe('recordSessionDuration', () => {
-    it('should record session duration', () => {
-      recordSessionDuration('/calculator/fence', 120);
+    it('should record session duration', async () => {
+      await recordSessionDuration('/calculator/fence', 120);
       expect(true).toBe(true);
     });
 
-    it('should record short session duration', () => {
-      recordSessionDuration('/', 10);
+    it('should record short session duration', async () => {
+      await recordSessionDuration('/', 10);
       expect(true).toBe(true);
     });
 
-    it('should record long session duration', () => {
-      recordSessionDuration('/portfolio', 3600);
+    it('should record long session duration', async () => {
+      await recordSessionDuration('/portfolio', 3600);
       expect(true).toBe(true);
     });
   });

@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 import { mkdir, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -50,6 +49,8 @@ export function getUploadPath(): string {
 }
 
 export async function saveImage(file: File): Promise<{ url: string; thumbnailUrl: string }> {
+  const sharp = (await import('sharp')).default;
+
   console.log('[FileUpload] Starting image upload:', { 
     name: file.name, 
     size: file.size, 

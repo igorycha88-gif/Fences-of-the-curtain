@@ -3,15 +3,12 @@ import { redis } from '@/lib/redis';
 
 const ANALYTICS_KEY_PREFIX = 'analytics:';
 const ANALYTICS_TTL = 86400 * 30;
-
-function incrementMetric(key: string): void {
-  redis.hincrby(key, 'count', 1).catch(() => {});
-}
+const SESSION_TTL = 86400 * 1;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { eventName, sessionId, page, referrer, properties, timestamp } = body;
+    const { eventName, sessionId, page, referrer, timestamp } = body;
 
     if (!eventName || !sessionId) {
       return NextResponse.json(
@@ -20,58 +17,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const eventKey = `${ANALYTICS_KEY_PREFIX}events:${Date.now()}:${sessionId}`;
-    const eventData = {
-      eventName,
-      sessionId,
-      page,
-      referrer,
-      properties,
-      timestamp,
-    };
-
-    await redis.set(eventKey, JSON.stringify(eventData), 'EX', ANALYTICS_TTL);
-
-    const dailyKey = `${ANALYTICS_KEY_PREFIX}daily:${new Date().toISOString().split('T')[0]}`;
-    await redis.hincrby(dailyKey, eventName, 1);
-    await redis.expire(dailyKey, ANALYTICS_TTL);
-
-    const pageKey = `${ANALYTICS_KEY_PREFIX}pages:${page || 'unknown'}`;
-    await redis.hincrby(pageKey, eventName, 1);
-    await redis.expire(pageKey, ANALYTICS_TTL);
-
-    const sessionKey = `${ANALYTICS_KEY_PREFIX}sessions:${sessionId}`;
-    await redis.hset(sessionKey, {
-      lastActive: timestamp,
-      lastPage: page || '',
-      totalEvents: await redis.hincrby(sessionKey, 'totalEvents', 1),
-    });
-    await redis.expire(sessionKey, ANALYTICS_TTL);
-
     const metricsPage = (page || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
 
-    incrementMetric(`analytics:metrics:events:${eventName}:${metricsPage}`);
+    const pipeline = redis.pipeline();
 
-    if (eventName === 'page_view') {
-      incrementMetric(`analytics:metrics:pageviews:${metricsPage}`);
-    }
+    const dailyKey = `${ANALYTICS_KEY_PREFIX}daily:${new Date().toISOString().split('T')[0]}`;
+    pipeline.hincrby(dailyKey, eventName, 1);
+    pipeline.expire(dailyKey, ANALYTICS_TTL);
 
-    if (eventName.startsWith('calculator_')) {
-      const action = eventName.replace('calculator_', '');
-      incrementMetric(`analytics:metrics:calculator:${action}`);
-    }
+    const pageKey = `${ANALYTICS_KEY_PREFIX}pages:${metricsPage}`;
+    pipeline.hincrby(pageKey, eventName, 1);
+    pipeline.expire(pageKey, ANALYTICS_TTL);
 
-    const funnelSteps = [
-      'page_view',
-      'calculator_open',
-      'calculator_configure',
-      'calculator_calculate',
-      'contact_form_submit',
-    ];
+    pipeline.hincrby(`${ANALYTICS_KEY_PREFIX}metrics:events:${eventName}:${metricsPage}`, 'count', 1);
 
-    if (funnelSteps.includes(eventName)) {
-      incrementMetric(`analytics:metrics:funnel:${eventName}`);
-    }
+    const sessionKey = `${ANALYTICS_KEY_PREFIX}sessions:${sessionId}`;
+    pipeline.hincrby(sessionKey, 'totalEvents', 1);
+    pipeline.hset(sessionKey, 'lastActive', timestamp || new Date().toISOString());
+    pipeline.expire(sessionKey, SESSION_TTL);
+
+    await pipeline.exec();
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

@@ -25,9 +25,10 @@ coverage/
 
 # Environment files
 .env
+.env.*
 .env*.local
-.env.production
-.env.development
+.env.backup.*
+!.env.example
 
 # Git
 .git/

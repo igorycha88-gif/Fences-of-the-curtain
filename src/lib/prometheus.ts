@@ -1,15 +1,21 @@
-import { Registry, Counter, Histogram, Gauge } from 'prom-client';
+export function recordAnalyticsEvent(eventName: string, page: string): void {}
 
-export function recordAnalyticsEvent(eventName: string, page: string): void {
-  // Metrics are stored in Redis, see /api/analytics/events route
-  // This function is a no-op here, actual recording happens in the API route
-}
+export async function recordSessionDuration(exitPage: string, durationSeconds: number): Promise<void> {}
 
-export function recordSessionDuration(exitPage: string, durationSeconds: number): void {
-  // Session duration tracking would be implemented client-side
+async function scanKeys(pattern: string): Promise<string[]> {
+  const { redis } = await import('@/lib/redis');
+  const keys: string[] = [];
+  let cursor = '0';
+  do {
+    const [nextCursor, batch] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+    cursor = nextCursor;
+    keys.push(...batch);
+  } while (cursor !== '0');
+  return keys;
 }
 
 export async function getMetricsString(): Promise<string> {
+  const { Registry, Counter, Histogram, Gauge } = await import('prom-client');
   const registry = new Registry();
 
   const analyticsEventsTotal = new Counter({
@@ -123,11 +129,39 @@ export async function getMetricsString(): Promise<string> {
     registers: [registry],
   });
 
+  const leadSubmissionsTotal = new Counter({
+    name: 'lead_submissions_total',
+    help: 'Total number of lead submissions',
+    labelNames: ['lead_source'],
+    registers: [registry],
+  });
+
+  const phoneCallsTotal = new Counter({
+    name: 'phone_calls_total',
+    help: 'Total number of phone calls',
+    registers: [registry],
+  });
+
+  const leadResponseTime = new Histogram({
+    name: 'lead_response_time_seconds',
+    help: 'Lead response time in seconds',
+    labelNames: ['contact_method'],
+    buckets: [0.5, 1, 5, 10, 30, 60],
+    registers: [registry],
+  });
+
+  const phoneCallDuration = new Histogram({
+    name: 'phone_call_duration_seconds',
+    help: 'Phone call duration in seconds',
+    labelNames: ['masked'],
+    buckets: [5, 15, 30, 60, 180, 300],
+    registers: [registry],
+  });
+
   const { redis } = await import('@/lib/redis');
+  const keys = await scanKeys('analytics:metrics:*');
 
-  const keys = await redis.keys('analytics:metrics:*');
-
-  for (const key of keys) {
+  const metricsPromises = keys.map(async (key) => {
     const data = await redis.hgetall(key);
 
     if (key.startsWith('analytics:metrics:events:')) {
@@ -151,28 +185,55 @@ export async function getMetricsString(): Promise<string> {
           topFenceTypesTotal.inc({ fence_type: 'unknown' }, count);
         }
       }
-    } else if (key.startsWith('analytics:metrics:pageviews:')) {
+      return;
+    }
+
+    if (key.startsWith('analytics:metrics:pageviews:')) {
       const page = key.replace('analytics:metrics:pageviews:', '');
       const count = parseInt(data.count || '0', 10);
       if (count > 0) {
         pageViewsTotal.inc({ page }, count);
       }
-    } else if (key.startsWith('analytics:metrics:calculator:')) {
+      return;
+    }
+
+    if (key.startsWith('analytics:metrics:calculator:')) {
       const action = key.replace('analytics:metrics:calculator:', '');
       const count = parseInt(data.count || '0', 10);
       if (count > 0) {
         calculatorEventsTotal.inc({ action }, count);
       }
-    } else if (key.startsWith('analytics:metrics:funnel:')) {
+      return;
+    }
+
+    if (key.startsWith('analytics:metrics:funnel:')) {
       const step = key.replace('analytics:metrics:funnel:', '');
       const count = parseInt(data.count || '0', 10);
       if (count > 0) {
         conversionFunnelTotal.inc({ step }, count);
       }
+      return;
     }
-  }
+  });
+
+  await Promise.all(metricsPromises);
+
+  const contactFormSubmissionsRateKey = 'analytics:metrics:rates:forms_last_minute';
+  const contactFormRateData = await redis.get(contactFormSubmissionsRateKey);
+  contactFormSubmissionsRate.set(parseFloat(contactFormRateData || '0'));
+
+  const conversionFunnelCompletionRateKey = 'analytics:metrics:rates:funnel_completion';
+  const funnelRateData = await redis.get(conversionFunnelCompletionRateKey);
+  conversionFunnelCompletionRate.set(parseFloat(funnelRateData || '0'));
+
+  const averageSessionDurationKey = 'analytics:metrics:avg_session_duration';
+  const avgData = await redis.get(averageSessionDurationKey);
+  averageSessionDuration.set(parseFloat(avgData || '0'));
+
+  const uniqueUsersTodayIncrement = await redis.get('analytics:metrics:unique_users_today') || '0';
+  uniqueUsersToday.inc(parseInt(uniqueUsersTodayIncrement, 10) + 1);
+
+  appUptime.set(process.uptime());
 
   return registry.metrics();
 }
-
-export { Registry };
