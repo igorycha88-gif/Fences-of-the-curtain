@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useContext } from 'react';
+import { CookieConsentContext } from '@/components/cookie-consent/CookieConsentProvider';
 
 interface ContactInfoData {
   address: string;
@@ -12,6 +12,7 @@ interface ContactInfoData {
 
 export default function Footer() {
   const [contactInfo, setContactInfo] = useState<ContactInfoData | null>(null);
+  const cookieConsent = useContext(CookieConsentContext);
 
   useEffect(() => {
     const fetchContactInfo = async () => {
@@ -36,6 +37,12 @@ export default function Footer() {
         <p className="text-gray-400">
           {contactInfo?.phone || '+74993901595'} {contactInfo?.email ? `| ${contactInfo.email}` : ''}
         </p>
+        <button
+          onClick={() => cookieConsent?.openSettings()}
+          className="mt-2 text-xs text-gray-500 underline hover:text-gray-300 transition-colors"
+        >
+          Настройка cookies
+        </button>
       </div>
     </footer>
   );

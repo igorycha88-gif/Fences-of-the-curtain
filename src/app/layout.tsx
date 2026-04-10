@@ -2,19 +2,14 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import SessionProvider from '@/components/providers/SessionProvider';
 import JsonLdScript from '@/components/seo/JsonLdScript';
-import YandexMetrika from '@/components/seo/YandexMetrika';
+import CookieConsentProvider from '@/components/cookie-consent/CookieConsentProvider';
 import { generateOrganizationJsonLd, generateWebSiteJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
-import { headers } from 'next/headers';
 import './globals.css';
 
 export const dynamic = 'force-dynamic';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zabor-i-naves.ru';
-
-const YANDEX_METRIKA_ID = parseInt(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID || '0', 10);
 
 export const metadata: Metadata = {
   title: {
@@ -95,20 +90,18 @@ export default function RootLayout({
 }) {
   const organizationJsonLd = generateOrganizationJsonLd();
   const websiteJsonLd = generateWebSiteJsonLd();
-  const nonce = headers().get('x-nonce') || '';
-  const pathname = headers().get('x-pathname') || '';
-  const isAdmin = pathname.startsWith('/admin');
 
   return (
     <html lang="ru">
       <head>
         <JsonLdScript data={[organizationJsonLd, websiteJsonLd]} />
-        {YANDEX_METRIKA_ID > 0 && !isAdmin && (
-          <YandexMetrika metrikaId={YANDEX_METRIKA_ID} />
-        )}
       </head>
       <body className={inter.className}>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <CookieConsentProvider>
+            {children}
+          </CookieConsentProvider>
+        </SessionProvider>
       </body>
     </html>
   );

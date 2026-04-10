@@ -727,6 +727,23 @@ enum CanopyMaterialCategory {
   WATER_SYSTEM
 }
 
+model CookieConsent {
+  id           String   @id @default(cuid())
+  sessionId    String?  @unique
+  consentGiven Boolean  @default(false)
+  analytics    Boolean  @default(false)
+  consentText  String   @default("Мы используем файлы cookie для улучшения работы сайта и аналитики.")
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([consentGiven])
+  @@map("cookie_consents")
+}
+
 enum OrderStatus {
   NEW
   ESTIMATE_APPROVAL
