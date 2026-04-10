@@ -80,7 +80,7 @@ EOF
 
 ## 📞 Контакты:
 
-- **VPS:** root@37.143.13.196 (пароль: Gorunova007@)
+- **VPS:** root@37.143.13.196 (пароль: *********)
 - **БД:** postgres / HVt6G6LE6mduMrAny91F
 - **Grafana:** admin / SecureGrafanaPass2026!
 

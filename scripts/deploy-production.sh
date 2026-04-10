@@ -55,8 +55,8 @@ sleep 2
 
 # ── 7. Docker build ──
 BUILD_START=$(date +%s)
-log "Building Docker image..."
-docker compose $COMPOSE_FILES build --no-cache app 2>&1 | tail -5
+log "Building ALL Docker images..."
+docker compose $COMPOSE_FILES build --no-cache 2>&1 | tail -5
 BUILD_TIME=$(( $(date +%s) - BUILD_START ))
 log "✓ Build completed in ${BUILD_TIME}s"
 

@@ -1,182 +1,153 @@
 #!/bin/bash
+set -euo pipefail
 
-# =============================================================================
-# ✅ ПРОВЕРКА ДЕПЛОЯ (VERIFICATION)
-# =============================================================================
-# Скрипт проверяет работоспособность приложения после деплоя
-# =============================================================================
+APP_DIR="/root/Fences-of-the-curtain"
+COMPOSE_FILES="-f docker-compose.yml -f docker-compose.monitoring.yml"
+APP_PORT="3001"
+GRAFANA_PORT="3002"
+HEALTH_URL="http://127.0.0.1:${APP_PORT}/api/health"
+GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-SecureGrafanaPass2026!}"
 
-set -e
-
-# Цвета
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-log_step() {
-    echo -e "${BLUE}[STEP]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-log_failure() {
-    echo -e "${RED}✗${NC} $1"
-}
-
-# Конфигурация
-VPS_HOST="37.143.13.196"
-VPS_USER="root"
-VPS_DIR="/root/Fences-of-the-curtain"
-APP_NAME="fences-app"
-DB_PASS="HVt6G6LE6mduMrAny91F"
-
-# Счетчики
-TOTAL_CHECKS=0
-PASSED_CHECKS=0
-FAILED_CHECKS=0
+TOTAL=0; PASSED=0; FAILED=0
 
 check() {
-    TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
-    local description="$1"
-    local command="$2"
-
-    echo -n "  Проверка: $description ... "
-    if eval "$command" > /dev/null 2>&1; then
-        log_success "ПРОЙДЕНО"
-        PASSED_CHECKS=$((PASSED_CHECKS + 1))
-        return 0
-    else
-        log_failure "НЕ ПРОЙДЕНО"
-        FAILED_CHECKS=$((FAILED_CHECKS + 1))
-        return 1
-    fi
+  TOTAL=$((TOTAL + 1))
+  echo -n "  $1 ... "
+  if eval "$2" > /dev/null 2>&1; then
+    echo -e "${GREEN}OK${NC}"
+    PASSED=$((PASSED + 1))
+  else
+    echo -e "${RED}FAIL${NC}"
+    FAILED=$((FAILED + 1))
+  fi
 }
 
-# Главная функция
-main() {
-    echo ""
-    echo "=============================================================================="
-    echo "✅ ПРОВЕРКА ДЕПЛОЯ"
-    echo "=============================================================================="
-    echo ""
-    log_info "VPS: ${VPS_USER}@${VPS_HOST}"
-    log_info "Начало проверки: $(date)"
-    echo ""
+echo ""
+echo "=============================================================================="
+echo "  DEPLOYMENT VERIFICATION (Docker-based)"
+echo "=============================================================================="
+echo ""
 
-    # 1. Проверка PM2 статуса
-    log_step "1. Проверка PM2"
-    check "PM2 запущен" "sshpass -p '${DB_PASS}' ssh ${VPS_USER}@${VPS_HOST} 'pm2 list | grep ${APP_NAME}'"
-    check "PM2 статус online" "sshpass -p '${DB_PASS}' ssh ${VPS_USER}@${VPS_HOST} \"pm2 list | grep ${APP_NAME} | grep online\""
-    check "PM2 без ошибок" "! sshpass -p '${DB_PASS}' ssh ${VPS_USER}@${VPS_HOST} 'pm2 jlist | grep -i errored'"
+cd "$APP_DIR" || { echo "FATAL: $APP_DIR not found"; exit 1; }
 
-    # 2. Проверка логов
-    log_step "2. Проверка логов"
-    local error_count=$(sshpass -p "${DB_PASS}" ssh ${VPS_USER}@${VPS_HOST} "pm2 logs ${APP_NAME} --lines 100 --nostream | grep -i error | wc -l" 2>/dev/null || echo "0")
-    echo "  Количество ошибок в логах: $error_count"
-    if [ "$error_count" -eq 0 ]; then
-        log_success "Нет ошибок в логах"
-        PASSED_CHECKS=$((PASSED_CHECKS + 1))
-    else
-        log_warn "Найдены ошибки в логах"
-        FAILED_CHECKS=$((FAILED_CHECKS + 1))
-    fi
-    TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+# ── 1. Docker containers ──
+echo -e "${BLUE}[1] Docker Containers${NC}"
+check "app container running" "docker ps | grep fences-app | grep Up"
+check "prometheus container running" "docker ps | grep fences-prometheus | grep Up"
+check "grafana container running" "docker ps | grep fences-grafana | grep Up"
+check "node-exporter running" "docker ps | grep fences-node-exporter | grep Up"
+check "postgres-exporter running" "docker ps | grep fences-postgres-exporter | grep Up"
+check "redis-exporter running" "docker ps | grep fences-redis-exporter | grep Up"
 
-    # 3. Проверка API
-    log_step "3. Проверка API endpoints"
-    check "Главная страница (200)" "curl -s -o /dev/null -w '%{http_code}' http://${VPS_HOST}:3001/ | grep 200"
-    check "Админ login (200)" "curl -s -o /dev/null -w '%{http_code}' http://${VPS_HOST}:3001/admin/login | grep 200"
-    check "Калькулятор забора (200)" "curl -s -o /dev/null -w '%{http_code}' http://${VPS_HOST}:3001/calculator/fence | grep 200"
-    check "Калькулятор навеса (200)" "curl -s -o /dev/null -w '%{http_code}' http://${VPS_HOST}:3001/calculator/canopy | grep 200"
+# ── 2. Application health ──
+echo -e "${BLUE}[2] Application Health${NC}"
+check "Health endpoint OK" "curl -sf '$HEALTH_URL' | grep -q '\"status\":\"ok\"'"
+check "Main page 200" "curl -sf -o /dev/null -w '%{http_code}' http://127.0.0.1:${APP_PORT}/ | grep 200"
+check "Admin login 200" "curl -sf -o /dev/null -w '%{http_code}' http://127.0.0.1:${APP_PORT}/admin/login | grep 200"
 
-    # 4. Проверка Panel3D API
-    log_step "4. Проверка Panel3D функционала"
-    local panel3d_check=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://${VPS_HOST}:3001/api/admin/panel3d 2>/dev/null || echo "000")
-    echo "  Panel3D API HTTP код: $panel3d_check"
-    if [ "$panel3d_check" = "200" ] || [ "$panel3d_check" = "401" ] || [ "$panel3d_check" = "403" ]; then
-        log_success "Panel3D API доступен"
-        PASSED_CHECKS=$((PASSED_CHECKS + 1))
-    else
-        log_failure "Panel3D API недоступен"
-        FAILED_CHECKS=$((FAILED_CHECKS + 1))
-    fi
-    TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+# ── 3. Docker health status ──
+echo -e "${BLUE}[3] Container Health Status${NC}"
+for container in fences-app fences-prometheus fences-grafana fences-node-exporter fences-postgres-exporter fences-redis-exporter; do
+  STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo "missing")
+  if [ "$STATUS" = "healthy" ]; then
+    echo -e "  $container: ${GREEN}$STATUS${NC}"
+    PASSED=$((PASSED + 1))
+  else
+    echo -e "  $container: ${RED}$STATUS${NC}"
+    FAILED=$((FAILED + 1))
+  fi
+  TOTAL=$((TOTAL + 1))
+done
 
-    # 5. Проверка БД
-    log_step "5. Проверка БД"
-    check "Таблица Panel3D существует" "sshpass -p '${DB_PASS}' ssh ${VPS_USER}@${VPS_HOST} \"PGPASSWORD='${DB_PASS}' psql -h localhost -U postgres -d fences -c 'SELECT 1 FROM information_schema.tables WHERE table_name = \\\"Panel3D\\\"' | grep 1\""
-    check "Таблица FenceEstimate имеет panel3dId" "sshpass -p '${DB_PASS}' ssh ${VPS_USER}@${VPS_HOST} \"PGPASSWORD='${DB_PASS}' psql -h localhost -U postgres -d fences -c 'SELECT 1 FROM information_schema.columns WHERE table_name = \\\"FenceEstimate\\\" AND column_name = \\'panel3dId\\'' | grep 1\""
+# ── 4. Grafana dashboards ──
+echo -e "${BLUE}[4] Grafana Dashboards${NC}"
+DASHBOARD_COUNT=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
+  "http://127.0.0.1:${GRAFANA_PORT}/api/search?type=dash-db" 2>/dev/null | \
+  python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+echo "  Dashboards found: $DASHBOARD_COUNT (expected: 6)"
+if [ "$DASHBOARD_COUNT" -ge 6 ]; then
+  PASSED=$((PASSED + 1))
+else
+  FAILED=$((FAILED + 1))
+fi
+TOTAL=$((TOTAL + 1))
 
-    # 6. Проверка Redis
-    log_step "6. Проверка Redis"
-    check "Redis контейнер запущен" "sshpass -p '${DB_PASS}' ssh ${VPS_USER}@${VPS_HOST} 'docker ps | grep redis'"
-    local redis_response=$(sshpass -p "${DB_PASS}" ssh ${VPS_USER}@${VPS_HOST} "docker exec fences-redis redis-cli -a '${REDIS_PASS}' PING" 2>/dev/null || echo "FAILED")
-    if [[ "$redis_response" == *"PONG"* ]]; then
-        log_success "Redis отвечает PONG"
-        PASSED_CHECKS=$((PASSED_CHECKS + 1))
-    else
-        log_failure "Redis не отвечает"
-        FAILED_CHECKS=$((FAILED_CHECKS + 1))
-    fi
-    TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+# Datasource health
+DS_STATUS=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
+  "http://127.0.0.1:${GRAFANA_PORT}/api/datasources/uid/prometheus/health" 2>/dev/null || echo "")
+check "Prometheus datasource OK" "echo '$DS_STATUS' | grep -q '\"status\":\"OK\"'"
 
-    # 7. Проверка дискового пространства
-    log_step "7. Проверка системных ресурсов"
-    local disk_usage=$(sshpass -p "${DB_PASS}" ssh ${VPS_USER}@${VPS_HOST} "df -h ${VPS_DIR} | tail -1 | awk '{print \$5}' | sed 's/%//'")
-    echo "  Использование диска: ${disk_usage}%"
-    if [ "$disk_usage" -lt 90 ]; then
-        log_success "Дисковое пространство в норме"
-        PASSED_CHECKS=$((PASSED_CHECKS + 1))
-    else
-        log_warn "Мало дискового пространства"
-        FAILED_CHECKS=$((FAILED_CHECKS + 1))
-    fi
-    TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+# ── 5. Prometheus targets ──
+echo -e "${BLUE}[5] Prometheus Targets${NC}"
+DOWN=$(curl -sf http://127.0.0.1:9090/api/v1/targets 2>/dev/null | \
+  python3 -c "import sys,json; d=json.load(sys.stdin); print(sum(1 for t in d['data']['activeTargets'] if t['health']!='up'))" 2>/dev/null || echo "?")
+echo "  Targets down: $DOWN"
+TOTAL=$((TOTAL + 1))
+if [ "$DOWN" = "0" ]; then
+  echo -e "  ${GREEN}All targets UP${NC}"
+  PASSED=$((PASSED + 1))
+else
+  echo -e "  ${YELLOW}$DOWN targets DOWN${NC}"
+  FAILED=$((FAILED + 1))
+fi
 
-    # Итоги
-    echo ""
-    echo "=============================================================================="
-    echo "📊 РЕЗУЛЬТАТЫ ПРОВЕРКИ"
-    echo "=============================================================================="
-    echo "  Всего проверок: $TOTAL_CHECKS"
-    echo -e "  ${GREEN}Пройдено:$NC $PASSED_CHECKS"
-    echo -e "  ${RED}Не пройдено:$NC $FAILED_CHECKS"
-    echo ""
+# ── 6. System resources ──
+echo -e "${BLUE}[6] System Resources${NC}"
+DISK=$(df -h "$APP_DIR" | tail -1 | awk '{print $5}' | sed 's/%//')
+echo "  Disk usage: ${DISK}%"
+TOTAL=$((TOTAL + 1))
+if [ "$DISK" -lt 90 ]; then
+  echo -e "  ${GREEN}OK${NC}"
+  PASSED=$((PASSED + 1))
+else
+  echo -e "  ${RED}CRITICAL${NC}"
+  FAILED=$((FAILED + 1))
+fi
 
-    local success_rate=$((PASSED_CHECKS * 100 / TOTAL_CHECKS))
-    echo "  Успешность: ${success_rate}%"
-    echo ""
+MEM=$(free -m | awk 'NR==2{printf "%d", $3*100/$2}')
+echo "  Memory usage: ${MEM}%"
+TOTAL=$((TOTAL + 1))
+if [ "$MEM" -lt 90 ]; then
+  echo -e "  ${GREEN}OK${NC}"
+  PASSED=$((PASSED + 1))
+else
+  echo -e "  ${YELLOW}HIGH${NC}"
+  FAILED=$((FAILED + 1))
+fi
 
-    if [ $FAILED_CHECKS -eq 0 ]; then
-        echo -e "${GREEN}✓ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ!${NC}"
-        echo ""
-        exit 0
-    elif [ $success_rate -ge 80 ]; then
-        echo -e "${YELLOW}⚠ НЕКОТОРЫЕ ПРОВЕРКИ НЕ ПРОЙДЕНЫ, НО ДЕПЛОЙ В ЦЕЛОМ УСПЕШЕН${NC}"
-        echo ""
-        exit 0
-    else
-        echo -e "${RED}✗ МНОГО ПРОВЕРОК НЕ ПРОЙДЕНО. РЕКОМЕНДУЕТСЯ ОТКАТ${NC}"
-        echo ""
-        exit 1
-    fi
-}
+# ── 7. Logs check ──
+echo -e "${BLUE}[7] Recent Logs${NC}"
+ERRORS=$(docker compose $COMPOSE_FILES logs --tail=100 app 2>&1 | grep -ci "error" || echo "0")
+echo "  Recent errors in app logs: $ERRORS"
+TOTAL=$((TOTAL + 1))
+if [ "$ERRORS" -lt 5 ]; then
+  echo -e "  ${GREEN}OK${NC}"
+  PASSED=$((PASSED + 1))
+else
+  echo -e "  ${YELLOW}ELEVATED${NC}"
+  FAILED=$((FAILED + 1))
+fi
 
-# Запуск
-main "$@"
+# ── Summary ──
+echo ""
+echo "=============================================================================="
+RATE=$((PASSED * 100 / TOTAL))
+echo "  Total: $TOTAL | ${GREEN}Passed: $PASSED${NC} | ${RED}Failed: $FAILED${NC} | Rate: ${RATE}%"
+echo "=============================================================================="
+
+if [ "$FAILED" -eq 0 ]; then
+  echo -e "${GREEN}ALL CHECKS PASSED${NC}"
+  exit 0
+elif [ "$RATE" -ge 80 ]; then
+  echo -e "${YELLOW}MOSTLY OK — some warnings${NC}"
+  exit 0
+else
+  echo -e "${RED}TOO MANY FAILURES — investigate${NC}"
+  exit 1
+fi

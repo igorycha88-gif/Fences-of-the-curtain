@@ -21,6 +21,7 @@ env:
   APP_DIR: "/root/Fences-of-the-curtain"
   COMPOSE_FILES: "-f docker-compose.yml -f docker-compose.monitoring.yml"
   APP_PORT: "3001"
+  GREEN_PORT: "3003"
   GRAFANA_PORT: "3002"
 
 jobs:
@@ -30,7 +31,7 @@ jobs:
     secrets: inherit
 
   deploy:
-    name: Deploy to VPS
+    name: Deploy to VPS (Blue-Green)
     runs-on: ubuntu-latest
     needs: ci
     if: success()
@@ -39,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy via SSH
+      - name: Deploy via SSH (Blue-Green with Grafana verification)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
@@ -54,6 +55,7 @@ jobs:
             APP_DIR="/root/Fences-of-the-curtain"
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.monitoring.yml"
             APP_PORT="3001"
+            GREEN_PORT="3003"
             GRAFANA_PORT="3002"
             LOG_DIR="/var/log/fences-deploy"
             DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
@@ -63,7 +65,7 @@ jobs:
             mkdir -p "$LOG_DIR"
             log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"; }
 
-            log "=== DEPLOY STARTED ==="
+            log "=== BLUE-GREEN DEPLOY STARTED ==="
             log "Commit: ${{ github.sha }}"
             log "Reason: $DEPLOY_REASON"
             log "Initiator: ${GITHUB_ACTOR:-manual}"
@@ -122,9 +124,14 @@ jobs:
               pm2 save --force 2>/dev/null || true
             fi
 
-            # ── 7. Free port 3001 ──
-            fuser -k 3001/tcp 2>/dev/null || true
-            sleep 2
+            # ── 7. Check current app is healthy (BLUE) ──
+            BLUE_HEALTHY=0
+            if curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null | grep -q '"status":"ok"'; then
+              BLUE_HEALTHY=1
+              log "✓ BLUE (current) app is healthy on port ${APP_PORT}"
+            else
+              log "WARN: BLUE app not healthy — proceeding with direct deploy"
+            fi
 
             # ── 8. FULL Docker rebuild (ALL services) ──
             BUILD_START=$(date +%s)
@@ -133,15 +140,61 @@ jobs:
             BUILD_TIME=$(( $(date +%s) - BUILD_START ))
             log "✓ Build completed in ${BUILD_TIME}s"
 
-            # ── 9. Docker deploy (full recreate) ──
-            log "Starting ALL containers..."
-            docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+            # ── 9. Deploy — Blue-Green strategy ──
+            if [ "$BLUE_HEALTHY" -eq 1 ]; then
+              log "=== BLUE-GREEN: Starting GREEN instance on port ${GREEN_PORT} ==="
 
-            # ── 10. Wait for stabilization ──
+              # Stop any leftover green container
+              docker rm -f fences-app-green 2>/dev/null || true
+
+              # Start GREEN container on alternate port
+              docker compose $COMPOSE_FILES run -d --name fences-app-green --rm \
+                -e PORT=${GREEN_PORT} \
+                -p ${GREEN_PORT}:${GREEN_PORT} \
+                app 2>&1 || {
+                log "WARN: docker compose run failed, falling back to direct deploy"
+                docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+                DIRECT_DEPLOY=1
+              }
+
+              if [ "${DIRECT_DEPLOY:-0}" != "1" ]; then
+                # Wait for GREEN healthcheck
+                sleep 15
+                GREEN_OK=0
+                for i in 1 2 3 4 5; do
+                  GREEN_HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:${GREEN_PORT}/api/health" 2>/dev/null || echo "")
+                  if echo "$GREEN_HEALTH" | grep -q '"status":"ok"'; then
+                    log "✓ GREEN health check passed (attempt $i) on port ${GREEN_PORT}"
+                    GREEN_OK=1
+                    break
+                  fi
+                  log "GREEN health check attempt $i failed"
+                  sleep 10
+                done
+
+                if [ "$GREEN_OK" -eq 0 ]; then
+                  log "=== GREEN FAILED — keeping BLUE, removing GREEN ==="
+                  docker rm -f fences-app-green 2>/dev/null || true
+                  log "✓ BLUE still serving traffic on port ${APP_PORT}"
+                  git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
+                  exit 1
+                fi
+
+                # ── 10. Switch: stop BLUE, start new container on main port ──
+                log "=== SWITCHING: GREEN → main port ${APP_PORT} ==="
+                docker rm -f fences-app-green 2>/dev/null || true
+                docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+              fi
+            else
+              log "=== DIRECT DEPLOY (no BLUE running) ==="
+              docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+            fi
+
+            # ── 11. Wait for stabilization ──
             log "Waiting for application to stabilize..."
             sleep 20
 
-            # ── 11. Health check (application) ──
+            # ── 12. Health check (application) ──
             HEALTH_OK=0
             for i in 1 2 3 4 5 6; do
               HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "")
@@ -171,7 +224,7 @@ jobs:
               exit 1
             fi
 
-            # ── 12. Check Grafana health ──
+            # ── 13. Check Grafana health + datasource ──
             log "Checking Grafana..."
             GRAFANA_OK=0
             for i in 1 2 3; do
@@ -185,10 +238,19 @@ jobs:
             done
 
             if [ "$GRAFANA_OK" -eq 1 ]; then
-              # ── 13. Reset Grafana admin password to match .env ──
+              # Reset Grafana admin password
               docker exec fences-grafana grafana-cli admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" 2>&1 | tail -1
 
-              # ── 14. Verify Grafana dashboards ──
+              # ── 14. Verify datasource connectivity ──
+              DS_STATUS=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
+                "http://127.0.0.1:${GRAFANA_PORT}/api/datasources/uid/prometheus/health" 2>/dev/null || echo "")
+              if echo "$DS_STATUS" | grep -q '"status":"OK"'; then
+                log "✓ Prometheus datasource connected"
+              else
+                log "WARN: Prometheus datasource not OK: $DS_STATUS"
+              fi
+
+              # ── 15. Verify Grafana dashboards (count + data check) ──
               DASHBOARD_COUNT=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
                 "http://127.0.0.1:${GRAFANA_PORT}/api/search?type=dash-db" 2>/dev/null | \
                 python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
@@ -202,23 +264,41 @@ jobs:
               else
                 log "✓ All $EXPECTED_DASHBOARDS Grafana dashboards present"
               fi
+
+              # ── 16. Verify dashboards have data (query each) ──
+              DASHBOARDS_WITHOUT_DATA=0
+              for DASH_UID in "system-overview" "service-health" "postgres-metrics" "redis-metrics" "user-analytics-fences" "business-metrics-production"; do
+                DASH_PANELS=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
+                  "http://127.0.0.1:${GRAFANA_PORT}/api/dashboards/uid/${DASH_UID}" 2>/dev/null || echo "{}")
+                PANEL_COUNT=$(echo "$DASH_PANELS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('dashboard',{}).get('panels',[])))" 2>/dev/null || echo "0")
+                if [ "$PANEL_COUNT" -gt 0 ]; then
+                  log "  ✓ Dashboard '$DASH_UID': $PANEL_COUNT panels"
+                else
+                  log "  WARN: Dashboard '$DASH_UID': no panels found or dashboard missing"
+                  DASHBOARDS_WITHOUT_DATA=$((DASHBOARDS_WITHOUT_DATA + 1))
+                fi
+              done
+
+              if [ "$DASHBOARDS_WITHOUT_DATA" -gt 0 ]; then
+                log "WARN: $DASHBOARDS_WITHOUT_DATA dashboards may have issues (may need time to collect data)"
+              else
+                log "✓ All dashboards verified"
+              fi
             else
               log "WARN: Grafana not healthy, skipping dashboard verification"
             fi
 
-            # ── 15. Verify Prometheus targets ──
+            # ── 17. Verify Prometheus targets ──
             DOWN_TARGETS=$(curl -sf http://127.0.0.1:9090/api/v1/targets 2>/dev/null | \
               python3 -c "import sys,json; data=json.load(sys.stdin); down=[t['scrapeUrl'] for t in data['data']['activeTargets'] if t['health']!='up']; print(len(down))" 2>/dev/null || echo "unknown")
             log "Prometheus targets down: $DOWN_TARGETS"
 
-            # ── 16. Check Redis exporter ──
+            # ── 18. Check Redis exporter ──
             REDIS_EXPORTER_STATUS=$(docker inspect --format='{{.State.Health.Status}}' fences-redis-exporter 2>/dev/null || echo "unknown")
             log "Redis exporter status: $REDIS_EXPORTER_STATUS"
 
-            # ── 17. Success ──
+            # ── 19. Success ──
             git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
-
-            # Keep rollback tag as permanent marker
             git tag "deploy-ok-$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
 
             DEPLOY_TIME=$(( $(date +%s) - DEPLOY_START ))

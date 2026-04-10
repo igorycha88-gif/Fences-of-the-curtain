@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -19,7 +22,10 @@
   "links": [],
   "panels": [
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -28,8 +34,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -64,7 +78,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -84,7 +100,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -93,8 +112,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -129,7 +156,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -149,7 +178,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -158,8 +190,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -194,7 +234,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -214,7 +256,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -223,8 +268,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -259,7 +312,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -279,7 +334,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -288,8 +346,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -324,7 +390,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -344,7 +412,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -353,8 +424,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -389,7 +468,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -409,7 +490,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -418,8 +502,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -454,7 +546,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -474,7 +568,10 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -483,8 +580,16 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "red", "index": 0, "text": "Недоступен" },
-                "1": { "color": "green", "index": 1, "text": "Доступен" }
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Недоступен"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Доступен"
+                }
               },
               "type": "value"
             }
@@ -519,7 +624,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -541,7 +648,11 @@
   ],
   "schemaVersion": 27,
   "style": "dark",
-  "tags": ["system", "health", "monitoring"],
+  "tags": [
+    "system",
+    "health",
+    "monitoring"
+  ],
   "templating": {
     "list": []
   },

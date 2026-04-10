@@ -226,7 +226,7 @@ EOF
 ## 📞 Контакты
 
 - **VPS:** root@37.143.13.196
-- **Пароль VPS:** Gorunova007@
+- **Пароль VPS:** *********
 - **Пароль БД:** HVt6G6LE6mduMrAny91F
 - **Бэкап:** `/root/Fences-of-the-curtain/backups/20260403_235720/`
 

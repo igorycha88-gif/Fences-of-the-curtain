@@ -6,11 +6,11 @@
 
 set -e
 
-VPS_HOST="37.143.13.196"
-VPS_USER="root"
-VPS_PASS="Gorunova007@"
+VPS_HOST="${VPS_HOST:-37.143.13.196}"
+VPS_USER="${VPS_USER:-root}"
+VPS_PASS="${VPS_PASS:?Set VPS_PASS env variable}"
 VPS_DIR="/root/Fences-of-the-curtain"
-DB_PASS="HVt6G6LE6mduMrAny91F"
+DB_PASS="${DB_PASS:?Set DB_PASS env variable}"
 PREV_COMMIT="454bec7"
 
 RED='\033[0;31m'
