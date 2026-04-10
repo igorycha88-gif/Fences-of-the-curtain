@@ -70,10 +70,10 @@ describe('middleware', () => {
       await middleware(mockRequest);
 
       expect(NextResponse.next).toHaveBeenCalled();
-      expect(mockResponse.headers.set).toHaveBeenCalledTimes(5);
+      expect(mockResponse.headers.set).toHaveBeenCalled();
     });
 
-    it('should generate unique nonces for different requests', async () => {
+    it('should not set x-nonce header (nonce removed)', async () => {
       const mockRequest1 = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
@@ -95,11 +95,11 @@ describe('middleware', () => {
       const calls2 = [...mockResponse.headers.set.mock.calls];
       const nonce2Call = calls2.find((call: string[]) => call[0] === 'x-nonce');
 
-      expect(nonce1Call).toBeDefined();
-      expect(nonce2Call).toBeDefined();
+      expect(nonce1Call).toBeUndefined();
+      expect(nonce2Call).toBeUndefined();
     });
 
-    it('should generate base64 encoded nonce', async () => {
+    it('should not generate nonce', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
@@ -111,15 +111,13 @@ describe('middleware', () => {
       const nonceCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'x-nonce'
       );
-      const nonce = nonceCall?.[1];
 
-      expect(nonce).toBeDefined();
-      expect(Buffer.from(nonce, 'base64').length).toBe(16);
+      expect(nonceCall).toBeUndefined();
     });
   });
 
   describe('Content-Security-Policy header', () => {
-    it('should set CSP header with nonce', async () => {
+    it('should set CSP header without nonce', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
@@ -134,8 +132,8 @@ describe('middleware', () => {
 
       expect(cspCall).toBeDefined();
       expect(cspCall?.[1]).toContain("default-src 'self'");
-      expect(cspCall?.[1]).toContain("'nonce-");
-      expect(cspCall?.[1]).toContain("'strict-dynamic'");
+      expect(cspCall?.[1]).toContain("'unsafe-inline'");
+      expect(cspCall?.[1]).not.toContain("'nonce-");
       expect(cspCall?.[1]).toContain('https://mc.yandex.ru');
     });
 
@@ -201,7 +199,7 @@ describe('middleware', () => {
       expect(csp).toContain('https://www.gstatic.com');
     });
 
-    it('should use same nonce in CSP and x-nonce header', async () => {
+    it('should not set x-nonce header', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/' },
         headers: new Headers(),
@@ -213,14 +211,8 @@ describe('middleware', () => {
       const nonceCall = mockResponse.headers.set.mock.calls.find(
         (call: string[]) => call[0] === 'x-nonce'
       );
-      const cspCall = mockResponse.headers.set.mock.calls.find(
-        (call: string[]) => call[0] === 'Content-Security-Policy'
-      );
 
-      const nonce = nonceCall?.[1];
-      const csp = cspCall?.[1];
-
-      expect(csp).toContain(`nonce-${nonce}`);
+      expect(nonceCall).toBeUndefined();
     });
   });
 

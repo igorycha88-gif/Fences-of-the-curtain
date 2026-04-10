@@ -2,13 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64');
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'strict-dynamic' 'nonce-${nonce}' ${isDevelopment ? "'unsafe-eval'" : ''} https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
-    style-src 'self' 'nonce-${nonce}' 'unsafe-inline' ${isDevelopment ? '' : "'unsafe-hashes'"};
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
+    style-src 'self' 'unsafe-inline';
     img-src 'self' data: https:;
     font-src 'self';
     connect-src 'self' https://mc.yandex.ru;
@@ -22,7 +19,6 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   response.headers.set('Content-Security-Policy', cspHeader);
-  response.headers.set('x-nonce', nonce);
 
   let sessionId = request.cookies.get('analytics_session_id')?.value;
   let sessionStartTime = request.cookies.get('analytics_session_start')?.value ?? null;
