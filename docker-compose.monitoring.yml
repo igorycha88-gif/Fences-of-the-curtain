@@ -3,11 +3,11 @@ services:
     image: prom/prometheus:latest
     container_name: fences-prometheus
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    networks:
+      - fences-net
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -44,6 +44,8 @@ services:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - grafana_dashboards:/var/lib/grafana/dashboards
+    networks:
+      - fences-net
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -62,6 +64,8 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+    networks:
+      - fences-net
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
@@ -78,11 +82,11 @@ services:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: fences-postgres-exporter
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
       - DATA_SOURCE_NAME=postgres
-      - DATA_SOURCE_URI=postgresql://postgres:${POSTGRES_PASSWORD:-password}@host.docker.internal:5432/fences?sslmode=disable
+      - DATA_SOURCE_URI=postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/fences?sslmode=disable
+    networks:
+      - fences-net
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9187/metrics"]
       interval: 30s
@@ -94,23 +98,27 @@ services:
     image: oliver006/redis_exporter:latest
     container_name: fences-redis-exporter
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
-      - REDIS_ADDR=redis://host.docker.internal:6379
+      - REDIS_ADDR=redis://redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_EXPORTER_WEB_LISTEN_ADDRESS=0.0.0.0:9121
+    networks:
+      - fences-net
 
   nginx_exporter:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: fences-nginx-exporter
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
-      - SCRAPE_URI=http://host.docker.internal:80/nginx_status
+      - SCRAPE_URI=http://nginx:80/nginx_status
+    networks:
+      - fences-net
 
 volumes:
   prometheus_data:
   grafana_data:
   grafana_dashboards:
+
+networks:
+  fences-net:
+    external: true

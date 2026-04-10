@@ -19,7 +19,7 @@
   "links": [],
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -52,7 +52,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "rate(analytics_events_total[5m]) * 60",
           "legendFormat": "{{event_name}} ({{page}})",
           "refId": "A"
@@ -62,7 +62,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -95,7 +95,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "rate(page_views_total[5m]) * 60",
           "legendFormat": "{{page}}",
           "refId": "A"
@@ -105,7 +105,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -138,7 +138,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "rate(calculator_events_total[5m]) * 60",
           "legendFormat": "{{action}}",
           "refId": "A"
@@ -148,7 +148,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -171,7 +171,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "sum by (event_name) (increase(analytics_events_total[1h]))",
           "legendFormat": "{{event_name}}",
           "refId": "A"
@@ -181,7 +181,7 @@
       "type": "piechart"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -214,7 +214,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "sum by (step) (increase(conversion_funnel_total[1h]))",
           "legendFormat": "{{step}}",
           "refId": "A"
@@ -224,7 +224,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -256,13 +256,13 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "histogram_quantile(0.95, sum(rate(session_duration_seconds_bucket[5m])) by (le, exit_page))",
           "legendFormat": "p95 ({{exit_page}})",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "histogram_quantile(0.50, sum(rate(session_duration_seconds_bucket[5m])) by (le, exit_page))",
           "legendFormat": "p50 ({{exit_page}})",
           "refId": "B"
@@ -272,7 +272,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -294,7 +294,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "sum(increase(analytics_events_total{event_name=\"page_view\"}[24h]))",
           "legendFormat": "Просмотры",
           "refId": "A"
@@ -304,7 +304,7 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -326,7 +326,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "sum(increase(analytics_events_total{event_name=\"calculator_calculate\"}[24h]))",
           "legendFormat": "Расчёты",
           "refId": "A"
@@ -336,7 +336,7 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -358,7 +358,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "sum(increase(analytics_events_total{event_name=\"contact_form_submit\"}[24h]))",
           "legendFormat": "Заявки",
           "refId": "A"
@@ -368,7 +368,7 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -390,7 +390,7 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "datasource": "Prometheus",
           "expr": "sum(increase(conversion_funnel_total{step=\"contact_form_submit\"}[24h])) / sum(increase(conversion_funnel_total{step=\"page_view\"}[24h]))",
           "legendFormat": "Конверсия",
           "refId": "A"

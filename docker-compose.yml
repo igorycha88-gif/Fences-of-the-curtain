@@ -40,6 +40,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - fences-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 30s
@@ -61,6 +63,8 @@ services:
       - POSTGRES_DB=fences
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fences-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d fences"]
       interval: 10s
@@ -76,6 +80,8 @@ services:
       sh -c "redis-server --requirepass \"$$(cat /run/secrets/redis_password)\""
     volumes:
       - redis_data:/data
+    networks:
+      - fences-net
     secrets:
       - redis_password
     healthcheck:
@@ -98,6 +104,8 @@ services:
       - ./ssl:/etc/nginx/ssl:ro
       - uploads_data:/var/www/uploads:ro
       - nginx_cache:/var/cache/nginx
+    networks:
+      - fences-net
     depends_on:
       app:
         condition: service_healthy
@@ -115,6 +123,8 @@ volumes:
     driver: local
 
 networks:
+  fences-net:
+    external: true
   default:
     driver: bridge
 
