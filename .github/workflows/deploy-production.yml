@@ -19,9 +19,9 @@ permissions:
 
 env:
   APP_DIR: "/root/Fences-of-the-curtain"
-  APP_NAME: "fences-app"
-  PORT: "3000"
-  BASE_URL: "http://localhost:3000"
+  COMPOSE_FILES: "-f docker-compose.yml -f docker-compose.monitoring.yml"
+  APP_PORT: "3001"
+  GRAFANA_PORT: "3002"
 
 jobs:
   ci:
@@ -33,7 +33,7 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: ci
-    if: success() && github.ref == 'refs/heads/master'
+    if: success()
     environment: production
 
     steps:
@@ -47,19 +47,18 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
-          command_timeout: 20m
+          command_timeout: 30m
           script: |
             set -euo pipefail
 
             APP_DIR="/root/Fences-of-the-curtain"
-            APP_NAME="fences-app"
-            BASE_URL="http://localhost:3000"
+            COMPOSE_FILES="-f docker-compose.yml -f docker-compose.monitoring.yml"
+            APP_PORT="3001"
             LOG_DIR="/var/log/fences-deploy"
             DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
-            DEPLOY_REASON="${{ github.event.inputs.reason || 'Push to master' }}"
+            DEPLOY_REASON="${{ github.event.inputs.reason || 'Push to master2' }}"
 
-            mkdir -p "$LOG_DIR" /var/log/fences-app
-
+            mkdir -p "$LOG_DIR"
             log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"; }
 
             log "=== DEPLOY STARTED ==="
@@ -96,90 +95,89 @@ jobs:
 
             # ── 4. Pull latest code ──
             git fetch origin
-            TARGET_COMMIT=$(git rev-parse origin/master)
+            TARGET_COMMIT=$(git rev-parse origin/master2)
             log "Target: $TARGET_COMMIT"
-            git reset --hard origin/master
+            git reset --hard origin/master2
 
-            # ── 5. Install dependencies ──
-            log "Installing dependencies..."
+            # ── 5. Prisma migrations (on host) ──
             npm ci --legacy-peer-deps --no-audit --no-fund 2>/dev/null || {
               log "npm ci failed, falling back to npm install"
               npm install --legacy-peer-deps --no-audit --no-fund
             }
-            log "✓ Dependencies installed"
-
-            # ── 6. Prisma ──
             npx prisma generate
-            log "✓ Prisma client generated"
-
             npx prisma migrate deploy 2>/dev/null || {
               log "WARN: Migration failed, checking status..."
               npx prisma migrate status || true
             }
             log "✓ Migrations applied"
 
-            # ── 7. Build ──
+            # ── 6. Stop PM2 if running (migration path) ──
+            if command -v pm2 &>/dev/null && pm2 list 2>/dev/null | grep -q "fences-app"; then
+              log "Stopping PM2 (migrating to Docker)..."
+              pm2 stop fences-app 2>/dev/null || true
+              pm2 delete fences-app 2>/dev/null || true
+              pm2 save --force 2>/dev/null || true
+            fi
+
+            # ── 7. Free port 3001 ──
+            fuser -k 3001/tcp 2>/dev/null || true
+            sleep 2
+
+            # ── 8. Docker build (network: host for OpenVZ DNS fix) ──
             BUILD_START=$(date +%s)
-            npm run build
+            log "Building Docker image (network: host)..."
+            docker compose $COMPOSE_FILES build --no-cache app 2>&1 | tail -5
             BUILD_TIME=$(( $(date +%s) - BUILD_START ))
             log "✓ Build completed in ${BUILD_TIME}s"
 
-            # ── 8. PM2 graceful restart ──
-            if pm2 list | grep -q "$APP_NAME"; then
-              log "Reloading PM2 process (zero-downtime)..."
-              pm2 reload ecosystem.config.js || pm2 restart ecosystem.config.js
-            else
-              log "Starting new PM2 process..."
-              pm2 start ecosystem.config.js
-            fi
-            pm2 save
-            log "✓ PM2 restarted"
+            # ── 9. Docker deploy ──
+            log "Starting containers..."
+            docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
 
-            # ── 9. Health check ──
+            # ── 10. Health check ──
             log "Waiting for application to stabilize..."
             sleep 15
 
             HEALTH_OK=0
-            for i in 1 2 3 4 5; do
-              HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$BASE_URL/api/health" 2>/dev/null || echo "000")
-              if [ "$HTTP_CODE" = "200" ]; then
+            for i in 1 2 3 4 5 6; do
+              HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "")
+              if echo "$HEALTH" | grep -q '"status":"ok"'; then
                 log "✓ Health check passed (attempt $i)"
                 HEALTH_OK=1
                 break
               fi
-              log "Health check attempt $i failed (HTTP $HTTP_CODE)"
-              sleep 5
+              log "Health check attempt $i failed"
+              sleep 10
             done
 
-            # ── 10. Rollback if needed ──
+            # ── 11. Verify monitoring targets ──
+            DOWN_TARGETS=$(curl -sf http://127.0.0.1:9090/api/v1/targets 2>/dev/null | \
+              python3 -c "import sys,json; data=json.load(sys.stdin); down=[t['scrapeUrl'] for t in data['data']['activeTargets'] if t['health']!='up']; print(len(down))" 2>/dev/null || echo "unknown")
+            log "Prometheus targets down: $DOWN_TARGETS"
+
+            # ── 12. Rollback if needed ──
             if [ "$HEALTH_OK" -eq 0 ]; then
               log "=== DEPLOYMENT FAILED — AUTO ROLLBACK ==="
 
               log "Rolling back to: $PREVIOUS_COMMIT"
               git reset --hard "$PREVIOUS_COMMIT"
 
-              log "Reinstalling..."
-              npm ci --legacy-peer-deps --no-audit --no-fund 2>/dev/null || npm install --legacy-peer-deps --no-audit --no-fund
-              npx prisma generate
-              npm run build
-
-              pm2 reload ecosystem.config.js || pm2 restart ecosystem.config.js
-              pm2 save
+              docker compose $COMPOSE_FILES build --no-cache app 2>&1 | tail -3
+              docker compose $COMPOSE_FILES up -d --force-recreate --no-deps app 2>&1
               sleep 15
 
-              if curl -sf --max-time 5 "$BASE_URL/api/health" > /dev/null 2>&1; then
+              if curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" | grep -q '"status":"ok"'; then
                 log "✓ Rollback successful"
               else
                 log "FATAL: Rollback also failed — manual intervention required"
-                pm2 logs "$APP_NAME" --lines 100 --nostream || true
+                docker compose $COMPOSE_FILES logs --tail=50 2>&1
               fi
 
-              pm2 list
               git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
               exit 1
             fi
 
-            # ── 11. Success ──
+            # ── 13. Success ──
             git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
 
             DEPLOY_TIME=$(( $(date +%s) - DEPLOY_START ))
@@ -187,8 +185,8 @@ jobs:
             log "Time: ${DEPLOY_TIME}s (build: ${BUILD_TIME}s)"
             log "From $PREVIOUS_COMMIT to $TARGET_COMMIT"
 
-            pm2 list
-            curl -s "$BASE_URL/api/health" | head -c 200
+            docker compose $COMPOSE_FILES ps
+            curl -s "http://127.0.0.1:${APP_PORT}/api/health"
 
             find "$APP_DIR/backups" -name "*.sql" -mtime +7 -delete 2>/dev/null || true
             find "$LOG_DIR" -name "*.log" -mtime +30 -delete 2>/dev/null || true

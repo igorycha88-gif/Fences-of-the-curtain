@@ -3,11 +3,10 @@ services:
     image: prom/prometheus:latest
     container_name: fences-prometheus
     restart: unless-stopped
+    network_mode: host
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    networks:
-      - fences-net
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -16,8 +15,9 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+      - '--web.listen-address=0.0.0.0:9090'
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -27,8 +27,7 @@ services:
     image: grafana/grafana:latest
     container_name: fences-grafana
     restart: unless-stopped
-    ports:
-      - "3002:3000"
+    network_mode: host
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-SecureGrafanaPass2026!}
@@ -37,6 +36,7 @@ services:
       - GF_INSTALL_PLUGINS=
       - GF_SERVER_ROOT_URL=http://37.143.13.196:3002
       - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_SERVER_HTTP_PORT=3002
       - GF_AUTH_DISABLE_LOGIN_FORM=false
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_LOG_LEVEL=info
@@ -44,10 +44,8 @@ services:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - grafana_dashboards:/var/lib/grafana/dashboards
-    networks:
-      - fences-net
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3002/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -60,19 +58,19 @@ services:
     image: prom/node-exporter:latest
     container_name: fences-node-exporter
     restart: unless-stopped
+    network_mode: host
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    networks:
-      - fences-net
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--web.listen-address=0.0.0.0:9100'
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9100/metrics"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -82,13 +80,13 @@ services:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: fences-postgres-exporter
     restart: unless-stopped
+    network_mode: host
     environment:
-      - DATA_SOURCE_NAME=postgres
-      - DATA_SOURCE_URI=postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/fences?sslmode=disable
-    networks:
-      - fences-net
+      - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD:-password}@127.0.0.1:5432/fences?sslmode=disable
+    command:
+      - '--web.listen-address=0.0.0.0:9187'
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9187/metrics"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9187/metrics"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -98,27 +96,36 @@ services:
     image: oliver006/redis_exporter:latest
     container_name: fences-redis-exporter
     restart: unless-stopped
+    network_mode: host
     environment:
-      - REDIS_ADDR=redis://redis:6379
+      - REDIS_ADDR=redis://127.0.0.1:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - REDIS_EXPORTER_WEB_LISTEN_ADDRESS=0.0.0.0:9121
-    networks:
-      - fences-net
+    command:
+      - '--web.listen-address=0.0.0.0:9121'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9121/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   nginx_exporter:
     image: nginx/nginx-prometheus-exporter:latest
     container_name: fences-nginx-exporter
     restart: unless-stopped
+    network_mode: host
     environment:
-      - SCRAPE_URI=http://nginx:80/nginx_status
-    networks:
-      - fences-net
+       - SCRAPE_URI=http://127.0.0.1:8099/nginx_status
+    command:
+      - '--web.listen-address=0.0.0.0:9113'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9113/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   prometheus_data:
   grafana_data:
   grafana_dashboards:
-
-networks:
-  fences-net:
-    external: true

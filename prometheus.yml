@@ -12,10 +12,10 @@ alerting:
         - targets: []
 
 scrape_configs:
-  - job_name: 'nodejs'
+  - job_name: 'node'
     static_configs:
       - targets:
-          - 'node_exporter:9100'
+          - '127.0.0.1:9100'
     metrics_path: /metrics
     scrape_interval: 15s
     scrape_timeout: 10s
@@ -23,7 +23,7 @@ scrape_configs:
   - job_name: 'nextjs-app'
     static_configs:
       - targets:
-          - 'app:3000'
+          - '127.0.0.1:3001'
     metrics_path: /api/metrics
     scrape_interval: 10s
     scrape_timeout: 5s
@@ -31,7 +31,7 @@ scrape_configs:
   - job_name: 'postgres'
     static_configs:
       - targets:
-          - 'postgres_exporter:9187'
+          - '127.0.0.1:9187'
     metrics_path: /metrics
     scrape_interval: 15s
     scrape_timeout: 10s
@@ -39,7 +39,7 @@ scrape_configs:
   - job_name: 'redis'
     static_configs:
       - targets:
-          - 'redis_exporter:9121'
+          - '127.0.0.1:9121'
     metrics_path: /metrics
     scrape_interval: 15s
     scrape_timeout: 10s
@@ -47,7 +47,7 @@ scrape_configs:
   - job_name: 'nginx'
     static_configs:
       - targets:
-          - 'nginx_exporter:9113'
+          - '127.0.0.1:9113'
     metrics_path: /metrics
     scrape_interval: 15s
     scrape_timeout: 10s
