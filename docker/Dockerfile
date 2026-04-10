@@ -16,7 +16,7 @@ RUN npm ci --legacy-peer-deps && npm cache clean --force
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
-RUN npx prisma generate
+RUN npx prisma@5.22.0 generate
 
 FROM base AS builder
 
@@ -55,6 +55,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
 
+COPY --chmod=755 docker/entrypoint.sh /app/entrypoint.sh
+
 RUN mkdir -p /app/public/uploads/portfolio && chown -R nextjs:nodejs /app/public
 
 USER nextjs
@@ -64,4 +66,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://127.0.0.1:3001/api/health || exit 1
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["/app/entrypoint.sh"]

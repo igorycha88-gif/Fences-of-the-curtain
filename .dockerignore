@@ -15,11 +15,32 @@ dist/
 # Testing
 coverage/
 .nyc_output/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Virtual environments
+.venv/
+venv/
+
+# Database dumps
+*.sql
+dump*.sql
+
+# Shell scripts (root level)
+check-*.sh
+test-*.sh
+diagnose-*.sh
+final-test-*.sh
+
+# Build/test logs
+*.log
 
 # Misc
 .DS_Store
 *.pem
-*.log
 *.swp
 *.swo
 
@@ -33,6 +54,7 @@ coverage/
 # Git
 .git/
 .gitignore
+.gitattributes
 
 # Documentation
 *.md
@@ -56,18 +78,25 @@ ssl/
 .cache/
 .parcel-cache/
 
-# Test files
-__tests__/
-*.test.ts
-*.test.tsx
-*.spec.ts
-*.spec.tsx
-
-# TypeScript
+# TypeScript build info
 tsconfig.tsbuildinfo
 tsconfig.test.tsbuildinfo
 next-env.d.ts
 
-# Prisma
+# Prisma local DB
 prisma/*.db
 prisma/*.db-journal
+
+# Docker (avoid recursive context)
+docker-build-test*.log
+
+# Grafana/Prometheus data
+grafana/
+prometheus/
+prometheus.dev.yml
+
+# Coverage reports
+coverage/
+
+# macOS
+.DS_Store

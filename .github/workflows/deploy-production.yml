@@ -9,6 +9,11 @@ on:
         description: 'Reason for deployment'
         required: false
         default: 'Manual deployment'
+      no_cache:
+        description: 'Rebuild without Docker cache'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-production
@@ -61,6 +66,7 @@ jobs:
             DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
             DEPLOY_REASON="${{ github.event.inputs.reason || 'Push to master2' }}"
             GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-SecureGrafanaPass2026!}"
+            NO_CACHE="${{ github.event.inputs.no_cache || 'false' }}"
 
             mkdir -p "$LOG_DIR"
             log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"; }
@@ -68,6 +74,7 @@ jobs:
             log "=== BLUE-GREEN DEPLOY STARTED ==="
             log "Commit: ${{ github.sha }}"
             log "Reason: $DEPLOY_REASON"
+            log "No-cache: $NO_CACHE"
             log "Initiator: ${GITHUB_ACTOR:-manual}"
 
             DEPLOY_START=$(date +%s)
@@ -104,19 +111,7 @@ jobs:
             log "Target: $TARGET_COMMIT"
             git reset --hard origin/master2
 
-            # ── 5. Prisma migrations (on host) ──
-            npm ci --legacy-peer-deps --no-audit --no-fund 2>/dev/null || {
-              log "npm ci failed, falling back to npm install"
-              npm install --legacy-peer-deps --no-audit --no-fund
-            }
-            npx prisma generate
-            npx prisma migrate deploy 2>/dev/null || {
-              log "WARN: Migration failed, checking status..."
-              npx prisma migrate status || true
-            }
-            log "✓ Migrations applied"
-
-            # ── 6. Stop PM2 if running (migration path) ──
+            # ── 5. Stop PM2 if running (migration path) ──
             if command -v pm2 &>/dev/null && pm2 list 2>/dev/null | grep -q "fences-app"; then
               log "Stopping PM2 (migrating to Docker)..."
               pm2 stop fences-app 2>/dev/null || true
@@ -124,7 +119,7 @@ jobs:
               pm2 save --force 2>/dev/null || true
             fi
 
-            # ── 7. Check current app is healthy (BLUE) ──
+            # ── 6. Check current app is healthy (BLUE) ──
             BLUE_HEALTHY=0
             if curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null | grep -q '"status":"ok"'; then
               BLUE_HEALTHY=1
@@ -133,12 +128,22 @@ jobs:
               log "WARN: BLUE app not healthy — proceeding with direct deploy"
             fi
 
-            # ── 8. FULL Docker rebuild (ALL services) ──
+            # ── 7. Build Docker image (app only, cached by default) ──
             BUILD_START=$(date +%s)
-            log "Building ALL Docker images (network: host)..."
-            docker compose $COMPOSE_FILES build --no-cache 2>&1 | tail -10
+            BUILD_FLAGS=""
+            if [ "$NO_CACHE" = "true" ]; then
+              BUILD_FLAGS="--no-cache"
+              log "Building app image WITHOUT cache..."
+            else
+              log "Building app image with layer cache..."
+            fi
+            docker compose -f docker-compose.yml build $BUILD_FLAGS app 2>&1 | tail -15
             BUILD_TIME=$(( $(date +%s) - BUILD_START ))
             log "✓ Build completed in ${BUILD_TIME}s"
+
+            # ── 8. Ensure monitoring stack is running ──
+            docker compose $COMPOSE_FILES up -d prometheus grafana node_exporter postgres_exporter redis_exporter nginx_exporter 2>&1 | tail -5
+            log "✓ Monitoring stack ensured"
 
             # ── 9. Deploy — Blue-Green strategy ──
             if [ "$BLUE_HEALTHY" -eq 1 ]; then
@@ -148,17 +153,17 @@ jobs:
               docker rm -f fences-app-green 2>/dev/null || true
 
               # Start GREEN container on alternate port
-              docker compose $COMPOSE_FILES run -d --name fences-app-green --rm \
+              docker compose -f docker-compose.yml run -d --name fences-app-green --rm \
                 -e PORT=${GREEN_PORT} \
                 -p ${GREEN_PORT}:${GREEN_PORT} \
                 app 2>&1 || {
                 log "WARN: docker compose run failed, falling back to direct deploy"
-                docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+                docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
                 DIRECT_DEPLOY=1
               }
 
               if [ "${DIRECT_DEPLOY:-0}" != "1" ]; then
-                # Wait for GREEN healthcheck
+                # Wait for GREEN healthcheck (migrations run in entrypoint)
                 sleep 15
                 GREEN_OK=0
                 for i in 1 2 3 4 5; do
@@ -183,11 +188,11 @@ jobs:
                 # ── 10. Switch: stop BLUE, start new container on main port ──
                 log "=== SWITCHING: GREEN → main port ${APP_PORT} ==="
                 docker rm -f fences-app-green 2>/dev/null || true
-                docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+                docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
               fi
             else
               log "=== DIRECT DEPLOY (no BLUE running) ==="
-              docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+              docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
             fi
 
             # ── 11. Wait for stabilization ──
@@ -211,14 +216,14 @@ jobs:
               log "=== APP HEALTH CHECK FAILED — AUTO ROLLBACK ==="
               log "Rolling back to: $PREVIOUS_COMMIT"
               git reset --hard "$PREVIOUS_COMMIT"
-              docker compose $COMPOSE_FILES build --no-cache 2>&1 | tail -3
-              docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+              docker compose -f docker-compose.yml build app 2>&1 | tail -3
+              docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
               sleep 20
               if curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" | grep -q '"status":"ok"'; then
                 log "✓ Rollback successful"
               else
                 log "FATAL: Rollback also failed — manual intervention required"
-                docker compose $COMPOSE_FILES logs --tail=50 2>&1
+                docker compose -f docker-compose.yml logs --tail=50 app 2>&1
               fi
               git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
               exit 1
