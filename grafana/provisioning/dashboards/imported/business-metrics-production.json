@@ -3,22 +3,15 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "Prometheus",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
         "enable": true,
         "hideTime": true,
         "iconColor": "#73bf69"
-      },
-      {
-        "builtIn": 1,
-        "datasource": "Prometheus",
-        "enable": true,
-        "hideTime": true,
-        "iconColor": "#5744fa"
       }
     ]
   },
   "editable": true,
-  "fiscalYearStart": 2024",
+  "fiscalYearStart": 2024,
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
@@ -26,230 +19,104 @@
   "liveNow": true,
   "panels": [
     {
-      "datasource": "Prometheus",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": []
       },
-      "overrides": []
-    },
-      "gridPos": {
-        "h": 12,
-        "w": 12
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "id": 1,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        {
-          "expr": "app_uptime",
-          "legendFormat": "Время работы",
-          "refId": "app_uptime",
-          "type": "gauge"
-        },
-        {
-          "expr": "http_requests_total",
-          "legendFormat": "HTTP запросы",
-          "refId": "http_requests_total",
-          "type": "graph"
-        },
-        {
-          "expr": "http_request_duration_seconds",
-          "legendFormat": "Время обработки (p95)",
-          "refId": "httpRequestDuration",
-          "type": "graph"
-        }
-      ]
+        { "expr": "up{job=\"nextjs-app\"}", "legendFormat": "Статус приложения", "refId": "A" },
+        { "expr": "rate(http_requests_total[5m])", "legendFormat": "HTTP запросы/сек", "refId": "B" }
+      ],
+      "title": "Приложение и API",
+      "type": "timeseries"
     },
-    "title": "Приложение и API"
-  },
-  {
-      "datasource": "Prometheus",
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": []
       },
-      "overrides": []
-    },
-      "gridPos": {
-        "h": 12,
-        "w": 12
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "id": 2,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        {
-          "expr": "contact_form_submissions_rate",
-          "legendFormat": "Заявки/минуту",
-          "refId": "contactFormSubmissionsRate",
-          "type": "gauge"
-        },
-        {
-          "expr": "conversion_funnel_completion_rate",
-          "legendFormat": "Конверсия %",
-          "refId": "conversionFunnelCompletionRate",
-          "type": "gauge"
-        },
-        {
-          "expr": "average_session_duration_seconds",
-          "legendFormat": "Средняя сессия (сек)",
-          "refId": "averageSessionDuration",
-          "type": "gauge"
-        },
-        {
-          "expr": "unique_users_today",
-          "legendFormat": "Уникальных сегодня",
-          "refId": "uniqueUsersToday",
-          "type": "stat"
-        }
-      ]
+        { "expr": "rate(http_requests_total{status=~\"2..\"}[5m])", "legendFormat": "Успешные (2xx)", "refId": "A" },
+        { "expr": "rate(http_requests_total{status=~\"5..\"}[5m])", "legendFormat": "Ошибки (5xx)", "refId": "B" }
+      ],
+      "title": "Бизнес и конверсия",
+      "type": "timeseries"
     },
-    "title": "Бизнес и конверсия"
-  },
-  {
-      "datasource": "Prometheus",
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": []
       },
-      "overrides": []
-    },
-      "gridPos": {
-        "h": 12,
-        "w": 12
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "id": 3,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        {
-          "expr": "user_retention_rate",
-          "legendFormat": "Удержание (день)",
-          "refId": "userRetentionRate",
-          "type": "graph"
-        },
-        {
-          "expr": "user_retention_rate",
-          "legendFormat": "Удержание (неделя)",
-          "refId": "userRetentionRate",
-          "type": "graph"
-        }
-      ]
+        { "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p95 latency", "refId": "A" },
+        { "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p50 latency", "refId": "B" }
+      ],
+      "title": "Пользователи и аудитория",
+      "type": "timeseries"
     },
-    "title": "Пользователи и аудитория"
-  },
-  {
-      "datasource": "Prometheus",
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
+          "color": { "mode": "palette-classic" },
+          "unit": "reqps"
+        },
+        "overrides": []
       },
-      "overrides": []
-    },
-      "gridPos": {
-        "h": 12,
-        "w": 12
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
-        {
-          "expr": "lead_submissions_total",
-          "legendFormat": "Лиды всего",
-          "refId": "leadSubmissionsTotal",
-          "type": "stat"
-        },
-        {
-          "expr": "phone_calls_total",
-          "legendFormat": "Звонки всего",
-          "refId": "phoneCallsTotal",
-          "type": "stat"
-        },
-        {
-          "expr": "histogram_quantile(lead_response_time_seconds, 0.5)",
-          "legendFormat": "Время ответа p50",
-          "refId": "leadResponseTime",
-          "type": "stat"
-        },
-        {
-          "expr": "histogram_quantile(lead_response_time_seconds, 0.95)",
-          "legendFormat": "Время ответа p95",
-          "refId": "leadResponseTime",
-          "type": "stat"
-        },
-        {
-          "expr": "histogram_quantile(lead_response_time_seconds, 0.99)",
-          "legendFormat": "Время ответа p99",
-          "refId": "leadResponseTime",
-          "type": "stat"
-        }
-      ]
+        { "expr": "sum(rate(http_requests_total[5m]))", "legendFormat": "Всего RPS", "refId": "A" },
+        { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))", "legendFormat": "Ошибки RPS", "refId": "B" }
+      ],
+      "title": "Лиды и звонки",
+      "type": "stat"
     },
-    "title": "Лиды и звонки"
-  },
-  {
-      "datasource": "Prometheus",
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          }
-        }
-      },
-      "overrides": []
-    },
-      "gridPos": {
-        "h": 12,
-        "w": 12
-      },
-      "id": 5,
-      "targets": [
-        {
-          "expr": "database_connections_active",
-          "legendFormat": "Подключения БД",
-          "refId": "databaseConnectionsActive",
-          "type": "stat"
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
         },
-        {
-          "expr": "database_connections_active",
-          "legendFormat": "Подключения Redis",
-          "refId": "databaseConnectionsActive",
-          "type": "stat"
-        }
-      ]
-    },
-    "title": "Системные метрики"
-  }
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 5,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "pg_stat_database_numbackends{datname=\"fences\"}", "legendFormat": "Подключения БД", "refId": "A" },
+        { "expr": "redis_connected_clients", "legendFormat": "Подключения Redis", "refId": "B" }
+      ],
+      "title": "Системные метрики",
+      "type": "timeseries"
+    }
   ],
   "refresh": "1m",
   "schemaVersion": 39,
-  "tags": ["business", "monitoring"],
+  "tags": ["business", "monitoring", "production"],
   "timezone": "browser",
   "uid": "business-metrics-production",
   "title": "Business Metrics - Production",

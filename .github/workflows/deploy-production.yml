@@ -54,9 +54,11 @@ jobs:
             APP_DIR="/root/Fences-of-the-curtain"
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.monitoring.yml"
             APP_PORT="3001"
+            GRAFANA_PORT="3002"
             LOG_DIR="/var/log/fences-deploy"
             DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
             DEPLOY_REASON="${{ github.event.inputs.reason || 'Push to master2' }}"
+            GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-SecureGrafanaPass2026!}"
 
             mkdir -p "$LOG_DIR"
             log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"; }
@@ -74,6 +76,7 @@ jobs:
               log "FATAL: .env not found"
               exit 1
             fi
+            source .env
             log "✓ Environment found"
 
             # ── 2. Save current state for rollback ──
@@ -123,26 +126,27 @@ jobs:
             fuser -k 3001/tcp 2>/dev/null || true
             sleep 2
 
-            # ── 8. Docker build (network: host for OpenVZ DNS fix) ──
+            # ── 8. FULL Docker rebuild (ALL services) ──
             BUILD_START=$(date +%s)
-            log "Building Docker image (network: host)..."
-            docker compose $COMPOSE_FILES build --no-cache app 2>&1 | tail -5
+            log "Building ALL Docker images (network: host)..."
+            docker compose $COMPOSE_FILES build --no-cache 2>&1 | tail -10
             BUILD_TIME=$(( $(date +%s) - BUILD_START ))
             log "✓ Build completed in ${BUILD_TIME}s"
 
-            # ── 9. Docker deploy ──
-            log "Starting containers..."
+            # ── 9. Docker deploy (full recreate) ──
+            log "Starting ALL containers..."
             docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
 
-            # ── 10. Health check ──
+            # ── 10. Wait for stabilization ──
             log "Waiting for application to stabilize..."
-            sleep 15
+            sleep 20
 
+            # ── 11. Health check (application) ──
             HEALTH_OK=0
             for i in 1 2 3 4 5 6; do
               HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "")
               if echo "$HEALTH" | grep -q '"status":"ok"'; then
-                log "✓ Health check passed (attempt $i)"
+                log "✓ App health check passed (attempt $i)"
                 HEALTH_OK=1
                 break
               fi
@@ -150,35 +154,72 @@ jobs:
               sleep 10
             done
 
-            # ── 11. Verify monitoring targets ──
-            DOWN_TARGETS=$(curl -sf http://127.0.0.1:9090/api/v1/targets 2>/dev/null | \
-              python3 -c "import sys,json; data=json.load(sys.stdin); down=[t['scrapeUrl'] for t in data['data']['activeTargets'] if t['health']!='up']; print(len(down))" 2>/dev/null || echo "unknown")
-            log "Prometheus targets down: $DOWN_TARGETS"
-
-            # ── 12. Rollback if needed ──
             if [ "$HEALTH_OK" -eq 0 ]; then
-              log "=== DEPLOYMENT FAILED — AUTO ROLLBACK ==="
-
+              log "=== APP HEALTH CHECK FAILED — AUTO ROLLBACK ==="
               log "Rolling back to: $PREVIOUS_COMMIT"
               git reset --hard "$PREVIOUS_COMMIT"
-
-              docker compose $COMPOSE_FILES build --no-cache app 2>&1 | tail -3
-              docker compose $COMPOSE_FILES up -d --force-recreate --no-deps app 2>&1
-              sleep 15
-
+              docker compose $COMPOSE_FILES build --no-cache 2>&1 | tail -3
+              docker compose $COMPOSE_FILES up -d --force-recreate 2>&1
+              sleep 20
               if curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" | grep -q '"status":"ok"'; then
                 log "✓ Rollback successful"
               else
                 log "FATAL: Rollback also failed — manual intervention required"
                 docker compose $COMPOSE_FILES logs --tail=50 2>&1
               fi
-
               git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
               exit 1
             fi
 
-            # ── 13. Success ──
+            # ── 12. Check Grafana health ──
+            log "Checking Grafana..."
+            GRAFANA_OK=0
+            for i in 1 2 3; do
+              if curl -sf --max-time 5 "http://127.0.0.1:${GRAFANA_PORT}/api/health" | grep -q '"database":"ok"'; then
+                log "✓ Grafana health check passed (attempt $i)"
+                GRAFANA_OK=1
+                break
+              fi
+              log "Grafana health check attempt $i failed"
+              sleep 10
+            done
+
+            if [ "$GRAFANA_OK" -eq 1 ]; then
+              # ── 13. Reset Grafana admin password to match .env ──
+              docker exec fences-grafana grafana-cli admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" 2>&1 | tail -1
+
+              # ── 14. Verify Grafana dashboards ──
+              DASHBOARD_COUNT=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
+                "http://127.0.0.1:${GRAFANA_PORT}/api/search?type=dash-db" 2>/dev/null | \
+                python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+              log "Grafana dashboards provisioned: $DASHBOARD_COUNT"
+
+              EXPECTED_DASHBOARDS=6
+              if [ "$DASHBOARD_COUNT" -lt "$EXPECTED_DASHBOARDS" ]; then
+                log "WARN: Expected $EXPECTED_DASHBOARDS dashboards, got $DASHBOARD_COUNT"
+                log "Checking provisioning files..."
+                docker exec fences-grafana ls -la /etc/grafana/provisioning/dashboards/imported/ 2>&1
+              else
+                log "✓ All $EXPECTED_DASHBOARDS Grafana dashboards present"
+              fi
+            else
+              log "WARN: Grafana not healthy, skipping dashboard verification"
+            fi
+
+            # ── 15. Verify Prometheus targets ──
+            DOWN_TARGETS=$(curl -sf http://127.0.0.1:9090/api/v1/targets 2>/dev/null | \
+              python3 -c "import sys,json; data=json.load(sys.stdin); down=[t['scrapeUrl'] for t in data['data']['activeTargets'] if t['health']!='up']; print(len(down))" 2>/dev/null || echo "unknown")
+            log "Prometheus targets down: $DOWN_TARGETS"
+
+            # ── 16. Check Redis exporter ──
+            REDIS_EXPORTER_STATUS=$(docker inspect --format='{{.State.Health.Status}}' fences-redis-exporter 2>/dev/null || echo "unknown")
+            log "Redis exporter status: $REDIS_EXPORTER_STATUS"
+
+            # ── 17. Success ──
             git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
+
+            # Keep rollback tag as permanent marker
+            git tag "deploy-ok-$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
 
             DEPLOY_TIME=$(( $(date +%s) - DEPLOY_START ))
             log "=== DEPLOYMENT SUCCESSFUL ==="
