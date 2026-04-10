@@ -2,39 +2,32 @@ FROM node:20-bullseye-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=development
-
-# Copy package files
-COPY package.json package-lock.json* ./
-
-# Install dependencies with cache optimization
-RUN npm install --legacy-peer-deps && \
-    npm cache clean --force
-
-# Copy Prisma schema and generate client
-COPY prisma ./prisma
-COPY tsconfig.json next.config.js ./
-
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Copy source files
-COPY . .
-
-# Create uploads directory
-RUN mkdir -p /app/public/uploads/portfolio
-
-# Expose port
-EXPOSE 3000
-
-# Environment variables
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
-ENV NODE_ENV=development
 
-# Health check
+COPY package.json package-lock.json ./
+
+RUN npm install --legacy-peer-deps && npm cache clean --force
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY tsconfig.json next.config.js ./
+
+RUN npx prisma generate
+
+COPY . .
+
+RUN mkdir -p /app/public/uploads/portfolio
+
+EXPOSE 3000
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
+    CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Start development server
 CMD ["npm", "run", "dev"]

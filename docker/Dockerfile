@@ -1,8 +1,5 @@
 FROM node:20-bullseye-slim AS base
 
-ENV PRISMA_VERSION=5.22.0
-ENV NEXT_TELEMETRY_DISABLED=1
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -12,17 +9,14 @@ WORKDIR /app
 
 FROM base AS deps
 
-ENV DATABASE_URL="postgresql://postgres:password@localhost:5432/fences"
+COPY package.json package-lock.json ./
 
-COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps && npm cache clean --force
 
-RUN npm ci --legacy-peer-deps && \
-    npm cache clean --force
-
-COPY prisma ./prisma/
+COPY prisma ./prisma
 COPY prisma.config.ts ./
 
-RUN npx prisma@${PRISMA_VERSION} generate
+RUN npx prisma generate
 
 FROM base AS builder
 
@@ -33,7 +27,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY --from=deps /app/prisma.config.ts ./
 
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
 COPY src ./src/
 COPY public ./public/
 COPY next.config.js tsconfig.json postcss.config.js tailwind.config.ts ./
@@ -64,6 +58,6 @@ USER nextjs
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
+    CMD curl -f http://localhost:3000/api/health || exit 1
 
 CMD ["npm", "start"]

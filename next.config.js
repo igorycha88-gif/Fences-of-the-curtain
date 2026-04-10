@@ -33,8 +33,6 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   
-  output: 'standalone',
-  
   images: {
     domains: ['localhost', '37.143.13.196', 'zabor-i-naves.ru'],
     remotePatterns: [

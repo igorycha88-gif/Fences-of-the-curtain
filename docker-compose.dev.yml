@@ -1,62 +1,50 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-    container_name: fences-app
+      dockerfile: docker/Dockerfile.dev
+    container_name: fences-app-dev
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:password@db:5432/fences
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-me}
       - NEXTAUTH_URL=http://localhost:3000
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
-      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - NEXT_PUBLIC_YANDEX_METRIKA_ID=${NEXT_PUBLIC_YANDEX_METRIKA_ID}
-      - NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=${NEXT_PUBLIC_GOOGLE_ANALYTICS_ID}
-      - NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY}
+    volumes:
+      - .:/app
+      - /app/node_modules
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
-      - fences-network
+      - fences-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
   db:
     image: postgres:16-alpine
-    container_name: fences-db
+    container_name: fences-db-dev
     restart: unless-stopped
+    ports:
+      - "5433:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=fences
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
     networks:
-      - fences-network
-    expose:
-      - "5432"
+      - fences-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d fences"]
       interval: 10s
@@ -66,24 +54,24 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: fences-redis
+    container_name: fences-redis-dev
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD:-dev_redis_password}
     volumes:
-      - redis_data:/data
+      - redis_dev_data:/data
     networks:
-      - fences-network
+      - fences-net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-dev_redis_password}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres_dev_data:
+  redis_dev_data:
 
 networks:
-  fences-network:
+  fences-net:
     driver: bridge
