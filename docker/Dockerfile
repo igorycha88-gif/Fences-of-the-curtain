@@ -21,7 +21,9 @@ RUN npx prisma generate
 FROM base AS builder
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV DATABASE_URL="postgresql://postgres:dummy@localhost:5432/fences"
+
+ARG DATABASE_URL="postgresql://postgres:dummy@localhost:5432/fences"
+ENV DATABASE_URL=$DATABASE_URL
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma

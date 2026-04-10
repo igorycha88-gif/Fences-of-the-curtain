@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       network: host
+      args:
+        - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@127.0.0.1:5432/fences
     container_name: fences-app
     restart: unless-stopped
     network_mode: host
