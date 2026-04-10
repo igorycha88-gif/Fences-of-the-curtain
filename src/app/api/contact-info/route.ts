@@ -1,29 +1,30 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 
-export const dynamic = 'force-dynamic';
+const CACHE_KEY = 'contact_info';
+const CACHE_TTL = 300;
 
 export async function GET() {
   try {
+    const cached = await redis?.get(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached));
+    }
+
     let contactInfo = await prisma.contactInfo.findFirst();
 
     if (!contactInfo) {
-      const existingRecord = await prisma.contactInfo.findFirst();
-
-      if (!existingRecord) {
-        contactInfo = await prisma.contactInfo.create({
-          data: {
-            address: '',
-            phone: '',
-            email: '',
-            workHoursMonFri: '',
-            workHoursSat: '',
-            workHoursSun: '',
-          },
-        });
-      } else {
-        contactInfo = existingRecord;
-      }
+      contactInfo = await prisma.contactInfo.create({
+        data: {
+          address: '',
+          phone: '',
+          email: '',
+          workHoursMonFri: '',
+          workHoursSat: '',
+          workHoursSun: '',
+        },
+      });
     }
 
     const hasData =
@@ -34,39 +35,26 @@ export async function GET() {
       contactInfo.workHoursSat ||
       contactInfo.workHoursSun;
 
-    if (!hasData) {
-      return NextResponse.json(
-        {
+    const responseData = hasData
+      ? {
+          address: contactInfo.address,
+          phone: contactInfo.phone,
+          email: contactInfo.email,
+          workHours: {
+            monFri: contactInfo.workHoursMonFri,
+            sat: contactInfo.workHoursSat,
+            sun: contactInfo.workHoursSun,
+          },
+          hasData: true,
+        }
+      : {
           hasData: false,
           message: 'Данные не указаны',
-        },
-        {
-          headers: {
-            'Cache-Control': 'no-store, must-revalidate',
-          },
-        }
-      );
-    }
+        };
 
-    return NextResponse.json(
-      {
-        address: contactInfo.address,
-        phone: contactInfo.phone,
-        email: contactInfo.email,
-        workHours: {
-          monFri: contactInfo.workHoursMonFri,
-          sat: contactInfo.workHoursSat,
-          sun: contactInfo.workHoursSun,
-        },
-        hasData: true,
-      },
-      {
-        headers: {
-          'Cache-Control': 'no-store, must-revalidate',
-          'CDN-Cache-Control': 'no-store',
-        },
-      }
-    );
+    await redis?.setex(CACHE_KEY, CACHE_TTL, JSON.stringify(responseData));
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error fetching contact info:', error);
     return NextResponse.json(

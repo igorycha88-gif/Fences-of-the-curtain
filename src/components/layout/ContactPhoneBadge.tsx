@@ -1,14 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
 import { metrikaEvents } from '@/lib/seo/metrika';
-
-interface ContactInfoData {
-  phone: string;
-  hasData: boolean;
-}
+import { useContactInfo } from '@/components/providers/ContactInfoProvider';
 
 interface ContactPhoneBadgeProps {
   variant?: 'header' | 'footer' | 'default';
@@ -16,25 +11,9 @@ interface ContactPhoneBadgeProps {
 }
 
 export default function ContactPhoneBadge({ variant = 'default', className = '' }: ContactPhoneBadgeProps) {
-  const [contactInfo, setContactInfo] = useState<ContactInfoData | null>(null);
+  const contactInfo = useContactInfo();
 
-  useEffect(() => {
-    const fetchContactInfo = async () => {
-      try {
-        const response = await fetch('/api/contact-info');
-        const data = await response.json();
-        if (response.ok && data.hasData && data.phone) {
-          setContactInfo({ phone: data.phone, hasData: data.hasData });
-        }
-      } catch (error) {
-        console.error('Error fetching contact info:', error);
-      }
-    };
-
-    fetchContactInfo();
-  }, []);
-
-  if (!contactInfo?.phone) {
+  if (!contactInfo.hasData || !contactInfo.phone) {
     return null;
   }
 

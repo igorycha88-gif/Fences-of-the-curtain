@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
@@ -19,31 +18,10 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { YandexReviews } from '@/components/reviews/YandexReviews';
-
-interface ContactInfoData {
-  phone: string;
-  email: string;
-  hasData: boolean;
-}
+import { useContactInfo } from '@/components/providers/ContactInfoProvider';
 
 export default function HomePage() {
-  const [contactInfo, setContactInfo] = useState<ContactInfoData | null>(null);
-
-  useEffect(() => {
-    fetchContactInfo();
-  }, []);
-
-  const fetchContactInfo = async () => {
-    try {
-      const response = await fetch('/api/contact-info');
-      const data = await response.json();
-      if (response.ok) {
-        setContactInfo(data);
-      }
-    } catch (error) {
-      console.error('Error fetching contact info:', error);
-    }
-  };
+  const contactInfo = useContactInfo();
 
   return (
     <div className="min-h-screen bg-background">
@@ -321,8 +299,8 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold mb-4">Контакты</h4>
               <ul className="space-y-2 text-muted-foreground text-sm">
-                <li>{contactInfo?.phone || 'Данные не указаны'}</li>
-                <li>{contactInfo?.email || 'Данные не указаны'}</li>
+                <li>{contactInfo.phone || 'Данные не указаны'}</li>
+                <li>{contactInfo.email || 'Данные не указаны'}</li>
                 <li>Пн-Сб: 9:00 - 18:00</li>
               </ul>
             </div>

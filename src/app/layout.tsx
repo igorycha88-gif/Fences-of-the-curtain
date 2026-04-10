@@ -1,13 +1,12 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import SessionProvider from '@/components/providers/SessionProvider';
+import ContactInfoProvider from '@/components/providers/ContactInfoProvider';
 import JsonLdScript from '@/components/seo/JsonLdScript';
 import CookieConsentProvider from '@/components/cookie-consent/CookieConsentProvider';
 import { generateOrganizationJsonLd, generateWebSiteJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import './globals.css';
-
-export const dynamic = 'force-dynamic';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -98,9 +97,11 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <SessionProvider>
-          <CookieConsentProvider>
-            {children}
-          </CookieConsentProvider>
+          <ContactInfoProvider>
+            <CookieConsentProvider>
+              {children}
+            </CookieConsentProvider>
+          </ContactInfoProvider>
         </SessionProvider>
       </body>
     </html>
