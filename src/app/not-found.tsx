@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { Home, Calculator, Phone, ArrowLeft } from 'lucide-react';
+import BackButton from '@/components/BackButton';
 
 export const metadata: Metadata = {
   title: 'Страница не найдена — 404',
@@ -43,13 +44,12 @@ export default function NotFound() {
             Контакты
           </Link>
         </div>
-        <Link
-          href="javascript:history.back()"
+        <BackButton
           className="inline-flex items-center gap-1 mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-3 h-3" />
           Вернуться назад
-        </Link>
+        </BackButton>
       </div>
     </div>
   );

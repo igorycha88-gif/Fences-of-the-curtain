@@ -3,7 +3,7 @@ export async function sendTelegramMessage(message: string): Promise<boolean> {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
-    if (!botToken || !chatId) {
+    if (!botToken || !chatId || botToken === 'your-bot-token' || chatId === 'your-chat-id') {
       console.warn('Telegram credentials not configured');
       return false;
     }

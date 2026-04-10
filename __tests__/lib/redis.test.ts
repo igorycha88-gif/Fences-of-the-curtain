@@ -9,6 +9,8 @@ jest.mock('ioredis', () => {
     del: jest.fn(),
     keys: jest.fn(),
     ping: jest.fn(),
+    setMaxListeners: jest.fn(),
+    disconnect: jest.fn(),
     multi: jest.fn(() => ({
       incr: jest.fn().mockReturnThis(),
       expire: jest.fn().mockReturnThis(),

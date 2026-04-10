@@ -129,6 +129,19 @@ export async function getPurchasePrice(
       console.log('[marginCalculator] mountingHardware lookup result:', item);
       return item?.purchasePrice ?? null;
     }
+    case 'panel3d':
+    case '3D-панели': {
+      const item = await prisma.panel3D.findUnique({
+        where: { id: nomenclatureId },
+        select: { purchasePricePerUnit: true },
+      });
+      console.log('[marginCalculator] panel3d lookup result:', item);
+      return item?.purchasePricePerUnit ?? null;
+    }
+    case 'installation':
+    case 'installation_works': {
+      return null;
+    }
     default:
       console.log('[marginCalculator] Unknown category:', category);
       return null;

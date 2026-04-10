@@ -4,9 +4,8 @@ const globalForRedis = globalThis as unknown as {
   redis: Redis | undefined;
 };
 
-export const redis =
-  globalForRedis.redis ??
-  new Redis(parseInt(process.env.REDIS_PORT || '6379'), process.env.REDIS_HOST || 'localhost', {
+function createRedisClient(): Redis {
+  const client = new Redis(parseInt(process.env.REDIS_PORT || '6379'), process.env.REDIS_HOST || 'localhost', {
     maxRetriesPerRequest: 3,
     enableOfflineQueue: true,
     keepAlive: 10000,
@@ -21,11 +20,18 @@ export const redis =
     db: 0,
   });
 
-redis.on('error', (error) => {
-  if (error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET')) {
-    return;
-  }
-  console.error('Redis error:', error);
-});
+  client.setMaxListeners(20);
+
+  client.on('error', (error) => {
+    if (error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET')) {
+      return;
+    }
+    console.error('Redis error:', error);
+  });
+
+  return client;
+}
+
+export const redis = globalForRedis.redis ?? createRedisClient();
 
 globalForRedis.redis = redis;
