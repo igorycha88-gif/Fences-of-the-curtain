@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
 
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'nonce-${nonce}' ${isDevelopment ? "'unsafe-eval'" : ''} https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
+    script-src 'self' 'unsafe-inline' 'strict-dynamic' 'nonce-${nonce}' ${isDevelopment ? "'unsafe-eval'" : ''} https://mc.yandex.ru https://www.google.com https://www.gstatic.com;
     style-src 'self' 'nonce-${nonce}' 'unsafe-inline' ${isDevelopment ? '' : "'unsafe-hashes'"};
     img-src 'self' data: https:;
     font-src 'self';

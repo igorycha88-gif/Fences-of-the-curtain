@@ -134,7 +134,8 @@ describe('middleware', () => {
 
       expect(cspCall).toBeDefined();
       expect(cspCall?.[1]).toContain("default-src 'self'");
-      expect(cspCall?.[1]).toContain("script-src 'self' 'nonce-");
+      expect(cspCall?.[1]).toContain("'nonce-");
+      expect(cspCall?.[1]).toContain("'strict-dynamic'");
       expect(cspCall?.[1]).toContain('https://mc.yandex.ru');
     });
 
