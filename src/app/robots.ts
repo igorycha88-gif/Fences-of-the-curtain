@@ -6,11 +6,18 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
+        userAgent: 'Yandex',
+        allow: '/',
+        disallow: ['/admin', '/api/auth', '/api/admin'],
+        crawlDelay: 1,
+      },
+      {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api'],
+        disallow: ['/admin', '/api/auth', '/api/admin'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   };
 }

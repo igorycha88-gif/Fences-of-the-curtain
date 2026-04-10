@@ -6,5 +6,6 @@ export const metadata: Metadata = generatePageMetadata({
   title: PAGE_METADATA.contacts.title,
   description: PAGE_METADATA.contacts.description,
   keywords: PAGE_METADATA.contacts.keywords,
+  path: PAGE_METADATA.contacts.path,
   ogImage: PAGE_METADATA.contacts.ogImage,
 });

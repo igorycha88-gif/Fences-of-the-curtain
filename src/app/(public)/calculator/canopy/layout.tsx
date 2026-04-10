@@ -1,6 +1,6 @@
 import React from 'react';
 import JsonLdScript from '@/components/seo/JsonLdScript';
-import { generateWebApplicationJsonLd } from '@/lib/seo/jsonld';
+import { generateWebApplicationJsonLd, generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
 import { PAGE_METADATA } from '@/lib/seo/constants';
 
 export default function CanopyCalculatorLayout({
@@ -13,10 +13,15 @@ export default function CanopyCalculatorLayout({
     PAGE_METADATA.calculatorCanopy.description,
     '/calculator/canopy'
   );
+  const breadcrumbJsonLd = generateBreadcrumbJsonLd([
+    { name: 'Главная', url: '/' },
+    { name: 'Калькулятор', url: '/calculator' },
+    { name: 'Калькулятор навеса', url: '/calculator/canopy' },
+  ]);
 
   return (
     <>
-      <JsonLdScript data={webAppJsonLd} />
+      <JsonLdScript data={[webAppJsonLd, breadcrumbJsonLd]} />
       {children}
     </>
   );

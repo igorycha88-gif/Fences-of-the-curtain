@@ -135,6 +135,19 @@ export interface JsonLdItemList {
   }[];
 }
 
+export interface JsonLdFaqPage {
+  '@context': 'https://schema.org';
+  '@type': 'FAQPage';
+  mainEntity: {
+    '@type': 'Question';
+    name: string;
+    acceptedAnswer: {
+      '@type': 'Answer';
+      text: string;
+    };
+  }[];
+}
+
 export type JsonLdData =
   | JsonLdOrganization
   | JsonLdWebSite
@@ -142,4 +155,5 @@ export type JsonLdData =
   | JsonLdWebApplication
   | JsonLdBreadcrumbList
   | JsonLdContactPage
-  | JsonLdItemList;
+  | JsonLdItemList
+  | JsonLdFaqPage;

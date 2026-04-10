@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
-import JsonLd from '@/components/seo/JsonLd';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import { 
   Zap, 
@@ -30,31 +29,6 @@ interface ContactInfoData {
 export default function HomePage() {
   const [contactInfo, setContactInfo] = useState<ContactInfoData | null>(null);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zabor-i-naves.ru';
-
-  const schemaData = {
-    '@context': 'https://schema.org',
-    '@type': 'HomeAndConstructionBusiness',
-    name: 'Заборы и Навесы',
-    description: 'Профессиональная установка заборов и навесов. Онлайн-расчет стоимости, каталог услуг, портфолио работ.',
-    url: siteUrl,
-    telephone: contactInfo?.phone || '+74993901595',
-    email: contactInfo?.email || 'info@fences.ru',
-    address: {
-      '@type': 'PostalAddress',
-      addressCountry: 'RU',
-    },
-    priceRange: '₽₽',
-    openingHoursSpecification: [
-      {
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-        opens: '09:00',
-        closes: '18:00',
-      },
-    ],
-  };
-
   useEffect(() => {
     fetchContactInfo();
   }, []);
@@ -73,7 +47,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <JsonLd data={schemaData} />
       <Header />
 
       <main>

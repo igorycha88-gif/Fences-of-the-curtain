@@ -136,9 +136,15 @@ export default function PortfolioPage() {
               const thumbnailUrl = getThumbnailUrl(firstImage);
 
               return (
-                <div
+                <Link
                   key={item.id}
-                  className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border"
+                  href={`/portfolio/${item.id}`}
+                  className="block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border"
+                  onClick={() => trackEvent(EVENT_NAMES.PORTFOLIO_ITEM_CLICK, {
+                    portfolio_id: item.id,
+                    title: item.title,
+                    category: item.category,
+                  })}
                 >
                   <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300">
                     {thumbnailUrl && !imageErrors.has(thumbnailUrl) ? (
@@ -166,19 +172,11 @@ export default function PortfolioPage() {
                     {item.description && (
                       <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
                     )}
-                    <Link
-                      href={`/calculator/${item.category === 'fence' ? 'fence' : 'canopy'}`}
-                      className="text-primary font-medium text-sm hover:underline inline-flex items-center gap-1"
-                      onClick={() => trackEvent(EVENT_NAMES.PORTFOLIO_ITEM_CLICK, {
-                        portfolio_id: item.id,
-                        title: item.title,
-                        category: item.category,
-                      })}
-                    >
-                      Рассчитать подобный проект →
-                    </Link>
+                    <span className="text-primary font-medium text-sm inline-flex items-center gap-1">
+                      Подробнее →
+                    </span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

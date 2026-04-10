@@ -67,13 +67,10 @@ describe('JSON-LD Generators', () => {
       expect(result.url).toBe('https://zabor-i-naves.ru');
     });
 
-    it('should have search action', () => {
+    it('should not have search action (removed — no /search page)', () => {
       const result = generateWebSiteJsonLd();
 
-      expect(result.potentialAction).toBeDefined();
-      expect(result.potentialAction?.['@type']).toBe('SearchAction');
-      expect(result.potentialAction?.target).toBe('https://zabor-i-naves.ru/search?q={search_term_string}');
-      expect(result.potentialAction?.['query-input']).toBe('required name=search_term_string');
+      expect(result.potentialAction).toBeUndefined();
     });
   });
 
@@ -112,7 +109,7 @@ describe('JSON-LD Generators', () => {
     it('should use default price range if not provided', () => {
       const result = generateServiceJsonLd('Test', 'Description');
 
-      expect(result.offers?.priceRange).toBe('$$');
+      expect(result.offers?.priceRange).toBe('₽₽');
     });
 
     it('should have areaServed', () => {

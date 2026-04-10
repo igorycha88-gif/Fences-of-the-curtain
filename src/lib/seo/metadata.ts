@@ -5,6 +5,7 @@ interface PageMetadataOptions {
   title: string;
   description: string;
   keywords?: readonly string[];
+  path?: string;
   canonical?: string;
   ogImage?: string;
   noIndex?: boolean;
@@ -15,6 +16,7 @@ export function generatePageMetadata(options: PageMetadataOptions): Metadata {
     title,
     description,
     keywords = [],
+    path,
     canonical,
     ogImage = SEO_CONFIG.DEFAULT_OG_IMAGE,
     noIndex = false,
@@ -22,7 +24,8 @@ export function generatePageMetadata(options: PageMetadataOptions): Metadata {
 
   const fullTitle = `${title} | ${SEO_CONFIG.SITE_NAME}`;
   const fullOgImage = ogImage.startsWith('http') ? ogImage : `${SEO_CONFIG.BASE_URL}${ogImage}`;
-  const canonicalUrl = canonical ? `${SEO_CONFIG.BASE_URL}${canonical}` : SEO_CONFIG.BASE_URL;
+  const canonicalPath = canonical || path || '';
+  const canonicalUrl = canonicalPath ? `${SEO_CONFIG.BASE_URL}${canonicalPath}` : SEO_CONFIG.BASE_URL;
 
   const metadata: Metadata = {
     title: fullTitle,
@@ -74,12 +77,14 @@ export function generateStaticPageMetadata(
   pageTitle: string,
   pageDescription: string,
   pageKeywords: readonly string[],
-  ogImage?: string
+  ogImage?: string,
+  pagePath?: string
 ): Metadata {
   return generatePageMetadata({
     title: pageTitle,
     description: pageDescription,
     keywords: pageKeywords,
     ogImage,
+    path: pagePath,
   });
 }

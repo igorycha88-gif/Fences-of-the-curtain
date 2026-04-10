@@ -7,6 +7,7 @@ import {
   JsonLdBreadcrumbList,
   JsonLdContactPage,
   JsonLdItemList,
+  JsonLdFaqPage,
 } from './types';
 
 export function generateOrganizationJsonLd(): JsonLdOrganization {
@@ -35,7 +36,7 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
       },
     ],
     priceRange: BUSINESS_INFO.priceRange,
-    areaServed: [BUSINESS_INFO.address.country],
+    areaServed: [BUSINESS_INFO.address.locality, BUSINESS_INFO.address.region],
   };
 }
 
@@ -45,11 +46,6 @@ export function generateWebSiteJsonLd(): JsonLdWebSite {
     '@type': 'WebSite',
     name: SEO_CONFIG.SITE_NAME,
     url: SEO_CONFIG.BASE_URL,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${SEO_CONFIG.BASE_URL}/search?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
   };
 }
 
@@ -146,6 +142,72 @@ export function generateItemListJsonLd(
         description: item.description,
       },
     })),
+  };
+}
+
+export function generateFaqPageJsonLd(items: { question: string; answer: string }[]): JsonLdFaqPage {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map(item => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  };
+}
+
+export function generateArticleJsonLd(title: string, description: string, url: string, image?: string, datePublished?: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
+    url: `${SEO_CONFIG.BASE_URL}${url}`,
+    image: image ? `${SEO_CONFIG.BASE_URL}${image}` : undefined,
+    datePublished: datePublished || new Date().toISOString(),
+    author: {
+      '@type': 'Organization',
+      name: SEO_CONFIG.SITE_NAME,
+      url: SEO_CONFIG.BASE_URL,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: SEO_CONFIG.SITE_NAME,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SEO_CONFIG.BASE_URL}/logo.png`,
+      },
+    },
+  };
+}
+
+export function generateAggregateRatingJsonLd(averageRating: number, reviewCount: number) {
+  return {
+    '@type': 'AggregateRating',
+    ratingValue: averageRating,
+    bestRating: 5,
+    worstRating: 1,
+    reviewCount,
+  };
+}
+
+export function generateReviewJsonLd(author: string, text: string, rating: number) {
+  return {
+    '@type': 'Review',
+    author: {
+      '@type': 'Person',
+      name: author,
+    },
+    reviewBody: text,
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: rating,
+      bestRating: 5,
+    },
   };
 }
 

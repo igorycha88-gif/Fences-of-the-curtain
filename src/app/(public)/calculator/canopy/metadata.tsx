@@ -6,6 +6,6 @@ export const metadata: Metadata = generatePageMetadata({
   title: PAGE_METADATA.calculatorCanopy.title,
   description: PAGE_METADATA.calculatorCanopy.description,
   keywords: PAGE_METADATA.calculatorCanopy.keywords,
+  path: PAGE_METADATA.calculatorCanopy.path,
   ogImage: PAGE_METADATA.calculatorCanopy.ogImage,
-  canonical: '/calculator/canopy',
 });

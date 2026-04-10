@@ -6,6 +6,6 @@ export const metadata: Metadata = generatePageMetadata({
   title: PAGE_METADATA.calculatorFence.title,
   description: PAGE_METADATA.calculatorFence.description,
   keywords: PAGE_METADATA.calculatorFence.keywords,
+  path: PAGE_METADATA.calculatorFence.path,
   ogImage: PAGE_METADATA.calculatorFence.ogImage,
-  canonical: '/calculator/fence',
 });
