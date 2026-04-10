@@ -34,7 +34,7 @@ services:
       - NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY:-}
       - LOG_LEVEL=info
     volumes:
-      - uploads_data:/app/public/uploads
+      - /var/www/uploads:/app/public/uploads
       - app_logs:/var/log/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/api/health"]
@@ -44,5 +44,4 @@ services:
       start_period: 40s
 
 volumes:
-  uploads_data:
   app_logs:
