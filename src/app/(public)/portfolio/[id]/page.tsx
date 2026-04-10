@@ -7,6 +7,7 @@ import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { getThumbnailUrl, normalizeImageUrl } from '@/lib/utils/imageUrl';
 import PortfolioGalleryClient from './PortfolioGalleryClient';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,6 +101,7 @@ export default async function PortfolioDetailPage({
                   <a
                     href="tel:+74993901595"
                     className="inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                    onClick={() => metrikaEvents.phoneClick()}
                   >
                     <Phone className="w-4 h-4" />
                     Позвонить

@@ -10,6 +10,7 @@ import { getThumbnailUrl } from '@/lib/utils/imageUrl';
 import { isApiError } from '@/lib/utils/apiResponse';
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
 import { EVENT_NAMES } from '@/types/analytics';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface PortfolioItem {
   id: string;
@@ -140,11 +141,14 @@ export default function PortfolioPage() {
                   key={item.id}
                   href={`/portfolio/${item.id}`}
                   className="block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border"
-                  onClick={() => trackEvent(EVENT_NAMES.PORTFOLIO_ITEM_CLICK, {
-                    portfolio_id: item.id,
-                    title: item.title,
-                    category: item.category,
-                  })}
+                  onClick={() => {
+                    trackEvent(EVENT_NAMES.PORTFOLIO_ITEM_CLICK, {
+                      portfolio_id: item.id,
+                      title: item.title,
+                      category: item.category,
+                    });
+                    metrikaEvents.portfolioView(item.id);
+                  }}
                 >
                   <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300">
                     {thumbnailUrl && !imageErrors.has(thumbnailUrl) ? (

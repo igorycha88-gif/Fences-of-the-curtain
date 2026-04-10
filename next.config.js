@@ -88,6 +88,22 @@ const nextConfig = {
     ];
   },
   
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.zabor-i-naves.ru',
+          },
+        ],
+        destination: 'https://zabor-i-naves.ru/:path*',
+        permanent: true,
+      },
+    ];
+  },
+
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'docx', 'xlsx', 'jspdf'],
   },

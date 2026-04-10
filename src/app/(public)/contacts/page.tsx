@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Phone, Mail, Clock, MessageSquare } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface ContactInfoData {
   address: string;
@@ -109,6 +110,10 @@ export default function ContactsPage() {
                             <a
                               href={item.href}
                               className="text-muted-foreground hover:text-primary transition-colors whitespace-pre-line"
+                              onClick={() => {
+                                if (item.href!.startsWith('tel:')) metrikaEvents.phoneClick();
+                                if (item.href!.startsWith('mailto:')) metrikaEvents.emailClick();
+                              }}
                             >
                               {item.content}
                             </a>
@@ -142,6 +147,7 @@ export default function ContactsPage() {
                   <a
                     href={`tel:${phoneForLink}`}
                     className="inline-flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-xl font-semibold hover:bg-white/90 transition-colors"
+                    onClick={() => metrikaEvents.phoneClick()}
                   >
                     <Phone className="w-4 h-4" />
                     {contactInfoData?.phone || '+74993901595'}

@@ -1,12 +1,34 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
+import JsonLdScript from '@/components/seo/JsonLdScript';
+import { generateBreadcrumbJsonLd, generateServiceJsonLd } from '@/lib/seo/jsonld';
+import { generatePageMetadata } from '@/lib/seo/metadata';
+import { SEO_CONFIG } from '@/lib/seo/constants';
 import { Calculator, ArrowRight } from 'lucide-react';
 
 export const revalidate = 3600;
+
+export async function generateMetadata({ params }: ServicePageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await prisma.pageContent.findFirst({
+    where: { slug, category: { not: null }, isActive: true },
+    select: { title: true, seoTitle: true, seoDescription: true, seoKeywords: true },
+  });
+
+  if (!page) return {};
+
+  return generatePageMetadata({
+    title: page.seoTitle || page.title,
+    description: page.seoDescription || SEO_CONFIG.DEFAULT_DESCRIPTION,
+    keywords: page.seoKeywords ? page.seoKeywords.split(',').map(k => k.trim()) : [],
+    path: `/services/${slug}`,
+  });
+}
 
 export async function generateStaticParams() {
   const pages = await prisma.pageContent.findMany({
@@ -47,8 +69,21 @@ export default async function ServicePage({ params }: ServicePageProps) {
   const calculatorLink =
     page.category === 'canopy' ? '/calculator/canopy' : '/calculator/fence';
 
+  const breadcrumbJsonLd = generateBreadcrumbJsonLd([
+    { name: 'Главная', url: '/' },
+    { name: 'Услуги', url: '/services' },
+    { name: page.title, url: `/services/${slug}` },
+  ]);
+
+  const serviceJsonLd = generateServiceJsonLd(
+    page.title,
+    page.seoDescription || page.title,
+    page.priceRange || undefined
+  );
+
   return (
     <div className="min-h-screen bg-background">
+      <JsonLdScript data={[breadcrumbJsonLd, serviceJsonLd]} />
       <Header />
 
       <main className="pt-24">

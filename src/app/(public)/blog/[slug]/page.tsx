@@ -1,13 +1,38 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
+import { generatePageMetadata } from '@/lib/seo/metadata';
+import { SEO_CONFIG } from '@/lib/seo/constants';
 import { Calculator, ArrowRight } from 'lucide-react';
 
 export const revalidate = 3600;
+
+interface BlogPostPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await prisma.blogPost.findFirst({
+    where: { slug, published: true },
+    select: { title: true, seoTitle: true, seoDescription: true, seoKeywords: true, coverImage: true },
+  });
+
+  if (!post) return {};
+
+  return generatePageMetadata({
+    title: post.seoTitle || post.title,
+    description: post.seoDescription || SEO_CONFIG.DEFAULT_DESCRIPTION,
+    keywords: post.seoKeywords ? post.seoKeywords.split(',').map(k => k.trim()) : [],
+    path: `/blog/${slug}`,
+    ogImage: post.coverImage || undefined,
+  });
+}
 
 export async function generateStaticParams() {
   const posts = await prisma.blogPost.findMany({

@@ -6,6 +6,7 @@ import { ChevronDown, Calculator, HelpCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface FaqItem {
   id: string;
@@ -45,13 +46,14 @@ export default function FaqPage() {
     return acc;
   }, {});
 
-  const toggleItem = (id: string) => {
+  const toggleItem = (id: string, question: string) => {
     setOpenItems(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
       } else {
         next.add(id);
+        metrikaEvents.faqExpand(question);
       }
       return next;
     });
@@ -124,7 +126,7 @@ export default function FaqPage() {
                           className="card-modern overflow-hidden"
                         >
                           <button
-                            onClick={() => toggleItem(item.id)}
+                            onClick={() => toggleItem(item.id, item.question)}
                             className="w-full flex items-center justify-between p-5 text-left hover:bg-secondary/30 transition-colors"
                           >
                             <span className="font-semibold text-foreground pr-4">{item.question}</span>

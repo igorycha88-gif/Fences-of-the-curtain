@@ -13,10 +13,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: page.priority,
   }));
 
-  const blogPosts = await prisma.blogPost.findMany({
-    where: { published: true },
-    select: { slug: true, updatedAt: true },
-  });
+  const [blogPosts, portfolioItems, servicePages] = await Promise.all([
+    prisma.blogPost.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.portfolioItem.findMany({
+      where: { active: true },
+      select: { id: true, updatedAt: true },
+    }),
+    prisma.pageContent.findMany({
+      where: { isActive: true },
+      select: { slug: true, updatedAt: true },
+    }),
+  ]);
 
   const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
@@ -25,5 +35,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...blogPages];
+  const portfolioPages: MetadataRoute.Sitemap = portfolioItems.map((item) => ({
+    url: `${baseUrl}/portfolio/${item.id}`,
+    lastModified: item.updatedAt.toISOString().split('T')[0],
+    changeFrequency: 'monthly' as const,
+    priority: 0.5,
+  }));
+
+  const servicePagesSitemap: MetadataRoute.Sitemap = servicePages.map((page) => ({
+    url: `${baseUrl}/services/${page.slug}`,
+    lastModified: page.updatedAt.toISOString().split('T')[0],
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...blogPages, ...portfolioPages, ...servicePagesSitemap];
 }

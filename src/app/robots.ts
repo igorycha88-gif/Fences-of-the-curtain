@@ -8,16 +8,15 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: 'Yandex',
         allow: '/',
-        disallow: ['/admin', '/api/auth', '/api/admin'],
+        disallow: ['/admin', '/api/auth', '/api/admin', '/api/analytics'],
         crawlDelay: 1,
       },
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api/auth', '/api/admin'],
+        disallow: ['/admin', '/api/auth', '/api/admin', '/api/analytics'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl,
   };
 }

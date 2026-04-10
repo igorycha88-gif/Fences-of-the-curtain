@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface ContactInfoData {
   phone: string;
@@ -53,6 +54,7 @@ export default function ContactPhoneBadge({ variant = 'default', className = '' 
       href={`tel:${phoneForLink}`}
       className={`${baseStyles} ${variantStyles[variant]} ${className}`}
       title="Позвонить нам"
+      onClick={() => metrikaEvents.phoneClick()}
     >
       <Phone className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
       <span className="hidden sm:inline">{displayPhone}</span>

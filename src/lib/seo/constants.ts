@@ -73,7 +73,7 @@ export const PAGE_METADATA = {
   contacts: {
     title: 'Контакты — Заборы и Навесы',
     path: '/contacts',
-    description: 'Москва. Телефон: +7 (499) 390-15-95. Email: zabori-naves@yandex.ru. Пн-Сб 9:00-18:00. Бесплатная консультация и выезд замерщика.',
+    description: 'Москва. Телефон: +7 (499) 390-15-95. Email: zabori-naves@yandex.ru. Пн-Сб 9:00-18:00. Консультация и замер.',
     keywords: ['контакты заборы навесы', 'телефон', 'адрес москва'],
     ogImage: '/og/og-contacts.jpg',
   },

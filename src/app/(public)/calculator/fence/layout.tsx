@@ -1,7 +1,17 @@
 import React from 'react';
+import { Metadata } from 'next';
 import JsonLdScript from '@/components/seo/JsonLdScript';
 import { generateWebApplicationJsonLd, generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
+import { generateStaticPageMetadata } from '@/lib/seo/metadata';
 import { PAGE_METADATA } from '@/lib/seo/constants';
+
+export const metadata: Metadata = generateStaticPageMetadata(
+  PAGE_METADATA.calculatorFence.title,
+  PAGE_METADATA.calculatorFence.description,
+  PAGE_METADATA.calculatorFence.keywords,
+  PAGE_METADATA.calculatorFence.ogImage,
+  PAGE_METADATA.calculatorFence.path,
+);
 
 export default function FenceCalculatorLayout({
   children,

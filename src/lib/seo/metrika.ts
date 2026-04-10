@@ -31,7 +31,23 @@ export const metrikaEvents = {
     reachGoal('phone_click');
   },
 
+  emailClick() {
+    reachGoal('email_click');
+  },
+
   portfolioView(slug: string) {
     reachGoal('portfolio_view', { slug });
+  },
+
+  orderFormOpen(type: 'fence' | 'canopy') {
+    reachGoal('order_form_open', { type });
+  },
+
+  orderFormSubmit(type: 'fence' | 'canopy', value: number) {
+    reachGoal('order_form_submit', { type, value });
+  },
+
+  faqExpand(question: string) {
+    reachGoal('faq_expand', { question });
   },
 };

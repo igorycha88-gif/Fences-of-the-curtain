@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, Send, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface EstimateItem {
   category: string;
@@ -229,6 +230,7 @@ export default function OrderForm(props: OrderFormProps) {
       }
 
       setSuccess(true);
+      metrikaEvents.orderFormSubmit('fence', isMulti ? (props as MultiOrderFormProps).totals.grandTotal : (props as SingleOrderFormProps).calculatedCost);
       setTimeout(() => {
         props.onSuccess();
       }, 2000);

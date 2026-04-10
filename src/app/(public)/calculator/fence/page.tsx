@@ -9,6 +9,7 @@ import NomenclatureNotFoundModal from '@/components/calculator/NomenclatureNotFo
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
 import { EVENT_NAMES } from '@/types/analytics';
 import { validateLength } from '@/lib/validators/calculator';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface FenceType {
   id: string;
@@ -339,6 +340,7 @@ export default function FenceCalculatorPage() {
       if (response.ok) {
         const data = await response.json();
         setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, result: data, loading: false } : c));
+        metrikaEvents.calculatorComplete('fence', data.totals?.grandTotal || 0);
       } else {
         const errorData = await response.json();
         const nomenclatureErrors = ['NO_PROFNASTIL_FOUND', 'NO_GATE_FOUND', 'NO_WICKET_FOUND', 'NO_PICKET_FOUND', 'CALCULATOR_NOT_IMPLEMENTED'];
@@ -979,9 +981,11 @@ export default function FenceCalculatorPage() {
                             if (resultsCount > 1 && !multiResult) {
                               const success = await calculateAll();
                               if (success) {
+                                metrikaEvents.orderFormOpen('fence');
                                 setShowOrderForm(true);
                               }
                             } else {
+                              metrikaEvents.orderFormOpen('fence');
                               setShowOrderForm(true);
                             }
                           }}

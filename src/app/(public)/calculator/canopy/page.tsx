@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Calculator, Send } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import CanopyNomenclatureNotFoundModal from '@/components/calculator/CanopyNomenclatureNotFoundModal';
+import { metrikaEvents } from '@/lib/seo/metrika';
 
 const canopyTypeLabels: Record<string, string> = {
   'single-slope': 'Односкатный',
@@ -95,6 +96,7 @@ export default function CanopyCalculatorPage() {
         const data = await response.json();
         setResult(data);
         setShowIndividualRequestModal(true);
+        metrikaEvents.calculatorComplete('canopy', data.totalCost || data.grandTotal || 0);
       }
     } catch (error) {
       console.error('Calculation error:', error);
