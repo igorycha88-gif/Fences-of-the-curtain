@@ -93,7 +93,7 @@ jobs:
         env:
           DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
 
-      - run: npm test -- --coverage --passWithNoTests
+      - run: npm test -- --passWithNoTests --forceExit
         env:
           DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
 
