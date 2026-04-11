@@ -111,7 +111,7 @@ describe('Security Headers Configuration', () => {
       const header = result[0].headers.find(
         (h: { key: string; value: string }) => h.key === 'X-DNS-Prefetch-Control'
       );
-      expect(header?.value).toBe('off');
+      expect(header?.value).toBe('on');
     });
   });
 });

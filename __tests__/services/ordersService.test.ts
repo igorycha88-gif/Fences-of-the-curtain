@@ -6,6 +6,7 @@ jest.mock('@/lib/prisma', () => ({
       findMany: jest.fn(),
       count: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
@@ -210,7 +211,7 @@ describe('OrdersService', () => {
       };
 
       const { prisma } = require('@/lib/prisma');
-      prisma.order.findUnique.mockResolvedValue(mockOrder);
+      prisma.order.findFirst.mockResolvedValue(mockOrder);
 
       const result = await ordersService.getOrderFull('order1', 'MANAGER');
 
@@ -285,7 +286,7 @@ describe('OrdersService', () => {
       };
 
       const { prisma } = require('@/lib/prisma');
-      prisma.order.findUnique.mockResolvedValue(mockOrder);
+      prisma.order.findFirst.mockResolvedValue(mockOrder);
 
       const result = await ordersService.getOrderFull('order1', 'MANAGER');
 
@@ -361,7 +362,7 @@ describe('OrdersService', () => {
       };
 
       const { prisma } = require('@/lib/prisma');
-      prisma.order.findUnique.mockResolvedValue(mockOrder);
+      prisma.order.findFirst.mockResolvedValue(mockOrder);
       prisma.postType.findUnique.mockResolvedValue({ purchasePricePerUnit: 950 });
       prisma.fenceEstimate.findMany.mockResolvedValue([]);
 
@@ -378,7 +379,7 @@ describe('OrdersService', () => {
 
     it('should return null for non-existent order', async () => {
       const { prisma } = require('@/lib/prisma');
-      prisma.order.findUnique.mockResolvedValue(null);
+      prisma.order.findFirst.mockResolvedValue(null);
 
       const result = await ordersService.getOrderFull('nonexistent', 'ADMIN');
 
@@ -414,7 +415,7 @@ describe('OrdersService', () => {
       };
 
       const { prisma } = require('@/lib/prisma');
-      prisma.order.findUnique.mockResolvedValue(mockOrder);
+      prisma.order.findFirst.mockResolvedValue(mockOrder);
 
       const result = await ordersService.getOrderFull('order1', 'ADMIN');
 
