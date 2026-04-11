@@ -39,6 +39,7 @@ export default function Header() {
     { href: '/calculator', label: 'Калькулятор' },
     { href: '/services', label: 'Услуги' },
     { href: '/portfolio', label: 'Портфолио' },
+    { href: '/about', label: 'О нас' },
     { href: '/contacts', label: 'Контакты' },
   ];
 

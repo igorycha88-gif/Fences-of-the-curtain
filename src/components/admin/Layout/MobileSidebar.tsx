@@ -120,6 +120,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 Расчеты
               </a>
             </li>
+            <li>
+              <a
+                href="/admin/about"
+                onClick={handleNavClick}
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/about')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                О нас
+              </a>
+            </li>
             <li className="pt-4 border-t mt-4">
               <button
                 onClick={toggleReferences}
