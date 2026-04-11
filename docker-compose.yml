@@ -1,5 +1,6 @@
 services:
   app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-igor/fences-curtain}/app:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -41,7 +42,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
 volumes:
   app_logs:

@@ -9,8 +9,12 @@ on:
         description: 'Reason for deployment'
         required: false
         default: 'Manual deployment'
-      no_cache:
-        description: 'Rebuild without Docker cache'
+      image_tag:
+        description: 'Specific image tag to deploy (default: sha-XXXX from current commit)'
+        required: false
+        default: ''
+      skip_smoke_tests:
+        description: 'Skip smoke tests after deploy'
         required: false
         type: boolean
         default: false
@@ -21,13 +25,14 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
 
 env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/app
   APP_DIR: "/root/Fences-of-the-curtain"
-  COMPOSE_FILES: "-f docker-compose.yml -f docker-compose.monitoring.yml"
   APP_PORT: "3001"
   GREEN_PORT: "3003"
-  GRAFANA_PORT: "3002"
 
 jobs:
   ci:
@@ -39,13 +44,42 @@ jobs:
     name: Deploy to VPS (Blue-Green)
     runs-on: ubuntu-latest
     needs: ci
-    if: always() && !cancelled() && (needs.ci.result == 'success' || needs.ci.result == 'failure')
+    if: always() && !cancelled() && needs.ci.result == 'success'
     environment: production
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy via SSH (Blue-Green with Grafana verification)
+      - name: Determine image tag
+        id: image
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Login to GHCR (for pull access on runner)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image exists in GHCR
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image.outputs.tag }}"
+          echo "Verifying image: $IMAGE"
+          docker pull "$IMAGE" --quiet || {
+            echo "ERROR: Image not found: $IMAGE"
+            echo "Available tags may differ. Check GHCR package."
+            exit 1
+          }
+          echo "Image verified: $IMAGE"
+
+      - name: Deploy via SSH (Blue-Green with Nginx switching)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
@@ -53,268 +87,119 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
-          command_timeout: 30m
+          command_timeout: 20m
           script: |
             set -euo pipefail
 
+            export GITHUB_REPOSITORY="${{ github.repository }}"
+            export GITHUB_ACTOR="${{ github.actor }}"
+
             APP_DIR="/root/Fences-of-the-curtain"
-            COMPOSE_FILES="-f docker-compose.yml -f docker-compose.monitoring.yml"
-            APP_PORT="3001"
-            GREEN_PORT="3003"
-            GRAFANA_PORT="3002"
-            LOG_DIR="/var/log/fences-deploy"
-            DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
+            IMAGE_TAG="${{ steps.image.outputs.tag }}"
+            COMMIT_SHA="${{ github.sha }}"
             DEPLOY_REASON="${{ github.event.inputs.reason || 'Push to master2' }}"
-            GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-SecureGrafanaPass2026!}"
-            NO_CACHE="${{ github.event.inputs.no_cache || 'false' }}"
+            SKIP_SMOKE="${{ github.event.inputs.skip_smoke_tests || 'false' }}"
 
-            mkdir -p "$LOG_DIR"
-            log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"; }
-
-            log "=== BLUE-GREEN DEPLOY STARTED ==="
-            log "Commit: ${{ github.sha }}"
-            log "Reason: $DEPLOY_REASON"
-            log "No-cache: $NO_CACHE"
-            log "Initiator: ${GITHUB_ACTOR:-manual}"
-
-            DEPLOY_START=$(date +%s)
-
-            # ── 1. Environment check ──
             cd "$APP_DIR"
-            if [ ! -f .env ]; then
-              log "FATAL: .env not found"
-              exit 1
-            fi
-            source .env
-            log "✓ Environment found"
 
-            # ── 2. Save current state for rollback ──
-            PREVIOUS_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "none")
-            ROLLBACK_TAG="rollback-$(date +%Y%m%d%H%M%S)"
-            git tag "$ROLLBACK_TAG" 2>/dev/null || true
-            log "Previous: $PREVIOUS_COMMIT"
-            log "Rollback tag: $ROLLBACK_TAG"
+            # Login to GHCR on VPS
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin 2>/dev/null || true
 
-            # ── 3. Database backup ──
-            BACKUP_FILE="$APP_DIR/backups/db_$(date +%Y%m%d_%H%M%S).sql"
-            mkdir -p "$APP_DIR/backups"
-            sudo -u postgres pg_dump -U postgres fences > "$BACKUP_FILE" 2>/dev/null || {
-              pg_dump -U postgres fences > "$BACKUP_FILE" 2>/dev/null || log "WARN: DB backup failed"
-            }
-            if [ -f "$BACKUP_FILE" ]; then
-              log "✓ DB backup: $(du -h "$BACKUP_FILE" | cut -f1)"
-            fi
-
-            # ── 4. Pull latest code ──
-            git fetch origin
-            TARGET_COMMIT=$(git rev-parse origin/master2)
-            log "Target: $TARGET_COMMIT"
-            git reset --hard origin/master2
-
-            # ── 5. Stop PM2 if running (migration path) ──
-            if command -v pm2 &>/dev/null && pm2 list 2>/dev/null | grep -q "fences-app"; then
-              log "Stopping PM2 (migrating to Docker)..."
-              pm2 stop fences-app 2>/dev/null || true
-              pm2 delete fences-app 2>/dev/null || true
-              pm2 save --force 2>/dev/null || true
-            fi
-
-            # ── 6. Check current app is healthy (BLUE) ──
-            BLUE_HEALTHY=0
-            if curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null | grep -q '"status":"ok"'; then
-              BLUE_HEALTHY=1
-              log "✓ BLUE (current) app is healthy on port ${APP_PORT}"
+            # Copy deploy script to VPS
+            if [ -f scripts/deploy-vps.sh ]; then
+                bash scripts/deploy-vps.sh "$IMAGE_TAG" "$COMMIT_SHA" "$DEPLOY_REASON"
             else
-              log "WARN: BLUE app not healthy — proceeding with direct deploy"
+                echo "ERROR: scripts/deploy-vps.sh not found"
+                exit 1
             fi
 
-            # ── 7. Build Docker image (app only, cached by default) ──
-            BUILD_START=$(date +%s)
-            BUILD_FLAGS=""
-            if [ "$NO_CACHE" = "true" ]; then
-              BUILD_FLAGS="--no-cache"
-              log "Building app image WITHOUT cache..."
-            else
-              log "Building app image with layer cache..."
-            fi
-            docker compose -f docker-compose.yml build $BUILD_FLAGS app 2>&1 | tail -15
-            BUILD_TIME=$(( $(date +%s) - BUILD_START ))
-            log "✓ Build completed in ${BUILD_TIME}s"
-
-            # ── 8. Ensure monitoring stack is running ──
-            docker compose $COMPOSE_FILES up -d prometheus grafana node_exporter postgres_exporter redis_exporter nginx_exporter 2>&1 | tail -5
-            log "✓ Monitoring stack ensured"
-
-            # ── 9. Deploy — Blue-Green strategy ──
-            if [ "$BLUE_HEALTHY" -eq 1 ]; then
-              log "=== BLUE-GREEN: Starting GREEN instance on port ${GREEN_PORT} ==="
-
-              # Stop any leftover green container
-              docker rm -f fences-app-green 2>/dev/null || true
-
-              # Start GREEN container on alternate port
-              docker compose -f docker-compose.yml run -d --name fences-app-green --rm \
-                -e PORT=${GREEN_PORT} \
-                -p ${GREEN_PORT}:${GREEN_PORT} \
-                app 2>&1 || {
-                log "WARN: docker compose run failed, falling back to direct deploy"
-                docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
-                DIRECT_DEPLOY=1
-              }
-
-              if [ "${DIRECT_DEPLOY:-0}" != "1" ]; then
-                # Wait for GREEN healthcheck (migrations run in entrypoint)
-                sleep 15
-                GREEN_OK=0
-                for i in 1 2 3 4 5; do
-                  GREEN_HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:${GREEN_PORT}/api/health" 2>/dev/null || echo "")
-                  if echo "$GREEN_HEALTH" | grep -q '"status":"ok"'; then
-                    log "✓ GREEN health check passed (attempt $i) on port ${GREEN_PORT}"
-                    GREEN_OK=1
-                    break
-                  fi
-                  log "GREEN health check attempt $i failed"
-                  sleep 10
-                done
-
-                if [ "$GREEN_OK" -eq 0 ]; then
-                  log "=== GREEN FAILED — keeping BLUE, removing GREEN ==="
-                  docker rm -f fences-app-green 2>/dev/null || true
-                  log "✓ BLUE still serving traffic on port ${APP_PORT}"
-                  git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
-                  exit 1
-                fi
-
-                # ── 10. Switch: stop BLUE, start new container on main port ──
-                log "=== SWITCHING: GREEN → main port ${APP_PORT} ==="
-                docker rm -f fences-app-green 2>/dev/null || true
-                docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
-              fi
-            else
-              log "=== DIRECT DEPLOY (no BLUE running) ==="
-              docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
+            # If smoke tests should be skipped
+            if [ "$SKIP_SMOKE" = "true" ]; then
+                echo "[deploy] Smoke tests skipped by user request"
             fi
 
-            # ── 11. Wait for stabilization ──
-            log "Waiting for application to stabilize..."
-            sleep 20
+      - name: Run post-deploy smoke tests
+        if: ${{ github.event.inputs.skip_smoke_tests != 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            APP_PORT=3001
 
-            # ── 12. Health check (application) ──
-            HEALTH_OK=0
-            for i in 1 2 3 4 5 6; do
-              HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "")
-              if echo "$HEALTH" | grep -q '"status":"ok"'; then
-                log "✓ App health check passed (attempt $i)"
-                HEALTH_OK=1
-                break
-              fi
-              log "Health check attempt $i failed"
-              sleep 10
-            done
+            echo "=== POST-DEPLOY SMOKE TESTS ==="
 
-            if [ "$HEALTH_OK" -eq 0 ]; then
-              log "=== APP HEALTH CHECK FAILED — AUTO ROLLBACK ==="
-              log "Rolling back to: $PREVIOUS_COMMIT"
-              git reset --hard "$PREVIOUS_COMMIT"
-              docker compose -f docker-compose.yml build app 2>&1 | tail -3
-              docker compose -f docker-compose.yml up -d --force-recreate app 2>&1
-              sleep 20
-              if curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" | grep -q '"status":"ok"'; then
-                log "✓ Rollback successful"
-              else
-                log "FATAL: Rollback also failed — manual intervention required"
-                docker compose -f docker-compose.yml logs --tail=50 app 2>&1
-              fi
-              git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
-              exit 1
-            fi
+            PASS=0
+            FAIL=0
 
-            # ── 13. Check Grafana health + datasource ──
-            log "Checking Grafana..."
-            GRAFANA_OK=0
-            for i in 1 2 3; do
-              if curl -sf --max-time 5 "http://127.0.0.1:${GRAFANA_PORT}/api/health" | grep -q '"database":"ok"'; then
-                log "✓ Grafana health check passed (attempt $i)"
-                GRAFANA_OK=1
-                break
-              fi
-              log "Grafana health check attempt $i failed"
-              sleep 10
-            done
-
-            if [ "$GRAFANA_OK" -eq 1 ]; then
-              # Reset Grafana admin password
-              docker exec fences-grafana grafana-cli admin reset-admin-password "$GRAFANA_ADMIN_PASSWORD" 2>&1 | tail -1
-
-              # ── 14. Verify datasource connectivity ──
-              DS_STATUS=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
-                "http://127.0.0.1:${GRAFANA_PORT}/api/datasources/uid/prometheus/health" 2>/dev/null || echo "")
-              if echo "$DS_STATUS" | grep -q '"status":"OK"'; then
-                log "✓ Prometheus datasource connected"
-              else
-                log "WARN: Prometheus datasource not OK: $DS_STATUS"
-              fi
-
-              # ── 15. Verify Grafana dashboards (count + data check) ──
-              DASHBOARD_COUNT=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
-                "http://127.0.0.1:${GRAFANA_PORT}/api/search?type=dash-db" 2>/dev/null | \
-                python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
-              log "Grafana dashboards provisioned: $DASHBOARD_COUNT"
-
-              EXPECTED_DASHBOARDS=6
-              if [ "$DASHBOARD_COUNT" -lt "$EXPECTED_DASHBOARDS" ]; then
-                log "WARN: Expected $EXPECTED_DASHBOARDS dashboards, got $DASHBOARD_COUNT"
-                log "Checking provisioning files..."
-                docker exec fences-grafana ls -la /etc/grafana/provisioning/dashboards/imported/ 2>&1
-              else
-                log "✓ All $EXPECTED_DASHBOARDS Grafana dashboards present"
-              fi
-
-              # ── 16. Verify dashboards have data (query each) ──
-              DASHBOARDS_WITHOUT_DATA=0
-              for DASH_UID in "system-overview" "service-health" "postgres-metrics" "redis-metrics" "user-analytics-fences" "business-metrics-production"; do
-                DASH_PANELS=$(curl -sf -u "admin:$GRAFANA_ADMIN_PASSWORD" \
-                  "http://127.0.0.1:${GRAFANA_PORT}/api/dashboards/uid/${DASH_UID}" 2>/dev/null || echo "{}")
-                PANEL_COUNT=$(echo "$DASH_PANELS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('dashboard',{}).get('panels',[])))" 2>/dev/null || echo "0")
-                if [ "$PANEL_COUNT" -gt 0 ]; then
-                  log "  ✓ Dashboard '$DASH_UID': $PANEL_COUNT panels"
+            test_endpoint() {
+                local name="$1" method="$2" url="$3" expected="$4"
+                CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -X "$method" "$url" 2>/dev/null || echo "000")
+                if [ "$CODE" = "$expected" ]; then
+                    echo "  OK: $name ($CODE)"
+                    PASS=$((PASS + 1))
                 else
-                  log "  WARN: Dashboard '$DASH_UID': no panels found or dashboard missing"
-                  DASHBOARDS_WITHOUT_DATA=$((DASHBOARDS_WITHOUT_DATA + 1))
+                    echo "  FAIL: $name (got $CODE, expected $expected)"
+                    FAIL=$((FAIL + 1))
                 fi
-              done
+            }
 
-              if [ "$DASHBOARDS_WITHOUT_DATA" -gt 0 ]; then
-                log "WARN: $DASHBOARDS_WITHOUT_DATA dashboards may have issues (may need time to collect data)"
-              else
-                log "✓ All dashboards verified"
-              fi
-            else
-              log "WARN: Grafana not healthy, skipping dashboard verification"
+            test_endpoint "Health" "GET" "http://127.0.0.1:${APP_PORT}/api/health" "200"
+            test_endpoint "Homepage" "GET" "http://127.0.0.1:${APP_PORT}/" "200"
+            test_endpoint "Admin Login" "GET" "http://127.0.0.1:${APP_PORT}/admin/login" "200"
+            test_endpoint "Materials API" "GET" "http://127.0.0.1:${APP_PORT}/api/materials" "200"
+
+            echo ""
+            echo "=== SMOKE: $PASS passed, $FAIL failed ==="
+
+            if [ "$FAIL" -gt 0 ]; then
+                echo "SMOKE TESTS FAILED"
+                exit 1
             fi
 
-            # ── 17. Verify Prometheus targets ──
-            DOWN_TARGETS=$(curl -sf http://127.0.0.1:9090/api/v1/targets 2>/dev/null | \
-              python3 -c "import sys,json; data=json.load(sys.stdin); down=[t['scrapeUrl'] for t in data['data']['activeTargets'] if t['health']!='up']; print(len(down))" 2>/dev/null || echo "unknown")
-            log "Prometheus targets down: $DOWN_TARGETS"
+      - name: Notify Telegram (Success)
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: false
+          command_timeout: 30s
+          script: |
+            source /root/Fences-of-the-curtain/.env 2>/dev/null || true
+            if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+                SHORT_SHA="${{ steps.image.outputs.short_sha }}"
+                MESSAGE="✅ *Деплой успешен*%0A%0AВерсия: \`${SHORT_SHA}\`%0AОбраз: \`${{ steps.image.outputs.tag }}\`%0AИнициатор: ${{ github.actor }}%0AПричина: ${{ github.event.inputs.reason || 'Push to master2' }}"
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"${MESSAGE}\", \"parse_mode\": \"Markdown\"}" > /dev/null 2>&1 || true
+            fi
 
-            # ── 18. Check Redis exporter ──
-            REDIS_EXPORTER_STATUS=$(docker inspect --format='{{.State.Health.Status}}' fences-redis-exporter 2>/dev/null || echo "unknown")
-            log "Redis exporter status: $REDIS_EXPORTER_STATUS"
-
-            # ── 19. Success ──
-            git tag -d "$ROLLBACK_TAG" 2>/dev/null || true
-            git tag "deploy-ok-$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
-
-            DEPLOY_TIME=$(( $(date +%s) - DEPLOY_START ))
-            log "=== DEPLOYMENT SUCCESSFUL ==="
-            log "Time: ${DEPLOY_TIME}s (build: ${BUILD_TIME}s)"
-            log "From $PREVIOUS_COMMIT to $TARGET_COMMIT"
-
-            docker compose $COMPOSE_FILES ps
-            curl -s "http://127.0.0.1:${APP_PORT}/api/health"
-
-            find "$APP_DIR/backups" -name "*.sql" -mtime +7 -delete 2>/dev/null || true
-            find "$LOG_DIR" -name "*.log" -mtime +30 -delete 2>/dev/null || true
-
-            log "=== DEPLOY FINISHED ==="
+      - name: Notify Telegram (Failure)
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: false
+          command_timeout: 30s
+          script: |
+            source /root/Fences-of-the-curtain/.env 2>/dev/null || true
+            if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+                SHORT_SHA="${{ steps.image.outputs.short_sha }}"
+                MESSAGE="❌ *Деплой FAILED*%0A%0AВерсия: \`${SHORT_SHA}\`%0AИнициатор: ${{ github.actor }}%0A%0A_Проверьте логи: /var/log/fences-deploy/_"
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"${MESSAGE}\", \"parse_mode\": \"Markdown\"}" > /dev/null 2>&1 || true
+            fi

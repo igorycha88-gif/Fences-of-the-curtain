@@ -38,6 +38,10 @@ RUN npm run build
 
 FROM base AS runner
 
+LABEL maintainer="dev@zabor-i-naves.ru"
+LABEL org.opencontainers.image.source="https://github.com/igor/Fences-of-the-curtain"
+LABEL org.opencontainers.image.description="Zabor-i-Naves.ru production app"
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
@@ -63,7 +67,7 @@ USER nextjs
 
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://127.0.0.1:3001/api/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
