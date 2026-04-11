@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: CI/CD Pipeline
 
 on:
   push:
@@ -9,12 +9,8 @@ on:
         description: 'Reason for deployment'
         required: false
         default: 'Manual deployment'
-      image_tag:
-        description: 'Specific image tag to deploy (default: sha-XXXX from current commit)'
-        required: false
-        default: ''
-      skip_smoke_tests:
-        description: 'Skip smoke tests after deploy'
+      skip_deploy:
+        description: 'Skip deploy (CI only)'
         required: false
         type: boolean
         default: false
@@ -25,26 +21,181 @@ concurrency:
 
 permissions:
   contents: read
-  packages: read
+  packages: write
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/app
-  APP_DIR: "/root/Fences-of-the-curtain"
-  APP_PORT: "3001"
-  GREEN_PORT: "3003"
 
 jobs:
-  ci:
-    name: CI Checks
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
+  quality:
+    name: Lint + TypeCheck + Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci --legacy-peer-deps
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Security check
+        run: |
+          if grep -rE "(password|secret|api_key|token)\s*=\s*[\"'].*[\"']" src/ \
+            --exclude-dir=node_modules --exclude="*.test.*" | grep -v "example" | grep -v "CHANGE_ME"; then
+            echo "ERROR: Hardcoded secrets found in src/"
+            exit 1
+          fi
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: quality
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: fences_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci --legacy-peer-deps
+
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+
+      - run: npx prisma db push --skip-generate --accept-data-loss
+        env:
+          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+
+      - run: npm test -- --coverage --passWithNoTests
+        env:
+          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: quality
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: fences_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci --legacy-peer-deps
+
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+
+      - run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+
+      - run: npm run build
+        env:
+          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+
+      - name: Check build output
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "ERROR: .next directory not found"
+            exit 1
+          fi
+          if [ ! -d ".next/standalone" ]; then
+            echo "ERROR: .next/standalone not found"
+            exit 1
+          fi
+          echo "Build size: $(du -sh .next | cut -f1)"
+
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [test, build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            DATABASE_URL=postgresql://postgres:dummy@localhost:5432/fences
 
   deploy:
     name: Deploy to VPS (Blue-Green)
     runs-on: ubuntu-latest
-    needs: ci
-    if: always() && !cancelled() && needs.ci.result == 'success'
+    needs: docker
+    if: ${{ !inputs.skip_deploy }}
     environment: production
 
     steps:
@@ -54,32 +205,27 @@ jobs:
         id: image
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
-            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          fi
+          echo "tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
 
-      - name: Login to GHCR (for pull access on runner)
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify image exists in GHCR
+      - name: Verify image exists
         run: |
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image.outputs.tag }}"
-          echo "Verifying image: $IMAGE"
+          echo "Verifying: $IMAGE"
           docker pull "$IMAGE" --quiet || {
             echo "ERROR: Image not found: $IMAGE"
-            echo "Available tags may differ. Check GHCR package."
             exit 1
           }
-          echo "Image verified: $IMAGE"
+          echo "Image verified"
 
-      - name: Deploy via SSH (Blue-Green with Nginx switching)
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
@@ -95,31 +241,18 @@ jobs:
             export GITHUB_ACTOR="${{ github.actor }}"
 
             APP_DIR="/root/Fences-of-the-curtain"
-            IMAGE_TAG="${{ steps.image.outputs.tag }}"
-            COMMIT_SHA="${{ github.sha }}"
-            DEPLOY_REASON="${{ github.event.inputs.reason || 'Push to master2' }}"
-            SKIP_SMOKE="${{ github.event.inputs.skip_smoke_tests || 'false' }}"
-
             cd "$APP_DIR"
 
-            # Login to GHCR on VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin 2>/dev/null || true
 
-            # Copy deploy script to VPS
             if [ -f scripts/deploy-vps.sh ]; then
-                bash scripts/deploy-vps.sh "$IMAGE_TAG" "$COMMIT_SHA" "$DEPLOY_REASON"
+                bash scripts/deploy-vps.sh "${{ steps.image.outputs.tag }}" "${{ github.sha }}" "${{ inputs.reason || 'Push to master2' }}"
             else
                 echo "ERROR: scripts/deploy-vps.sh not found"
                 exit 1
             fi
 
-            # If smoke tests should be skipped
-            if [ "$SKIP_SMOKE" = "true" ]; then
-                echo "[deploy] Smoke tests skipped by user request"
-            fi
-
-      - name: Run post-deploy smoke tests
-        if: ${{ github.event.inputs.skip_smoke_tests != 'true' }}
+      - name: Post-deploy smoke tests
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
@@ -127,40 +260,24 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
-          command_timeout: 5m
+          command_timeout: 3m
           script: |
             set -euo pipefail
-            APP_PORT=3001
+            PASS=0; FAIL=0
 
-            echo "=== POST-DEPLOY SMOKE TESTS ==="
-
-            PASS=0
-            FAIL=0
-
-            test_endpoint() {
-                local name="$1" method="$2" url="$3" expected="$4"
-                CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -X "$method" "$url" 2>/dev/null || echo "000")
-                if [ "$CODE" = "$expected" ]; then
-                    echo "  OK: $name ($CODE)"
-                    PASS=$((PASS + 1))
-                else
-                    echo "  FAIL: $name (got $CODE, expected $expected)"
-                    FAIL=$((FAIL + 1))
-                fi
+            test_ep() {
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -X "$1" "$2" 2>/dev/null || echo "000")
+              if [ "$CODE" = "$3" ]; then echo "  OK: $4 ($CODE)"; PASS=$((PASS+1));
+              else echo "  FAIL: $4 (got $CODE, expected $3)"; FAIL=$((FAIL+1)); fi
             }
 
-            test_endpoint "Health" "GET" "http://127.0.0.1:${APP_PORT}/api/health" "200"
-            test_endpoint "Homepage" "GET" "http://127.0.0.1:${APP_PORT}/" "200"
-            test_endpoint "Admin Login" "GET" "http://127.0.0.1:${APP_PORT}/admin/login" "200"
-            test_endpoint "Materials API" "GET" "http://127.0.0.1:${APP_PORT}/api/materials" "200"
+            test_ep GET "http://127.0.0.1:3001/api/health" "200" "Health"
+            test_ep GET "http://127.0.0.1:3001/" "200" "Homepage"
+            test_ep GET "http://127.0.0.1:3001/admin/login" "200" "Admin Login"
+            test_ep GET "http://127.0.0.1:3001/api/materials" "200" "Materials"
 
-            echo ""
-            echo "=== SMOKE: $PASS passed, $FAIL failed ==="
-
-            if [ "$FAIL" -gt 0 ]; then
-                echo "SMOKE TESTS FAILED"
-                exit 1
-            fi
+            echo "Smoke: $PASS passed, $FAIL failed"
+            [ "$FAIL" -eq 0 ] || exit 1
 
       - name: Notify Telegram (Success)
         if: success()
@@ -176,11 +293,9 @@ jobs:
           script: |
             source /root/Fences-of-the-curtain/.env 2>/dev/null || true
             if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
-                SHORT_SHA="${{ steps.image.outputs.short_sha }}"
-                MESSAGE="✅ *Деплой успешен*%0A%0AВерсия: \`${SHORT_SHA}\`%0AОбраз: \`${{ steps.image.outputs.tag }}\`%0AИнициатор: ${{ github.actor }}%0AПричина: ${{ github.event.inputs.reason || 'Push to master2' }}"
-                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-                    -H "Content-Type: application/json" \
-                    -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"${MESSAGE}\", \"parse_mode\": \"Markdown\"}" > /dev/null 2>&1 || true
+              curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                -H "Content-Type: application/json" \
+                -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"✅ Деплой успешен\nВерсия: ${{ steps.image.outputs.short_sha }}\nОбраз: ${{ steps.image.outputs.tag }}\nИнициатор: ${{ github.actor }}\"}" > /dev/null 2>&1 || true
             fi
 
       - name: Notify Telegram (Failure)
@@ -197,9 +312,7 @@ jobs:
           script: |
             source /root/Fences-of-the-curtain/.env 2>/dev/null || true
             if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
-                SHORT_SHA="${{ steps.image.outputs.short_sha }}"
-                MESSAGE="❌ *Деплой FAILED*%0A%0AВерсия: \`${SHORT_SHA}\`%0AИнициатор: ${{ github.actor }}%0A%0A_Проверьте логи: /var/log/fences-deploy/_"
-                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-                    -H "Content-Type: application/json" \
-                    -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"${MESSAGE}\", \"parse_mode\": \"Markdown\"}" > /dev/null 2>&1 || true
+              curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                -H "Content-Type: application/json" \
+                -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"❌ Деплой FAILED\nВерсия: ${{ steps.image.outputs.short_sha }}\nИнициатор: ${{ github.actor }}\nПроверьте логи: /var/log/fences-deploy/\"}" > /dev/null 2>&1 || true
             fi
