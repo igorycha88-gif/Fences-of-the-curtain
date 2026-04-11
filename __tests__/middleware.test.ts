@@ -62,8 +62,8 @@ describe('middleware', () => {
   describe('nonce generation', () => {
     it('should generate nonce and set headers', async () => {
       const mockRequest = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
@@ -75,14 +75,14 @@ describe('middleware', () => {
 
     it('should not set x-nonce header (nonce removed)', async () => {
       const mockRequest1 = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
       const mockRequest2 = {
-        nextUrl: { pathname: '/about' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/about', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
@@ -101,8 +101,8 @@ describe('middleware', () => {
 
     it('should not generate nonce', async () => {
       const mockRequest = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
@@ -119,8 +119,8 @@ describe('middleware', () => {
   describe('Content-Security-Policy header', () => {
     it('should set CSP header without nonce', async () => {
       const mockRequest = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
@@ -139,8 +139,8 @@ describe('middleware', () => {
 
     it('should include all required CSP directives', async () => {
       const mockRequest = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
@@ -166,8 +166,8 @@ describe('middleware', () => {
 
     it('should allow Yandex Metrika domains', async () => {
       const mockRequest = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
@@ -183,8 +183,8 @@ describe('middleware', () => {
 
     it('should allow Google reCAPTCHA domains', async () => {
       const mockRequest = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 
@@ -201,8 +201,8 @@ describe('middleware', () => {
 
     it('should not set x-nonce header', async () => {
       const mockRequest = {
-        nextUrl: { pathname: '/' },
-        headers: new Headers(),
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
         cookies: { get: jest.fn() },
       } as any;
 

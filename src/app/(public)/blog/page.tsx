@@ -5,6 +5,8 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BlogListPage() {
   const [posts] = await Promise.all([
     prisma.blogPost.findMany({

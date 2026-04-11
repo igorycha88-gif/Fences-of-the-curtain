@@ -1,13 +1,14 @@
-'use client';
-
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
-import { AnimatedSection } from '@/hooks/useScrollReveal';
-import { 
-  Zap, 
-  Shield, 
-  TrendingDown, 
-  ArrowRight, 
+import HomeFooter from '@/components/layout/HomeFooter';
+import {
+  AnimatedSection,
+} from '@/hooks/useScrollReveal';
+import {
+  Zap,
+  Shield,
+  TrendingDown,
+  ArrowRight,
   Calculator,
   Home,
   Car,
@@ -15,14 +16,11 @@ import {
   Clock,
   Award,
   Users,
-  CheckCircle2
+  CheckCircle2,
 } from 'lucide-react';
 import { YandexReviews } from '@/components/reviews/YandexReviews';
-import { useContactInfo } from '@/components/providers/ContactInfoProvider';
 
 export default function HomePage() {
-  const contactInfo = useContactInfo();
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -30,7 +28,7 @@ export default function HomePage() {
       <main>
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
           <div className="absolute inset-0 gradient-mesh" />
-          
+
           <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse-soft" />
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-soft delay-500" />
 
@@ -52,7 +50,7 @@ export default function HomePage() {
 
               <AnimatedSection animation="fade-in-up" delay={200}>
                 <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-                  Рассчитайте стоимость онлайн, получите честную цену без скрытых платежей 
+                  Рассчитайте стоимость онлайн, получите честную цену без скрытых платежей
                   и закажите установку у проверенных специалистов
                 </p>
               </AnimatedSection>
@@ -104,8 +102,8 @@ export default function HomePage() {
             </AnimatedSection>
 
             <div className="bento-grid">
-              <AnimatedSection 
-                animation="fade-in-up" 
+              <AnimatedSection
+                animation="fade-in-up"
                 delay={100}
                 className="bento-item-large glass card-modern p-8 hover-lift"
               >
@@ -114,7 +112,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-2xl font-bold mb-3">Мгновенный расчёт</h3>
                 <p className="text-muted-foreground mb-6">
-                  Получите точную стоимость за 30 секунд. Наш калькулятор учитывает 
+                  Получите точную стоимость за 30 секунд. Наш калькулятор учитывает
                   все нюансы: тип материала, высоту и дополнительные опции.
                 </p>
                 <div className="flex items-center gap-2 text-primary font-medium">
@@ -123,8 +121,8 @@ export default function HomePage() {
                 </div>
               </AnimatedSection>
 
-              <AnimatedSection 
-                animation="fade-in-up" 
+              <AnimatedSection
+                animation="fade-in-up"
                 delay={200}
                 className="glass card-modern p-6 hover-lift"
               >
@@ -137,8 +135,8 @@ export default function HomePage() {
                 </p>
               </AnimatedSection>
 
-              <AnimatedSection 
-                animation="fade-in-up" 
+              <AnimatedSection
+                animation="fade-in-up"
                 delay={300}
                 className="glass card-modern p-6 hover-lift"
               >
@@ -151,8 +149,8 @@ export default function HomePage() {
                 </p>
               </AnimatedSection>
 
-              <AnimatedSection 
-                animation="fade-in-up" 
+              <AnimatedSection
+                animation="fade-in-up"
                 delay={400}
                 className="bento-item-wide glass card-modern p-6 hover-lift"
               >
@@ -263,54 +261,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="bg-foreground text-background py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                  <Home className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">Заборы и Навесы</span>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Профессиональные решения для ограждения территории
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Услуги</h4>
-              <ul className="space-y-2 text-muted-foreground text-sm">
-                <li><Link href="/services" className="hover:text-primary transition-colors">Заборы</Link></li>
-                <li><Link href="/services" className="hover:text-primary transition-colors">Навесы</Link></li>
-                <li><Link href="/services" className="hover:text-primary transition-colors">Ворота</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Информация</h4>
-              <ul className="space-y-2 text-muted-foreground text-sm">
-                <li><Link href="/calculator" className="hover:text-primary transition-colors">Калькулятор</Link></li>
-                <li><Link href="/portfolio" className="hover:text-primary transition-colors">Портфолио</Link></li>
-                <li><Link href="/contacts" className="hover:text-primary transition-colors">Контакты</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Контакты</h4>
-              <ul className="space-y-2 text-muted-foreground text-sm">
-                <li>{contactInfo.phone || 'Данные не указаны'}</li>
-                <li>{contactInfo.email || 'Данные не указаны'}</li>
-                <li>Пн-Сб: 9:00 - 18:00</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-muted/20 pt-8 text-center text-muted-foreground text-sm">
-            <p>© 2026 Заборы и Навесы. Все права защищены.</p>
-          </div>
-        </div>
-      </footer>
+      <HomeFooter />
     </div>
   );
 }

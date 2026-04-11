@@ -158,6 +158,13 @@ export async function getMetricsString(): Promise<string> {
     registers: [registry],
   });
 
+  const externalSourceVisitsTotal = new Counter({
+    name: 'external_source_visits_total',
+    help: 'Total visits from external advertising platforms',
+    labelNames: ['source'],
+    registers: [registry],
+  });
+
   const { redis } = await import('@/lib/redis');
   const keys = await scanKeys('analytics:metrics:*');
 
@@ -211,6 +218,17 @@ export async function getMetricsString(): Promise<string> {
       const count = parseInt(data.count || '0', 10);
       if (count > 0) {
         conversionFunnelTotal.inc({ step }, count);
+      }
+      return;
+    }
+
+    if (key.startsWith('analytics:metrics:external_source:')) {
+      const source = key.replace('analytics:metrics:external_source:', '');
+      if (!source.startsWith('daily')) {
+        const count = parseInt(data.count || '0', 10);
+        if (count > 0) {
+          externalSourceVisitsTotal.inc({ source }, count);
+        }
       }
       return;
     }

@@ -43,6 +43,35 @@ export async function middleware(request: NextRequest) {
   response.headers.set('x-request-path', request.nextUrl.pathname);
   response.headers.set('x-request-referrer', request.headers.get('referer') || '');
 
+  const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+  const utmFromUrl: Record<string, string> = {};
+  for (const param of utmParams) {
+    const value = request.nextUrl.searchParams.get(param);
+    if (value) {
+      utmFromUrl[param] = value;
+    }
+  }
+
+  if (Object.keys(utmFromUrl).length > 0) {
+    response.cookies.set('utm_data', JSON.stringify(utmFromUrl), {
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+      path: '/',
+    });
+    response.headers.set('x-utm-source', utmFromUrl['utm_source'] || '');
+  } else {
+    const existingUtm = request.cookies.get('utm_data')?.value;
+    if (existingUtm) {
+      try {
+        const parsed = JSON.parse(existingUtm);
+        response.headers.set('x-utm-source', parsed['utm_source'] || '');
+      } catch {
+        // ignore invalid JSON
+      }
+    }
+  }
+
   return response;
 }
 

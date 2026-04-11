@@ -102,16 +102,8 @@ export default function Header() {
           </Link>
         </div>
 
-        <div className="flex lg:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-1">
           <ContactPhoneBadge variant="header" />
-          
-          <button
-            onClick={() => setIsDark(!isDark)}
-            className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center transition-colors"
-            aria-label="Toggle theme"
-          >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
           
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}

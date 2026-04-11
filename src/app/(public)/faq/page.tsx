@@ -6,6 +6,8 @@ import JsonLdScript from '@/components/seo/JsonLdScript';
 import { generateBreadcrumbJsonLd, generateFaqPageJsonLd } from '@/lib/seo/jsonld';
 import FaqClient from '@/components/faq/FaqClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function FaqPage() {
   const faqItems = await prisma.faqItem.findMany({
     where: { isActive: true },
