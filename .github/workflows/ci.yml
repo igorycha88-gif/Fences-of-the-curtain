@@ -8,8 +8,6 @@ on:
         value: ${{ jobs.docker.outputs.image_tag }}
   pull_request:
     branches: [master2]
-  push:
-    branches: [master2]
 
 concurrency:
   group: ci-${{ github.ref }}
