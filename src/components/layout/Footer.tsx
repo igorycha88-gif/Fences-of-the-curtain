@@ -7,10 +7,7 @@ import { ExternalLink } from 'lucide-react';
 
 const PLATFORMS = [
   { name: 'Авито', slug: 'avito', url: 'https://avito.ru', color: '#00AAFF' },
-  { name: 'Юла', slug: 'yula', url: 'https://youla.ru', color: '#7B61FF' },
-  { name: 'Профи.ру', slug: 'profi', url: 'https://profi.ru', color: '#FF6B00' },
-  { name: 'Яндекс.Услуги', slug: 'yandex-uslugi', url: 'https://yandex.ru/uslugi', color: '#FFCC00' },
-  { name: '2ГИС', slug: '2gis', url: 'https://2gis.ru', color: '#00B956' },
+  { name: 'Юла', slug: 'yula', url: 'https://youla.ru/ramenskoe/uslugi/remont-stroitelstvo/zabory-i-oghrazhdieniia-pod-kliuch-69da7a2a81154d9bd6039bd4', color: '#7B61FF' },
 ];
 
 export default function Footer() {

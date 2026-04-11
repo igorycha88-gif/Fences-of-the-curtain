@@ -179,6 +179,24 @@ export async function getMetricsString(): Promise<string> {
       if (count > 0) {
         analyticsEventsTotal.inc({ event_name: eventName, page }, count);
 
+        if (eventName === 'page_view') {
+          pageViewsTotal.inc({ page }, count);
+        }
+
+        if (eventName.startsWith('calculator_')) {
+          calculatorEventsTotal.inc({ action: eventName }, count);
+        }
+
+        const funnelSteps = [
+          'page_view', 'calculator_open', 'calculator_fence_type_select',
+          'calculator_configure', 'calculator_calculate', 'calculator_export',
+          'portfolio_view', 'portfolio_item_click', 'contacts_view',
+          'contact_form_submit', 'services_view', 'phone_click', 'exit',
+        ];
+        if (funnelSteps.includes(eventName)) {
+          conversionFunnelTotal.inc({ step: eventName }, count);
+        }
+
         if (eventName === 'phone_click') {
           phoneClicksTotal.inc({ page }, count);
         }

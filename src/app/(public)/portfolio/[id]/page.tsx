@@ -11,18 +11,6 @@ import { metrikaEvents } from '@/lib/seo/metrika';
 
 export const dynamic = 'force-dynamic';
 
-export async function generateStaticParams() {
-  try {
-    const items = await prisma.portfolioItem.findMany({
-      where: { active: true },
-      select: { id: true },
-    });
-    return items.map((item) => ({ id: item.id }));
-  } catch {
-    return [];
-  }
-}
-
 export default async function PortfolioDetailPage({
   params,
 }: {

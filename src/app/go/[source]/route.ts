@@ -4,9 +4,6 @@ import { redis } from '@/lib/redis';
 const REDIRECT_TARGETS: Record<string, string> = {
   avito: '/calculator/fence?utm_source=avito&utm_medium=referral&utm_campaign=zabory_calc',
   yula: '/calculator/fence?utm_source=yula&utm_medium=referral&utm_campaign=zabory_calc',
-  profi: '/calculator/fence?utm_source=profi&utm_medium=referral&utm_campaign=zabory_calc',
-  'yandex-uslugi': '/calculator/fence?utm_source=yandex-uslugi&utm_medium=referral&utm_campaign=zabory_calc',
-  '2gis': '/calculator/fence?utm_source=2gis&utm_medium=referral&utm_campaign=zabory_calc',
 };
 
 export async function GET(

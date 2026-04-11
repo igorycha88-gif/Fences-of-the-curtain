@@ -59,23 +59,8 @@ export default function HomeFooter() {
                 </a>
               </li>
               <li>
-                <a href="https://youla.ru" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
+                <a href="https://youla.ru/ramenskoe/uslugi/remont-stroitelstvo/zabory-i-oghrazhdieniia-pod-kliuch-69da7a2a81154d9bd6039bd4" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
                   Юла <ExternalLink className="w-3 h-3 opacity-50" />
-                </a>
-              </li>
-              <li>
-                <a href="https://profi.ru" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
-                  Профи.ру <ExternalLink className="w-3 h-3 opacity-50" />
-                </a>
-              </li>
-              <li>
-                <a href="https://yandex.ru/uslugi" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
-                  Яндекс.Услуги <ExternalLink className="w-3 h-3 opacity-50" />
-                </a>
-              </li>
-              <li>
-                <a href="https://2gis.ru" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
-                  2ГИС <ExternalLink className="w-3 h-3 opacity-50" />
                 </a>
               </li>
             </ul>

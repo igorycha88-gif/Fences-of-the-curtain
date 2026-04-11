@@ -22,7 +22,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/app
+  IMAGE_NAME: ${{ github.repository_owner }}/fences-of-the-curtain/app
 
 jobs:
   list-images:
