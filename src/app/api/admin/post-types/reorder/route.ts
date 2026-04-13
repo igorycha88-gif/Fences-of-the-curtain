@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { priorityService } from '@/services/admin/priorityService';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
+import { apiCache } from '@/lib/apiCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,8 @@ export async function PATCH(request: NextRequest) {
       validatedData.newPriority,
       session.userId
     );
+
+    await apiCache.deletePattern('post-types:*');
 
     return NextResponse.json(result);
   } catch (error: any) {

@@ -10,7 +10,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         purchasePricePerUnit: 600,
@@ -27,7 +26,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -45,7 +43,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 39,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -63,7 +60,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 121,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -81,7 +77,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 39,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -99,7 +94,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 121,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -117,7 +111,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 1.4,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -135,7 +128,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 5.1,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -147,28 +139,12 @@ describe('PostType Validators - new unified structure', () => {
       }
     });
 
-    it('should reject pricePerMeter negative', () => {
-      const invalidData = {
-        name: 'Тестовый столб',
-        sectionWidth: 60,
-        sectionHeight: 60,
-        wallThickness: 2.5,
-        pricePerMeter: -10,
-        length: 2.5,
-        retailPricePerUnit: 750,
-      };
-
-      const result = postTypeSchema.safeParse(invalidData);
-      expect(result.success).toBe(false);
-    });
-
     it('should validate length field', () => {
       const validData = {
         name: 'Тестовый столб',
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 3.0,
         retailPricePerUnit: 750,
       };
@@ -186,7 +162,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 1.0,
         retailPricePerUnit: 750,
       };
@@ -201,7 +176,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 7.0,
         retailPricePerUnit: 750,
       };
@@ -216,7 +190,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         purchasePricePerUnit: null,
@@ -232,7 +205,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -247,7 +219,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         purchasePricePerUnit: -10,
@@ -263,7 +234,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         purchasePricePerUnit: 240,
@@ -276,51 +246,12 @@ describe('PostType Validators - new unified structure', () => {
       }
     });
 
-    it('should ignore old availableLengths field if provided', () => {
-      const dataWithOldField = {
-        name: 'Тестовый столб',
-        sectionWidth: 60,
-        sectionHeight: 60,
-        wallThickness: 2.5,
-        pricePerMeter: 300,
-        length: 2.5,
-        retailPricePerUnit: 750,
-        availableLengths: [{ length: 2.5, pricePerMeter: 300 }],
-      };
-
-      const result = postTypeSchema.safeParse(dataWithOldField);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.length).toBe(2.5);
-      }
-    });
-
-    it('should ignore old purchasePrices field if provided', () => {
-      const dataWithOldField = {
-        name: 'Тестовый столб',
-        sectionWidth: 60,
-        sectionHeight: 60,
-        wallThickness: 2.5,
-        pricePerMeter: 300,
-        length: 2.5,
-        retailPricePerUnit: 750,
-        purchasePrices: [{ length: 2.5, purchasePrice: 240 }],
-      };
-
-      const result = postTypeSchema.safeParse(dataWithOldField);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.length).toBe(2.5);
-      }
-    });
-
     it('should accept forMesh true', () => {
       const validData = {
         name: 'Тестовый столб',
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         forMesh: true,
@@ -339,7 +270,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         forMesh: false,
@@ -358,7 +288,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
       };
@@ -376,7 +305,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         validFrom: new Date('2026-01-01'),
@@ -393,7 +321,6 @@ describe('PostType Validators - new unified structure', () => {
         sectionWidth: 60,
         sectionHeight: 60,
         wallThickness: 2.5,
-        pricePerMeter: 300,
         length: 2.5,
         retailPricePerUnit: 750,
         validFrom: new Date('2026-12-31'),
@@ -412,7 +339,6 @@ describe('PostType Validators - new unified structure', () => {
     it('should validate partial updates', () => {
       const partialData = {
         name: 'Обновленный столб',
-        pricePerMeter: 350,
       };
 
       const result = postTypeUpdateSchema.safeParse(partialData);

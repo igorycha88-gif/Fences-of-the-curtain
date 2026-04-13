@@ -4,6 +4,7 @@ import { postTypeService } from '@/services/admin/postTypeService';
 import { postTypeUpdateSchema } from '@/lib/validators/postType';
 import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
+import { apiCache } from '@/lib/apiCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,13 +43,13 @@ export async function PUT(
 ) {
   try {
     console.log('[POST-TYPES PUT] Starting update post type, id:', params.id);
-    
+
     const authResult = await requireAdmin(request, 'materials');
     if (authResult instanceof NextResponse) return authResult;
     const { session } = authResult;
 
     const body = await request.json();
-    
+
     const isAdmin = session.role === 'ADMIN';
 
     if (!isAdmin && body.purchasePricePerUnit !== undefined) {
@@ -65,23 +66,25 @@ export async function PUT(
     await postTypeService.update(params.id, validatedData, session.userId);
     console.log('[POST-TYPES PUT] Updated successfully');
 
+    await apiCache.deletePattern('post-types:*');
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[POST-TYPES PUT] Error updating post type:', error);
-    
+
     if (error instanceof ZodError) {
       console.error('[POST-TYPES PUT] Validation errors:', JSON.stringify(error.errors, null, 2));
       return validationError(error);
     }
-    
+
     if (error.message.includes('не найден')) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    
+
     if (error.message.includes('уже существует')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    
+
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
@@ -100,15 +103,16 @@ export async function DELETE(
     }
 
     await postTypeService.delete(params.id, session.userId);
+    await apiCache.deletePattern('post-types:*');
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error deleting post type:', error);
-    
+    console.error('[POST-TYPES DELETE] Error deleting post type:', error);
+
     if (error.message.includes('не найден')) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    
+
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
@@ -123,15 +127,16 @@ export async function PATCH(
     const { session } = authResult;
 
     const post = await postTypeService.toggleActive(params.id, session.userId);
+    await apiCache.deletePattern('post-types:*');
 
     return NextResponse.json(post);
   } catch (error: any) {
-    console.error('Error toggling post type active status:', error);
-    
+    console.error('[POST-TYPES PATCH] Error toggling post type active status:', error);
+
     if (error.message.includes('не найден')) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    
+
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
