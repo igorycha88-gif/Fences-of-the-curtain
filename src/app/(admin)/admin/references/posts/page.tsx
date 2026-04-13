@@ -25,6 +25,7 @@ interface PostType {
   length: number;
   retailPricePerUnit: number;
   purchasePricePerUnit: number | null;
+  forMesh: boolean;
   image: string | null;
   active: boolean;
   validFrom: string | null;
@@ -140,6 +141,7 @@ export default function PostsPage() {
       length: 2.5,
       retailPricePerUnit: 750,
       purchasePricePerUnit: null,
+      forMesh: false,
       active: true,
       validFrom: null,
       expirationDate: null,
@@ -160,6 +162,7 @@ export default function PostsPage() {
       length: post.length,
       retailPricePerUnit: post.retailPricePerUnit,
       purchasePricePerUnit: post.purchasePricePerUnit,
+      forMesh: post.forMesh,
       active: post.active,
       validFrom: post.validFrom,
       expirationDate: post.expirationDate,
@@ -376,6 +379,11 @@ export default function PostsPage() {
         />
       )
     },
+    {
+      key: 'forMesh',
+      label: 'Для сетки',
+      render: (post: PostType) => post.forMesh ? 'Да' : '',
+    },
   ];
 
   const filterOptions = [
@@ -578,6 +586,17 @@ export default function PostsPage() {
                 className="rounded"
               />
               <label htmlFor="active" className="text-sm font-medium">Активен</label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="forMesh"
+                checked={formValues.forMesh ?? false}
+                onChange={(e) => handleFormChange('forMesh', e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="forMesh" className="text-sm font-medium">Для сетки-рабицы</label>
             </div>
 
             {isAdmin && (

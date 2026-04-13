@@ -135,6 +135,48 @@ export async function calculatePostsForPanel3D(
   };
 }
 
+export async function calculatePostsForMesh(
+  fenceLengthM: number,
+  fenceHeightM: number,
+  postSpacingM: number
+): Promise<PostCalculationResult> {
+  const postCount = roundUp(fenceLengthM / postSpacingM) + 2;
+  const requiredHeightMm = (fenceHeightM * 1000) + UNDERGROUND_DEPTH_MM;
+
+  const posts = await getActivePosts();
+
+  const meshPosts = posts.filter(p => p.forMesh === true && p.length >= requiredHeightMm / 1000);
+
+  if (meshPosts.length === 0) {
+    const allMeshPosts = posts.filter(p => p.forMesh === true).sort((a, b) => b.length - a.length);
+
+    const error: PostCalculationError = {
+      error: 'NO_POSTS_FOUND',
+      message: 'Не найдены столбы для сетки-рабицы подходящей высоты',
+      details: {
+        requiredHeight: requiredHeightMm,
+        availableMaxHeight: allMeshPosts[0]?.length ? allMeshPosts[0].length * 1000 : undefined,
+        suggestion: 'Свяжитесь с нами для индивидуального расчета',
+      },
+    };
+    throw error;
+  }
+
+  const selectedPost = meshPosts[0];
+  const pricePerUnit = selectedPost.retailPricePerUnit;
+  const totalPrice = postCount * pricePerUnit;
+
+  return {
+    category: 'posts',
+    nomenclatureId: selectedPost.id,
+    nomenclatureName: selectedPost.name,
+    quantity: postCount,
+    unit: 'шт',
+    pricePerUnit,
+    totalPrice,
+  };
+}
+
 export async function calculatePosts(
   fenceLengthM: number,
   fenceHeightM: number,

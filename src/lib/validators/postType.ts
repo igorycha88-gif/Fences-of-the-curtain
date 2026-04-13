@@ -29,6 +29,7 @@ const postTypeBaseSchema = z.object({
     .optional(),
   image: z.string().optional(),
   active: z.boolean().default(true),
+  forMesh: z.boolean().default(false),
   validFrom: z.coerce.date().nullable().optional(),
   expirationDate: z.coerce.date().nullable().optional(),
   confirmDuplicate: z.boolean().optional(),

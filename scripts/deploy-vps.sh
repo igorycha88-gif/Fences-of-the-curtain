@@ -38,7 +38,9 @@ fatal() { log "FATAL: $1"; exit 1; }
 DEPLOY_START=$(date +%s)
 cd "$APP_DIR" || fatal "App dir not found: $APP_DIR"
 
-GHCR_IMAGE="ghcr.io/\${GITHUB_REPOSITORY:-igor/fences-curtain}/app:${IMAGE_TAG}"
+GHCR_REGISTRY="ghcr.io"
+GHCR_REPO="${GITHUB_REPOSITORY:-igor/Fences-of-the-curtain}"
+GHCR_IMAGE="${GHCR_REGISTRY}/${GHCR_REPO,,}/app:${IMAGE_TAG}"
 
 log "============================================"
 log "BLUE-GREEN DEPLOY STARTED"
@@ -124,7 +126,7 @@ if echo "$GHCR_IMAGE" | grep -q "ghcr.io"; then
         git fetch origin
         git reset --hard "origin/master2"
         docker compose -f docker-compose.yml build --no-cache app 2>&1 | tail -5
-        GHCR_IMAGE="fences-curtain-app:latest"
+        GHCR_IMAGE="fences-of-the-curtain-app:latest"
     }
 else
     log "  Using local image: $GHCR_IMAGE"
@@ -310,8 +312,16 @@ curl -s "http://127.0.0.1:${BLUE_PORT}/api/health" | head -1
 find "$APP_DIR/backups" -name "*.sql.gz" -mtime +7 -delete 2>/dev/null || true
 find "$LOG_DIR" -name "*.log" -mtime +30 -delete 2>/dev/null || true
 
-# Cleanup old images (keep last 5)
-docker image prune -f --filter "until=168h" 2>/dev/null || true
+# Cleanup old images (keep last 10 for rollback)
+KEEP_IMAGES=10
+ALL_IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "ghcr.io.*fences.*app" | grep -v "<none>" || true)
+IMAGE_COUNT=$(echo "$ALL_IMAGES" | grep -c . || true)
+if [ "$IMAGE_COUNT" -gt "$KEEP_IMAGES" ]; then
+    echo "$ALL_IMAGES" | tail -n +$((KEEP_IMAGES + 1)) | while read -r img; do
+        docker rmi "$img" 2>/dev/null || true
+    done
+fi
+docker image prune -f 2>/dev/null || true
 
 log "=== DEPLOY FINISHED ==="
 

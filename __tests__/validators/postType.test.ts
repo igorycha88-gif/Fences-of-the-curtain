@@ -314,6 +314,62 @@ describe('PostType Validators - new unified structure', () => {
       }
     });
 
+    it('should accept forMesh true', () => {
+      const validData = {
+        name: 'Тестовый столб',
+        sectionWidth: 60,
+        sectionHeight: 60,
+        wallThickness: 2.5,
+        pricePerMeter: 300,
+        length: 2.5,
+        retailPricePerUnit: 750,
+        forMesh: true,
+      };
+
+      const result = postTypeSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.forMesh).toBe(true);
+      }
+    });
+
+    it('should accept forMesh false', () => {
+      const validData = {
+        name: 'Тестовый столб',
+        sectionWidth: 60,
+        sectionHeight: 60,
+        wallThickness: 2.5,
+        pricePerMeter: 300,
+        length: 2.5,
+        retailPricePerUnit: 750,
+        forMesh: false,
+      };
+
+      const result = postTypeSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.forMesh).toBe(false);
+      }
+    });
+
+    it('should default forMesh to false when not provided', () => {
+      const validData = {
+        name: 'Тестовый столб',
+        sectionWidth: 60,
+        sectionHeight: 60,
+        wallThickness: 2.5,
+        pricePerMeter: 300,
+        length: 2.5,
+        retailPricePerUnit: 750,
+      };
+
+      const result = postTypeSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.forMesh).toBe(false);
+      }
+    });
+
     it('should validate date fields', () => {
       const validData = {
         name: 'Тестовый столб',
@@ -412,6 +468,30 @@ describe('PostType Validators - new unified structure', () => {
 
       const result = postTypeUpdateSchema.safeParse(updateData);
       expect(result.success).toBe(true);
+    });
+
+    it('should accept forMesh in partial updates', () => {
+      const updateData = {
+        forMesh: true,
+      };
+
+      const result = postTypeUpdateSchema.safeParse(updateData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.forMesh).toBe(true);
+      }
+    });
+
+    it('should accept forMesh false in partial updates', () => {
+      const updateData = {
+        forMesh: false,
+      };
+
+      const result = postTypeUpdateSchema.safeParse(updateData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.forMesh).toBe(false);
+      }
     });
 
     it('should reject invalid sectionWidth in updates', () => {

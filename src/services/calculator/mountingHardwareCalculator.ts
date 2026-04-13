@@ -25,10 +25,10 @@ export interface MountingHardwareCalculationResult {
   calculationMethod: CalculationMethod;
 }
 
-async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string; panel3dId?: string; gateId?: string; wicketId?: string; picketId?: string }) {
-  const { postTypeId, lagTypeId, profnastilTypeId, panel3dId, gateId, wicketId, picketId } = referenceIds;
+async function getHardwareForReferences(referenceIds: { postTypeId?: string; lagTypeId?: string; profnastilTypeId?: string; panel3dId?: string; gateId?: string; wicketId?: string; picketId?: string; meshId?: string }) {
+  const { postTypeId, lagTypeId, profnastilTypeId, panel3dId, gateId, wicketId, picketId, meshId } = referenceIds;
 
-  if (!postTypeId && !lagTypeId && !profnastilTypeId && !panel3dId && !gateId && !wicketId && !picketId) {
+  if (!postTypeId && !lagTypeId && !profnastilTypeId && !panel3dId && !gateId && !wicketId && !picketId && !meshId) {
     return [];
   }
 
@@ -65,6 +65,9 @@ async function getHardwareForReferences(referenceIds: { postTypeId?: string; lag
       }
       if (picketId) {
         conditions.push({ referenceType: 'PICKET', referenceId: picketId });
+      }
+      if (meshId) {
+        conditions.push({ referenceType: 'MESH', referenceId: meshId });
       }
 
       console.log('[MOUNTING HARDWARE] getHardwareForReferences - conditions:', JSON.stringify(conditions, null, 2));
@@ -112,6 +115,7 @@ export async function calculateMountingHardware(params: {
   profnastilCount?: number;
   panel3dCount?: number;
   picketCount?: number;
+  meshCount?: number;
   gateCount?: number;
   wicketCount?: number;
   postTypeId?: string;
@@ -119,6 +123,7 @@ export async function calculateMountingHardware(params: {
   profnastilTypeId?: string;
   panel3dId?: string;
   picketId?: string;
+  meshId?: string;
   gateId?: string;
   wicketId?: string;
 }): Promise<MountingHardwareCalculationResult[]> {
@@ -130,6 +135,7 @@ export async function calculateMountingHardware(params: {
     profnastilCount,
     panel3dCount,
     picketCount,
+    meshCount,
     gateCount,
     wicketCount,
     postTypeId,
@@ -137,6 +143,7 @@ export async function calculateMountingHardware(params: {
     profnastilTypeId,
     panel3dId,
     picketId,
+    meshId,
     gateId,
     wicketId,
   } = params;
@@ -168,6 +175,9 @@ export async function calculateMountingHardware(params: {
   }
   if (picketId) {
     requestedReferenceTypes.push({ referenceType: 'PICKET', referenceId: picketId });
+  }
+  if (meshId) {
+    requestedReferenceTypes.push({ referenceType: 'MESH', referenceId: meshId });
   }
 
   console.log('[MOUNTING HARDWARE] calculateMountingHardware - requestedReferenceTypes:', JSON.stringify(requestedReferenceTypes, null, 2));
@@ -283,6 +293,16 @@ export async function calculateMountingHardware(params: {
     const hardware = hardwareByType.get(`PICKET:${picketId}`) || [];
     for (const hw of hardware) {
       const result = calculateHardwareItem(hw, picketCount, fenceLengthM, fenceArea);
+      if (result) {
+        results.push(result);
+      }
+    }
+  }
+
+  if (meshId && meshCount) {
+    const hardware = hardwareByType.get(`MESH:${meshId}`) || [];
+    for (const hw of hardware) {
+      const result = calculateHardwareItem(hw, meshCount, fenceLengthM, fenceArea);
       if (result) {
         results.push(result);
       }

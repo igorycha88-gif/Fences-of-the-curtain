@@ -28,181 +28,21 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/fences-of-the-curtain/app
 
 jobs:
-  quality:
-    name: Lint + TypeCheck + Security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - run: npm ci --legacy-peer-deps
-
-      - name: Prisma validate
-        run: npx prisma validate
-
-      - name: Prisma generate (for type check)
-        run: npx prisma generate
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Security check
-        run: |
-          if grep -rE "(password|secret|api_key|token)\s*=\s*[\"'].*[\"']" src/ \
-            --exclude-dir=node_modules --exclude="*.test.*" | grep -v "example" | grep -v "CHANGE_ME"; then
-            echo "ERROR: Hardcoded secrets found in src/"
-            exit 1
-          fi
-
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
-    needs: quality
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: fences_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - run: npm ci --legacy-peer-deps
-
-      - run: npx prisma generate
-        env:
-          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
-
-      - run: npx prisma db push --skip-generate --accept-data-loss
-        env:
-          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
-
-      - run: npm test -- --passWithNoTests --forceExit
-        env:
-          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
-
-  build:
-    name: Build Verification
-    runs-on: ubuntu-latest
-    needs: quality
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: fences_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - run: npm ci --legacy-peer-deps
-
-      - run: npx prisma generate
-        env:
-          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
-
-      - run: npx prisma db push --skip-generate
-        env:
-          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
-
-      - run: npm run build
-        env:
-          DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
-
-      - name: Check build output
-        run: |
-          if [ ! -d ".next" ]; then
-            echo "ERROR: .next directory not found"
-            exit 1
-          fi
-          if [ ! -d ".next/standalone" ]; then
-            echo "ERROR: .next/standalone not found"
-            exit 1
-          fi
-          echo "Build size: $(du -sh .next | cut -f1)"
+  ci:
+    name: CI Pipeline
+    uses: ./.github/workflows/ci.yml
+    with:
+      run-coverage: false
 
   docker:
     name: Docker Build & Push
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: ci
+    timeout-minutes: 20
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=latest
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            DATABASE_URL=postgresql://postgres:dummy@localhost:5432/fences
-
-  deploy:
-    name: Deploy to VPS (Blue-Green)
-    runs-on: ubuntu-latest
-    needs: docker
-    if: ${{ !inputs.skip_deploy }}
-    environment: production
+    outputs:
+      image_tag: ${{ steps.image.outputs.tag }}
+      short_sha: ${{ steps.image.outputs.short_sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -221,18 +61,73 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest
+            type=raw,value={{date 'YYYYMMDD'}}
+            type=semver,pattern={{version}},value=${{ steps.image.outputs.short_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            DATABASE_URL=postgresql://postgres:dummy@localhost:5432/fences
+            NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL || 'https://zabor-i-naves.ru' }}
+            NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '' }}
+            NEXT_PUBLIC_YANDEX_METRIKA_ID=${{ secrets.NEXT_PUBLIC_YANDEX_METRIKA_ID || '' }}
+            NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || '' }}
+            NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${{ secrets.NEXT_PUBLIC_YANDEX_MAPS_API_KEY || '' }}
+            NEXT_PUBLIC_YANDEX_ORG_ID=${{ secrets.NEXT_PUBLIC_YANDEX_ORG_ID || '' }}
+            NEXT_PUBLIC_YANDEX_ORG_URL=${{ secrets.NEXT_PUBLIC_YANDEX_ORG_URL || '' }}
+            NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL || 'https://zabor-i-naves.ru' }}
+
+  deploy:
+    name: Deploy to VPS (Blue-Green)
+    runs-on: ubuntu-latest
+    needs: docker
+    if: ${{ !inputs.skip_deploy }}
+    environment: production
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify image exists
+        timeout-minutes: 3
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image.outputs.tag }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.docker.outputs.image_tag }}"
           echo "Verifying: $IMAGE"
           docker pull "$IMAGE" --quiet || {
-            echo "ERROR: Image not found: $IMAGE"
+            echo "::error::Image not found: $IMAGE"
             exit 1
           }
-          echo "Image verified"
+          echo "Image verified: $IMAGE"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        timeout-minutes: 20
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
           username: root
@@ -252,7 +147,7 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin 2>/dev/null || true
 
             if [ -f scripts/deploy-vps.sh ]; then
-                bash scripts/deploy-vps.sh "${{ steps.image.outputs.tag }}" "${{ github.sha }}" "${{ inputs.reason || 'Push to master2' }}"
+                bash scripts/deploy-vps.sh "${{ needs.docker.outputs.image_tag }}" "${{ github.sha }}" "${{ inputs.reason || 'Push to master2' }}"
             else
                 echo "ERROR: scripts/deploy-vps.sh not found"
                 exit 1
@@ -260,6 +155,7 @@ jobs:
 
       - name: Post-deploy smoke tests
         uses: appleboy/ssh-action@v1.0.3
+        timeout-minutes: 3
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
           username: root
@@ -301,7 +197,7 @@ jobs:
             if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
               curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                 -H "Content-Type: application/json" \
-                -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"✅ Деплой успешен\nВерсия: ${{ steps.image.outputs.short_sha }}\nОбраз: ${{ steps.image.outputs.tag }}\nИнициатор: ${{ github.actor }}\"}" > /dev/null 2>&1 || true
+                -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"✅ Деплой успешен\nВерсия: ${{ needs.docker.outputs.short_sha }}\nОбраз: ${{ needs.docker.outputs.image_tag }}\nИнициатор: ${{ github.actor }}\"}" > /dev/null 2>&1 || true
             fi
 
       - name: Notify Telegram (Failure)
@@ -320,5 +216,5 @@ jobs:
             if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
               curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                 -H "Content-Type: application/json" \
-                -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"❌ Деплой FAILED\nВерсия: ${{ steps.image.outputs.short_sha }}\nИнициатор: ${{ github.actor }}\nПроверьте логи: /var/log/fences-deploy/\"}" > /dev/null 2>&1 || true
+                -d "{\"chat_id\": \"${TEGRAM_CHAT_ID}\", \"text\": \"❌ Деплой FAILED\nВерсия: ${{ needs.docker.outputs.short_sha }}\nИнициатор: ${{ github.actor }}\nПроверьте логи: /var/log/fences-deploy/\"}" > /dev/null 2>&1 || true
             fi

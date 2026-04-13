@@ -218,6 +218,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 </li>
                 <li>
                   <a
+                    href="/admin/references/mesh"
+                    onClick={handleNavClick}
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/mesh')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Сетка-рабица
+                  </a>
+                </li>
+                <li>
+                  <a
                     href="/admin/references/panel3d"
                     onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${

@@ -707,24 +707,14 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
               )}
 
               {!hasAdminEstimate && (
-                <div className="relative">
-                  <EstimateSection
-                    estimateId={estimate.id}
-                    items={estimate.items}
-                    materialsTotal={estimate.materialsTotal}
-                    installationTotal={estimate.installationTotal}
-                    grandTotal={estimate.grandTotal}
-                  />
-                  <div className="mt-3">
-                    <button
-                      onClick={() => handleEditEstimate(estimate.id)}
-                      className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                      title="Редактировать"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                <EstimateSection
+                  estimateId={estimate.id}
+                  items={estimate.items}
+                  materialsTotal={estimate.materialsTotal}
+                  installationTotal={estimate.installationTotal}
+                  grandTotal={estimate.grandTotal}
+                  onEdit={() => handleEditEstimate(estimate.id)}
+                />
               )}
             </>
           ) : (

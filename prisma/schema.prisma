@@ -107,6 +107,7 @@ model PostType {
   priority             Int       @default(0)
   retailPricePerUnit   Float
   purchasePricePerUnit Float?
+  forMesh              Boolean   @default(false)
 
   @@index([active])
   @@index([validFrom])
@@ -114,6 +115,32 @@ model PostType {
   @@index([length])
   @@index([priority])
   @@index([sectionWidth, sectionHeight, wallThickness])
+  @@index([forMesh])
+}
+
+model MeshType {
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?
+  height               Float
+  cellSize             Int
+  wireThickness        Float
+  coating              String
+  retailPricePerUnit   Float
+  purchasePricePerUnit Float?
+  image                String?
+  active               Boolean   @default(true)
+  validFrom            DateTime?
+  validUntil           DateTime?
+  priority             Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([active])
+  @@index([validUntil])
+  @@index([coating])
+  @@index([priority])
+  @@index([height, cellSize, wireThickness, coating])
 }
 
 model LagType {
@@ -572,6 +599,10 @@ model FenceEstimate {
   picketMountingType       String?
   picketProfileType        String?
   picketCoatingName        String?
+  meshId                   String?
+  meshNomenclatureName     String?
+  meshTotal                Float     @default(0)
+  meshInstallationTotal    Float     @default(0)
   isEditedByAdmin          Boolean    @default(false)
   sourceEstimateId         String?
   editedByAdminId          String?

@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { FenceEstimateInput } from '@/lib/validators/fenceEstimate';
-import { calculatePosts, calculatePostsForProfnastil, calculatePostsForPanel3D, PostCalculationResult } from './postCalculator';
+import { calculatePosts, calculatePostsForProfnastil, calculatePostsForPanel3D, calculatePostsForMesh, PostCalculationResult } from './postCalculator';
 import { calculateLags, LagCalculationResult } from './lagCalculator';
 import { calculateProfnastil, ProfnastilCalculationResult } from './profnastilCalculator';
 import { calculatePanel3D, Panel3DCalculationResult } from './panel3DCalculator';
 import { calculatePicket, PicketCalculationResult, MountingType } from './picketCalculator';
+import { calculateMesh, MeshCalculationResult, MeshCoatingType } from './meshCalculator';
 
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
@@ -15,7 +16,7 @@ import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { getFenceTypeCodeByName } from '@/lib/fenceTypeMap';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | PicketCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | PicketCalculationResult | MeshCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
 
 export interface GateCalculationResult {
   category: 'gates';
@@ -262,6 +263,7 @@ export async function calculateFenceEstimateCore(
   let profnastilResult: ProfnastilCalculationResult | undefined;
   let panel3dResult: Panel3DCalculationResult | undefined;
   let picketResult: PicketCalculationResult | undefined;
+  let meshResult: MeshCalculationResult | undefined;
 
   if (fenceType.name === 'Профнастил') {
     profnastilResult = await calculateProfnastil(correctedLength, height, coating);
@@ -282,10 +284,19 @@ export async function calculateFenceEstimateCore(
       mountingType: input.picketMountingType as MountingType,
     });
   } else if (fenceType.name === 'Сетка-рабица') {
-    throw {
-      error: 'CALCULATOR_NOT_IMPLEMENTED',
-      message: 'Расчёт для типа забора "Сетка-рабица" пока не реализован',
-    } as CalculationError;
+    if (!input.meshCellSize || !input.meshWireThickness || !input.meshCoating) {
+      throw {
+        error: 'MISSING_MESH_PARAMS',
+        message: 'Для расчёта Сетки-рабицы необходимо указать размер ячейки, толщину прутка и тип покрытия',
+      } as CalculationError;
+    }
+    meshResult = await calculateMesh(
+      correctedLength,
+      height,
+      input.meshCellSize,
+      input.meshWireThickness,
+      input.meshCoating as MeshCoatingType
+    );
   } else {
     throw {
       error: 'UNKNOWN_FENCE_TYPE',
@@ -293,9 +304,13 @@ export async function calculateFenceEstimateCore(
     } as CalculationError;
   }
 
-  const postsResult = await (fenceType.name === 'Профнастил'
-    ? calculatePostsForProfnastil(correctedLength, height, postSpacingM)
-    : calculatePostsForPanel3D(correctedLength, height, postSpacingM));
+  const postsResult = await (
+    fenceType.name === 'Профнастил' || fenceType.name === 'Евроштакетник'
+      ? calculatePostsForProfnastil(correctedLength, height, postSpacingM)
+      : fenceType.name === 'Сетка-рабица'
+        ? calculatePostsForMesh(correctedLength, height, postSpacingM)
+        : calculatePostsForPanel3D(correctedLength, height, postSpacingM)
+  );
 
   const lagsResult = fenceType.name === '3D-панели'
     ? null
@@ -323,6 +338,17 @@ export async function calculateFenceEstimateCore(
       lagTypeId: lagsResult!.nomenclatureId,
       picketId: picketResult.nomenclatureId,
       picketCount: picketResult.quantity,
+    });
+  } else if (meshResult) {
+    mountingHardwareResult = await calculateMountingHardware({
+      fenceLengthM: correctedLength,
+      fenceHeightM: height,
+      postsCount: postsResult.quantity,
+      lagsCount: lagsResult!.quantity,
+      postTypeId: postsResult.nomenclatureId,
+      lagTypeId: lagsResult!.nomenclatureId,
+      meshId: meshResult.nomenclatureId,
+      meshCount: meshResult.quantity,
     });
   } else if (profnastilResult) {
     mountingHardwareResult = await calculateMountingHardware({
@@ -372,12 +398,23 @@ export async function calculateFenceEstimateCore(
     }
   }
 
+  let meshInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
+
+  if (meshResult) {
+    const meshWorks = await workService.getWorksForCalculatorByReference('MESH', meshResult.nomenclatureId);
+
+    if (meshWorks.length > 0) {
+      meshInstallationWorks = meshWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
+    }
+  }
+
   const items: EstimateItem[] = [
     postsResult,
     ...(lagsResult ? [lagsResult] : []),
     ...(profnastilResult ? [profnastilResult] : []),
     ...(panel3dResult ? [panel3dResult] : []),
     ...(picketResult ? [picketResult] : []),
+    ...(meshResult ? [meshResult] : []),
   ];
 
   if (hasGate && gateInfo) {
@@ -423,6 +460,9 @@ export async function calculateFenceEstimateCore(
   }
   if (panel3dResult) {
     referenceQuantityMap[`PANEL_3D:${panel3dResult.nomenclatureId}`] = panel3dResult.quantity;
+  }
+  if (meshResult) {
+    referenceQuantityMap[`MESH:${meshResult.nomenclatureId}`] = meshResult.quantity;
   }
 
   for (const work of fenceTypeMountingWorks) {
@@ -502,12 +542,26 @@ export async function calculateFenceEstimateCore(
     items.push(panel3dInstallationItem);
   }
 
+  for (const work of meshInstallationWorks) {
+    const meshInstallationItem: GateInstallationCalculationResult = {
+      category: 'installation',
+      nomenclatureId: work.id,
+      nomenclatureName: work.name,
+      quantity: meshResult ? meshResult.quantity : 1,
+      unit: 'шт',
+      pricePerUnit: work.price,
+      totalPrice: work.price * (meshResult ? meshResult.quantity : 1),
+    };
+    items.push(meshInstallationItem);
+  }
+
   items.push(...mountingHardwareResult);
 
   const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
   const gateInstallationTotal = gateInstallationWorks.reduce((sum, work) => sum + work.price, 0);
   const wicketInstallationTotal = wicketInstallationWorks.reduce((sum, work) => sum + work.price, 0);
   const panel3dInstallationTotal = panel3dInstallationWorks.reduce((sum, work) => sum + work.price * (panel3dResult ? panel3dResult.quantity : 1), 0);
+  const meshInstallationTotal = meshInstallationWorks.reduce((sum, work) => sum + work.price * (meshResult ? meshResult.quantity : 1), 0);
 
   const fenceTypeMountingWorksTotal = fenceTypeMountingWorks.reduce((sum, work) => {
     const hasReferenceRelation = work.relations?.some(
@@ -527,8 +581,8 @@ export async function calculateFenceEstimateCore(
     return sum + work.price;
   }, 0);
 
-  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + (picketResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
-  const installation = gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + fenceTypeMountingWorksTotal;
+  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + (picketResult?.totalPrice || 0) + (meshResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
+  const installation = gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + meshInstallationTotal + fenceTypeMountingWorksTotal;
   const grandTotal = materials + installation;
 
   return {
@@ -605,6 +659,12 @@ export async function calculateFenceEstimate(
         picketMountingType: input.picketMountingType || null,
         picketProfileType: input.picketProfileType || null,
         picketCoatingName: input.picketCoating || null,
+        meshId: (coreResult.items.find(i => i.category === 'mesh') as MeshCalculationResult)?.nomenclatureId || null,
+        meshNomenclatureName: (coreResult.items.find(i => i.category === 'mesh') as MeshCalculationResult)?.nomenclatureName || null,
+        meshTotal: (coreResult.items.find(i => i.category === 'mesh')?.totalPrice || 0),
+        meshInstallationTotal: coreResult.items
+          .filter(i => i.category === 'installation' && i.nomenclatureName.includes('сетк'))
+          .reduce((sum, item) => sum + item.totalPrice, 0),
         installationTotal: coreResult.totals.installation,
         materialsTotal: coreResult.totals.materials,
         grandTotal: coreResult.totals.grandTotal,

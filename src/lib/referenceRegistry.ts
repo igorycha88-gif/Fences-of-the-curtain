@@ -74,6 +74,12 @@ class ReferenceRegistry {
           select: { id: true, name: true },
           orderBy: { name: 'asc' }
         });
+      case 'MESH':
+        return prisma.meshType.findMany({
+          where: { active: true },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' }
+        });
       default:
         throw new Error(`Unknown reference type: ${type}`);
     }
@@ -108,6 +114,9 @@ class ReferenceRegistry {
         case 'PANEL_3D':
           const panel3d = await prisma.panel3D.findUnique({ where: { id } });
           return panel3d !== null;
+        case 'MESH':
+          const mesh = await prisma.meshType.findUnique({ where: { id } });
+          return mesh !== null;
         default:
           return false;
       }
@@ -145,6 +154,9 @@ class ReferenceRegistry {
         case 'PANEL_3D':
           const panel3d = await prisma.panel3D.findUnique({ where: { id }, select: { name: true } });
           return panel3d?.name || 'Неизвестно';
+        case 'MESH':
+          const mesh = await prisma.meshType.findUnique({ where: { id }, select: { name: true } });
+          return mesh?.name || 'Неизвестно';
         default:
           return 'Неизвестно';
       }
@@ -196,4 +208,10 @@ referenceRegistry.register({
   type: 'PANEL_3D',
   name: '3D-панели',
   modelName: 'Panel3D',
+});
+
+referenceRegistry.register({
+  type: 'MESH',
+  name: 'Сетка-рабица',
+  modelName: 'MeshType',
 });

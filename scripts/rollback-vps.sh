@@ -34,7 +34,9 @@ fatal() { log "FATAL: $1"; exit 1; }
 ROLLBACK_START=$(date +%s)
 cd "$APP_DIR" || fatal "App dir not found"
 
-GHCR_IMAGE="ghcr.io/\${GITHUB_REPOSITORY:-igor/fences-curtain}/app:${IMAGE_TAG}"
+GHCR_REGISTRY="ghcr.io"
+GHCR_REPO="${GITHUB_REPOSITORY:-igor/Fences-of-the-curtain}"
+GHCR_IMAGE="${GHCR_REGISTRY}/${GHCR_REPO,,}/app:${IMAGE_TAG}"
 
 log "============================================"
 log "ROLLBACK STARTED"
@@ -123,7 +125,7 @@ fi
 
 mkdir -p /etc/nginx/conf.d
 cat > "$NGINX_UPSTREAM_FILE" <<EOF
-upstream fences_backend {
+upstream app {
     server 127.0.0.1:${BLUE_PORT};
     keepalive 32;
 }

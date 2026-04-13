@@ -230,6 +230,18 @@ export default function AdminLayout({
                 </li>
                 <li>
                   <a 
+                    href="/admin/references/mesh" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/mesh')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Сетка-рабица
+                  </a>
+                </li>
+                <li>
+                  <a 
                     href="/admin/references/panel3d" 
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/panel3d')
