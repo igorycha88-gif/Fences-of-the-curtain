@@ -7,6 +7,7 @@ interface FenceParametersProps {
     id: string;
     name: string;
   };
+  fenceTypeName: string;
   length: number;
   height: number;
   lagRows: number;
@@ -25,6 +26,7 @@ interface FenceParametersProps {
 
 export function FenceParameters({
   fenceType,
+  fenceTypeName,
   length,
   height,
   lagRows,
@@ -73,13 +75,15 @@ export function FenceParameters({
           </div>
         </div>
 
-        <div className="flex items-start gap-3">
-          <Palette className="w-4 h-4 text-gray-400 mt-0.5" />
-          <div className="flex-1">
-            <label className="text-sm text-gray-500 block">Покрытие</label>
-            <p className="font-medium text-gray-900">{coatingLabel}</p>
+        {fenceTypeName !== 'Сетка-рабица' && (
+          <div className="flex items-start gap-3">
+            <Palette className="w-4 h-4 text-gray-400 mt-0.5" />
+            <div className="flex-1">
+              <label className="text-sm text-gray-500 block">Покрытие</label>
+              <p className="font-medium text-gray-900">{coatingLabel}</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {hasGate && (
           <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">

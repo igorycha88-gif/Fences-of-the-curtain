@@ -560,6 +560,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
             <>
               <FenceParameters
                 fenceType={estimate.fenceType}
+                fenceTypeName={estimate.fenceType.name}
                 length={estimate.length}
                 height={estimate.height}
                 lagRows={estimate.lagRows}

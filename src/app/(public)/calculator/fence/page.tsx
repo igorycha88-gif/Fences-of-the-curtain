@@ -1178,6 +1178,9 @@ export default function FenceCalculatorPage() {
                 picketProfileType: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketProfileType,
                 picketStep: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketStep,
                 picketMountingType: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketMountingType,
+                meshCoating: calculations[nomenclatureNotFoundCalcIndex]?.formData.meshCoating,
+                meshCellSize: calculations[nomenclatureNotFoundCalcIndex]?.formData.meshCellSize,
+                meshWireThickness: calculations[nomenclatureNotFoundCalcIndex]?.formData.meshWireThickness,
               }
             : {
                 fenceTypeId: '',
@@ -1193,6 +1196,9 @@ export default function FenceCalculatorPage() {
                 picketProfileType: '',
                 picketStep: 0,
                 picketMountingType: 'SINGLE',
+                meshCoating: undefined,
+                meshCellSize: undefined,
+                meshWireThickness: undefined,
               }
         }
       />

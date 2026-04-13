@@ -18,6 +18,9 @@ interface FenceParameters {
   picketProfileType?: string;
   picketStep?: number;
   picketMountingType?: string;
+  meshCoating?: string;
+  meshCellSize?: number;
+  meshWireThickness?: number;
 }
 
 interface NomenclatureNotFoundModalProps {
@@ -186,6 +189,11 @@ export default function NomenclatureNotFoundModal({
     POLYMER_DOUBLE: 'Полимерное (двустороннее)',
   };
 
+  const meshCoatingLabels: Record<string, string> = {
+    GALVANIZED: 'Оцинковка',
+    POLYMER: 'Полимерное',
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200" onClick={handleBackdropClick}>
       <div className="bg-card rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
@@ -312,12 +320,34 @@ export default function NomenclatureNotFoundModal({
                 <span className="text-muted-foreground">Высота:</span>{' '}
                 <span className="font-medium">{fenceParameters.height} м</span>
               </div>
-              {fenceParameters.coating ? (
+              {fenceParameters.coating && fenceParameters.fenceTypeName !== 'Сетка-рабица' ? (
                 <div>
                   <span className="text-muted-foreground">Покрытие:</span>{' '}
                   <span className="font-medium">{coatingLabels[fenceParameters.coating] || fenceParameters.coating}</span>
                 </div>
               ) : null}
+              {(fenceParameters.meshCoating || fenceParameters.meshCellSize || fenceParameters.meshWireThickness) && (
+                <>
+                  {fenceParameters.meshCoating && (
+                    <div>
+                      <span className="text-muted-foreground">Покрытие сетки:</span>{' '}
+                      <span className="font-medium">{meshCoatingLabels[fenceParameters.meshCoating] || fenceParameters.meshCoating}</span>
+                    </div>
+                  )}
+                  {fenceParameters.meshCellSize && (
+                    <div>
+                      <span className="text-muted-foreground">Размер ячейки:</span>{' '}
+                      <span className="font-medium">{fenceParameters.meshCellSize} мм</span>
+                    </div>
+                  )}
+                  {fenceParameters.meshWireThickness && (
+                    <div>
+                      <span className="text-muted-foreground">Толщина прутка:</span>{' '}
+                      <span className="font-medium">{fenceParameters.meshWireThickness} мм</span>
+                    </div>
+                  )}
+                </>
+              )}
               {fenceParameters.hasGate && (
                 <div>
                   <span className="text-muted-foreground">Ворота:</span>{' '}
