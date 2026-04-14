@@ -197,7 +197,7 @@ export function calculateTruss(
   };
 }
 
-function getProfileForType(
+export function getProfileForType(
   memberType: string,
   input: TrussCalculationInput,
 ): string {
@@ -210,7 +210,7 @@ function getProfileForType(
   }
 }
 
-function extractThickness(profileName: string): string {
+export function extractThickness(profileName: string): string {
   const match = profileName.match(/(\d+[.,]?\d*)\s*(?:мм|mm)/i);
   if (match) return match[1].replace(',', '.');
   const thickMatch = profileName.match(/(\d+(?:[.,]\d+)?)\s*[×xX]\s*\d+(?:[.,]\d+)?(?:[×xX]\s*(\d+(?:[.,]\d+)?))?/);
@@ -221,32 +221,111 @@ function extractThickness(profileName: string): string {
   return numMatch ? numMatch[1].replace(',', '.') : '—';
 }
 
-function buildElementDetails(
+export function buildElementDetails(
   geometry: TrussGeometryResult,
   input: TrussCalculationInput,
 ): TrussElementDetail[] {
   const details: TrussElementDetail[] = [];
   let vertIdx = 0;
   let diagIdx = 0;
-  let bottomChordIdx = 0;
-  let topChordIdx = 0;
 
-  const sortedMembers = [...geometry.members].sort((a, b) => {
-    const typeOrder = { bottom_chord: 0, top_chord: 1, vertical: 2, diagonal: 3 };
-    const ao = typeOrder[a.type] ?? 4;
-    const bo = typeOrder[b.type] ?? 4;
-    if (ao !== bo) return ao - bo;
-    return a.id - b.id;
+  const bottomChordProfile = getProfileForType('bottom_chord', input);
+  details.push({
+    elementType: 'bottom_chord',
+    elementLabel: 'НП-1',
+    length: Math.round(geometry.span),
+    bottomCutAngle: 90,
+    topCutAngle: 90,
+    profileName: bottomChordProfile,
+    profileThickness: extractThickness(bottomChordProfile),
+    quantity: 1,
   });
 
-  for (const member of sortedMembers) {
+  const topChordProfile = getProfileForType('top_chord', input);
+  const topChordThickness = extractThickness(topChordProfile);
+
+  if (input.canopyType === 'DOUBLE_SLOPE') {
+    const topChordMembers = geometry.members.filter(m => m.type === 'top_chord');
+    const ridgeNode = geometry.nodes.find(n => n.type === 'ridge');
+    const ridgeX = ridgeNode?.x ?? geometry.span / 2;
+
+    const leftSlopeMembers = topChordMembers.filter(m => {
+      const sn = geometry.nodes.find(n => n.id === m.startNodeId);
+      const en = geometry.nodes.find(n => n.id === m.endNodeId);
+      return ((sn!.x + en!.x) / 2) <= ridgeX;
+    });
+    const rightSlopeMembers = topChordMembers.filter(m => {
+      const sn = geometry.nodes.find(n => n.id === m.startNodeId);
+      const en = geometry.nodes.find(n => n.id === m.endNodeId);
+      return ((sn!.x + en!.x) / 2) > ridgeX;
+    });
+
+    const leftLen = leftSlopeMembers.reduce((s, m) => s + m.length, 0);
+    const rightLen = rightSlopeMembers.reduce((s, m) => s + m.length, 0);
+    const slopeAngle = Math.round(geometry.slopeAngle * 10) / 10;
+
+    details.push({
+      elementType: 'top_chord',
+      elementLabel: 'ВП-1',
+      length: Math.round(leftLen),
+      bottomCutAngle: geometry.edgeAngles?.leftAngle ?? 90,
+      topCutAngle: slopeAngle,
+      profileName: topChordProfile,
+      profileThickness: topChordThickness,
+      quantity: 1,
+    });
+
+    details.push({
+      elementType: 'top_chord',
+      elementLabel: 'ВП-2',
+      length: Math.round(rightLen),
+      bottomCutAngle: slopeAngle,
+      topCutAngle: geometry.edgeAngles?.rightAngle ?? 90,
+      profileName: topChordProfile,
+      profileThickness: topChordThickness,
+      quantity: 1,
+    });
+  } else {
+    let topChordLength: number;
+    if (input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED') {
+      topChordLength = geometry.arcLength ?? 0;
+    } else {
+      const topChordMembers = geometry.members.filter(m => m.type === 'top_chord');
+      topChordLength = topChordMembers.reduce((s, m) => s + m.length, 0);
+    }
+
+    let bottomCut = 90;
+    let topCut = 90;
+    if (input.canopyType === 'SINGLE_SLOPE') {
+      bottomCut = geometry.edgeAngles?.leftAngle ?? 90;
+      topCut = geometry.edgeAngles?.rightAngle ?? 90;
+    } else if (input.canopyType === 'ARCH') {
+      bottomCut = geometry.edgeAngles?.leftAngle ?? 90;
+      topCut = geometry.edgeAngles?.rightAngle ?? 90;
+    }
+
+    details.push({
+      elementType: 'top_chord',
+      elementLabel: 'ВП-1',
+      length: Math.round(topChordLength),
+      bottomCutAngle: bottomCut,
+      topCutAngle: topCut,
+      profileName: topChordProfile,
+      profileThickness: topChordThickness,
+      quantity: 1,
+    });
+  }
+
+  const webMembers = geometry.members
+    .filter(m => m.type === 'vertical' || m.type === 'diagonal')
+    .sort((a, b) => a.id - b.id);
+
+  for (const member of webMembers) {
     const profileName = getProfileForType(member.type, input);
     const thickness = extractThickness(profileName);
 
     let label = '';
     switch (member.type) {
-      case 'bottom_chord': label = `НП-${++bottomChordIdx}`; break;
-      case 'top_chord': label = `ВП-${++topChordIdx}`; break;
       case 'vertical': label = `Стойка-${++vertIdx}`; break;
       case 'diagonal': label = `Раскос-${++diagIdx}`; break;
     }
