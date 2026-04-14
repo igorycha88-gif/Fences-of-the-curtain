@@ -156,13 +156,19 @@ function buildDoubleSlope(width: number, ridgeHeight: number): TrussGeometryResu
     }
   }
 
-  for (let i = 0; i <= halfN; i++) {
-    const x = width - i * panelLen;
-    if (x > halfWidth && i < halfN) {
-      const distFromRight = i * panelLen;
+  const rightTopNodes: TrussNode[] = [];
+  for (let i = 0; i < halfN; i++) {
+    const distFromRight = i * panelLen;
+    const x = width - distFromRight;
+    if (x > halfWidth) {
       const y = eaveHeight + (ridgeHeight - eaveHeight) * (distFromRight / halfWidth);
-      nodes.push({ id: nodeId++, x, y, type: 'top' });
+      rightTopNodes.push({ id: 0, x, y, type: 'top' });
     }
+  }
+  rightTopNodes.sort((a, b) => a.x - b.x);
+  for (const node of rightTopNodes) {
+    node.id = nodeId++;
+    nodes.push(node);
   }
 
   for (let i = 0; i < n; i++) {
