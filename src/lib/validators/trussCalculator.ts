@@ -12,6 +12,7 @@ export const trussCalculationRequestSchema = z.object({
   roofCoveringId: z.string().min(1),
   postProfileId: z.string().min(1),
   crossbeamProfileId: z.string().min(1),
+  topChordProfileId: z.string().min(1).optional().or(z.literal('')),
   strutProfileId: z.string().min(1),
   archProfileId: z.string().min(1).optional().or(z.literal('')),
 }).refine(
@@ -34,6 +35,7 @@ export const saveTrussCalculationSchema = z.object({
   roofCoveringId: z.string().min(1),
   postProfileId: z.string().min(1),
   crossbeamProfileId: z.string().min(1),
+  topChordProfileId: z.string().min(1).optional().or(z.literal('')),
   strutProfileId: z.string().min(1),
   archProfileId: z.string().min(1).optional().or(z.literal('')),
   name: z.string().max(200).optional(),

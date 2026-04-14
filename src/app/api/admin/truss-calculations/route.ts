@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
         roofCovering: { select: { name: true } },
         postProfile: { select: { name: true } },
         crossbeamProfile: { select: { name: true } },
+        topChordProfile: { select: { name: true } },
         strutProfile: { select: { name: true } },
         archProfile: { select: { name: true } },
         user: { select: { name: true, email: true } },
@@ -43,10 +44,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = saveTrussCalculationSchema.parse(body);
 
-    const [roofCovering, postProfile, crossbeamProfile, strutProfile, archProfile, allProfiles] = await Promise.all([
+    const [roofCovering, postProfile, crossbeamProfile, topChordProfile, strutProfile, archProfile, allProfiles] = await Promise.all([
       prisma.trussRoofCovering.findUniqueOrThrow({ where: { id: data.roofCoveringId } }),
       prisma.trussProfileType.findUniqueOrThrow({ where: { id: data.postProfileId } }),
       prisma.trussProfileType.findUniqueOrThrow({ where: { id: data.crossbeamProfileId } }),
+      data.topChordProfileId ? prisma.trussProfileType.findUnique({ where: { id: data.topChordProfileId } }) : null,
       prisma.trussProfileType.findUniqueOrThrow({ where: { id: data.strutProfileId } }),
       data.archProfileId ? prisma.trussProfileType.findUnique({ where: { id: data.archProfileId } }) : null,
       prisma.trussProfileType.findMany({ where: { isActive: true } }),
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
       roofRetailPricePerSqm: roofCovering.retailPricePerSqm,
       postProfileId: postProfile.id,
       crossbeamProfileId: crossbeamProfile.id,
+      topChordProfileId: topChordProfile?.id,
       strutProfileId: strutProfile.id,
       archProfileId: archProfile?.id,
       postSectionArea: postProfile.sectionArea,
@@ -94,6 +97,12 @@ export async function POST(request: NextRequest) {
       crossbeamWeightPerMeter: crossbeamProfile.weightPerMeter,
       crossbeamRetailPricePerMeter: crossbeamProfile.retailPricePerMeter,
       crossbeamProfileName: crossbeamProfile.name,
+      topChordSectionArea: topChordProfile?.sectionArea,
+      topChordSectionModulusX: topChordProfile?.sectionModulusX,
+      topChordRadiusOfGyrationX: topChordProfile?.radiusOfGyrationX,
+      topChordWeightPerMeter: topChordProfile?.weightPerMeter,
+      topChordRetailPricePerMeter: topChordProfile?.retailPricePerMeter,
+      topChordProfileName: topChordProfile?.name,
       strutSectionArea: strutProfile.sectionArea,
       strutSectionModulusX: strutProfile.sectionModulusX,
       strutRadiusOfGyrationX: strutProfile.radiusOfGyrationX,
@@ -120,6 +129,7 @@ export async function POST(request: NextRequest) {
         roofCoveringId: data.roofCoveringId,
         postProfileId: data.postProfileId,
         crossbeamProfileId: data.crossbeamProfileId,
+        topChordProfileId: data.topChordProfileId || null,
         strutProfileId: data.strutProfileId,
         archProfileId: data.archProfileId || null,
         snowLoad: result.loads.snowLoadDesign,

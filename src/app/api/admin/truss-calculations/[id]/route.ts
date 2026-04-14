@@ -18,6 +18,7 @@ export async function GET(
         roofCovering: true,
         postProfile: true,
         crossbeamProfile: true,
+        topChordProfile: true,
         strutProfile: true,
         archProfile: true,
         user: { select: { name: true, email: true } },

@@ -123,6 +123,7 @@ export interface TrussCalculationInput {
   roofRetailPricePerSqm: number;
   postProfileId: string;
   crossbeamProfileId: string;
+  topChordProfileId?: string;
   strutProfileId: string;
   archProfileId?: string;
   postSectionArea: number;
@@ -137,6 +138,12 @@ export interface TrussCalculationInput {
   crossbeamWeightPerMeter: number;
   crossbeamRetailPricePerMeter: number;
   crossbeamProfileName: string;
+  topChordSectionArea?: number;
+  topChordSectionModulusX?: number;
+  topChordRadiusOfGyrationX?: number;
+  topChordWeightPerMeter?: number;
+  topChordRetailPricePerMeter?: number;
+  topChordProfileName?: string;
   strutSectionArea: number;
   strutSectionModulusX: number;
   strutRadiusOfGyrationX: number;

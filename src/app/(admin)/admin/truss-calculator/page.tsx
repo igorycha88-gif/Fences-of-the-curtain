@@ -20,6 +20,7 @@ interface CalculationFormState {
   roofCoveringId: string;
   postProfileId: string;
   crossbeamProfileId: string;
+  topChordProfileId: string;
   strutProfileId: string;
   archProfileId: string;
 }
@@ -171,6 +172,7 @@ export default function TrussCalculatorPage() {
         roofCoveringId: c.roofCoveringId,
         postProfileId: c.postProfileId,
         crossbeamProfileId: c.crossbeamProfileId,
+        topChordProfileId: c.topChordProfileId || '',
         strutProfileId: c.strutProfileId,
         archProfileId: c.archProfileId || '',
       };
@@ -182,6 +184,7 @@ export default function TrussCalculatorPage() {
       const elementDetails = buildElementDetails(geometry, {
         canopyType: c.canopyType,
         crossbeamProfileName: c.crossbeamProfile?.name || '',
+        topChordProfileName: c.topChordProfile?.name || c.crossbeamProfile?.name || '',
         strutProfileName: c.strutProfile?.name || '',
         archProfileName: c.archProfile?.name,
       } as any);

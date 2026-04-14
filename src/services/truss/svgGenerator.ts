@@ -142,7 +142,7 @@ export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: Cano
     const color = memberColors[member.type] || '#6b7280';
     const width = memberWidths[member.type] || 2;
 
-    lines.push(`<line x1="${start.sx}" y1="${start.sy}" x2="${end.sx}" y2="${end.sy}" stroke="${color}" stroke-width="${width}" stroke-linecap="round"/>`);
+    lines.push(`<line x1="${start.sx}" y1="${start.sy}" x2="${end.sx}" y2="${end.sy}" stroke="${color}" stroke-width="${width}" stroke-linecap="butt"/>`);
   }
 
   for (const node of svgNodes) {

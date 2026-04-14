@@ -13,6 +13,7 @@ interface FormData {
   roofCoveringId: string;
   postProfileId: string;
   crossbeamProfileId: string;
+  topChordProfileId: string;
   strutProfileId: string;
   archProfileId: string;
 }
@@ -49,6 +50,7 @@ export default function TrussCalculatorForm({ onCalculate, loading }: Props) {
     roofCoveringId: '',
     postProfileId: '',
     crossbeamProfileId: '',
+    topChordProfileId: '',
     strutProfileId: '',
     archProfileId: '',
   });
@@ -71,6 +73,7 @@ export default function TrussCalculatorForm({ onCalculate, loading }: Props) {
 
   const showWallHeight = form.canopyType === 'SINGLE_SLOPE' || form.canopyType === 'SINGLE_SLOPE_CURVED';
   const showArch = form.canopyType === 'ARCH' || form.canopyType === 'SINGLE_SLOPE_CURVED';
+  const showTopChord = form.canopyType === 'SINGLE_SLOPE' || form.canopyType === 'DOUBLE_SLOPE';
 
   const handleChange = (field: keyof FormData, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -84,6 +87,9 @@ export default function TrussCalculatorForm({ onCalculate, loading }: Props) {
     }
     if (!showArch) {
       cleaned.archProfileId = '';
+    }
+    if (!showTopChord) {
+      cleaned.topChordProfileId = '';
     }
     onCalculate(cleaned);
   };
@@ -207,7 +213,7 @@ export default function TrussCalculatorForm({ onCalculate, loading }: Props) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Перекладины</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Нижняя перекладина (Нижний пояс)</label>
             <select
               value={form.crossbeamProfileId}
               onChange={e => handleChange('crossbeamProfileId', e.target.value)}
@@ -220,6 +226,22 @@ export default function TrussCalculatorForm({ onCalculate, loading }: Props) {
               ))}
             </select>
           </div>
+          {showTopChord && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Верхняя перекладина (Верхний пояс)</label>
+              <select
+                value={form.topChordProfileId}
+                onChange={e => handleChange('topChordProfileId', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                required
+              >
+                <option value="">Выберите профиль</option>
+                {getProfilesByCategory('CROSSBEAM').map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Перемычки</label>
             <select

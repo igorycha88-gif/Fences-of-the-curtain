@@ -833,6 +833,7 @@ model TrussProfileType {
 
   calcsPost        TrussCalculation[] @relation("CalcPost")
   calcsCrossbeam   TrussCalculation[] @relation("CalcCrossbeam")
+  calcsTopChord    TrussCalculation[] @relation("CalcTopChord")
   calcsStrut       TrussCalculation[] @relation("CalcStrut")
   calcsArch        TrussCalculation[] @relation("CalcArch")
 
@@ -887,6 +888,7 @@ model TrussCalculation {
   snowRegion           String             @default("III")
   postProfileId        String
   crossbeamProfileId   String
+  topChordProfileId    String?
   strutProfileId       String
   archProfileId        String?
   snowLoad             Float
@@ -915,6 +917,7 @@ model TrussCalculation {
   roofCovering    TrussRoofCovering @relation(fields: [roofCoveringId], references: [id])
   postProfile     TrussProfileType  @relation("CalcPost", fields: [postProfileId], references: [id])
   crossbeamProfile TrussProfileType @relation("CalcCrossbeam", fields: [crossbeamProfileId], references: [id])
+  topChordProfile  TrussProfileType? @relation("CalcTopChord", fields: [topChordProfileId], references: [id])
   strutProfile    TrussProfileType  @relation("CalcStrut", fields: [strutProfileId], references: [id])
   archProfile     TrussProfileType? @relation("CalcArch", fields: [archProfileId], references: [id])
   user            User?             @relation(fields: [createdBy], references: [id])

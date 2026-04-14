@@ -30,7 +30,7 @@ export function calculateTruss(
     else if (m.type === 'top_chord') {
       wpm = input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
         ? (input.archWeightPerMeter ?? input.strutWeightPerMeter)
-        : input.crossbeamWeightPerMeter;
+        : (input.topChordWeightPerMeter ?? input.crossbeamWeightPerMeter);
     } else {
       wpm = input.strutWeightPerMeter;
     }
@@ -71,34 +71,34 @@ export function calculateTruss(
   const topChordProfile: TrussProfileData = {
     id: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archProfileId ?? input.strutProfileId)
-      : input.crossbeamProfileId,
+      : (input.topChordProfileId ?? input.crossbeamProfileId),
     name: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archProfileName ?? input.strutProfileName)
-      : input.crossbeamProfileName,
+      : (input.topChordProfileName ?? input.crossbeamProfileName),
     category: 'CROSSBEAM',
     sectionArea: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archSectionArea ?? input.strutSectionArea)
-      : input.crossbeamSectionArea,
+      : (input.topChordSectionArea ?? input.crossbeamSectionArea),
     sectionModulusX: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archSectionModulusX ?? input.strutSectionModulusX)
-      : input.crossbeamSectionModulusX,
+      : (input.topChordSectionModulusX ?? input.crossbeamSectionModulusX),
     sectionModulusY: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archSectionModulusX ?? input.strutSectionModulusX)
-      : input.crossbeamSectionModulusX,
+      : (input.topChordSectionModulusX ?? input.crossbeamSectionModulusX),
     momentOfInertiaX: 0,
     momentOfInertiaY: 0,
     radiusOfGyrationX: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archRadiusOfGyrationX ?? input.strutRadiusOfGyrationX)
-      : input.crossbeamRadiusOfGyrationX,
+      : (input.topChordRadiusOfGyrationX ?? input.crossbeamRadiusOfGyrationX),
     radiusOfGyrationY: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archRadiusOfGyrationX ?? input.strutRadiusOfGyrationX)
-      : input.crossbeamRadiusOfGyrationX,
+      : (input.topChordRadiusOfGyrationX ?? input.crossbeamRadiusOfGyrationX),
     weightPerMeter: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archWeightPerMeter ?? input.strutWeightPerMeter)
-      : input.crossbeamWeightPerMeter,
+      : (input.topChordWeightPerMeter ?? input.crossbeamWeightPerMeter),
     retailPricePerMeter: input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED'
       ? (input.archRetailPricePerMeter ?? input.strutRetailPricePerMeter)
-      : input.crossbeamRetailPricePerMeter,
+      : (input.topChordRetailPricePerMeter ?? input.crossbeamRetailPricePerMeter),
     yieldStrength: 235,
   };
 
@@ -205,7 +205,7 @@ export function getProfileForType(
     case 'bottom_chord': return input.crossbeamProfileName;
     case 'top_chord':
       return (input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED')
-        ? (input.archProfileName ?? input.strutProfileName) : input.crossbeamProfileName;
+        ? (input.archProfileName ?? input.strutProfileName) : (input.topChordProfileName ?? input.crossbeamProfileName);
     default: return input.strutProfileName;
   }
 }
@@ -432,11 +432,11 @@ function calculateMaterials(
   const topChordMembers = geometry.members.filter(m => m.type === 'top_chord');
   const totalTopLen = topChordMembers.reduce((s, m) => s + m.length, 0);
   const topProfileName = (input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED')
-    ? (input.archProfileName ?? input.strutProfileName) : input.crossbeamProfileName;
+    ? (input.archProfileName ?? input.strutProfileName) : (input.topChordProfileName ?? input.crossbeamProfileName);
   const topWPM = (input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED')
-    ? (input.archWeightPerMeter ?? input.strutWeightPerMeter) : input.crossbeamWeightPerMeter;
+    ? (input.archWeightPerMeter ?? input.strutWeightPerMeter) : (input.topChordWeightPerMeter ?? input.crossbeamWeightPerMeter);
   const topPPM = (input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED')
-    ? (input.archRetailPricePerMeter ?? input.strutRetailPricePerMeter) : input.crossbeamRetailPricePerMeter;
+    ? (input.archRetailPricePerMeter ?? input.strutRetailPricePerMeter) : (input.topChordRetailPricePerMeter ?? input.crossbeamRetailPricePerMeter);
   materials.push({
     name: 'Верхний пояс фермы',
     profileName: topProfileName,

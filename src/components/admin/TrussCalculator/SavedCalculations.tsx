@@ -17,6 +17,7 @@ interface SavedCalculation {
   roofCovering: { name: string };
   postProfile: { name: string };
   crossbeamProfile: { name: string };
+  topChordProfile: { name: string } | null;
   strutProfile: { name: string };
   archProfile: { name: string } | null;
   user: { name: string | null; email: string } | null;
@@ -241,7 +242,8 @@ function CalculationRow({
                     <div>Покрытие: <span className="font-medium">{calc.roofCovering?.name || '—'}</span></div>
                     <div>Шаг ферм: <span className="font-medium">{calc.trussSpacing} мм</span></div>
                     <div>Столбы: <span className="font-medium">{calc.postProfile?.name || '—'}</span></div>
-                    <div>Перекладины: <span className="font-medium">{calc.crossbeamProfile?.name || '—'}</span></div>
+                    <div>Нижний пояс: <span className="font-medium">{calc.crossbeamProfile?.name || '—'}</span></div>
+                    {calc.topChordProfile && <div>Верхний пояс: <span className="font-medium">{calc.topChordProfile.name}</span></div>}
                     <div>Решётка: <span className="font-medium">{calc.strutProfile?.name || '—'}</span></div>
                     {calc.archProfile && <div>Арка: <span className="font-medium">{calc.archProfile.name}</span></div>}
                     <div>Снеговая: <span className="font-medium">{calc.snowLoad.toFixed(1)} кг/м²</span></div>
