@@ -11,23 +11,19 @@ const W0_MOSCOW = 23;
 function calcSlopeAngle(canopyType: CanopyRoofType, width: number, ridgeHeight: number, wallHeight?: number): number {
   switch (canopyType) {
     case 'SINGLE_SLOPE': {
-      const h = wallHeight ?? ridgeHeight * 0.5;
-      return Math.atan2(ridgeHeight - h, width) * (180 / Math.PI);
+      return Math.atan2(ridgeHeight, width) * (180 / Math.PI);
     }
     case 'DOUBLE_SLOPE': {
-      const eaveHeight = ridgeHeight * 0.35;
-      return Math.atan2(ridgeHeight - eaveHeight, width / 2) * (180 / Math.PI);
+      return Math.atan2(ridgeHeight, width / 2) * (180 / Math.PI);
     }
     case 'ARCH': {
-      const bottomH = ridgeHeight * 0.3;
-      const rise = ridgeHeight - bottomH;
+      const rise = ridgeHeight;
       const halfSpan = width / 2;
       const R = (halfSpan * halfSpan + rise * rise) / (2 * rise);
       return Math.atan2(halfSpan, R - rise) * (180 / Math.PI);
     }
     case 'SINGLE_SLOPE_CURVED': {
-      const h = wallHeight ?? ridgeHeight * 0.4;
-      return Math.atan2((ridgeHeight - h) * 0.7, width) * (180 / Math.PI);
+      return Math.atan2(ridgeHeight * 0.7, width) * (180 / Math.PI);
     }
   }
 }
@@ -43,8 +39,7 @@ function calcSnowMu(canopyType: CanopyRoofType, angle: number, width: number, ri
     case 'DOUBLE_SLOPE':
       return 1.0;
     case 'ARCH': {
-      const bottomH = ridgeHeight * 0.3;
-      const rise = ridgeHeight - bottomH;
+      const rise = ridgeHeight;
       const ratio = width / (8 * rise);
       return Math.min(ratio, 1.0);
     }

@@ -14,13 +14,17 @@ import {
   ShadingType,
 } from 'docx';
 import sharp from 'sharp';
-import { TrussCalculationResult, CanopyRoofType, MaterialItem, LoadResult } from '../truss/types';
+import { TrussCalculationResult, CanopyRoofType, MaterialItem, LoadResult, TrussElementDetail } from '../truss/types';
 
 const COL_WIDTHS = {
-  NUM: 6,
+  NUM: 5,
   NAME: 30,
-  PROFILE: 15,
+  TYPE: 15,
   LENGTH: 10,
+  BOTTOM_ANGLE: 12,
+  TOP_ANGLE: 12,
+  PROFILE: 18,
+  THICKNESS: 10,
   COUNT: 8,
   WEIGHT: 10,
   PRICE: 10,
@@ -79,7 +83,7 @@ export interface TrussWordData {
 
 export async function generateTrussWord(data: TrussWordData): Promise<Buffer> {
   const { canopyType, width, length, ridgeHeight, wallHeight, trussSpacing, roofCoveringName, calculation } = data;
-  const { loads, materialList, svgDrawing, safetyFactor, allProfilesPassed } = calculation;
+  const { loads, materialList, svgDrawing, safetyFactor, allProfilesPassed, elementDetails, archProfileLength } = calculation;
 
   const pngBuffer = await svgToPng(svgDrawing);
 
@@ -201,12 +205,47 @@ export async function generateTrussWord(data: TrussWordData): Promise<Buffer> {
 
   children.push(
     new Paragraph({
-      children: [new TextRun({ text: '5. Примечание', bold: true, size: 22, font: 'Times New Roman' })],
+      children: [new TextRun({ text: '5. Детализация элементов фермы', bold: true, size: 22, font: 'Times New Roman' })],
+      spacing: { before: 300, after: 100 },
+      pageBreakBefore: true,
+    }),
+  );
+
+  children.push(
+    new Paragraph({
+      children: [new TextRun({
+        text: 'Таблица содержит полный перечень элементов фермы с длинами, углами запила, профилем и количеством одинаковых деталей.',
+        size: 16, font: 'Times New Roman', italics: true, color: '6b7280',
+      })],
+      spacing: { after: 100 },
+    }),
+  );
+
+  if (archProfileLength && (canopyType === 'ARCH' || canopyType === 'SINGLE_SLOPE_CURVED')) {
+    const bendDescription = canopyType === 'ARCH'
+      ? `Радиус гибки рассчитан на основе ширины навеса (${width} мм) и высоты центральной стойки (${ridgeHeight} мм).`
+      : `Длина профиля рассчитана на основе ширины навеса (${width} мм) и высоты подъёма дуги (${ridgeHeight} мм).`;
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'Арочный пояс: ', bold: true, size: 18, font: 'Times New Roman' }),
+          new TextRun({ text: `длина профиля для гибки = ${Math.round(archProfileLength)} мм (${(archProfileLength / 1000).toFixed(2)} м). ${bendDescription}`, size: 18, font: 'Times New Roman' }),
+        ],
+        spacing: { after: 100 },
+      }),
+    );
+  }
+
+  children.push(createElementDetailsTable(elementDetails));
+
+  children.push(
+    new Paragraph({
+      children: [new TextRun({ text: '6. Примечание', bold: true, size: 22, font: 'Times New Roman' })],
       spacing: { before: 200, after: 100 },
     }),
     new Paragraph({
       children: [new TextRun({
-        text: 'Расчёт выполнен в соответствии с СП 20.13330.2016 «Нагрузки и воздействия» для снегового района III (Московская область). Данный расчёт является предварительным и не заменяет полноценный инженерный расчёт с сертификацией.',
+        text: 'Расчёт выполнен в соответствии с СП 20.13330.2016 «Нагрузки и воздействия» для снегового района III (Московская область). Данный расчёт является предварительным и не заменяет полноценный инженерный расчёт с сертификацией. Углы запила указаны как угол между элементом и поясом фермы в точке соединения.',
         size: 16, font: 'Times New Roman', italics: true, color: '6b7280',
       })],
       spacing: { after: 200 },
@@ -366,6 +405,80 @@ function createMaterialTable(materials: MaterialItem[]): Table {
       new TableCell({ columnSpan: 4, shading: { fill: 'e2e8f0', type: ShadingType.SOLID, color: 'e2e8f0' }, children: [new Paragraph({ children: [new TextRun({ text: 'ИТОГО', bold: true, size: 18, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT })] }),
       new TableCell({ shading: { fill: 'e2e8f0', type: ShadingType.SOLID, color: 'e2e8f0' }, children: [new Paragraph({ children: [new TextRun({ text: totalW.toFixed(1), bold: true, size: 18, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })] }),
       new TableCell({ shading: { fill: 'e2e8f0', type: ShadingType.SOLID, color: 'e2e8f0' }, children: [new Paragraph({ children: [new TextRun({ text: totalP.toFixed(0), bold: true, size: 18, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT })] }),
+    ],
+  });
+
+  return new Table({
+    rows: [header, ...dataRows, totalRow],
+    width: { size: 100, type: WidthType.PERCENTAGE },
+  });
+}
+
+function createElementDetailsTable(details: TrussElementDetail[]): Table {
+  const header = new TableRow({
+    children: [
+      createHeaderCell('№', 5),
+      createHeaderCell('Тип элемента', 14),
+      createHeaderCell('Длина (мм)', 10),
+      createHeaderCell('Угол запила снизу (°)', 12),
+      createHeaderCell('Угол запила сверху (°)', 12),
+      createHeaderCell('Профиль', 18),
+      createHeaderCell('Толщина', 9),
+      createHeaderCell('Кол-во (шт)', 9),
+    ],
+  });
+
+  const typeLabels: Record<string, string> = {
+    bottom_chord: 'Нижний пояс',
+    top_chord: 'Верхний пояс',
+    vertical: 'Вертикальная стойка',
+    diagonal: 'Диагональный раскос',
+  };
+
+  const dataRows = details.map((d, i) =>
+    new TableRow({
+      children: [
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: `${i + 1}`, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })],
+        }),
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: `${typeLabels[d.elementType] || d.elementType} (${d.elementLabel})`, size: 16, font: 'Times New Roman' })] })],
+        }),
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: `${d.length}`, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })],
+        }),
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: `${d.bottomCutAngle}°`, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })],
+        }),
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: `${d.topCutAngle}°`, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })],
+        }),
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: d.profileName, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })],
+        }),
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: d.profileThickness, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })],
+        }),
+        new TableCell({
+          shading: i % 2 === 0 ? { fill: 'f1f5f9', type: ShadingType.SOLID, color: 'f1f5f9' } : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text: `${d.quantity}`, bold: d.quantity > 1, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })],
+        }),
+      ],
+    })
+  );
+
+  const totalItems = details.reduce((s, d) => s + d.quantity, 0);
+  const totalRow = new TableRow({
+    children: [
+      new TableCell({ columnSpan: 7, shading: { fill: 'e2e8f0', type: ShadingType.SOLID, color: 'e2e8f0' }, children: [new Paragraph({ children: [new TextRun({ text: `ИТОГО элементов (с учётом одинаковых):`, bold: true, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.RIGHT })] }),
+      new TableCell({ shading: { fill: 'e2e8f0', type: ShadingType.SOLID, color: 'e2e8f0' }, children: [new Paragraph({ children: [new TextRun({ text: `${totalItems}`, bold: true, size: 16, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })] }),
     ],
   });
 

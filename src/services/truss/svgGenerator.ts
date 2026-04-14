@@ -1,8 +1,20 @@
-import { TrussGeometryResult, CanopyRoofType } from './types';
+import { TrussGeometryResult, CanopyRoofType, TrussNode, TrussMember } from './types';
 
 const SVG_WIDTH = 900;
 const SVG_HEIGHT = 500;
 const PADDING = 100;
+
+interface TextLabel {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  fontSize: number;
+  anchor: string;
+  fill: string;
+  fontWeight?: string;
+}
 
 function toSvgCoord(x: number, y: number, scale: number, maxY: number): { sx: number; sy: number } {
   return {
@@ -11,8 +23,62 @@ function toSvgCoord(x: number, y: number, scale: number, maxY: number): { sx: nu
   };
 }
 
+function rectsOverlap(a: TextLabel, b: TextLabel, margin: number): boolean {
+  return !(a.x + a.width / 2 + margin < b.x - b.width / 2 - margin ||
+           a.x - a.width / 2 - margin > b.x + b.width / 2 + margin ||
+           a.y + a.height / 2 + margin < b.y - b.height / 2 - margin ||
+           a.y - a.height / 2 - margin > b.y + b.height / 2 + margin);
+}
+
+function resolveOverlaps(labels: TextLabel[], maxIterations: number = 30): void {
+  const step = 10;
+  const margin = 3;
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    let hasOverlap = false;
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = i + 1; j < labels.length; j++) {
+        if (rectsOverlap(labels[i], labels[j], margin)) {
+          hasOverlap = true;
+          const directions = [
+            { dx: 0, dy: -step },
+            { dx: 0, dy: step },
+            { dx: -step, dy: 0 },
+            { dx: step, dy: 0 },
+            { dx: -step * 0.7, dy: -step * 0.7 },
+            { dx: step * 0.7, dy: -step * 0.7 },
+            { dx: -step * 0.7, dy: step * 0.7 },
+            { dx: step * 0.7, dy: step * 0.7 },
+          ];
+          for (const dir of directions) {
+            const origX = labels[j].x;
+            const origY = labels[j].y;
+            labels[j].x += dir.dx;
+            labels[j].y += dir.dy;
+            let stillOverlaps = false;
+            for (let k = 0; k < labels.length; k++) {
+              if (k !== j && rectsOverlap(labels[j], labels[k], margin)) {
+                stillOverlaps = true;
+                break;
+              }
+            }
+            if (!stillOverlaps) break;
+            labels[j].x = origX;
+            labels[j].y = origY;
+          }
+        }
+      }
+    }
+    if (!hasOverlap) break;
+  }
+}
+
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: CanopyRoofType): string {
-  const { nodes, members, span, ridgeHeight, wallHeight, panelLength, panelCount } = geometry;
+  const { nodes, members, span, ridgeHeight, wallHeight, panelLength, panelCount, edgeAngles } = geometry;
 
   const maxX = span;
   const maxY = Math.max(ridgeHeight, wallHeight);
@@ -28,6 +94,7 @@ export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: Cano
   }));
 
   const lines: string[] = [];
+  const labels: TextLabel[] = [];
 
   lines.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" style="background:#fff;font-family:'DejaVu Sans',Arial,Helvetica,sans-serif">`);
 
@@ -76,16 +143,30 @@ export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: Cano
   const ridgeNode = svgNodes.find(n => n.type === 'ridge');
   const lastTop = svgNodes.filter(n => n.type === 'top' || n.type === 'ridge').slice(-1)[0];
 
-  if (firstTop) {
-    const dimX = Math.min(firstTop.sx, lastTop ? lastTop.sx : firstTop.sx) - 50;
-    lines.push(drawDimensionLine(dimX, firstTop.sy, dimX, firstBottom ? firstBottom.sy : firstTop.sy + 100, `${Math.round(firstTop.y)} мм`, true));
+  if (firstTop && firstBottom) {
+    const dimX = Math.min(firstTop.sx, lastTop ? lastTop.sx : firstTop.sx) - 55;
+    lines.push(drawDimensionLine(dimX, firstTop.sy, dimX, firstBottom.sy, `${Math.round(firstTop.y)} мм`, true));
   }
 
   if (ridgeNode && firstBottom) {
-    const dimX = ridgeNode.sx + 50;
+    const dimX = ridgeNode.sx + 55;
     const corrBottom = svgNodes.find(n => n.type === 'bottom' && Math.abs(n.x - ridgeNode.x) < panelLength * 0.5);
     if (corrBottom) {
       lines.push(drawDimensionLine(dimX, ridgeNode.sy, dimX, corrBottom.sy, `${Math.round(ridgeNode.y)} мм`, true));
+    }
+  }
+
+  if (edgeAngles) {
+    const leftTopNode = svgNodes.find(n => n.type === 'top');
+    const leftBottomNode = svgNodes.find(n => n.type === 'bottom');
+    if (leftTopNode && leftBottomNode && edgeAngles.leftAngle > 0) {
+      addLabel(labels, leftTopNode.sx + 10, leftTopNode.sy - 14, `α=${edgeAngles.leftAngle}°`, 11, 'start', '#dc2626', 'bold');
+    }
+
+    const rightTopNode = svgNodes.filter(n => n.type === 'top' || n.type === 'ridge').slice(-1)[0];
+    const rightBottomNode = svgNodes.filter(n => n.type === 'bottom').slice(-1)[0];
+    if (rightTopNode && rightBottomNode && edgeAngles.rightAngle !== undefined && edgeAngles.rightAngle > 0) {
+      addLabel(labels, rightTopNode.sx - 10, rightTopNode.sy - 14, `α=${edgeAngles.rightAngle}°`, 11, 'end', '#dc2626', 'bold');
     }
   }
 
@@ -96,7 +177,7 @@ export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: Cano
       const angle = geometry.slopeAngle;
       const midX = (leftTop.sx + rightTop.sx) / 2;
       const midY = (leftTop.sy + rightTop.sy) / 2 - 15;
-      lines.push(`<text x="${midX}" y="${midY}" text-anchor="middle" font-size="11" fill="#6b7280">α=${angle}°</text>`);
+      addLabel(labels, midX, midY, `уклон=${angle}°`, 11, 'middle', '#6b7280');
     }
   }
 
@@ -104,9 +185,52 @@ export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: Cano
     if (ridgeNode) {
       const leftTop = svgNodes.filter(n => n.type === 'top').slice(-1)[0];
       if (leftTop) {
-        lines.push(`<text x="${(leftTop.sx + ridgeNode.sx) / 2}" y="${(leftTop.sy + ridgeNode.sy) / 2 - 12}" text-anchor="middle" font-size="11" fill="#6b7280">α=${geometry.slopeAngle}°</text>`);
+        addLabel(labels, (leftTop.sx + ridgeNode.sx) / 2, (leftTop.sy + ridgeNode.sy) / 2 - 14, `уклон=${geometry.slopeAngle}°`, 11, 'middle', '#6b7280');
       }
     }
+  }
+
+  for (const member of members) {
+    if (member.type === 'diagonal' && member.diagonalAngles) {
+      const start = svgNodes.find(n => n.id === member.startNodeId);
+      const end = svgNodes.find(n => n.id === member.endNodeId);
+      if (!start || !end) continue;
+
+      const midX = (start.sx + end.sx) / 2;
+      const midY = (start.sy + end.sy) / 2;
+      const offsetY = start.sy > end.sy ? -12 : 12;
+      const offsetX = start.sx < end.sx ? 8 : -8;
+
+      const txt = `β₁=${member.diagonalAngles.angleToBottomChord}° β₂=${member.diagonalAngles.angleToTopChord}°`;
+      addLabel(labels, midX + offsetX, midY + offsetY, txt, 7, 'middle', '#7c3aed');
+    }
+  }
+
+  for (const member of members) {
+    if (member.type === 'vertical' && member.cutAngles) {
+      const start = svgNodes.find(n => n.id === member.startNodeId);
+      const end = svgNodes.find(n => n.id === member.endNodeId);
+      if (!start || !end) continue;
+
+      const midX = (start.sx + end.sx) / 2;
+      const midY = (start.sy + end.sy) / 2;
+      const offsetX = 20;
+
+      const txt = `γ₁=${member.cutAngles.bottomCutAngle}° γ₂=${member.cutAngles.topCutAngle}°`;
+      addLabel(labels, midX + offsetX, midY + 3, txt, 7, 'start', '#059669');
+    }
+  }
+
+  for (const label of labels) {
+    label.width = label.text.length * label.fontSize * 0.52;
+    label.height = label.fontSize + 4;
+  }
+
+  resolveOverlaps(labels);
+
+  for (const label of labels) {
+    const weight = label.fontWeight ? ` font-weight="${label.fontWeight}"` : '';
+    lines.push(`<text x="${label.x}" y="${label.y}" text-anchor="${label.anchor}" font-size="${label.fontSize}"${weight} fill="${label.fill}">${escapeXml(label.text)}</text>`);
   }
 
   const legendY = SVG_HEIGHT - 30;
@@ -115,11 +239,12 @@ export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: Cano
     { color: '#059669', label: 'Вертикальные стойки' },
     { color: '#dc2626', label: 'Диагональные раскосы' },
     { color: '#f59e0b', label: 'Коньковый узел' },
+    { color: '#7c3aed', label: 'Углы раскосов' },
   ];
   legendItems.forEach((item, i) => {
-    const lx = 30 + i * 200;
+    const lx = 20 + i * 170;
     lines.push(`<rect x="${lx}" y="${legendY - 10}" width="16" height="16" fill="${item.color}" rx="2"/>`);
-    lines.push(`<text x="${lx + 22}" y="${legendY + 3}" font-size="11" fill="#374151">${item.label}</text>`);
+    lines.push(`<text x="${lx + 22}" y="${legendY + 3}" font-size="10" fill="#374151">${item.label}</text>`);
   });
 
   const scaleMm = 1000;
@@ -130,6 +255,16 @@ export function generateTrussSvg(geometry: TrussGeometryResult, canopyType: Cano
 
   lines.push('</svg>');
   return lines.join('\n');
+}
+
+function addLabel(
+  labels: TextLabel[],
+  x: number, y: number,
+  text: string, fontSize: number,
+  anchor: string, fill: string,
+  fontWeight?: string,
+): void {
+  labels.push({ x, y, width: text.length * fontSize * 0.52, height: fontSize + 4, text, fontSize, anchor, fill, fontWeight });
 }
 
 function drawDimensionLine(x1: number, y1: number, x2: number, y2: number, label: string, vertical = false): string {

@@ -5,6 +5,7 @@ import {
   ProfileRecommendation,
   TrussProfileData,
   TrussGeometryResult,
+  TrussElementDetail,
 } from './types';
 import { calculateLoads } from './loadCalculator';
 import { calculateTrussGeometry } from './trussGeometry';
@@ -173,6 +174,10 @@ export function calculateTruss(
   const totalWeight = materialList.reduce((sum, m) => sum + m.totalWeight, 0);
   const totalPrice = materialList.reduce((sum, m) => sum + m.totalPrice, 0);
 
+  const elementDetails = buildElementDetails(geometry, input);
+
+  const archProfileLength = geometry.archProfileBendLength;
+
   const svgDrawing = generateTrussSvg(geometry, input.canopyType);
 
   return {
@@ -187,7 +192,112 @@ export function calculateTruss(
     totalWeight: Math.round(totalWeight * 10) / 10,
     totalPrice: Math.round(totalPrice * 10) / 10,
     svgDrawing,
+    elementDetails,
+    archProfileLength,
   };
+}
+
+function getProfileForType(
+  memberType: string,
+  input: TrussCalculationInput,
+): string {
+  switch (memberType) {
+    case 'bottom_chord': return input.crossbeamProfileName;
+    case 'top_chord':
+      return (input.canopyType === 'ARCH' || input.canopyType === 'SINGLE_SLOPE_CURVED')
+        ? (input.archProfileName ?? input.strutProfileName) : input.crossbeamProfileName;
+    default: return input.strutProfileName;
+  }
+}
+
+function extractThickness(profileName: string): string {
+  const match = profileName.match(/(\d+[.,]?\d*)\s*(?:мм|mm)/i);
+  if (match) return match[1].replace(',', '.');
+  const thickMatch = profileName.match(/(\d+(?:[.,]\d+)?)\s*[×xX]\s*\d+(?:[.,]\d+)?(?:[×xX]\s*(\d+(?:[.,]\d+)?))?/);
+  if (thickMatch) {
+    return thickMatch[2] ? thickMatch[2].replace(',', '.') : thickMatch[1].replace(',', '.');
+  }
+  const numMatch = profileName.match(/(\d+[.,]?\d*)$/);
+  return numMatch ? numMatch[1].replace(',', '.') : '—';
+}
+
+function buildElementDetails(
+  geometry: TrussGeometryResult,
+  input: TrussCalculationInput,
+): TrussElementDetail[] {
+  const details: TrussElementDetail[] = [];
+  let vertIdx = 0;
+  let diagIdx = 0;
+  let bottomChordIdx = 0;
+  let topChordIdx = 0;
+
+  const sortedMembers = [...geometry.members].sort((a, b) => {
+    const typeOrder = { bottom_chord: 0, top_chord: 1, vertical: 2, diagonal: 3 };
+    const ao = typeOrder[a.type] ?? 4;
+    const bo = typeOrder[b.type] ?? 4;
+    if (ao !== bo) return ao - bo;
+    return a.id - b.id;
+  });
+
+  for (const member of sortedMembers) {
+    const profileName = getProfileForType(member.type, input);
+    const thickness = extractThickness(profileName);
+
+    let label = '';
+    switch (member.type) {
+      case 'bottom_chord': label = `НП-${++bottomChordIdx}`; break;
+      case 'top_chord': label = `ВП-${++topChordIdx}`; break;
+      case 'vertical': label = `Стойка-${++vertIdx}`; break;
+      case 'diagonal': label = `Раскос-${++diagIdx}`; break;
+    }
+
+    details.push({
+      elementType: member.type,
+      elementLabel: label,
+      length: Math.round(member.length),
+      bottomCutAngle: member.cutAngles?.bottomCutAngle ?? 90,
+      topCutAngle: member.cutAngles?.topCutAngle ?? 90,
+      profileName,
+      profileThickness: thickness,
+      quantity: 1,
+    });
+  }
+
+  return groupIdenticalElements(details);
+}
+
+function groupIdenticalElements(details: TrussElementDetail[]): TrussElementDetail[] {
+  const grouped: TrussElementDetail[] = [];
+  const used = new Set<number>();
+
+  for (let i = 0; i < details.length; i++) {
+    if (used.has(i)) continue;
+    const d = details[i];
+    let count = 1;
+    used.add(i);
+
+    for (let j = i + 1; j < details.length; j++) {
+      if (used.has(j)) continue;
+      const other = details[j];
+      if (
+        other.elementType === d.elementType &&
+        Math.abs(other.length - d.length) <= 1 &&
+        Math.abs(other.bottomCutAngle - d.bottomCutAngle) <= 0.5 &&
+        Math.abs(other.topCutAngle - d.topCutAngle) <= 0.5 &&
+        other.profileName === d.profileName
+      ) {
+        count++;
+        used.add(j);
+      }
+    }
+
+    grouped.push({
+      ...d,
+      quantity: count,
+    });
+  }
+
+  return grouped;
 }
 
 function calculateMaterials(

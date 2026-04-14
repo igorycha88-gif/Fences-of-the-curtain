@@ -68,6 +68,7 @@ export async function GET(
         totalWeight: materialList.reduce((s: number, m: any) => s + (m.totalWeight ?? 0), 0),
         totalPrice: materialList.reduce((s: number, m: any) => s + (m.totalPrice ?? 0), 0),
         svgDrawing: calc.svgDrawing ?? '',
+        elementDetails: [],
       },
     });
 

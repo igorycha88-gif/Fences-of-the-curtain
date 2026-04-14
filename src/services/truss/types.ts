@@ -41,6 +41,14 @@ export interface TrussMember {
   type: 'bottom_chord' | 'top_chord' | 'vertical' | 'diagonal';
   length: number;
   angle: number;
+  diagonalAngles?: {
+    angleToBottomChord: number;
+    angleToTopChord: number;
+  };
+  cutAngles?: {
+    bottomCutAngle: number;
+    topCutAngle: number;
+  };
 }
 
 export interface TrussGeometryResult {
@@ -54,6 +62,11 @@ export interface TrussGeometryResult {
   panelLength: number;
   panelCount: number;
   roofArea: number;
+  edgeAngles?: {
+    leftAngle: number;
+    rightAngle?: number;
+  };
+  archProfileBendLength?: number;
 }
 
 export interface ProfileCheckResult {
@@ -85,6 +98,17 @@ export interface MaterialItem {
   totalWeight: number;
   pricePerMeter: number;
   totalPrice: number;
+}
+
+export interface TrussElementDetail {
+  elementType: 'vertical' | 'diagonal' | 'bottom_chord' | 'top_chord';
+  elementLabel: string;
+  length: number;
+  bottomCutAngle: number;
+  topCutAngle: number;
+  profileName: string;
+  profileThickness: string;
+  quantity: number;
 }
 
 export interface TrussCalculationInput {
@@ -153,6 +177,8 @@ export interface TrussCalculationResult {
   totalWeight: number;
   totalPrice: number;
   svgDrawing: string;
+  elementDetails: TrussElementDetail[];
+  archProfileLength?: number;
 }
 
 export interface TrussProfileData {

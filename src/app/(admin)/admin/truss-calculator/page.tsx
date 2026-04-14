@@ -168,6 +168,9 @@ export default function TrussCalculatorPage() {
                 totalWeight={result.totalWeight}
                 totalPrice={result.totalPrice}
                 recommendations={result.recommendations}
+                elementDetails={result.elementDetails || []}
+                archProfileLength={result.archProfileLength}
+                canopyType={formData?.canopyType || 'SINGLE_SLOPE'}
               />
               <div className="flex gap-3">
                 <button

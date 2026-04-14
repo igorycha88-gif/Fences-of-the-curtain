@@ -151,7 +151,7 @@ export default function TrussCalculatorForm({ onCalculate, loading }: Props) {
               type="number"
               value={form.ridgeHeight}
               onChange={e => handleChange('ridgeHeight', Number(e.target.value))}
-              min={1500}
+              min={500}
               max={6000}
               step={100}
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
@@ -165,7 +165,7 @@ export default function TrussCalculatorForm({ onCalculate, loading }: Props) {
                 type="number"
                 value={form.wallHeight}
                 onChange={e => handleChange('wallHeight', Number(e.target.value))}
-                min={1500}
+                min={500}
                 max={6000}
                 step={100}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
