@@ -387,6 +387,8 @@ npm run build               # Production сборка
 | Стратегия | Пересборка всех контейнеров | Blue-Green (образ из GHCR) |
 | Откат | Не требуется | Автоматический при провале |
 | ЧТЗ | Обязателен | Не нужен (инфраструктурная операция) |
+| Версионирование | Нет | Обязательное (semver + git tag) |
+| Тестирование | Unit (Jest) | API автотесты + ручное E2E на проде |
 | Скилл | SKILL_DEVOPS.md | SKILL_DEVOPS_PROD.md |
 
 ### Маршрут продакшн-деплоя
@@ -400,6 +402,12 @@ npm run build               # Production сборка
   → проверка VPS доступности
   → проверка диска и .env
   → фиксация текущего состояния
+
+🏷️ VERSIONING:
+  → анализ коммитов → patch / minor / major
+  → npm version <type> --no-git-tag-version
+  → обновление CHANGELOG.md
+  → git commit + git tag v<version>
 
 💾 BACKUP:
   → pg_dump (бэкап БД)
@@ -425,9 +433,14 @@ npm run build               # Production сборка
   → SSL https://zabor-i-naves.ru → 200
   → логи без ошибок
 
+🧪 FULL TESTING:
+  → автотесты API (health, HTTP статусы, функциональность, SSL, perf)
+  → ручное E2E: главная, калькулятор, форма заявки, админка, SEO, мобильная
+  → вердикт: GO / CONDITIONAL GO / NO-GO
+
 📋 FINALIZE:
   → cleanup старых образов
-  → Telegram уведомление
+  → Telegram уведомление (с версией)
   → Deployment Report
 
 👁️ WATCH (5 мин):

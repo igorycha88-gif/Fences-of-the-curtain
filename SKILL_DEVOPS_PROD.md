@@ -135,6 +135,112 @@ ghcr.io/<owner>/fences-of-the-curtain/app:YYYYMMDD
 
 ---
 
+## Версионирование приложения
+
+### Принцип
+
+Каждый деплой на прод = новая версия в package.json (semver).
+Git tag `vMAJOR.MINOR.PATCH` создаётся перед деплоем.
+Версия отображается в `/api/health` → `version` и в Telegram уведомлениях.
+
+### Определение типа изменения
+
+| Тип | Коммиты | Пример | Версия |
+|-----|---------|--------|--------|
+| **patch** | fix:, refactor:, chore:, docs:, style: | `fix: починил форму` | 1.3.1 → 1.3.2 |
+| **minor** | feat: | `feat: новый калькулятор` | 1.3.1 → 1.4.0 |
+| **major** | feat!: или BREAKING CHANGE | `feat!: новый API` | 1.3.1 → 2.0.0 |
+
+### Команды версионирования
+
+```bash
+# Текущая версия
+grep '"version"' package.json | head -1 | sed 's/.*: "//;s/".*//'
+
+# Список изменений с прошлой версии
+git log v$(grep '"version"' package.json | head -1 | sed 's/.*: "//;s/".*//')..HEAD --oneline
+
+# Bump версии (patch / minor / major)
+npm version patch --no-git-tag-version   # 1.3.1 → 1.3.2
+npm version minor --no-git-tag-version   # 1.3.1 → 1.4.0
+npm version major --no-git-tag-version   # 1.3.1 → 2.0.0
+
+# Git commit + tag
+git add package.json package-lock.json CHANGELOG.md
+git commit -m "chore: release v1.3.2"
+git tag -a "v1.3.2" -m "Release v1.3.2: $(date +%Y-%m-%d)"
+```
+
+### CHANGELOG.md
+
+Формат при добавлении записи:
+```markdown
+## [1.3.2] - 2026-04-14
+
+### Исправлено
+- fix: починил валидацию формы (abc1234)
+- fix: исправил баг с Redis (def5678)
+
+### Добавлено
+- feat: новый калькулятор 3D-панели (ghi9012)
+```
+
+### Версия в /api/health
+
+Health endpoint возвращает `version` из `process.env.npm_package_version`.
+В Docker контейнере эта переменная устанавливается автоматически из `package.json`
+при запуске через `node server.js` (Next.js standalone).
+
+---
+
+## Полное тестирование на проде
+
+### Обзор
+
+После успешного деплоя и верификации — проводится **полное тестирование**
+на рабочем проде. Делится на два блока:
+
+| Блок | Тип | Количество | Автоматический? |
+|------|-----|------------|-----------------|
+| A: API-тесты | curl + grep | 6 тестов | Да (SSH на VPS) |
+| B: E2E ручные | Браузер | 6 чеклистов | Нет (пользователь) |
+
+### Блок A: Автоматические API-тесты
+
+Выполняются через SSH на VPS. Не требуют участия пользователя.
+
+| ID | Тест | Проверка | Critical |
+|----|------|----------|----------|
+| FT1 | Health endpoint | status=ok, version=X.X.X, db=true, redis=true | **Да** |
+| FT2 | HTTP статусы | /, /api/health, /admin/login, /api/materials → 200 | **Да** |
+| FT3 | API функциональность | /api/materials возвращает данные, структура ответа | **Да** |
+| FT4 | SSL + Headers | HTTPS, HSTS, X-Frame-Options, redirect | Нет |
+| FT5 | Performance | Время ответа < 3s (internal + external) | Нет |
+| FT6 | Логи | Нет fatal/panic/unhandled за время деплоя | Нет |
+
+### Блок B: Ручное E2E тестирование
+
+Выводится чеклист. Пользователь проверяет в браузере и отвечает «Да/Нет».
+
+| ID | Тест | Что проверять | Critical |
+|----|------|---------------|----------|
+| FT7 | Главная страница | Загрузка, шапка, навигация, футер, мобильная | **Да** |
+| FT8 | Калькулятор | Выбор типа, ввод параметров, расчёт, результат | **Да** |
+| FT9 | Форма заявки | Поля, валидация, отправка, reCAPTCHA | **Да** |
+| FT10 | Админ-панель | /admin/login, форма логина, ошибки | Нет |
+| FT11 | SEO | Title, description, OG, метрики, sitemap | Нет |
+| FT12 | Мобильная версия | Бургер-меню, адаптивность, кнопки, скролл | Нет |
+
+### Вердикт тестирования
+
+| Результат | Условие | Действие |
+|-----------|---------|----------|
+| **GO** | Все critical = ✅ | → FINALIZE |
+| **CONDITIONAL GO** | critical = ✅, есть warnings | → FINALIZE (с замечаниями) |
+| **NO-GO** | Хотя бы один critical = ❌ | → АВТОМАТИЧЕСКИЙ ОТКАТ |
+
+---
+
 ## Команды продакшн-деплоя
 
 ### Pre-flight
