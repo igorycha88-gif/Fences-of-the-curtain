@@ -26,6 +26,7 @@ model User {
   referenceChangeLogs  ReferenceChangeLog[]
   notificationSettings UserNotificationSettings?
   auditLogs            AuditLog[]
+  trussCalculations    TrussCalculation[]
 }
 
 model FenceMaterial {
@@ -783,4 +784,143 @@ enum OrderStatus {
   INSTALLATION
   COMPLETED
   CANCELLED
+}
+
+enum TrussProfileCategory {
+  POST
+  CROSSBEAM
+  STRUT
+  ARCH
+}
+
+enum CanopyRoofType {
+  SINGLE_SLOPE
+  DOUBLE_SLOPE
+  ARCH
+  SINGLE_SLOPE_CURVED
+}
+
+model TrussProfileType {
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  category              TrussProfileCategory
+  sectionWidth          Float
+  sectionHeight         Float
+  wallThickness         Float
+  length                Float    @default(6.0)
+  steelGrade            String   @default("S235")
+  yieldStrength         Float    @default(235)
+  sectionArea           Float
+  momentOfInertiaX      Float
+  momentOfInertiaY      Float
+  sectionModulusX       Float
+  sectionModulusY       Float
+  radiusOfGyrationX     Float
+  radiusOfGyrationY     Float
+  weightPerMeter        Float
+  retailPricePerMeter   Float
+  purchasePricePerMeter Float?
+  retailPricePerUnit    Float    @default(0)
+  purchasePricePerUnit  Float?
+  image                 String?
+  isActive              Boolean  @default(true)
+  priority              Int      @default(0)
+  validFrom             DateTime?
+  expirationDate        DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  calcsPost        TrussCalculation[] @relation("CalcPost")
+  calcsCrossbeam   TrussCalculation[] @relation("CalcCrossbeam")
+  calcsStrut       TrussCalculation[] @relation("CalcStrut")
+  calcsArch        TrussCalculation[] @relation("CalcArch")
+
+  @@index([category])
+  @@index([isActive])
+  @@index([priority])
+  @@index([sectionWidth, sectionHeight, wallThickness])
+  @@index([validFrom])
+  @@index([expirationDate])
+}
+
+model TrussRoofCovering {
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  weightPerSqm        Float
+  thickness           Float?
+  width               Float?
+  usefulWidth         Float?
+  standardLength      Float?
+  coating             String?
+  coatingType         String?
+  color               String?
+  retailPricePerSqm   Float
+  purchasePricePerSqm Float?
+  image               String?
+  isActive            Boolean  @default(true)
+  priority            Int      @default(0)
+  validFrom           DateTime?
+  expirationDate      DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  calculations TrussCalculation[]
+
+  @@index([isActive])
+  @@index([priority])
+  @@index([validFrom])
+  @@index([expirationDate])
+}
+
+model TrussCalculation {
+  id                   String             @id @default(cuid())
+  name                 String?
+  canopyType           CanopyRoofType
+  width                Float
+  length               Float
+  ridgeHeight          Float
+  wallHeight           Float?
+  trussSpacing         Float
+  roofCoveringId       String
+  snowRegion           String             @default("III")
+  postProfileId        String
+  crossbeamProfileId   String
+  strutProfileId       String
+  archProfileId        String?
+  snowLoad             Float
+  windLoad             Float
+  deadLoad             Float
+  totalLoad            Float
+  snowLoadNormative    Float    @default(0)
+  windLoadNormative    Float    @default(0)
+  deadLoadNormative    Float    @default(0)
+  totalLoadNormative   Float    @default(0)
+  loadPerTruss         Float
+  safetyFactor         Float
+  trussGeometry        Json
+  materialList         Json
+  profileRecommendations Json?
+  svgDrawing           String?  @default("")
+  snowCoeffMu          Float    @default(1.0)
+  windCoeffC           Float    @default(0.3)
+  windHeightCoeff      Float    @default(0.5)
+  slopeAngle           Float    @default(0)
+  isActive             Boolean            @default(true)
+  createdBy            String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  roofCovering    TrussRoofCovering @relation(fields: [roofCoveringId], references: [id])
+  postProfile     TrussProfileType  @relation("CalcPost", fields: [postProfileId], references: [id])
+  crossbeamProfile TrussProfileType @relation("CalcCrossbeam", fields: [crossbeamProfileId], references: [id])
+  strutProfile    TrussProfileType  @relation("CalcStrut", fields: [strutProfileId], references: [id])
+  archProfile     TrussProfileType? @relation("CalcArch", fields: [archProfileId], references: [id])
+  user            User?             @relation(fields: [createdBy], references: [id])
+
+  @@index([canopyType])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([isActive])
 }

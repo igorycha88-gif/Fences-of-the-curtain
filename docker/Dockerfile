@@ -3,6 +3,9 @@ FROM node:20-bullseye-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    fontconfig \
+    fonts-dejavu-core \
+    && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

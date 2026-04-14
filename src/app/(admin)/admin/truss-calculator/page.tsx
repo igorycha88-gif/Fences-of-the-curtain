@@ -1,0 +1,215 @@
+'use client';
+
+import { useState } from 'react';
+import TrussCalculatorForm from '@/components/admin/TrussCalculator/TrussCalculatorForm';
+import TrussDrawing from '@/components/admin/TrussCalculator/TrussDrawing';
+import LoadReport from '@/components/admin/TrussCalculator/LoadReport';
+import MaterialList from '@/components/admin/TrussCalculator/MaterialList';
+import { TrussCalculationResult, CanopyRoofType } from '@/services/truss/types';
+import toast from 'react-hot-toast';
+
+interface CalculationFormState {
+  canopyType: CanopyRoofType;
+  width: number;
+  length: number;
+  ridgeHeight: number;
+  wallHeight: number;
+  trussSpacing: number;
+  roofCoveringId: string;
+  postProfileId: string;
+  crossbeamProfileId: string;
+  strutProfileId: string;
+  archProfileId: string;
+}
+
+export default function TrussCalculatorPage() {
+  const [result, setResult] = useState<TrussCalculationResult | null>(null);
+  const [roofCoveringName, setRoofCoveringName] = useState('');
+  const [formData, setFormData] = useState<CalculationFormState | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+
+  const handleCalculate = async (form: CalculationFormState) => {
+    setLoading(true);
+    setResult(null);
+    setSavedId(null);
+    try {
+      const res = await fetch('/api/admin/truss-calculations/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Ошибка расчёта');
+        return;
+      }
+      setResult(data.result);
+      setRoofCoveringName(data.roofCoveringName);
+      setFormData(form);
+    } catch (error) {
+      toast.error('Ошибка сети');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData || !result) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/truss-calculations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          name: `${getCanopyTypeName(formData.canopyType)} ${formData.width}x${formData.length}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Ошибка сохранения');
+        return;
+      }
+      setSavedId(data.id);
+      toast.success('Расчёт сохранён');
+    } catch {
+      toast.error('Ошибка сети');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!savedId) return;
+    try {
+      const res = await fetch(`/api/admin/truss-calculations/${savedId}/export`);
+      if (!res.ok) {
+        toast.error('Ошибка экспорта');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ТЗ_Навес_${formData?.canopyType || 'calc'}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Ошибка экспорта');
+    }
+  };
+
+  const handleQuickExport = async () => {
+    if (!formData || !result) return;
+    setSaving(true);
+    try {
+      const saveRes = await fetch('/api/admin/truss-calculations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          name: `${getCanopyTypeName(formData.canopyType)} ${formData.width}x${formData.length}`,
+        }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) {
+        toast.error(saveData.error || 'Ошибка сохранения');
+        return;
+      }
+      setSavedId(saveData.id);
+
+      const exportRes = await fetch(`/api/admin/truss-calculations/${saveData.id}/export`);
+      if (!exportRes.ok) {
+        toast.error('Ошибка экспорта');
+        return;
+      }
+      const blob = await exportRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ТЗ_Навес_${getCanopyTypeName(formData.canopyType)}_${formData.width}x${formData.length}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Word-документ скачан');
+    } catch {
+      toast.error('Ошибка экспорта');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Калькулятор ферм</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Расчёт нагрузки и проектирование ферм для навесов (снеговой район III — Московская область)
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4">
+          <TrussCalculatorForm onCalculate={handleCalculate} loading={loading} />
+        </div>
+
+        <div className="lg:col-span-8 space-y-6">
+          {result && (
+            <>
+              <TrussDrawing svgString={result.svgDrawing} />
+              <LoadReport
+                loads={result.loads}
+                safetyFactor={result.safetyFactor}
+                allPassed={result.allProfilesPassed}
+              />
+              <MaterialList
+                materials={result.materialList}
+                totalWeight={result.totalWeight}
+                totalPrice={result.totalPrice}
+                recommendations={result.recommendations}
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !!savedId}
+                  className="flex-1 bg-white border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  {savedId ? '✓ Сохранено' : saving ? 'Сохранение...' : '💾 Сохранить расчёт'}
+                </button>
+                <button
+                  onClick={savedId ? handleExport : handleQuickExport}
+                  disabled={saving}
+                  className="flex-1 bg-primary text-white py-3 px-6 rounded-lg font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  📄 Скачать Word
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3">
+                Расчёт выполнен в соответствии с СП 20.13330.2016 «Нагрузки и воздействия» для снегового района III (Московская область).
+                Данный расчёт является предварительным и не заменяет полноценный инженерный расчёт.
+              </div>
+            </>
+          )}
+
+          {!result && !loading && (
+            <div className="bg-white rounded-lg border p-12 text-center">
+              <div className="text-gray-400 text-lg mb-2">📐</div>
+              <p className="text-gray-500">Заполните параметры навеса и нажмите «Рассчитать»</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getCanopyTypeName(type: CanopyRoofType): string {
+  switch (type) {
+    case 'SINGLE_SLOPE': return 'Односкатный';
+    case 'DOUBLE_SLOPE': return 'Двухскатный';
+    case 'ARCH': return 'Арочный';
+    case 'SINGLE_SLOPE_CURVED': return 'Односкатный_дуга';
+  }
+}
