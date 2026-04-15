@@ -65,10 +65,10 @@ export async function calculateProfnastil(
   
   const profnastils = await getActiveProfnastil();
 
-  const matchingProfnastils = profnastils.filter(
-    p => p.coating === coatingValue && p.length >= fenceHeightMm
-  );
-  
+  const matchingProfnastils = profnastils
+    .filter(p => p.coating === coatingValue && p.length >= fenceHeightMm)
+    .sort((a, b) => a.length - b.length || a.priority - b.priority);
+
   if (matchingProfnastils.length === 0) {
     const error: ProfnastilCalculationError = {
       error: 'NO_PROFNASTIL_FOUND',
