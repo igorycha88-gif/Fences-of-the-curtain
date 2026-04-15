@@ -96,6 +96,19 @@ describe('calculateProfnastil', () => {
       priority: 0,
       updatedAt: new Date(),
     },
+    {
+      id: 'test-prof-8',
+      name: 'Профнастил С8 0.5мм Полимерное одностороннее 2200мм',
+      metalThickness: 0.5,
+      fullWidth: 1200,
+      usefulWidth: 1150,
+      length: 2200,
+      coating: 'Полимерное (одностороннее)',
+      retailPricePerUnit: 1200,
+      active: true,
+      priority: 0,
+      updatedAt: new Date(),
+    },
   ];
 
   beforeAll(async () => {
@@ -202,6 +215,7 @@ describe('calculateProfnastil', () => {
   it('should select closest sheet when fence height is 2.2m (2200mm)', async () => {
     const result = await calculateProfnastil(50, 2.2, 'POLYMER_SINGLE');
 
-    expect(result.nomenclatureName).toContain('2,2м');
+    expect(result.nomenclatureId).toBe('test-prof-8');
+    expect(result.nomenclatureName).toContain('2200мм');
   });
 });
