@@ -46,7 +46,9 @@ export default function HomeFooter() {
             <ul className="space-y-2 text-muted-foreground text-sm">
               <li>{contactInfo.phone || 'Данные не указаны'}</li>
               <li>{contactInfo.email || 'Данные не указаны'}</li>
-              <li>Пн-Сб: 9:00 - 18:00</li>
+              <li>{contactInfo.workHours?.monFri ? `Пн-Пт: ${contactInfo.workHours.monFri}` : 'Пн-Пт: не указано'}</li>
+              {contactInfo.workHours?.sat && <li>Сб: {contactInfo.workHours.sat}</li>}
+              {contactInfo.workHours?.sun && <li>Вс: {contactInfo.workHours.sun}</li>}
             </ul>
           </div>
 

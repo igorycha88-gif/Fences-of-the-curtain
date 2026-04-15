@@ -1,72 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { MapPin, Phone, Mail, Clock, MessageSquare } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import { metrikaEvents } from '@/lib/seo/metrika';
-
-interface ContactInfoData {
-  address: string;
-  phone: string;
-  email: string;
-  workHours: {
-    monFri: string;
-    sat: string;
-    sun: string;
-  };
-  hasData: boolean;
-}
+import { useContactInfo } from '@/components/providers/ContactInfoProvider';
 
 export default function ContactsPage() {
-  const [contactInfoData, setContactInfoData] = useState<ContactInfoData | null>(null);
-
-  useEffect(() => {
-    fetchContactInfo();
-  }, []);
-
-  const fetchContactInfo = async () => {
-    try {
-      const response = await fetch('/api/contact-info');
-      const data = await response.json();
-      if (response.ok) {
-        setContactInfoData(data);
-      }
-    } catch (error) {
-      console.error('Error fetching contact info:', error);
-    }
-  };
+  const contactInfoData = useContactInfo();
 
   const contactInfo = [
     {
       icon: MapPin,
       title: 'Адрес',
-      content: contactInfoData?.address || 'Данные не указаны',
+      content: contactInfoData.address || 'Данные не указаны',
       href: null,
     },
     {
       icon: Phone,
       title: 'Телефон',
-      content: contactInfoData?.phone || 'Данные не указаны',
-      href: contactInfoData?.phone ? `tel:${contactInfoData.phone.replace(/\D/g, '')}` : null,
+      content: contactInfoData.phone || 'Данные не указаны',
+      href: contactInfoData.phone ? `tel:${contactInfoData.phone.replace(/\D/g, '')}` : null,
     },
     {
       icon: Mail,
       title: 'Email',
-      content: contactInfoData?.email || 'Данные не указаны',
-      href: contactInfoData?.email ? `mailto:${contactInfoData.email}` : null,
+      content: contactInfoData.email || 'Данные не указаны',
+      href: contactInfoData.email ? `mailto:${contactInfoData.email}` : null,
     },
     {
       icon: Clock,
       title: 'Режим работы',
-      content: contactInfoData?.workHours
+      content: contactInfoData.workHours?.monFri || contactInfoData.workHours?.sat || contactInfoData.workHours?.sun
         ? `Пн-Пт: ${contactInfoData.workHours.monFri || 'не указано'}\nСб: ${contactInfoData.workHours.sat || 'не указано'}\nВс: ${contactInfoData.workHours.sun || 'не указано'}`
         : 'Данные не указаны',
       href: null,
     },
   ];
 
-  const phoneForLink = contactInfoData?.phone
+  const phoneForLink = contactInfoData.phone
     ? contactInfoData.phone.replace(/\D/g, '')
     : '79001234567';
 
@@ -150,7 +122,7 @@ export default function ContactsPage() {
                     onClick={() => metrikaEvents.phoneClick()}
                   >
                     <Phone className="w-4 h-4" />
-                    {contactInfoData?.phone || '+74993901595'}
+                    {contactInfoData.phone || '+74993901595'}
                   </a>
                 </div>
               </AnimatedSection>
