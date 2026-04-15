@@ -26,9 +26,12 @@ if [ "$DB_READY" = "false" ]; then
     echo "[entrypoint] WARNING: Database check failed, proceeding anyway..."
 fi
 
-echo "[entrypoint] Running Prisma migrations..."
-if ! npx prisma@5.22.0 migrate deploy; then
-    echo "[entrypoint] WARNING: Prisma migrate deploy failed"
+echo "[entrypoint] Syncing database schema..."
+if ! npx prisma@5.22.0 db push --skip-generate 2>&1; then
+    echo "[entrypoint] WARNING: Prisma db push failed, trying migrate deploy as fallback..."
+    if ! npx prisma@5.22.0 migrate deploy 2>&1; then
+        echo "[entrypoint] WARNING: Prisma migrate deploy also failed"
+    fi
 fi
 
 echo "[entrypoint] Starting application..."
