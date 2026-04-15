@@ -3,6 +3,9 @@ FROM node:20-bullseye-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    fontconfig \
+    fonts-dejavu-core \
+    && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -23,7 +26,24 @@ FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
 
 ARG DATABASE_URL="postgresql://postgres:dummy@localhost:5432/fences"
+ARG NEXT_PUBLIC_SITE_URL="https://zabor-i-naves.ru"
+ARG NEXT_PUBLIC_RECAPTCHA_SITE_KEY=""
+ARG NEXT_PUBLIC_YANDEX_METRIKA_ID=""
+ARG NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=""
+ARG NEXT_PUBLIC_YANDEX_MAPS_API_KEY=""
+ARG NEXT_PUBLIC_YANDEX_ORG_ID=""
+ARG NEXT_PUBLIC_YANDEX_ORG_URL=""
+ARG NEXT_PUBLIC_BASE_URL="https://zabor-i-naves.ru"
+
 ENV DATABASE_URL=$DATABASE_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_RECAPTCHA_SITE_KEY=$NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+ENV NEXT_PUBLIC_YANDEX_METRIKA_ID=$NEXT_PUBLIC_YANDEX_METRIKA_ID
+ENV NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=$NEXT_PUBLIC_GOOGLE_ANALYTICS_ID
+ENV NEXT_PUBLIC_YANDEX_MAPS_API_KEY=$NEXT_PUBLIC_YANDEX_MAPS_API_KEY
+ENV NEXT_PUBLIC_YANDEX_ORG_ID=$NEXT_PUBLIC_YANDEX_ORG_ID
+ENV NEXT_PUBLIC_YANDEX_ORG_URL=$NEXT_PUBLIC_YANDEX_ORG_URL
+ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
@@ -68,6 +88,6 @@ USER nextjs
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://127.0.0.1:3001/api/health || exit 1
+    CMD curl -f http://127.0.0.1:${PORT:-3001}/api/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]

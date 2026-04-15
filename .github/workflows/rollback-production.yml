@@ -28,6 +28,7 @@ jobs:
   list-images:
     name: List Available Images
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -36,22 +37,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: List recent tags
-        run: |
-          echo "=== Recent image tags ==="
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          TOKEN=$(echo ${{ secrets.GITHUB_TOKEN }} | base64)
-          TAGS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://ghcr.io/v2/${{ github.repository }}/app/tags/list" 2>/dev/null || echo "{}")
-          echo "$TAGS" | python3 -m json.tool 2>/dev/null || echo "Could not list tags (may need GHCR package permissions)"
-          echo ""
-          echo "Rolling back to: ${{ github.event.inputs.image_tag }}"
+      - name: List recent images on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: false
+          command_timeout: 30s
+          script: |
+            echo "=== Docker images on VPS ==="
+            docker images --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}\t{{.Size}}" | grep -E "fences|REPOSITORY" | head -15
+            echo ""
+            echo "Rolling back to: ${{ github.event.inputs.image_tag }}"
 
   rollback:
     name: Rollback to Selected Image
     runs-on: ubuntu-latest
     needs: list-images
     environment: production
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -64,18 +70,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify image exists
+        timeout-minutes: 3
         run: |
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}"
           echo "Verifying rollback image: $IMAGE"
           docker pull "$IMAGE" --quiet || {
-            echo "ERROR: Image not found: $IMAGE"
-            echo "Cannot rollback — image does not exist in GHCR"
+            echo "::error::Image not found: $IMAGE"
             exit 1
           }
-          echo "Image verified"
+          echo "Image verified: $IMAGE"
 
       - name: Rollback via SSH
         uses: appleboy/ssh-action@v1.0.3
+        timeout-minutes: 10
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
           username: root
@@ -94,7 +101,6 @@ jobs:
 
             cd "$APP_DIR"
 
-            # Login to GHCR on VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin 2>/dev/null || true
 
             if [ -f scripts/rollback-vps.sh ]; then
@@ -106,6 +112,7 @@ jobs:
 
       - name: Verify rollback health
         uses: appleboy/ssh-action@v1.0.3
+        timeout-minutes: 2
         with:
           host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
           username: root
@@ -115,8 +122,7 @@ jobs:
           command_timeout: 2m
           script: |
             set -euo pipefail
-            APP_PORT=3001
-            HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:${APP_PORT}/api/health" 2>/dev/null || echo "")
+            HEALTH=$(curl -sf --max-time 5 "http://127.0.0.1:3001/api/health" 2>/dev/null || echo "")
             if echo "$HEALTH" | grep -q '"status":"ok"'; then
                 echo "Rollback health check: OK"
                 echo "$HEALTH"

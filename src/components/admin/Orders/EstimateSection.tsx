@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EstimateItem {
@@ -27,6 +27,7 @@ interface EstimateSectionProps {
   installationTotal: number;
   grandTotal: number;
   diff?: DiffInfo;
+  onEdit?: () => void;
 }
 
 const formatPrice = (price: number) => {
@@ -123,6 +124,7 @@ export function EstimateSection({
   installationTotal,
   grandTotal,
   diff,
+  onEdit,
 }: EstimateSectionProps) {
   const materialItems = items.filter((item) => item.category !== 'installation');
   const workItems = items.filter((item) => item.category === 'installation');
@@ -160,13 +162,24 @@ export function EstimateSection({
           <span className="text-xl">💰</span>
           Смета
         </h2>
-        <Link
-          href={`/admin/estimates?open=${estimateId}`}
-          className="inline-flex items-center gap-1 text-primary hover:underline text-sm font-medium"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Открыть в Расчетах
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/estimates?open=${estimateId}`}
+            className="inline-flex items-center gap-1 text-primary hover:underline text-sm font-medium"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Открыть в Расчетах
+          </Link>
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              title="Редактировать"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {sortedMaterialItems.length > 0 && (

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Badge } from '../../ui/badge';
@@ -77,16 +77,16 @@ export function DataTable<T extends { id: string; active?: boolean }>({
     onSearch(searchValue);
   };
 
-  const totalPages = Math.ceil(total / pageSize);
+  const totalPages = useMemo(() => Math.ceil(total / pageSize), [total, pageSize]);
 
-  const renderCell = (item: T, column: Column<T>) => {
+  const renderCell = useCallback((item: T, column: Column<T>) => {
     if (column.render) {
       return column.render(item);
     }
 
     const keys = (column.key as string).split('.');
     let value: any = item;
-    
+
     for (const key of keys) {
       value = value?.[key];
     }
@@ -108,7 +108,7 @@ export function DataTable<T extends { id: string; active?: boolean }>({
     }
 
     return String(value);
-  };
+  }, []);
 
   return (
     <Card>
@@ -343,3 +343,5 @@ export function DataTable<T extends { id: string; active?: boolean }>({
     </Card>
   );
 }
+
+export default React.memo(DataTable) as typeof DataTable;

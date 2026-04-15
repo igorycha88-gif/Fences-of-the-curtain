@@ -16,8 +16,6 @@ const postTypeBaseSchema = z.object({
   wallThickness: z.number()
     .min(1.5, 'Толщина стенки должна быть не менее 1.5 мм')
     .max(5.0, 'Толщина стенки не должна превышать 5.0 мм'),
-  pricePerMeter: z.number()
-    .min(0, 'Цена за метр должна быть не менее 0'),
   length: z.number()
     .min(1.5, 'Длина должна быть не менее 1.5 метров')
     .max(6.0, 'Длина не должна превышать 6.0 метров'),
@@ -29,6 +27,7 @@ const postTypeBaseSchema = z.object({
     .optional(),
   image: z.string().optional(),
   active: z.boolean().default(true),
+  forMesh: z.boolean().default(false),
   validFrom: z.coerce.date().nullable().optional(),
   expirationDate: z.coerce.date().nullable().optional(),
   confirmDuplicate: z.boolean().optional(),

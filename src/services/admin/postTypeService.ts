@@ -42,12 +42,13 @@ export class PostTypeService {
     pageSize?: number;
     validityFilter?: 'all' | 'active' | 'expired' | 'expiring_soon';
   }) {
-    const { 
-      active, 
-      search, 
-      minThickness, 
-      maxThickness, 
-      page = 1, 
+    const startTime = Date.now();
+    const {
+      active,
+      search,
+      minThickness,
+      maxThickness,
+      page = 1,
       pageSize = 20,
       validityFilter = 'all'
     } = params;
@@ -90,18 +91,25 @@ export class PostTypeService {
           { expirationDate: { gt: now } },
         ]
       };
-      where.AND = where.AND ? [...(Array.isArray(where.AND) ? where.AND : [where.AND]), activeCondition] : [activeCondition];
+      if (where.OR) {
+        where.AND = [where.OR, activeCondition] as [Prisma.PostTypeWhereInput, Prisma.PostTypeWhereInput];
+      } else {
+        where.OR = activeCondition.OR;
+      }
     }
 
     const [posts, total] = await Promise.all([
       prisma.postType.findMany({
-        where,
+        where: where as Prisma.PostTypeWhereInput,
         skip,
         take: pageSize,
         orderBy: { priority: 'asc' },
       }),
-      prisma.postType.count({ where }),
+      prisma.postType.count({ where: where as Prisma.PostTypeWhereInput }),
     ]);
+
+    const duration = Date.now() - startTime;
+    console.log(`[POST-SERVICE getAll] Completed in ${duration}ms, returned ${posts.length} posts, total: ${total}, params: ${JSON.stringify({ active, search, minThickness, maxThickness, page, pageSize, validityFilter })}`);
 
     return {
       posts,
@@ -351,13 +359,13 @@ export class PostTypeService {
     action: string,
     oldValue: any,
     newValue: any,
-    userId: string
+    userId: string,
   ) {
     if (action === 'CREATE' || action === 'DELETE') {
       return;
     }
 
-    const priceFields = ['retailPricePerUnit', 'purchasePricePerUnit', 'pricePerMeter'];
+    const priceFields = ['retailPricePerUnit', 'purchasePricePerUnit'];
     const changes: Record<string, { old: unknown; new: unknown }> = {};
 
     if (oldValue && newValue) {

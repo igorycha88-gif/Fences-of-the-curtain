@@ -1,6 +1,8 @@
-export function recordAnalyticsEvent(eventName: string, page: string): void {}
+import { Registry, Counter, Gauge } from 'prom-client';
+import { formatHistogramOutput } from './http-metrics';
 
-export async function recordSessionDuration(exitPage: string, durationSeconds: number): Promise<void> {}
+let metricsCache: { data: string; timestamp: number } | null = null;
+const METRICS_CACHE_TTL = 5000;
 
 async function scanKeys(pattern: string): Promise<string[]> {
   const { redis } = await import('@/lib/redis');
@@ -15,8 +17,12 @@ async function scanKeys(pattern: string): Promise<string[]> {
 }
 
 export async function getMetricsString(): Promise<string> {
-  const { Registry, Counter, Histogram, Gauge } = await import('prom-client');
+  if (metricsCache && Date.now() - metricsCache.timestamp < METRICS_CACHE_TTL) {
+    return metricsCache.data;
+  }
+
   const registry = new Registry();
+  const { redis } = await import('@/lib/redis');
 
   const analyticsEventsTotal = new Counter({
     name: 'analytics_events_total',
@@ -74,13 +80,6 @@ export async function getMetricsString(): Promise<string> {
     registers: [registry],
   });
 
-  // Production metrics
-  const appUptime = new Gauge({
-    name: 'app_uptime',
-    help: 'Application uptime in seconds',
-    registers: [registry],
-  });
-
   const httpRequestsTotal = new Counter({
     name: 'http_requests_total',
     help: 'Total number of HTTP requests',
@@ -88,11 +87,9 @@ export async function getMetricsString(): Promise<string> {
     registers: [registry],
   });
 
-  const httpRequestDuration = new Histogram({
-    name: 'http_request_duration_seconds',
-    help: 'HTTP request duration in seconds',
-    labelNames: ['path'],
-    buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
+  const appUptime = new Gauge({
+    name: 'app_uptime',
+    help: 'Application uptime in seconds',
     registers: [registry],
   });
 
@@ -116,45 +113,9 @@ export async function getMetricsString(): Promise<string> {
     registers: [registry],
   });
 
-  const uniqueUsersToday = new Counter({
+  const uniqueUsersToday = new Gauge({
     name: 'unique_users_today',
     help: 'Number of unique users today',
-    registers: [registry],
-  });
-
-  const userRetentionRate = new Gauge({
-    name: 'user_retention_rate',
-    help: 'User retention rate',
-    labelNames: ['day_interval'],
-    registers: [registry],
-  });
-
-  const leadSubmissionsTotal = new Counter({
-    name: 'lead_submissions_total',
-    help: 'Total number of lead submissions',
-    labelNames: ['lead_source'],
-    registers: [registry],
-  });
-
-  const phoneCallsTotal = new Counter({
-    name: 'phone_calls_total',
-    help: 'Total number of phone calls',
-    registers: [registry],
-  });
-
-  const leadResponseTime = new Histogram({
-    name: 'lead_response_time_seconds',
-    help: 'Lead response time in seconds',
-    labelNames: ['contact_method'],
-    buckets: [0.5, 1, 5, 10, 30, 60],
-    registers: [registry],
-  });
-
-  const phoneCallDuration = new Histogram({
-    name: 'phone_call_duration_seconds',
-    help: 'Phone call duration in seconds',
-    labelNames: ['masked'],
-    buckets: [5, 15, 30, 60, 180, 300],
     registers: [registry],
   });
 
@@ -165,11 +126,23 @@ export async function getMetricsString(): Promise<string> {
     registers: [registry],
   });
 
-  const { redis } = await import('@/lib/redis');
   const keys = await scanKeys('analytics:metrics:*');
 
-  const metricsPromises = keys.map(async (key) => {
-    const data = await redis.hgetall(key);
+  const eventsKeys = keys.filter(k => k.startsWith('analytics:metrics:events:'));
+  const externalKeys = keys.filter(k => k.startsWith('analytics:metrics:external_source:') && !k.includes(':daily'));
+
+  const keysToFetch = [...eventsKeys, ...externalKeys];
+  const batchPipeline = redis.pipeline();
+  for (const key of keysToFetch) {
+    batchPipeline.hgetall(key);
+  }
+  const batchResults = await batchPipeline.exec();
+
+  for (let i = 0; i < keysToFetch.length; i++) {
+    const key = keysToFetch[i];
+    const result = batchResults?.[i];
+    if (!result || result[0]) continue;
+    const data = result[1] as Record<string, string>;
 
     if (key.startsWith('analytics:metrics:events:')) {
       const parts = key.split(':');
@@ -181,6 +154,7 @@ export async function getMetricsString(): Promise<string> {
 
         if (eventName === 'page_view') {
           pageViewsTotal.inc({ page }, count);
+          httpRequestsTotal.inc({ method: 'GET', status: '200', path: page }, count);
         }
 
         if (eventName.startsWith('calculator_')) {
@@ -210,66 +184,55 @@ export async function getMetricsString(): Promise<string> {
           topFenceTypesTotal.inc({ fence_type: 'unknown' }, count);
         }
       }
-      return;
-    }
-
-    if (key.startsWith('analytics:metrics:pageviews:')) {
-      const page = key.replace('analytics:metrics:pageviews:', '');
-      const count = parseInt(data.count || '0', 10);
-      if (count > 0) {
-        pageViewsTotal.inc({ page }, count);
-      }
-      return;
-    }
-
-    if (key.startsWith('analytics:metrics:calculator:')) {
-      const action = key.replace('analytics:metrics:calculator:', '');
-      const count = parseInt(data.count || '0', 10);
-      if (count > 0) {
-        calculatorEventsTotal.inc({ action }, count);
-      }
-      return;
-    }
-
-    if (key.startsWith('analytics:metrics:funnel:')) {
-      const step = key.replace('analytics:metrics:funnel:', '');
-      const count = parseInt(data.count || '0', 10);
-      if (count > 0) {
-        conversionFunnelTotal.inc({ step }, count);
-      }
-      return;
+      continue;
     }
 
     if (key.startsWith('analytics:metrics:external_source:')) {
       const source = key.replace('analytics:metrics:external_source:', '');
-      if (!source.startsWith('daily')) {
-        const count = parseInt(data.count || '0', 10);
-        if (count > 0) {
-          externalSourceVisitsTotal.inc({ source }, count);
-        }
+      const count = parseInt(data.count || '0', 10);
+      if (count > 0) {
+        externalSourceVisitsTotal.inc({ source }, count);
+        httpRequestsTotal.inc({ method: 'GET', status: '302', path: '/go/:source' }, count);
       }
-      return;
     }
-  });
+  }
 
-  await Promise.all(metricsPromises);
+  const ratePipeline = redis.pipeline();
+  ratePipeline.get('analytics:metrics:rates:forms_last_minute');
+  ratePipeline.get('analytics:metrics:rates:funnel_completion');
+  ratePipeline.get('analytics:metrics:avg_session_duration');
+  ratePipeline.get('analytics:metrics:unique_users_today');
+  const rateResults = await ratePipeline.exec();
 
-  const contactFormSubmissionsRateKey = 'analytics:metrics:rates:forms_last_minute';
-  const contactFormRateData = await redis.get(contactFormSubmissionsRateKey);
-  contactFormSubmissionsRate.set(parseFloat(contactFormRateData || '0'));
+  const contactFormRateData = rateResults?.[0]?.[1] as string | null;
+  if (contactFormRateData) {
+    contactFormSubmissionsRate.set(parseFloat(contactFormRateData));
+  }
 
-  const conversionFunnelCompletionRateKey = 'analytics:metrics:rates:funnel_completion';
-  const funnelRateData = await redis.get(conversionFunnelCompletionRateKey);
-  conversionFunnelCompletionRate.set(parseFloat(funnelRateData || '0'));
+  const funnelRateData = rateResults?.[1]?.[1] as string | null;
+  if (funnelRateData) {
+    conversionFunnelCompletionRate.set({ final_step: 'contact_form_submit' }, parseFloat(funnelRateData));
+  }
 
-  const averageSessionDurationKey = 'analytics:metrics:avg_session_duration';
-  const avgData = await redis.get(averageSessionDurationKey);
-  averageSessionDuration.set(parseFloat(avgData || '0'));
+  const avgSessionData = rateResults?.[2]?.[1] as string | null;
+  if (avgSessionData) {
+    averageSessionDuration.set(parseFloat(avgSessionData));
+  }
 
-  const uniqueUsersTodayIncrement = await redis.get('analytics:metrics:unique_users_today') || '0';
-  uniqueUsersToday.inc(parseInt(uniqueUsersTodayIncrement, 10) + 1);
+  const uniqueUsersData = rateResults?.[3]?.[1] as string | null;
+  if (uniqueUsersData) {
+    uniqueUsersToday.set(parseInt(uniqueUsersData, 10));
+  }
 
   appUptime.set(process.uptime());
 
-  return registry.metrics();
+  let output = await registry.metrics();
+
+  const histogramOutput = formatHistogramOutput();
+  if (histogramOutput) {
+    output += '\n' + histogramOutput;
+  }
+
+  metricsCache = { data: output, timestamp: Date.now() };
+  return output;
 }

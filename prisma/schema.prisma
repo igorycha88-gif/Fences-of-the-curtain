@@ -26,6 +26,7 @@ model User {
   referenceChangeLogs  ReferenceChangeLog[]
   notificationSettings UserNotificationSettings?
   auditLogs            AuditLog[]
+  trussCalculations    TrussCalculation[]
 }
 
 model FenceMaterial {
@@ -107,6 +108,7 @@ model PostType {
   priority             Int       @default(0)
   retailPricePerUnit   Float
   purchasePricePerUnit Float?
+  forMesh              Boolean   @default(false)
 
   @@index([active])
   @@index([validFrom])
@@ -114,6 +116,32 @@ model PostType {
   @@index([length])
   @@index([priority])
   @@index([sectionWidth, sectionHeight, wallThickness])
+  @@index([forMesh])
+}
+
+model MeshType {
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?
+  height               Float
+  cellSize             Int
+  wireThickness        Float
+  coating              String
+  retailPricePerUnit   Float
+  purchasePricePerUnit Float?
+  image                String?
+  active               Boolean   @default(true)
+  validFrom            DateTime?
+  validUntil           DateTime?
+  priority             Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([active])
+  @@index([validUntil])
+  @@index([coating])
+  @@index([priority])
+  @@index([height, cellSize, wireThickness, coating])
 }
 
 model LagType {
@@ -166,31 +194,31 @@ model WorkPrice {
 }
 
 model Order {
-  id                 String             @id @default(cuid())
+  id                 String              @id @default(cuid())
   clientName         String
   phone              String
   email              String?
   serviceType        String
   parameters         Json
   calculatedCost     Float
-  status             OrderStatus        @default(NEW)
+  status             OrderStatus         @default(NEW)
   managerComment     String?
   assignedTo         String?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   statusHistory      Json?
-  estimateId         String?            @unique
-  multiEstimateId    String?
+  estimateId         String?             @unique
   cancellationReason String?
   completionDate     DateTime?
   measurementAddress String?
   measurementDate    DateTime?
-  assignedUser       User?              @relation("AssignedOrders", fields: [assignedTo], references: [id])
-  estimate           FenceEstimate?     @relation("OrderEstimate", fields: [estimateId], references: [id])
+  multiEstimateId    String?
+  active             Boolean             @default(true)
+  adminEstimateId    String?             @unique
+  adminEstimate      FenceEstimate?      @relation("OrderAdminEstimate", fields: [adminEstimateId], references: [id])
+  assignedUser       User?               @relation("AssignedOrders", fields: [assignedTo], references: [id])
+  estimate           FenceEstimate?      @relation("OrderEstimate", fields: [estimateId], references: [id])
   multiEstimate      MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
-  adminEstimateId    String?            @unique
-  adminEstimate      FenceEstimate?     @relation("OrderAdminEstimate", fields: [adminEstimateId], references: [id])
-  active             Boolean            @default(true)
 
   @@index([status])
   @@index([estimateId])
@@ -236,28 +264,28 @@ model PageContent {
   seoTitle       String?
   seoDescription String?
   seoKeywords    String?
-  category       String?
-  coverImage     String?
-  priceRange     String?
-  isActive       Boolean  @default(true)
-  sortOrder      Int      @default(0)
   updatedAt      DateTime @updatedAt
   createdAt      DateTime @default(now())
+  category       String?
+  coverImage     String?
+  isActive       Boolean  @default(true)
+  priceRange     String?
+  sortOrder      Int      @default(0)
 }
 
 model BlogPost {
-  id            String   @id @default(cuid())
-  title         String
-  slug          String   @unique
-  excerpt       String?
-  content       Json
-  coverImage    String?
-  seoTitle      String?
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  excerpt        String?
+  content        Json
+  coverImage     String?
+  seoTitle       String?
   seoDescription String?
-  seoKeywords   String?
-  published     Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  seoKeywords    String?
+  published      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model FaqItem {
@@ -391,13 +419,13 @@ model ProfnastilType {
 }
 
 model PicketProfileType {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String       @id @default(cuid())
+  name        String       @unique
   description String?
-  sortOrder   Int      @default(0)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  sortOrder   Int          @default(0)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   picketTypes PicketType[]
 
   @@index([active])
@@ -405,13 +433,13 @@ model PicketProfileType {
 }
 
 model PicketCoating {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String       @id @default(cuid())
+  name        String       @unique
   description String?
-  sortOrder   Int      @default(0)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  sortOrder   Int          @default(0)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   picketTypes PicketType[]
 
   @@index([active])
@@ -419,26 +447,26 @@ model PicketCoating {
 }
 
 model PicketType {
-  id                    String            @id @default(cuid())
-  name                  String
-  description           String?
-  metalThickness        Float
-  width                 Int
-  length                Int
-  color                 String?
+  id                   String            @id @default(cuid())
+  name                 String
+  description          String?
+  metalThickness       Float
+  width                Int
+  length               Int
+  color                String?
+  validFrom            DateTime?
+  validUntil           DateTime?
+  active               Boolean           @default(true)
+  image                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  priority             Int               @default(0)
   purchasePricePerUnit Float?
   retailPricePerUnit   Float
-  validFrom             DateTime?
-  validUntil            DateTime?
-  active                Boolean           @default(true)
-  image                 String?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  priority              Int               @default(0)
-  profileTypeId         String
-  coatingId             String
-  picketProfile         PicketProfileType @relation(fields: [profileTypeId], references: [id])
-  picketCoatingType     PicketCoating     @relation(fields: [coatingId], references: [id])
+  profileTypeId        String
+  coatingId            String
+  picketCoatingType    PicketCoating     @relation(fields: [coatingId], references: [id])
+  picketProfile        PicketProfileType @relation(fields: [profileTypeId], references: [id])
 
   @@unique([name, metalThickness, coatingId, color], name: "picket_unique_combination")
   @@index([active])
@@ -505,21 +533,21 @@ model WicketType {
 }
 
 model MultiFenceEstimate {
-  id              String           @id @default(cuid())
-  totalMaterials  Float
+  id                String          @id @default(cuid())
+  totalMaterials    Float
   totalInstallation Float
-  grandTotal      Float
-  estimatesCount  Int              @default(1)
-  userId          String?
-  sessionId       String?
-  userAgent       String?
-  ipAddress       String?
-  city            String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  estimates       FenceEstimate[]
-  orders          Order[]
-  user            User?            @relation(fields: [userId], references: [id])
+  grandTotal        Float
+  estimatesCount    Int             @default(1)
+  userId            String?
+  sessionId         String?
+  userAgent         String?
+  ipAddress         String?
+  city              String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  estimates         FenceEstimate[]
+  user              User?           @relation(fields: [userId], references: [id])
+  orders            Order[]
 
   @@index([userId])
   @@index([sessionId])
@@ -528,7 +556,7 @@ model MultiFenceEstimate {
 }
 
 model FenceEstimate {
-  id                       String    @id @default(cuid())
+  id                       String              @id @default(cuid())
   fenceTypeId              String
   length                   Float
   height                   Float
@@ -544,49 +572,53 @@ model FenceEstimate {
   sessionId                String?
   userAgent                String?
   ipAddress                String?
-  createdAt                DateTime  @default(now())
-  mountingHardwareTotal    Float     @default(0)
-  coating                  String    @default("POLYMER_SINGLE")
-  gateInstallationTotal    Float     @default(0)
+  createdAt                DateTime            @default(now())
+  mountingHardwareTotal    Float               @default(0)
+  coating                  String              @default("POLYMER_SINGLE")
+  gateInstallationTotal    Float               @default(0)
   gateLength               Int?
   gateNomenclatureId       String?
   gateNomenclatureName     String?
-  gateTotal                Float     @default(0)
+  gateTotal                Float               @default(0)
   gateType                 String?
-  hasGate                  Boolean   @default(false)
-  hasWicket                Boolean   @default(false)
-  wicketInstallationTotal  Float     @default(0)
+  hasGate                  Boolean             @default(false)
+  hasWicket                Boolean             @default(false)
+  wicketInstallationTotal  Float               @default(0)
   wicketNomenclatureId     String?
   wicketNomenclatureName   String?
-  wicketTotal              Float     @default(0)
+  wicketTotal              Float               @default(0)
   wicketWidth              Int?
   city                     String?
   panel3dId                String?
-  panel3dInstallationTotal Float     @default(0)
+  panel3dInstallationTotal Float               @default(0)
   panel3dNomenclatureName  String?
-  panel3dTotal             Float     @default(0)
+  panel3dTotal             Float               @default(0)
   picketNomenclatureId     String?
   picketNomenclatureName   String?
-  picketTotal              Float     @default(0)
+  picketTotal              Float               @default(0)
   picketStep               Int?
   picketMountingType       String?
   picketProfileType        String?
   picketCoatingName        String?
-  isEditedByAdmin          Boolean    @default(false)
-  sourceEstimateId         String?
-  editedByAdminId          String?
-  editedAt                 DateTime?
-  editComment              String?
-  manualQuantityOverrides  Json?
-  fenceType                FenceType @relation(fields: [fenceTypeId], references: [id])
-  user                     User?     @relation(fields: [userId], references: [id])
-  order                    Order?    @relation("OrderEstimate")
-  adminOrder               Order?    @relation("OrderAdminEstimate")
   multiEstimateId          String?
+  active                   Boolean             @default(true)
+  editComment              String?
+  editedAt                 DateTime?
+  editedByAdminId          String?
+  isEditedByAdmin          Boolean             @default(false)
+  manualQuantityOverrides  Json?
+  sourceEstimateId         String?
+  meshId                   String?
+  meshInstallationTotal    Float               @default(0)
+  meshNomenclatureName     String?
+  meshTotal                Float               @default(0)
+  fenceType                FenceType           @relation(fields: [fenceTypeId], references: [id])
   multiEstimate            MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
-  sourceEstimate           FenceEstimate?  @relation("AdminEstimateEdit", fields: [sourceEstimateId], references: [id])
-  adminEdits               FenceEstimate[] @relation("AdminEstimateEdit")
-  active                   Boolean         @default(true)
+  sourceEstimate           FenceEstimate?      @relation("AdminEstimateEdit", fields: [sourceEstimateId], references: [id])
+  adminEdits               FenceEstimate[]     @relation("AdminEstimateEdit")
+  user                     User?               @relation(fields: [userId], references: [id])
+  adminOrder               Order?              @relation("OrderAdminEstimate")
+  order                    Order?              @relation("OrderEstimate")
 
   @@index([fenceTypeId])
   @@index([userId])
@@ -700,6 +732,23 @@ model NotificationRecipient {
   @@index([active])
 }
 
+model CookieConsent {
+  id           String   @id @default(cuid())
+  sessionId    String?  @unique
+  consentGiven Boolean  @default(false)
+  analytics    Boolean  @default(false)
+  consentText  String   @default("Мы используем файлы cookie для улучшения работы сайта и аналитики.")
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([consentGiven])
+  @@map("cookie_consents")
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -727,23 +776,6 @@ enum CanopyMaterialCategory {
   WATER_SYSTEM
 }
 
-model CookieConsent {
-  id           String   @id @default(cuid())
-  sessionId    String?  @unique
-  consentGiven Boolean  @default(false)
-  analytics    Boolean  @default(false)
-  consentText  String   @default("Мы используем файлы cookie для улучшения работы сайта и аналитики.")
-  ipAddress    String?
-  userAgent    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([sessionId])
-  @@index([createdAt])
-  @@index([consentGiven])
-  @@map("cookie_consents")
-}
-
 enum OrderStatus {
   NEW
   ESTIMATE_APPROVAL
@@ -752,4 +784,146 @@ enum OrderStatus {
   INSTALLATION
   COMPLETED
   CANCELLED
+}
+
+enum TrussProfileCategory {
+  POST
+  CROSSBEAM
+  STRUT
+  ARCH
+}
+
+enum CanopyRoofType {
+  SINGLE_SLOPE
+  DOUBLE_SLOPE
+  ARCH
+  SINGLE_SLOPE_CURVED
+}
+
+model TrussProfileType {
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  category              TrussProfileCategory
+  sectionWidth          Float
+  sectionHeight         Float
+  wallThickness         Float
+  length                Float    @default(6.0)
+  steelGrade            String   @default("S235")
+  yieldStrength         Float    @default(235)
+  sectionArea           Float
+  momentOfInertiaX      Float
+  momentOfInertiaY      Float
+  sectionModulusX       Float
+  sectionModulusY       Float
+  radiusOfGyrationX     Float
+  radiusOfGyrationY     Float
+  weightPerMeter        Float
+  retailPricePerMeter   Float
+  purchasePricePerMeter Float?
+  retailPricePerUnit    Float    @default(0)
+  purchasePricePerUnit  Float?
+  image                 String?
+  isActive              Boolean  @default(true)
+  priority              Int      @default(0)
+  validFrom             DateTime?
+  expirationDate        DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  calcsPost        TrussCalculation[] @relation("CalcPost")
+  calcsCrossbeam   TrussCalculation[] @relation("CalcCrossbeam")
+  calcsTopChord    TrussCalculation[] @relation("CalcTopChord")
+  calcsStrut       TrussCalculation[] @relation("CalcStrut")
+  calcsArch        TrussCalculation[] @relation("CalcArch")
+
+  @@index([category])
+  @@index([isActive])
+  @@index([priority])
+  @@index([sectionWidth, sectionHeight, wallThickness])
+  @@index([validFrom])
+  @@index([expirationDate])
+}
+
+model TrussRoofCovering {
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  weightPerSqm        Float
+  thickness           Float?
+  width               Float?
+  usefulWidth         Float?
+  standardLength      Float?
+  coating             String?
+  coatingType         String?
+  color               String?
+  retailPricePerSqm   Float
+  purchasePricePerSqm Float?
+  image               String?
+  isActive            Boolean  @default(true)
+  priority            Int      @default(0)
+  validFrom           DateTime?
+  expirationDate      DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  calculations TrussCalculation[]
+
+  @@index([isActive])
+  @@index([priority])
+  @@index([validFrom])
+  @@index([expirationDate])
+}
+
+model TrussCalculation {
+  id                   String             @id @default(cuid())
+  name                 String?
+  canopyType           CanopyRoofType
+  width                Float
+  length               Float
+  ridgeHeight          Float
+  wallHeight           Float?
+  trussSpacing         Float
+  roofCoveringId       String
+  snowRegion           String             @default("III")
+  postProfileId        String
+  crossbeamProfileId   String
+  topChordProfileId    String?
+  strutProfileId       String
+  archProfileId        String?
+  snowLoad             Float
+  windLoad             Float
+  deadLoad             Float
+  totalLoad            Float
+  snowLoadNormative    Float    @default(0)
+  windLoadNormative    Float    @default(0)
+  deadLoadNormative    Float    @default(0)
+  totalLoadNormative   Float    @default(0)
+  loadPerTruss         Float
+  safetyFactor         Float
+  trussGeometry        Json
+  materialList         Json
+  profileRecommendations Json?
+  svgDrawing           String?  @default("")
+  snowCoeffMu          Float    @default(1.0)
+  windCoeffC           Float    @default(0.3)
+  windHeightCoeff      Float    @default(0.5)
+  slopeAngle           Float    @default(0)
+  isActive             Boolean            @default(true)
+  createdBy            String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  roofCovering    TrussRoofCovering @relation(fields: [roofCoveringId], references: [id])
+  postProfile     TrussProfileType  @relation("CalcPost", fields: [postProfileId], references: [id])
+  crossbeamProfile TrussProfileType @relation("CalcCrossbeam", fields: [crossbeamProfileId], references: [id])
+  topChordProfile  TrussProfileType? @relation("CalcTopChord", fields: [topChordProfileId], references: [id])
+  strutProfile    TrussProfileType  @relation("CalcStrut", fields: [strutProfileId], references: [id])
+  archProfile     TrussProfileType? @relation("CalcArch", fields: [archProfileId], references: [id])
+  user            User?             @relation(fields: [createdBy], references: [id])
+
+  @@index([canopyType])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([isActive])
 }

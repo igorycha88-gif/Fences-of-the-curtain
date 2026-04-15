@@ -49,6 +49,9 @@ interface FenceCalculatorForm {
   picketProfileType: string;
   picketStep: number;
   picketMountingType: 'SINGLE' | 'CHESS';
+  meshCoating: 'GALVANIZED' | 'POLYMER';
+  meshCellSize: number;
+  meshWireThickness: number;
 }
 
 interface EstimateItem {
@@ -122,6 +125,9 @@ const defaultFormData = (): FenceCalculatorForm => ({
   picketProfileType: '',
   picketStep: 5,
   picketMountingType: 'SINGLE',
+  meshCoating: 'GALVANIZED',
+  meshCellSize: 50,
+  meshWireThickness: 2.0,
 });
 
 export default function FenceCalculatorPage() {
@@ -131,6 +137,12 @@ export default function FenceCalculatorPage() {
   const [fenceTypesError, setFenceTypesError] = useState<string | null>(null);
 
   const [picketProfileTypes, setPicketProfileTypes] = useState<PicketProfileType[]>([]);
+
+  const [meshOptions, setMeshOptions] = useState<{
+    coatings: Record<string, string>;
+    cellSizes: number[];
+    wireThicknesses: number[];
+  }>({ coatings: {}, cellSizes: [], wireThicknesses: [] });
 
   const lengthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -205,7 +217,30 @@ export default function FenceCalculatorPage() {
         if (Array.isArray(data)) setPicketProfileTypes(data);
       })
       .catch(err => console.error('Error loading profile types:', err));
+
+    fetch('/api/calculator/mesh-options?height=2.0')
+      .then(res => res.json())
+      .then(data => {
+        if (data.coatings || data.cellSizes) setMeshOptions(data);
+      })
+      .catch(err => console.error('Error loading mesh options:', err));
   }, []);
+
+  useEffect(() => {
+    const meshCalc = calculations.find(c => {
+      const ft = fenceTypes.find(t => t.id === c.formData.fenceTypeId);
+      return ft?.name === 'Сетка-рабица';
+    });
+    if (!meshCalc) return;
+    const h = meshCalc.formData.height;
+    if (!h || h < 1 || h > 5) return;
+    fetch(`/api/calculator/mesh-options?height=${h}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.coatings || data.cellSizes) setMeshOptions(data);
+      })
+      .catch(err => console.error('Error reloading mesh options:', err));
+  }, [calculations, fenceTypes]);
 
   const updateCalcFormData = useCallback((calcId: string, updates: Partial<FenceCalculatorForm>) => {
     setCalculations(prev => prev.map(calc => {
@@ -217,6 +252,7 @@ export default function FenceCalculatorPage() {
 
   const handleFenceTypeSelect = useCallback((calcId: string, fenceType: FenceType) => {
     const isPicketType = fenceType.name === 'Евроштакетник';
+    const isMeshType = fenceType.name === 'Сетка-рабица';
     updateCalcFormData(calcId, {
       fenceTypeId: fenceType.id,
       lagRows: String(fenceType.defaultLagRows) as '2' | '3',
@@ -225,8 +261,11 @@ export default function FenceCalculatorPage() {
       picketProfileType: isPicketType ? (picketProfileTypes[0]?.id || '') : '',
       picketStep: isPicketType ? 5 : 5,
       picketMountingType: isPicketType ? 'SINGLE' : 'SINGLE',
+      meshCoating: isMeshType ? 'GALVANIZED' : 'GALVANIZED',
+      meshCellSize: isMeshType ? (meshOptions.cellSizes[0] || 50) : 50,
+      meshWireThickness: isMeshType ? (meshOptions.wireThicknesses[0] || 2.0) : 2.0,
     });
-  }, [picketProfileTypes, updateCalcFormData]);
+  }, [picketProfileTypes, meshOptions, updateCalcFormData]);
 
   const addCalculation = useCallback(() => {
     setCalculations(prev => {
@@ -287,6 +326,7 @@ export default function FenceCalculatorPage() {
 
     const isPanel3D = selectedFenceType.name === '3D-панели';
     const isPicket = selectedFenceType.name === 'Евроштакетник';
+    const isMesh = selectedFenceType.name === 'Сетка-рабица';
 
     const length = Number(formData.length);
 
@@ -320,6 +360,12 @@ export default function FenceCalculatorPage() {
         requestBody.picketMountingType = formData.picketMountingType;
       }
 
+      if (isMesh) {
+        requestBody.meshCellSize = formData.meshCellSize;
+        requestBody.meshWireThickness = formData.meshWireThickness;
+        requestBody.meshCoating = formData.meshCoating;
+      }
+
       if (formData.hasGate) {
         requestBody.hasGate = true;
         requestBody.gateType = formData.gateType || 'SWING';
@@ -343,7 +389,7 @@ export default function FenceCalculatorPage() {
         metrikaEvents.calculatorComplete('fence', data.totals?.grandTotal || 0);
       } else {
         const errorData = await response.json();
-        const nomenclatureErrors = ['NO_PROFNASTIL_FOUND', 'NO_GATE_FOUND', 'NO_WICKET_FOUND', 'NO_PICKET_FOUND', 'CALCULATOR_NOT_IMPLEMENTED'];
+        const nomenclatureErrors = ['NO_PROFNASTIL_FOUND', 'NO_GATE_FOUND', 'NO_WICKET_FOUND', 'NO_PICKET_FOUND', 'NO_MESH_FOUND', 'NO_POSTS_FOUND', 'CALCULATOR_NOT_IMPLEMENTED'];
         if (nomenclatureErrors.includes(errorData.error)) {
           setNomenclatureNotFoundCalcIndex(calculations.findIndex(c => c.id === calcId));
           setShowNomenclatureNotFoundModal(true);
@@ -410,6 +456,7 @@ export default function FenceCalculatorPage() {
         const selectedFenceType = fenceTypes.find(t => t.id === calc.formData.fenceTypeId);
         const isPanel3D = selectedFenceType?.name === '3D-панели';
         const isPicket = selectedFenceType?.name === 'Евроштакетник';
+        const isMesh = selectedFenceType?.name === 'Сетка-рабица';
 
         const estimate: Record<string, unknown> = {
           fenceTypeId: calc.formData.fenceTypeId,
@@ -427,6 +474,12 @@ export default function FenceCalculatorPage() {
           estimate.picketProfileType = selectedProfile?.name || '';
           estimate.picketStep = calc.formData.picketStep;
           estimate.picketMountingType = calc.formData.picketMountingType;
+        }
+
+        if (isMesh) {
+          estimate.meshCellSize = calc.formData.meshCellSize;
+          estimate.meshWireThickness = calc.formData.meshWireThickness;
+          estimate.meshCoating = calc.formData.meshCoating;
         }
 
         if (calc.formData.hasGate) {
@@ -455,7 +508,7 @@ export default function FenceCalculatorPage() {
         return true;
       } else {
         const errorData = await response.json();
-        const nomenclatureErrors = ['NO_PROFNASTIL_FOUND', 'NO_GATE_FOUND', 'NO_WICKET_FOUND', 'NO_PICKET_FOUND', 'CALCULATOR_NOT_IMPLEMENTED'];
+        const nomenclatureErrors = ['NO_PROFNASTIL_FOUND', 'NO_GATE_FOUND', 'NO_WICKET_FOUND', 'NO_PICKET_FOUND', 'NO_MESH_FOUND', 'NO_POSTS_FOUND', 'CALCULATOR_NOT_IMPLEMENTED'];
         if (nomenclatureErrors.includes(errorData.error)) {
           setShowNomenclatureNotFoundModal(true);
         } else {
@@ -500,6 +553,7 @@ export default function FenceCalculatorPage() {
     const isPanel3D = selectedFenceType?.name === '3D-панели';
     const isPicket = selectedFenceType?.name === 'Евроштакетник';
     const isProfnastil = selectedFenceType?.name === 'Профнастил';
+    const isMesh = selectedFenceType?.name === 'Сетка-рабица';
 
     return (
       <div key={calc.id} className="border border-border rounded-xl overflow-hidden">
@@ -703,6 +757,54 @@ export default function FenceCalculatorPage() {
                     >
                       <option value="SINGLE">Односторонний</option>
                       <option value="CHESS">В шахматном порядке</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isMesh && (
+              <div className="space-y-4 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <h3 className="font-semibold text-primary">Параметры сетки-рабицы</h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Покрытие *</label>
+                    <select
+                      value={formData.meshCoating}
+                      onChange={(e) => updateCalcFormData(calc.id, { meshCoating: e.target.value as 'GALVANIZED' | 'POLYMER' })}
+                      className="select-modern"
+                      required
+                    >
+                      {Object.entries(meshOptions.coatings).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Размер ячейки (мм) *</label>
+                    <select
+                      value={formData.meshCellSize}
+                      onChange={(e) => updateCalcFormData(calc.id, { meshCellSize: Number(e.target.value) })}
+                      className="select-modern"
+                      required
+                    >
+                      {meshOptions.cellSizes.map((size) => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Толщина прутка (мм) *</label>
+                    <select
+                      value={formData.meshWireThickness}
+                      onChange={(e) => updateCalcFormData(calc.id, { meshWireThickness: Number(e.target.value) })}
+                      className="select-modern"
+                      required
+                    >
+                      {meshOptions.wireThicknesses.map((th) => (
+                        <option key={th} value={th}>{th}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -1076,6 +1178,9 @@ export default function FenceCalculatorPage() {
                 picketProfileType: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketProfileType,
                 picketStep: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketStep,
                 picketMountingType: calculations[nomenclatureNotFoundCalcIndex]?.formData.picketMountingType,
+                meshCoating: calculations[nomenclatureNotFoundCalcIndex]?.formData.meshCoating,
+                meshCellSize: calculations[nomenclatureNotFoundCalcIndex]?.formData.meshCellSize,
+                meshWireThickness: calculations[nomenclatureNotFoundCalcIndex]?.formData.meshWireThickness,
               }
             : {
                 fenceTypeId: '',
@@ -1091,6 +1196,9 @@ export default function FenceCalculatorPage() {
                 picketProfileType: '',
                 picketStep: 0,
                 picketMountingType: 'SINGLE',
+                meshCoating: undefined,
+                meshCellSize: undefined,
+                meshWireThickness: undefined,
               }
         }
       />

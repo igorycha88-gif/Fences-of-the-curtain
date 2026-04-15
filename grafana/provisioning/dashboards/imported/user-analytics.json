@@ -116,7 +116,7 @@
                   "index": 11,
                   "text": "Клик по телефону"
                 },
-                "session_end": {
+                "exit": {
                   "color": "gray",
                   "index": 12,
                   "text": "Завершение сессии"
@@ -413,7 +413,7 @@
                   "index": 11,
                   "text": "Клик по телефону"
                 },
-                "session_end": {
+                "exit": {
                   "color": "gray",
                   "index": 12,
                   "text": "Завершение сессии"

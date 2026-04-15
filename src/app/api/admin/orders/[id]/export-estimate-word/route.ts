@@ -207,7 +207,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+        'Content-Disposition': `attachment; filename="estimate_${order.id.slice(0, 8)}.docx"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       },
     });
   } catch (error) {

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { calculateMargin, getMarginEmoji } from '@/lib/utils/marginCalculator';
 import { formatPrice } from '@/lib/utils/formatters';
 
-type ReferenceType = 'LAG' | 'POST' | 'PROFNASTIL' | 'PICKET' | 'GATE' | 'WICKET' | 'PANEL_3D';
+type ReferenceType = 'LAG' | 'POST' | 'PROFNASTIL' | 'PICKET' | 'GATE' | 'WICKET' | 'PANEL_3D' | 'MESH';
 
 interface MountingHardwareItem {
   id: string;
@@ -66,6 +66,53 @@ export function RelatedMountingHardware({ referenceType, referenceId }: RelatedM
     }
   }, [referenceType, referenceId]);
 
+  const itemsList = useMemo(() => items.map((item) => {
+    const margin = calculateMargin(item.retailPrice, item.purchasePrice);
+    const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
+
+    return (
+      <div
+        key={item.id}
+        className="border rounded p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+        onClick={() => router.push('/admin/references/mounting-hardware')}
+      >
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="font-medium">{item.name}</div>
+            {item.description && (
+              <div className="text-sm text-gray-500">{item.description}</div>
+            )}
+          </div>
+          {!item.active && (
+            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+              Неактивен
+            </span>
+          )}
+        </div>
+        <div className="mt-2 text-sm">
+          <span className="text-gray-600">
+            Закупка: {formatPrice(item.purchasePrice)} ₽
+          </span>
+          <span className="mx-2">|</span>
+          <span className="text-gray-600">
+            Розница: {formatPrice(item.retailPrice)} ₽
+          </span>
+          {margin && (
+            <>
+              <span className="mx-2">|</span>
+              <span className="text-gray-600">
+                Маржа: {margin.marginPercent.toFixed(1)}% {marginEmoji}
+              </span>
+            </>
+          )}
+        </div>
+        <div className="mt-2 text-xs text-blue-600 hover:text-blue-800">
+          Перейти к фурнитуре →
+        </div>
+      </div>
+    );
+  }), [items, router]);
+
   if (isLoading) {
     return (
       <div className="mt-6 border-t pt-4">
@@ -97,7 +144,7 @@ export function RelatedMountingHardware({ referenceType, referenceId }: RelatedM
         <span className="text-xs text-gray-400">(ADMIN)</span>
       </h4>
 
-      {items.length === 0 ? (
+      {itemsList.length === 0 ? (
         <div className="bg-gray-50 rounded p-4 text-sm text-gray-600">
           <p>Нет привязанной фурнитуры</p>
           <p className="mt-1 text-xs text-gray-400">
@@ -106,54 +153,11 @@ export function RelatedMountingHardware({ referenceType, referenceId }: RelatedM
         </div>
       ) : (
         <div className="space-y-2">
-          {items.map((item) => {
-            const margin = calculateMargin(item.retailPrice, item.purchasePrice);
-            const marginEmoji = getMarginEmoji(margin?.marginPercent ?? null);
-
-            return (
-              <div
-                key={item.id}
-                className="border rounded p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => router.push('/admin/references/mounting-hardware')}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-medium">{item.name}</div>
-                    {item.description && (
-                      <div className="text-sm text-gray-500">{item.description}</div>
-                    )}
-                  </div>
-                  {!item.active && (
-                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                      Неактивен
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2 text-sm">
-                  <span className="text-gray-600">
-                    Закупка: {formatPrice(item.purchasePrice)} ₽
-                  </span>
-                  <span className="mx-2">|</span>
-                  <span className="text-gray-600">
-                    Розница: {formatPrice(item.retailPrice)} ₽
-                  </span>
-                  {margin && (
-                    <>
-                      <span className="mx-2">|</span>
-                      <span className="text-gray-600">
-                        Маржа: {margin.marginPercent.toFixed(1)}% {marginEmoji}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="mt-2 text-xs text-blue-600 hover:text-blue-800">
-                  Перейти к фурнитуре →
-                </div>
-              </div>
-            );
-          })}
+          {itemsList.map((item) => item)}
         </div>
       )}
     </div>
   );
 }
+
+export default React.memo(RelatedMountingHardware);

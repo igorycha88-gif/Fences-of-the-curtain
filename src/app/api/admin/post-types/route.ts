@@ -5,10 +5,12 @@ import { postTypeSchema } from '@/lib/validators/postType';
 import { safeParseInt } from '@/lib/parse-params';
 import { ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
+import { apiCache } from '@/lib/apiCache';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const authResult = await requireAdmin(request, 'materials');
     if (authResult instanceof NextResponse) return authResult;
@@ -23,7 +25,10 @@ export async function GET(request: NextRequest) {
     const pageSize = safeParseInt(searchParams.get('pageSize'), 20);
     const validityFilter = searchParams.get('validityFilter') as 'all' | 'active' | 'expired' | 'expiring_soon' || 'all';
 
-    const result = await postTypeService.getAll({
+    console.log(`[POST-TYPES GET] Starting fetch, params: ${JSON.stringify({ active, search, minThickness, maxThickness, page, pageSize, validityFilter })}`);
+
+    const cacheKey = apiCache.generateKey('post-types', { active, search, minThickness, maxThickness, page, pageSize, validityFilter });
+    const result = await apiCache.getOrSet(cacheKey, () => postTypeService.getAll({
       active: active ? active === 'true' : undefined,
       search,
       minThickness: minThickness ? parseFloat(minThickness) : undefined,
@@ -31,10 +36,10 @@ export async function GET(request: NextRequest) {
       page,
       pageSize,
       validityFilter,
-    });
+    }));
 
     const isAdmin = session.role === 'ADMIN';
-    
+
     if (!isAdmin && result.posts) {
       result.posts = result.posts.map((post: any) => {
         const { purchasePricePerUnit, ...postWithoutPurchasePrice } = post;
@@ -42,9 +47,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const duration = Date.now() - startTime;
+    console.log(`[POST-TYPES GET] Completed in ${duration}ms, returned ${result.posts?.length || 0} posts, total: ${result.total}`);
+
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching post types:', error);
+    console.error('[POST-TYPES GET] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -63,23 +71,25 @@ export async function POST(request: NextRequest) {
     const validatedData = postTypeSchema.parse(body);
 
     const result = await postTypeService.create(validatedData, session.userId);
-    
+
+    await apiCache.deletePattern('post-types:*');
+
     if (result && 'warning' in result) {
       return NextResponse.json(result, { status: 200 });
     }
 
     return NextResponse.json({ id: (result as any).id }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating post type:', error);
-    
+    console.error('[POST-TYPES POST] Error creating post type:', error);
+
     if (error instanceof ZodError) {
       return validationError(error);
     }
-    
+
     if (error.message.includes('уже существует') || error.message.includes('должна отличаться')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    
+
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

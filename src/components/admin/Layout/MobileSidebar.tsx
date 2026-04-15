@@ -122,6 +122,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </li>
             <li>
               <a
+                href="/admin/truss-calculator"
+                onClick={handleNavClick}
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/truss-calculator')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Калькулятор ферм
+              </a>
+            </li>
+            <li>
+              <a
                 href="/admin/about"
                 onClick={handleNavClick}
                 className={`block px-3 py-3 rounded-lg transition-colors ${
@@ -218,6 +231,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 </li>
                 <li>
                   <a
+                    href="/admin/references/mesh"
+                    onClick={handleNavClick}
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/mesh')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Сетка-рабица
+                  </a>
+                </li>
+                <li>
+                  <a
                     href="/admin/references/panel3d"
                     onClick={handleNavClick}
                     className={`block px-6 py-3 rounded-lg transition-colors ${
@@ -228,6 +254,77 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   >
                     3D-панели
                   </a>
+                </li>
+                <li className="pt-2 mt-2 border-t border-gray-100">
+                  <span className="block px-6 py-1 text-xs font-semibold text-gray-400 uppercase">Фермы</span>
+                </li>
+                <li>
+                  <a
+                    href="/admin/references/truss-roof-coverings"
+                    onClick={handleNavClick}
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/truss-roof-coverings')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Покрытие крыши
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/admin/references/truss-posts"
+                    onClick={handleNavClick}
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/truss-posts')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Столбы для навеса
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/admin/references/truss-crossbeams"
+                    onClick={handleNavClick}
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/truss-crossbeams')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Перекладины
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/admin/references/truss-struts"
+                    onClick={handleNavClick}
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/truss-struts')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Перемычки
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/admin/references/truss-arches"
+                    onClick={handleNavClick}
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/truss-arches')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Арочная дуга
+                  </a>
+                </li>
+                <li className="pt-2 mt-2 border-t border-gray-100">
+                  <span className="block px-6 py-1 text-xs font-semibold text-gray-400 uppercase">Заборы</span>
                 </li>
                 <li>
                   <a

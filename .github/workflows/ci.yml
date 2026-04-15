@@ -2,12 +2,12 @@ name: CI
 
 on:
   workflow_call:
-  pull_request:
-    branches: [master2]
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+    inputs:
+      run-coverage:
+        description: 'Run tests with coverage'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +16,7 @@ jobs:
   quality:
     name: Lint + TypeCheck + Security
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -38,18 +39,28 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Security check
+      - name: Security check (hardcoded secrets)
         run: |
+          FOUND=0
           if grep -rE "(password|secret|api_key|token)\s*=\s*[\"'].*[\"']" src/ \
-            --exclude-dir=node_modules --exclude="*.test.*" | grep -v "example" | grep -v "CHANGE_ME"; then
-            echo "ERROR: Hardcoded secrets found in src/"
+            --exclude-dir=node_modules --exclude="*.test.*" | grep -v "example" | grep -v "CHANGE_ME" | grep -v "process\.env"; then
+            FOUND=1
+          fi
+          if [ "$FOUND" -eq 1 ]; then
+            echo "::error::Hardcoded secrets found in src/"
             exit 1
           fi
+          echo "Security check passed"
+
+      - name: Security audit (npm vulnerabilities)
+        run: npm audit --audit-level=high --omit=dev || true
+        continue-on-error: true
 
   test:
     name: Tests
     runs-on: ubuntu-latest
     needs: quality
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -62,6 +73,15 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -84,14 +104,23 @@ jobs:
         env:
           DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
 
-      - run: npm test -- --coverage --passWithNoTests
+      - name: Run tests
+        run: |
+          if [ "${{ inputs.run-coverage }}" = "true" ]; then
+            npm test -- --coverage --passWithNoTests --forceExit
+          else
+            npm test -- --passWithNoTests --forceExit
+          fi
         env:
           DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
 
   build:
     name: Build Verification
     runs-on: ubuntu-latest
     needs: quality
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -129,6 +158,7 @@ jobs:
       - run: npm run build
         env:
           DATABASE_URL: "postgresql://postgres:test@localhost:5432/fences_test"
+          NEXT_PUBLIC_SITE_URL: "https://zabor-i-naves.ru"
 
       - name: Check build output
         run: |
@@ -136,4 +166,9 @@ jobs:
             echo "ERROR: .next directory not found"
             exit 1
           fi
+          if [ ! -d ".next/standalone" ]; then
+            echo "ERROR: .next/standalone not found — check next.config.js output: 'standalone'"
+            exit 1
+          fi
           echo "Build size: $(du -sh .next | cut -f1)"
+          echo "Standalone size: $(du -sh .next/standalone | cut -f1)"

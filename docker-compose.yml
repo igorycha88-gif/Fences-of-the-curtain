@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY:-igor/fences-curtain}/app:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY:-igor/fences-of-the-curtain}/app:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/Dockerfile

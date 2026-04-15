@@ -5,6 +5,10 @@ const ANALYTICS_KEY_PREFIX = 'analytics:';
 const ANALYTICS_TTL = 86400 * 30;
 const SESSION_TTL = 86400 * 1;
 
+function logMetricError(context: string, err: unknown) {
+  console.error(`Analytics metric error (${context}):`, err);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -29,14 +33,66 @@ export async function POST(req: NextRequest) {
     pipeline.hincrby(pageKey, eventName, 1);
     pipeline.expire(pageKey, ANALYTICS_TTL);
 
-    pipeline.hincrby(`${ANALYTICS_KEY_PREFIX}metrics:events:${eventName}:${metricsPage}`, 'count', 1);
+    const eventsKey = `${ANALYTICS_KEY_PREFIX}metrics:events:${eventName}:${metricsPage}`;
+    pipeline.hincrby(eventsKey, 'count', 1);
+    pipeline.expire(eventsKey, ANALYTICS_TTL);
 
     const sessionKey = `${ANALYTICS_KEY_PREFIX}sessions:${sessionId}`;
     pipeline.hincrby(sessionKey, 'totalEvents', 1);
     pipeline.hset(sessionKey, 'lastActive', timestamp || new Date().toISOString());
+    pipeline.hsetnx(sessionKey, 'startTime', timestamp || new Date().toISOString());
     pipeline.expire(sessionKey, SESSION_TTL);
 
     await pipeline.exec();
+
+    if (eventName === 'contact_form_submit') {
+      redis.incr('analytics:metrics:rates:forms_last_minute').then(() => {
+        redis.expire('analytics:metrics:rates:forms_last_minute', 60);
+      }).catch(err => logMetricError('forms_last_minute', err));
+    }
+
+    if (['page_view', 'contact_form_submit'].includes(eventName)) {
+      redis.hgetall(dailyKey).then(data => {
+        const pv = parseInt(data['page_view'] || '0', 10);
+        const fs = parseInt(data['contact_form_submit'] || '0', 10);
+        if (pv > 0) {
+          redis.set('analytics:metrics:rates:funnel_completion', String(fs / pv), 'EX', 3600);
+        }
+      }).catch(err => logMetricError('funnel_completion', err));
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const uniquePipeline = redis.pipeline();
+    uniquePipeline.sadd(`analytics:metrics:unique_users_set:${today}`, sessionId);
+    uniquePipeline.expire(`analytics:metrics:unique_users_set:${today}`, 86400);
+    uniquePipeline.scard(`analytics:metrics:unique_users_set:${today}`);
+    uniquePipeline.exec().then(results => {
+      if (!results || !results[2]) return;
+      const scardResult = results[2][1];
+      if (scardResult !== undefined && scardResult !== null) {
+        redis.set('analytics:metrics:unique_users_today', String(scardResult), 'EX', 86400);
+      }
+    }).catch(err => logMetricError('unique_users', err));
+
+    redis.hget(sessionKey, 'startTime').then(startTime => {
+      if (!startTime) return;
+      const lastActive = timestamp || new Date().toISOString();
+      const durationSec = (new Date(lastActive).getTime() - new Date(startTime).getTime()) / 1000;
+      if (durationSec > 0 && durationSec < 86400) {
+        const durPipeline = redis.pipeline();
+        durPipeline.lpush('analytics:metrics:recent_session_durations', String(durationSec));
+        durPipeline.ltrim('analytics:metrics:recent_session_durations', 0, 199);
+        durPipeline.expire('analytics:metrics:recent_session_durations', 86400);
+        durPipeline.exec().then(() => {
+          redis.lrange('analytics:metrics:recent_session_durations', 0, -1).then(durations => {
+            if (durations.length > 0) {
+              const avg = durations.reduce((s, d) => s + parseFloat(d), 0) / durations.length;
+              redis.set('analytics:metrics:avg_session_duration', String(avg), 'EX', 86400);
+            }
+          }).catch(err => logMetricError('session_duration_avg', err));
+        }).catch(err => logMetricError('session_duration_pipeline', err));
+      }
+    }).catch(err => logMetricError('session_duration', err));
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

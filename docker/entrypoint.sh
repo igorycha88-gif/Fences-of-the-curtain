@@ -29,8 +29,5 @@ if ! npx prisma@5.22.0 migrate deploy; then
     exit 1
 fi
 
-echo "[entrypoint] Generating Prisma client..."
-npx prisma@5.22.0 generate 2>/dev/null || true
-
 echo "[entrypoint] Starting application..."
 exec node server.js

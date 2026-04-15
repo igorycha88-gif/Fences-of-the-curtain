@@ -367,10 +367,101 @@ npm run build               # Production сборка
 | 💻 Разработчик | `.skill-developer.md` | Fullstack разработка (Next.js + React + Prisma) |
 | 🧪 Тестировщик | `SKILL_TESTER.md` | Тестирование, глубокая проверка кода, баг-репорты |
 | 🚀 DevOps | `SKILL_DEVOPS.md` | Деплой, Docker, healthcheck, откаты |
+| 🚀 DevOps (Prod) | `SKILL_DEVOPS_PROD.md` | Продакшн-деплой, Blue-Green, откаты на VPS |
 
 ---
 
-## 10. Self-Check перед каждым действием
+## 10. Отдельный конвейер: Продакшн-деплой (PIPELINE_PROD.js)
+
+### Когда активируется
+
+**Триггерные фразы пользователя:**
+«деплой на прод», «задеплой», «деплой в прод», «выложить на прод», «push to prod», «deploy to production», «запусти прод деплой»
+
+### Отличие от основного конвейера
+
+| Аспект | Основной (PIPELINE.js) | Прод (PIPELINE_PROD.js) |
+|--------|----------------------|------------------------|
+| Среда | Локально (docker-compose.dev.yml) | VPS 37.143.13.196 (docker-compose.yml) |
+| Порт | 3000 | 3001 (prod), 3003 (green) |
+| Стратегия | Пересборка всех контейнеров | Blue-Green (образ из GHCR) |
+| Откат | Не требуется | Автоматический при провале |
+| ЧТЗ | Обязателен | Не нужен (инфраструктурная операция) |
+| Версионирование | Нет | Обязательное (semver + git tag) |
+| Тестирование | Unit (Jest) | API автотесты + ручное E2E на проде |
+| Скилл | SKILL_DEVOPS.md | SKILL_DEVOPS_PROD.md |
+
+### Маршрут продакшн-деплоя
+
+```
+Пользователь: «деплой на прод»
+
+🔍 PRE-FLIGHT:
+  → проверка ветки (master2)
+  → проверка CI статуса
+  → проверка VPS доступности
+  → проверка диска и .env
+  → фиксация текущего состояния
+
+🏷️ VERSIONING:
+  → анализ коммитов → patch / minor / major
+  → npm version <type> --no-git-tag-version
+  → обновление CHANGELOG.md
+  → git commit + git tag v<version>
+
+💾 BACKUP:
+  → pg_dump (бэкап БД)
+  → бэкап nginx конфига
+
+🏗️ BUILD:
+  → git push origin master2 (если не запушено)
+  → ожидание CI completion
+  → docker pull образа на VPS
+
+🚀 DEPLOY (Blue-Green):
+  → GREEN на порту 3003
+  → healthcheck GREEN
+  → nginx → GREEN
+  → smoke tests
+  → production на 3001
+  → cleanup GREEN
+
+✅ VERIFY:
+  → контейнер healthy
+  → HTTP /api/health → 200
+  → Redis + PostgreSQL OK
+  → SSL https://zabor-i-naves.ru → 200
+  → логи без ошибок
+
+🧪 FULL TESTING:
+  → автотесты API (health, HTTP статусы, функциональность, SSL, perf)
+  → ручное E2E: главная, калькулятор, форма заявки, админка, SEO, мобильная
+  → вердикт: GO / CONDITIONAL GO / NO-GO
+
+📋 FINALIZE:
+  → cleanup старых образов
+  → Telegram уведомление (с версией)
+  → Deployment Report
+
+👁️ WATCH (5 мин):
+  → мониторинг healthcheck каждые 60 сек
+
+При провале ЛЮБОГО критического шага → 🔄 АВТОМАТИЧЕСКИЙ ОТКАТ
+```
+
+### Ручной откат
+
+**Триггерные фразы:** «откат», «rollback», «верни предыдущую версию»
+
+Конвейер показывает доступные образы и выполняет откат с верификацией.
+
+### Спецификация
+
+Формальная спецификация: `PIPELINE_PROD.js`
+
+---
+
+## 11. Self-Check перед каждым действием
 
 1. ✅ Есть ли утверждённое ЧТЗ? (Если нет → вернись к Этапу 1)
 2. ✅ Соблюдаю ли я порядок TASK-BCK → TASK-FRT → TASK-INF?

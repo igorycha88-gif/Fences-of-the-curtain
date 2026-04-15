@@ -1,11 +1,8 @@
-import { recordAnalyticsEvent, recordSessionDuration, getMetricsString } from '@/lib/prometheus';
+import { getMetricsString } from '@/lib/prometheus';
 
 jest.mock('prom-client', () => {
   const mockCounter = {
     inc: jest.fn(),
-  };
-  const mockHistogram = {
-    observe: jest.fn(),
   };
   const mockGauge = {
     set: jest.fn(),
@@ -17,19 +14,32 @@ jest.mock('prom-client', () => {
   return {
     Registry: jest.fn(() => mockRegistry),
     Counter: jest.fn(() => mockCounter),
-    Histogram: jest.fn(() => mockHistogram),
+    Histogram: jest.fn(),
     Gauge: jest.fn(() => mockGauge),
   };
 });
 
-jest.mock('@/lib/redis', () => ({
-  redis: {
-    scan: jest.fn().mockResolvedValue(['0', []]),
-    hgetall: jest.fn().mockResolvedValue({}),
-    get: jest.fn().mockResolvedValue('0'),
-    hincrby: jest.fn().mockResolvedValue(1),
-    ping: jest.fn().mockResolvedValue('PONG'),
-  },
+jest.mock('@/lib/redis', () => {
+  const mockPipeline = {
+    hgetall: jest.fn().mockReturnThis(),
+    get: jest.fn().mockReturnThis(),
+    exec: jest.fn().mockResolvedValue([]),
+  };
+  return {
+    redis: {
+      scan: jest.fn().mockResolvedValue(['0', []]),
+      hgetall: jest.fn().mockResolvedValue({}),
+      get: jest.fn().mockResolvedValue('0'),
+      hincrby: jest.fn().mockResolvedValue(1),
+      ping: jest.fn().mockResolvedValue('PONG'),
+      pipeline: jest.fn(() => mockPipeline),
+    },
+  };
+});
+
+jest.mock('@/lib/http-metrics', () => ({
+  formatHistogramOutput: jest.fn().mockReturnValue(''),
+  getTimingData: jest.fn().mockReturnValue(new Map()),
 }));
 
 describe('Prometheus Metrics', () => {
@@ -37,50 +47,17 @@ describe('Prometheus Metrics', () => {
     jest.clearAllMocks();
   });
 
-  describe('recordAnalyticsEvent', () => {
-    it('should record page view event', () => {
-      recordAnalyticsEvent('page_view', '/');
-      expect(true).toBe(true);
-    });
-
-    it('should record calculator event', () => {
-      recordAnalyticsEvent('calculator_calculate', '/calculator/fence');
-      expect(true).toBe(true);
-    });
-
-    it('should record conversion funnel step', () => {
-      recordAnalyticsEvent('calculator_open', '/calculator');
-      expect(true).toBe(true);
-    });
-
-    it('should record generic event', () => {
-      recordAnalyticsEvent('custom_event', '/custom');
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('recordSessionDuration', () => {
-    it('should record session duration', async () => {
-      await recordSessionDuration('/calculator/fence', 120);
-      expect(true).toBe(true);
-    });
-
-    it('should record short session duration', async () => {
-      await recordSessionDuration('/', 10);
-      expect(true).toBe(true);
-    });
-
-    it('should record long session duration', async () => {
-      await recordSessionDuration('/portfolio', 3600);
-      expect(true).toBe(true);
-    });
-  });
-
   describe('getMetricsString', () => {
     it('should return metrics string', async () => {
       const metrics = await getMetricsString();
       expect(typeof metrics).toBe('string');
       expect(metrics).toContain('# HELP');
+    });
+
+    it('should cache metrics within TTL', async () => {
+      const first = await getMetricsString();
+      const second = await getMetricsString();
+      expect(first).toBe(second);
     });
   });
 });

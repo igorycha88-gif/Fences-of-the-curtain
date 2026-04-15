@@ -15,6 +15,9 @@ export const fenceEstimateSchema = z.object({
   picketCoating: z.string().optional(),
   picketStep: z.number().min(1).max(20).optional(),
   picketMountingType: z.enum(['SINGLE', 'CHESS']).optional(),
+  meshCellSize: z.number().min(10).max(100).optional(),
+  meshWireThickness: z.number().min(0.5).max(10).optional(),
+  meshCoating: z.enum(['GALVANIZED', 'POLYMER']).optional(),
 }).refine(
   (data) => !data.hasGate || (data.gateType && data.gateWidth),
   { message: "При выборе ворот необходимо указать тип и ширину" }

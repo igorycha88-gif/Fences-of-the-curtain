@@ -4,6 +4,7 @@ export const CACHE_KEYS = {
   LAGS_ACTIVE: 'calculator:lags:active',
   PROFNASTIL_ACTIVE: 'calculator:profnastil:active',
   PANEL_3D_ACTIVE: 'calculator:panel3d:active',
+  MESH_ACTIVE: 'calculator:mesh:active',
   PICKET_ACTIVE: 'calculator:picket:active',
   PICKET_PROFILE_TYPES_ACTIVE: 'calculator:picket:profile-types:active',
   PICKET_COATINGS_ACTIVE: 'calculator:picket:coatings:active',
