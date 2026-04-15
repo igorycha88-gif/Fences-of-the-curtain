@@ -8,7 +8,7 @@ DB_READY=false
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     RETRY_COUNT=$((RETRY_COUNT + 1))
-    if npx prisma@5.22.0 db execute --stdin <<< "SELECT 1;" 2>/dev/null; then
+    if echo "SELECT 1;" | npx prisma@5.22.0 db execute --stdin 2>/dev/null; then
         DB_READY=true
         echo "[entrypoint] Database is ready (attempt $RETRY_COUNT)"
         break
