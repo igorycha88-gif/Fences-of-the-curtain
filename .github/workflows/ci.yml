@@ -29,9 +29,13 @@ jobs:
 
       - name: Prisma validate
         run: npx prisma validate
+        env:
+          DATABASE_URL: "postgresql://postgres:dummy@localhost:5432/dummy"
 
       - name: Prisma generate (for type check)
         run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:dummy@localhost:5432/dummy"
 
       - name: Type check
         run: npx tsc --noEmit

@@ -1,8 +1,6 @@
 name: CI/CD Pipeline
 
 on:
-  push:
-    branches: [master2]
   workflow_dispatch:
     inputs:
       reason:

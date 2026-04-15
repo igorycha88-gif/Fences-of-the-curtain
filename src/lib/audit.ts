@@ -26,6 +26,8 @@ export interface AuditLogParams {
   oldValues?: Prisma.InputJsonValue | null;
   newValues?: Prisma.InputJsonValue | null;
   details?: Prisma.InputJsonValue;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 let systemUserId: string | null = null;
@@ -63,9 +65,17 @@ export async function getSystemUserId(): Promise<string> {
 
 export async function createAuditLog(params: AuditLogParams): Promise<void> {
   try {
-    const headersList = await headers();
-    const ipAddress = getClientIPFromHeaders(headersList) || 'unknown';
-    const userAgent = headersList.get('user-agent') || 'unknown';
+    let ipAddress = params.ipAddress || 'unknown';
+    let userAgent = params.userAgent || 'unknown';
+
+    if (!params.ipAddress && !params.userAgent) {
+      try {
+        const headersList = await headers();
+        ipAddress = getClientIPFromHeaders(headersList) || 'unknown';
+        userAgent = headersList.get('user-agent') || 'unknown';
+      } catch {
+      }
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -85,8 +95,19 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
   }
 }
 
-export function createAuditLogAsync(params: AuditLogParams): void {
-  setImmediate(() => createAuditLog(params));
+export async function createAuditLogAsync(params: AuditLogParams): Promise<void> {
+  let ipAddress = 'unknown';
+  let userAgent = 'unknown';
+
+  try {
+    const headersList = await headers();
+    ipAddress = getClientIPFromHeaders(headersList) || 'unknown';
+    userAgent = headersList.get('user-agent') || 'unknown';
+  } catch {
+  }
+
+  const enrichedParams: AuditLogParams = { ...params, ipAddress, userAgent };
+  setImmediate(() => createAuditLog(enrichedParams));
 }
 
 export function resetSystemUserIdCache(): void {

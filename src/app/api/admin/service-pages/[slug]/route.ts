@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
     const { slug } = await params;
 
     const page = await prisma.pageContent.findFirst({
@@ -33,6 +36,9 @@ export async function PUT(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
+
     const { slug } = await params;
     const body = await request.json();
 
@@ -81,10 +87,12 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const authResult = await requireAdmin(request, 'content');
+    if (authResult instanceof NextResponse) return authResult;
     const { slug } = await params;
 
     const existing = await prisma.pageContent.findFirst({ where: { slug } });

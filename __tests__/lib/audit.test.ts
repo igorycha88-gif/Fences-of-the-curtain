@@ -127,11 +127,11 @@ describe('Audit Library', () => {
         action: 'ASYNC_TEST',
       };
 
-      createAuditLogAsync(params);
-
-      setImmediate(() => {
-        expect(mockPrisma.auditLog.create).toHaveBeenCalled();
-        done();
+      createAuditLogAsync(params).then(() => {
+        setImmediate(() => {
+          expect(mockPrisma.auditLog.create).toHaveBeenCalled();
+          done();
+        });
       });
     });
   });
