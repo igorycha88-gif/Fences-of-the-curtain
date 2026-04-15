@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
 interface CookieConsentBannerProps {
   onAccept: () => void;
   onSettings: () => void;
@@ -19,13 +17,14 @@ export default function CookieConsentBanner({
             <p>
               Мы используем файлы cookie для улучшения работы сайта и аналитики.
               Подробнее в{' '}
-              <Link
+              <a
                 href="/privacy-policy"
                 className="text-blue-600 underline hover:text-blue-800"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 Политике конфиденциальности
-              </Link>
+              </a>
               .
             </p>
           </div>

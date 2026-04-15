@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 import { z, ZodError } from 'zod';
 import { validationError } from '@/lib/api-error';
 
@@ -80,6 +81,8 @@ export async function PUT(request: NextRequest) {
         },
       });
     }
+
+    await redis?.del('contact_info').catch(() => {});
 
     return NextResponse.json(contactInfo);
   } catch (error) {

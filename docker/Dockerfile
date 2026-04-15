@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     fontconfig \
     fonts-dejavu-core \
+    gosu \
     && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 
@@ -82,8 +83,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
 COPY --chmod=755 docker/entrypoint.sh /app/entrypoint.sh
 
 RUN mkdir -p /app/public/uploads/portfolio && chown -R nextjs:nodejs /app/public
-
-USER nextjs
 
 EXPOSE 3001
 

@@ -13,12 +13,19 @@ interface ContactPhoneBadgeProps {
 export default function ContactPhoneBadge({ variant = 'default', className = '' }: ContactPhoneBadgeProps) {
   const contactInfo = useContactInfo();
 
-  if (!contactInfo.hasData || !contactInfo.phone) {
+  if (!contactInfo.phone) {
     return null;
   }
 
   const phoneForLink = contactInfo.phone.replace(/\D/g, '');
-  const displayPhone = contactInfo.phone;
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 11 && digits.startsWith('7')) {
+      return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+    }
+    return raw;
+  };
+  const displayPhone = formatPhone(contactInfo.phone);
 
   const baseStyles = 'flex items-center gap-2 transition-all duration-300';
   
