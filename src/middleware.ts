@@ -42,6 +42,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('x-analytics-session-id', sessionId);
   response.headers.set('x-request-path', request.nextUrl.pathname);
   response.headers.set('x-request-referrer', request.headers.get('referer') || '');
+  response.headers.set('x-request-start', String(Date.now()));
 
   const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
   const utmFromUrl: Record<string, string> = {};

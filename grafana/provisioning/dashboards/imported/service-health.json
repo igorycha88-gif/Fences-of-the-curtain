@@ -559,7 +559,7 @@
       "pluginVersion": "9.5.3",
       "targets": [
         {
-          "expr": "up{instance=\"host.docker.internal:9090\"}",
+          "expr": "up{job=\"prometheus\"}",
           "legendFormat": "Prometheus",
           "refId": "A"
         }
@@ -637,12 +637,12 @@
       "pluginVersion": "9.5.3",
       "targets": [
         {
-          "expr": "up{job=\"nextjs-app\"}",
-          "legendFormat": "Grafana",
+          "expr": "up{job=\"nginx\"}",
+          "legendFormat": "Nginx",
           "refId": "A"
         }
       ],
-      "title": "Grafana",
+      "title": "Nginx",
       "type": "stat"
     }
   ],

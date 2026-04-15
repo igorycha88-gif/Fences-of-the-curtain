@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { Inter } from 'next/font/google';
 import SessionProvider from '@/components/providers/SessionProvider';
 import ContactInfoProvider from '@/components/providers/ContactInfoProvider';
@@ -6,6 +7,7 @@ import JsonLdScript from '@/components/seo/JsonLdScript';
 import CookieConsentProvider from '@/components/cookie-consent/CookieConsentProvider';
 import { generateOrganizationJsonLd, generateWebSiteJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
+import { recordTiming } from '@/lib/http-metrics';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
@@ -87,6 +89,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const headersList = headers();
+  const requestStart = headersList.get('x-request-start');
+  const requestPath = headersList.get('x-request-path');
+
+  if (requestStart && requestPath) {
+    const duration = Date.now() - parseInt(requestStart, 10);
+    recordTiming(requestPath, duration);
+  }
+
   const organizationJsonLd = generateOrganizationJsonLd();
   const websiteJsonLd = generateWebSiteJsonLd();
 

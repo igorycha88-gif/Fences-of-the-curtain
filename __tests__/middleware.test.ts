@@ -15,10 +15,6 @@ jest.mock('@/lib/redis', () => ({
   },
 }));
 
-jest.mock('@/lib/prometheus', () => ({
-  recordSessionDuration: jest.fn().mockResolvedValue(undefined),
-}));
-
 const mockGetRandomValues = jest.fn();
 const originalCrypto = global.crypto;
 
