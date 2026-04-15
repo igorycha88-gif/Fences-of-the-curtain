@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+echo "[entrypoint] Fixing upload directory permissions..."
+chown -R nextjs:nodejs /app/public/uploads 2>/dev/null || true
+
 echo "[entrypoint] Checking database connectivity..."
 MAX_RETRIES=10
 RETRY_COUNT=0
@@ -29,4 +32,4 @@ if ! npx prisma@5.22.0 migrate deploy; then
 fi
 
 echo "[entrypoint] Starting application..."
-exec node server.js
+exec gosu nextjs node server.js
