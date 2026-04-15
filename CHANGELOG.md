@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1] - 2026-04-15
+
+### Исправлено
+- fix: prod 500 errors — prisma db push + contact info cache invalidation (41911ee)
+- fix: replace Link with <a> in CookieConsentBanner to prevent 404 prefetch on /privacy-policy (6f807f2)
+- fix: phone badge visibility, Docker gosu permissions, security ЧТЗ docs (9f4c8a5)
+
 ## [1.4.0] - 2026-04-15
 
 ### Добавлено
