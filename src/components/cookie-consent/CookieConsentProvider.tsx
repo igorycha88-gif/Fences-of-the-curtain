@@ -6,11 +6,14 @@ import Script from 'next/script';
 import { useCookieConsent } from '@/hooks/useCookieConsent';
 import CookieConsentBanner from './CookieConsentBanner';
 import CookieConsentSettings from './CookieConsentSettings';
+import GoogleAnalytics from '@/components/seo/GoogleAnalytics';
 
 const YANDEX_METRIKA_ID = parseInt(
   process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID || '0',
   10
 );
+
+const GOOGLE_ANALYTICS_ID = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || '';
 
 interface CookieConsentContextValue {
   openSettings: () => void;
@@ -84,6 +87,10 @@ export default function CookieConsentProvider({
             `,
           }}
         />
+      )}
+
+      {shouldLoadAnalytics && GOOGLE_ANALYTICS_ID && GOOGLE_ANALYTICS_ID !== 'your-id' && !GOOGLE_ANALYTICS_ID.startsWith('G-XXXX') && (
+        <GoogleAnalytics gaId={GOOGLE_ANALYTICS_ID} />
       )}
     </CookieConsentContext.Provider>
   );

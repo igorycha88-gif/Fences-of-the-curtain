@@ -80,6 +80,7 @@ export const metadata: Metadata = {
   },
   verification: {
     yandex: 'b82b0cfe086d3936',
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
   },
   manifest: '/manifest.webmanifest',
 };

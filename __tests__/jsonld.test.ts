@@ -67,10 +67,13 @@ describe('JSON-LD Generators', () => {
       expect(result.url).toBe('https://zabor-i-naves.ru');
     });
 
-    it('should not have search action (removed — no /search page)', () => {
+    it('should have SearchAction for Google sitelinks search box', () => {
       const result = generateWebSiteJsonLd();
 
-      expect(result.potentialAction).toBeUndefined();
+      expect(result.potentialAction).toBeDefined();
+      expect(result.potentialAction?.['@type']).toBe('SearchAction');
+      expect(result.potentialAction?.target).toContain('search_term_string');
+      expect(result.potentialAction?.['query-input']).toContain('required name=search_term_string');
     });
   });
 
