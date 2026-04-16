@@ -92,22 +92,21 @@ async function findPanelByHeight(requiredHeightMm: number) {
     return null;
   }
 
-  const sortedByPriority = higherPanels.sort((a, b) => {
-    if (a.priority !== b.priority) {
-      return a.priority - b.priority;
-    }
+  const sortedByHeight = higherPanels.sort((a, b) => {
     const aHeight = Math.round(a.panelHeight);
     const bHeight = Math.round(b.panelHeight);
     if (aHeight !== bHeight) {
       return aHeight - bHeight;
     }
-    const idCompare = a.id.localeCompare(b.id);
-    return idCompare === 0 ? 0 : aHeight - bHeight || idCompare;
+    if (a.priority !== b.priority) {
+      return a.priority - b.priority;
+    }
+    return a.id.localeCompare(b.id);
   });
 
-  console.log('[findPanelByHeight] Sorted higher panels:', sortedByPriority.map(p => ({ id: p.id, name: p.name, height: p.panelHeight, priority: p.priority })));
+  console.log('[findPanelByHeight] Sorted higher panels:', sortedByHeight.map(p => ({ id: p.id, name: p.name, height: p.panelHeight, priority: p.priority })));
 
-  return sortedByPriority[0];
+  return sortedByHeight[0];
 }
 
 export async function calculatePanel3D(
