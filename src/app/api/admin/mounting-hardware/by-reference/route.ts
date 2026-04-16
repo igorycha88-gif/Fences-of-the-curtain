@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-const VALID_REFERENCE_TYPES = ['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D'] as const;
+const VALID_REFERENCE_TYPES = ['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D', 'MESH'] as const;
 type ReferenceType = typeof VALID_REFERENCE_TYPES[number];
 
 export async function GET(request: NextRequest) {
