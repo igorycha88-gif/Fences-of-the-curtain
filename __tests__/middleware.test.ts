@@ -195,6 +195,23 @@ describe('middleware', () => {
       expect(csp).toContain('https://www.gstatic.com');
     });
 
+    it('should allow Yandex iframe domains in frame-src', async () => {
+      const mockRequest = {
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
+        cookies: { get: jest.fn() },
+      } as any;
+
+      await middleware(mockRequest);
+
+      const cspCall = mockResponse.headers.set.mock.calls.find(
+        (call: string[]) => call[0] === 'Content-Security-Policy'
+      );
+      const csp = cspCall?.[1];
+
+      expect(csp).toContain('https://yandex.ru');
+    });
+
     it('should not set x-nonce header', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
