@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
 import { metrikaEvents } from '@/lib/seo/metrika';
+import { trackEvent } from '@/lib/analytics';
+import { EVENT_NAMES } from '@/types/analytics';
 import { useContactInfo } from '@/components/providers/ContactInfoProvider';
 
 interface ContactPhoneBadgeProps {
@@ -40,7 +42,7 @@ export default function ContactPhoneBadge({ variant = 'default', className = '' 
       href={`tel:${phoneForLink}`}
       className={`${baseStyles} ${variantStyles[variant]} ${className}`}
       title="Позвонить нам"
-      onClick={() => metrikaEvents.phoneClick()}
+      onClick={() => { metrikaEvents.phoneClick(); trackEvent(EVENT_NAMES.PHONE_CLICK); }}
     >
       <Phone className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
       <span className="hidden sm:inline">{displayPhone}</span>

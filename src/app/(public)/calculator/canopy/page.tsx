@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calculator, Send } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import CanopyNomenclatureNotFoundModal from '@/components/calculator/CanopyNomenclatureNotFoundModal';
 import { metrikaEvents } from '@/lib/seo/metrika';
+import { trackEvent } from '@/lib/analytics';
+import { EVENT_NAMES } from '@/types/analytics';
 
 const canopyTypeLabels: Record<string, string> = {
   'single-slope': 'Односкатный',
@@ -83,6 +85,10 @@ export default function CanopyCalculatorPage() {
   const [loading, setLoading] = useState(false);
   const [showIndividualRequestModal, setShowIndividualRequestModal] = useState(false);
 
+  useEffect(() => {
+    trackEvent(EVENT_NAMES.CALCULATOR_OPEN, { calculator: 'canopy' });
+  }, []);
+
   const calculate = async () => {
     setLoading(true);
     try {
@@ -97,6 +103,7 @@ export default function CanopyCalculatorPage() {
         setResult(data);
         setShowIndividualRequestModal(true);
         metrikaEvents.calculatorComplete('canopy', data.totalCost || data.grandTotal || 0);
+        trackEvent(EVENT_NAMES.CALCULATOR_CALCULATE, { canopyType: formData.canopyType, calculator: 'canopy' });
       }
     } catch (error) {
       console.error('Calculation error:', error);

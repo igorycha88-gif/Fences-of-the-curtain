@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { X, Send, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { metrikaEvents } from '@/lib/seo/metrika';
+import { trackEvent } from '@/lib/analytics';
+import { EVENT_NAMES } from '@/types/analytics';
 
 interface EstimateItem {
   category: string;
@@ -232,6 +234,7 @@ export default function OrderForm(props: OrderFormProps) {
 
       setSuccess(true);
       metrikaEvents.orderFormSubmit('fence', isMulti ? (props as MultiOrderFormProps).totals.grandTotal : (props as SingleOrderFormProps).calculatedCost);
+      trackEvent(EVENT_NAMES.CONTACT_FORM_SUBMIT, { formType: isMulti ? 'multi_estimate' : 'single_estimate' });
       setTimeout(() => {
         props.onSuccess();
       }, 2000);
