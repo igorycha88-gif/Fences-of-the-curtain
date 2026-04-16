@@ -146,6 +146,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 О нас
               </a>
             </li>
+            <li>
+              <a
+                href="/admin/reviews"
+                onClick={handleNavClick}
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/reviews')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Отзывы
+              </a>
+            </li>
             <li className="pt-4 border-t mt-4">
               <button
                 onClick={toggleReferences}

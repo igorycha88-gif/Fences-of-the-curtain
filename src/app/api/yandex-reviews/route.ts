@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { redis } from '@/lib/redis';
+import { prisma } from '@/lib/prisma';
 
 interface Review {
   id: string;
@@ -14,102 +14,59 @@ interface ReviewsResponse {
   reviewsCount: number;
   reviews: Review[];
   yandexUrl: string;
-  source: 'cache' | 'api' | 'empty';
+  source: 'database';
 }
 
-
-
-const CACHE_KEY = 'yandex_reviews';
-const CACHE_TTL = 3600;
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const cachedData = await redis?.get(CACHE_KEY);
-    
-    if (cachedData) {
-      const parsed = JSON.parse(cachedData);
-      return NextResponse.json({
-        ...parsed,
-        source: 'cache'
-      });
+    const dbReviews = await prisma.review.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    const yandexOrgUrl = process.env.NEXT_PUBLIC_YANDEX_ORG_URL ||
+      'https://yandex.ru/maps/org/154197841574/';
+
+    if (dbReviews.length === 0) {
+      const emptyResponse: ReviewsResponse = {
+        rating: 0,
+        reviewsCount: 0,
+        reviews: [],
+        yandexUrl: yandexOrgUrl,
+        source: 'database',
+      };
+      return NextResponse.json(emptyResponse);
     }
 
-    const yandexOrgId = process.env.YANDEX_ORG_ID;
-    const yandexApiKey = process.env.YANDEX_API_KEY;
+    const avgRating = dbReviews.reduce((sum, r) => sum + r.rating, 0) / dbReviews.length;
 
-    if (yandexOrgId && yandexApiKey) {
-      try {
-        const yandexData = await fetchYandexReviews(yandexOrgId, yandexApiKey);
-        
-        const response: ReviewsResponse = {
-          ...yandexData,
-          source: 'api'
-        };
-
-        await redis?.setex(
-          CACHE_KEY,
-          CACHE_TTL,
-          JSON.stringify(response)
-        );
-
-        return NextResponse.json(response);
-      } catch (apiError) {
-        console.error('Yandex API error:', apiError);
-      }
-    }
-
-    const emptyResponse: ReviewsResponse = {
-      rating: 0,
-      reviewsCount: 0,
-      reviews: [],
-      yandexUrl: process.env.NEXT_PUBLIC_YANDEX_ORG_URL || 
-        'https://yandex.ru/maps/org/zabor_i_navesy/',
-      source: 'empty'
+    const response: ReviewsResponse = {
+      rating: Math.round(avgRating * 10) / 10,
+      reviewsCount: dbReviews.length,
+      reviews: dbReviews.map((r) => ({
+        id: r.id,
+        author: r.name,
+        rating: r.rating,
+        text: r.text,
+        date: r.createdAt.toISOString(),
+      })),
+      yandexUrl: yandexOrgUrl,
+      source: 'database',
     };
 
-    return NextResponse.json(emptyResponse);
-
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Reviews fetch error:', error);
-    
+
     return NextResponse.json({
       rating: 0,
       reviewsCount: 0,
       reviews: [],
-      yandexUrl: process.env.NEXT_PUBLIC_YANDEX_ORG_URL || 
-        'https://yandex.ru/maps/org/zabor_i_navesy/',
-      source: 'empty'
+      yandexUrl: process.env.NEXT_PUBLIC_YANDEX_ORG_URL ||
+        'https://yandex.ru/maps/org/154197841574/',
+      source: 'database',
     });
   }
-}
-
-async function fetchYandexReviews(orgId: string, apiKey: string): Promise<Omit<ReviewsResponse, 'source'>> {
-  const response = await fetch(
-    `https://business-api.yandex.ru/v1/reviews?org_id=${orgId}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Yandex API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  return {
-    rating: data.rating || 0,
-    reviewsCount: data.total_reviews || 0,
-    reviews: (data.reviews || []).slice(0, 5).map((review: any) => ({
-      id: review.id,
-      author: review.author?.name || 'Клиент',
-      rating: review.rating,
-      text: review.text,
-      date: review.created_at
-    })),
-    yandexUrl: `https://yandex.ru/maps/org/${orgId}/`
-  };
 }
