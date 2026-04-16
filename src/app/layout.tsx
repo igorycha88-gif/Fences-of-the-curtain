@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
+import Script from 'next/script';
 import { Inter } from 'next/font/google';
 import SessionProvider from '@/components/providers/SessionProvider';
 import ContactInfoProvider from '@/components/providers/ContactInfoProvider';
@@ -9,6 +10,8 @@ import { generateOrganizationJsonLd, generateWebSiteJsonLd } from '@/lib/seo/jso
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import { recordTiming } from '@/lib/http-metrics';
 import './globals.css';
+
+const GTAG_ID = 'G-N4KVS3N0B1';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -106,6 +109,18 @@ export default function RootLayout({
     <html lang="ru">
       <head>
         <JsonLdScript data={[organizationJsonLd, websiteJsonLd]} />
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GTAG_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GTAG_ID}');
+          `}
+        </Script>
       </head>
       <body className={inter.className}>
         <SessionProvider>
