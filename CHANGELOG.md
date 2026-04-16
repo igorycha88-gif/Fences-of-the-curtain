@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.6.0] - 2026-04-16
+
+### Добавлено
+- feat: Google Analytics 4, Search Console verification, SearchAction JSON-LD, calculator metadata (b740306)
+- feat: подбор высоты ворот и калитки по высоте забора в калькуляторе (3bbab0f)
+- feat: reviews from database instead of dead Yandex Business API (f8f01a7)
+
+### Исправлено
+- fix: добавить trackEvent() для метрик Grafana — калькулятор, заявки, телефон, страницы (46444ff)
+- fix: вернуть pricePerMeter в Zod-валидатор — фикс 500 при создании столба (da161d3)
+- fix: подбор 3D-панели по высоте — приоритет высоты над priority при fallback (8c3ca60)
+- fix: контактная информация не отображалась на публичном сайте (66c66a2)
+- fix: prod 500 errors — prisma db push + contact info cache invalidation (41911ee)
+- fix: replace Link with <a> in CookieConsentBanner to prevent 404 prefetch (6f807f2)
+- fix: phone badge visibility, Docker gosu permissions, security ЧТЗ docs (9f4c8a5)
+- fix: entrypoint.sh — use heredoc for SQL, make non-fatal on DB check failure (6b4f91a)
+- fix: entrypoint.sh — replace bash here-string with POSIX-compatible pipe (bef704c)
+- fix: add 2200mm profnastil to test data — fix CI test failure (6215cfc)
+
 ## [1.4.0] - 2026-04-15
 
 ### Добавлено
