@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
     img-src 'self' data: https:;
     font-src 'self';
     connect-src 'self' https://mc.yandex.ru;
-    frame-src https://www.google.com https://www.gstatic.com;
+    frame-src https://www.google.com https://www.gstatic.com https://yandex.ru;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
