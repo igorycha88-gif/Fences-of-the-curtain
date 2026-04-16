@@ -36,6 +36,7 @@ interface FenceEstimateData {
     };
     wicket?: {
       width: number;
+      height: number;
       selectedName: string;
     };
   };

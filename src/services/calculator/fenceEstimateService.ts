@@ -62,12 +62,14 @@ export interface GateInfo {
   id: string;
   type: string;
   length: number;
+  height: number;
   selectedName: string;
 }
 
 export interface WicketInfo {
   id: string;
   width: number;
+  height: number;
   selectedName: string;
 }
 
@@ -160,8 +162,9 @@ export async function calculateFenceEstimateCore(
   const gatePromise = (async () => {
     if (hasGate && gateType && gateWidth) {
       const gateWidthMm = Math.round(gateWidth * 1000);
-      console.log('[fenceEstimate] Calling findGateByTypeAndLength:', { gateType, gateWidthMm });
-      const selectedGate = await findGateByTypeAndLength(gateType as GateTypeValue, gateWidthMm);
+      const heightMm = Math.round(height * 1000);
+      console.log('[fenceEstimate] Calling findGateByTypeAndLength:', { gateType, gateWidthMm, heightMm });
+      const selectedGate = await findGateByTypeAndLength(gateType as GateTypeValue, gateWidthMm, heightMm);
       console.log('[fenceEstimate] Selected gate:', selectedGate);
       return selectedGate;
     }
@@ -201,6 +204,7 @@ export async function calculateFenceEstimateCore(
       id: selectedGate.id,
       type: selectedGate.type,
       length: selectedGate.gateLength,
+      height: selectedGate.gateHeight,
       selectedName: selectedGate.name,
     };
     gateTotal = selectedGate.retailPrice;
@@ -238,6 +242,7 @@ export async function calculateFenceEstimateCore(
     wicketInfo = {
       id: selectedWicket.id,
       width: selectedWicket.wicketLength,
+      height: selectedWicket.wicketHeight,
       selectedName: selectedWicket.name,
     };
     wicketTotal = selectedWicket.retailPrice;
@@ -626,6 +631,7 @@ export async function calculateFenceEstimate(
         hasGate: input.hasGate || false,
         gateType: input.gateType || null,
         gateLength: coreResult.gateInfo?.length || null,
+        gateHeight: coreResult.gateInfo?.height || null,
         gateNomenclatureId: coreResult.gateInfo ? coreResult.gateInfo.id : null,
         gateNomenclatureName: coreResult.gateInfo ? coreResult.gateInfo.selectedName : null,
         postsTotal: (coreResult.items.find(i => i.category === 'posts')?.totalPrice || 0),
@@ -640,6 +646,7 @@ export async function calculateFenceEstimate(
           .reduce((sum, item) => sum + item.totalPrice, 0),
         hasWicket: input.hasWicket || false,
         wicketWidth: coreResult.wicketInfo?.width || null,
+        wicketHeight: coreResult.wicketInfo?.height || null,
         wicketNomenclatureId: coreResult.wicketInfo ? coreResult.wicketInfo.id : null,
         wicketNomenclatureName: coreResult.wicketInfo ? coreResult.wicketInfo.selectedName : null,
         wicketTotal: (coreResult.items.find(i => i.category === 'wickets')?.totalPrice || 0),
@@ -729,6 +736,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
         id: estimate.gateNomenclatureId || '',
         type: estimate.gateType,
         length: estimate.gateLength,
+        height: estimate.gateHeight || 0,
         selectedName: estimate.gateNomenclatureName || 'Ворота',
       }
     : undefined;
@@ -737,6 +745,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
     ? {
         id: estimate.wicketNomenclatureId || '',
         width: estimate.wicketWidth,
+        height: estimate.wicketHeight || 0,
         selectedName: estimate.wicketNomenclatureName || 'Калитка',
       }
     : undefined;

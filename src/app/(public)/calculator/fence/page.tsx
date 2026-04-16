@@ -86,6 +86,7 @@ interface CalculatorResult {
     };
     wicket?: {
       width: number;
+      height: number;
       selectedName: string;
     };
   };

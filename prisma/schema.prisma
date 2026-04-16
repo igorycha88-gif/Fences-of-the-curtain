@@ -589,6 +589,7 @@ model FenceEstimate {
   wicketNomenclatureName   String?
   wicketTotal              Float               @default(0)
   wicketWidth              Int?
+  wicketHeight             Int?
   city                     String?
   panel3dId                String?
   panel3dInstallationTotal Float               @default(0)
