@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
 import { EVENT_NAMES } from '@/types/analytics';
+import { trackEvent } from '@/lib/analytics';
 import { 
   Calculator, 
   Shield, 
@@ -72,7 +74,11 @@ const advantages = [
 ];
 
 export default function ServicesPage() {
-  const { trackEvent } = useAnalytics();
+  const { trackEvent: trackFromHook } = useAnalytics();
+
+  useEffect(() => {
+    trackEvent(EVENT_NAMES.SERVICES_VIEW);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">

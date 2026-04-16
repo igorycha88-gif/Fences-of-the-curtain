@@ -39,7 +39,16 @@ export default function ContactInfoProvider({ children }: { children: ReactNode 
       .then(res => res.json())
       .then(data => {
         clearTimeout(timeoutId);
-        if (data.hasData) setContactInfo(data);
+        if (data.hasData) {
+          setContactInfo(data);
+        } else {
+          setContactInfo(prev => ({
+            ...prev,
+            phone: data.phone || prev.phone,
+            email: data.email || prev.email,
+            address: data.address || prev.address,
+          }));
+        }
       })
       .catch(() => {
         clearTimeout(timeoutId);

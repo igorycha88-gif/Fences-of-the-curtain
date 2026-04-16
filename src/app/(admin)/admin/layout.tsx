@@ -162,6 +162,18 @@ export default function AdminLayout({
                 О нас
               </a>
             </li>
+            <li>
+              <a
+                href="/admin/reviews"
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/reviews')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Отзывы
+              </a>
+            </li>
             <li className="pt-4 border-t mt-4">
               <button
                 onClick={toggleReferences}

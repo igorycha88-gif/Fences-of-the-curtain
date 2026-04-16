@@ -147,10 +147,12 @@ export async function getMultiFenceEstimateById(id: string): Promise<MultiFenceE
     hasGate: boolean;
     gateType: string | null;
     gateLength: number | null;
+    gateHeight?: number | null;
     gateNomenclatureId: string | null;
     gateNomenclatureName: string | null;
     hasWicket: boolean;
     wicketWidth: number | null;
+    wicketHeight?: number | null;
     wicketNomenclatureId: string | null;
     wicketNomenclatureName: string | null;
     createdAt: Date;
@@ -170,6 +172,7 @@ export async function getMultiFenceEstimateById(id: string): Promise<MultiFenceE
         id: est.gateNomenclatureId || '',
         type: est.gateType,
         length: est.gateLength,
+        height: est.gateHeight || 0,
         selectedName: est.gateNomenclatureName || 'Ворота',
       };
     }
@@ -178,6 +181,7 @@ export async function getMultiFenceEstimateById(id: string): Promise<MultiFenceE
       parameters.wicket = {
         id: est.wicketNomenclatureId || '',
         width: est.wicketWidth,
+        height: est.wicketHeight || 0,
         selectedName: est.wicketNomenclatureName || 'Калитка',
       };
     }

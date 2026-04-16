@@ -46,6 +46,11 @@ export function generateWebSiteJsonLd(): JsonLdWebSite {
     '@type': 'WebSite',
     name: SEO_CONFIG.SITE_NAME,
     url: SEO_CONFIG.BASE_URL,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${SEO_CONFIG.BASE_URL}/services?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
   };
 }
 

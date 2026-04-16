@@ -8,6 +8,7 @@ import OrderForm from '@/components/calculator/OrderForm';
 import NomenclatureNotFoundModal from '@/components/calculator/NomenclatureNotFoundModal';
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
 import { EVENT_NAMES } from '@/types/analytics';
+import { trackEvent } from '@/lib/analytics';
 import { validateLength } from '@/lib/validators/calculator';
 import { metrikaEvents } from '@/lib/seo/metrika';
 
@@ -86,6 +87,7 @@ interface CalculatorResult {
     };
     wicket?: {
       width: number;
+      height: number;
       selectedName: string;
     };
   };
@@ -173,6 +175,10 @@ export default function FenceCalculatorPage() {
   const [focusedCalcId, setFocusedCalcId] = useState<string | null>(null);
 
   useEffect(() => {
+    trackEvent(EVENT_NAMES.CALCULATOR_OPEN, { calculator: 'fence' });
+  }, []);
+
+  useEffect(() => {
     const fetchFenceTypes = async () => {
       try {
         setFenceTypesLoading(true);
@@ -251,6 +257,7 @@ export default function FenceCalculatorPage() {
   }, []);
 
   const handleFenceTypeSelect = useCallback((calcId: string, fenceType: FenceType) => {
+    trackEvent(EVENT_NAMES.CALCULATOR_FENCE_TYPE_SELECT, { fenceType: fenceType.name });
     const isPicketType = fenceType.name === 'Евроштакетник';
     const isMeshType = fenceType.name === 'Сетка-рабица';
     updateCalcFormData(calcId, {
@@ -387,6 +394,7 @@ export default function FenceCalculatorPage() {
         const data = await response.json();
         setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, result: data, loading: false } : c));
         metrikaEvents.calculatorComplete('fence', data.totals?.grandTotal || 0);
+        trackEvent(EVENT_NAMES.CALCULATOR_CALCULATE, { fenceType: selectedFenceType.name, calculator: 'fence' });
       } else {
         const errorData = await response.json();
         const nomenclatureErrors = ['NO_PROFNASTIL_FOUND', 'NO_GATE_FOUND', 'NO_WICKET_FOUND', 'NO_PICKET_FOUND', 'NO_MESH_FOUND', 'NO_POSTS_FOUND', 'CALCULATOR_NOT_IMPLEMENTED'];

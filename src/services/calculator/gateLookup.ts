@@ -6,6 +6,7 @@ export interface GateLookupResult {
   id: string;
   name: string;
   type: string;
+  gateHeight: number;
   gateLength: number;
   retailPrice: number;
 }
@@ -31,7 +32,7 @@ async function getActiveGates() {
             OR: [{ expirationDate: null }, { expirationDate: { gt: now } }],
           },
         },
-        orderBy: [{ gateLength: 'asc' }, { priority: 'asc' }],
+        orderBy: [{ gateLength: 'asc' }, { gateHeight: 'asc' }, { priority: 'asc' }],
       });
     },
     CACHE_TTL.REFERENCE_DATA
@@ -40,38 +41,69 @@ async function getActiveGates() {
 
 export async function findGateByTypeAndLength(
   gateType: GateTypeValue,
-  gateWidthMm: number
+  gateWidthMm: number,
+  fenceHeightMm: number
 ): Promise<GateLookupResult> {
   const gateTypeValue = gateType === 'SWING' ? 'Распашные' : 'Откатные';
 
-  console.log('[gateLookup] Searching for gate:', { gateType, gateTypeValue, gateWidthMm });
+  console.log('[gateLookup] Searching for gate:', { gateType, gateTypeValue, gateWidthMm, fenceHeightMm });
 
   const gates = await getActiveGates();
 
-  console.log('[gateLookup] Found gates from cache:', gates.map(g => ({ name: g.name, type: g.type, gateLength: g.gateLength, retailPrice: g.retailPrice })));
+  console.log('[gateLookup] Found gates from cache:', gates.map(g => ({ name: g.name, type: g.type, gateLength: g.gateLength, gateHeight: g.gateHeight, retailPrice: g.retailPrice })));
 
-  const matchingGates = gates.filter((g) => g.type === gateTypeValue && g.gateLength >= gateWidthMm);
+  const typeMatchingGates = gates.filter((g) => g.type === gateTypeValue);
 
-  console.log('[gateLookup] Matching gates (gateLength >= gateWidthMm):', matchingGates.map(g => ({ name: g.name, gateLength: g.gateLength })));
+  const widthMatchingGates = typeMatchingGates.filter((g) => g.gateLength >= gateWidthMm);
 
-  if (matchingGates.length === 0) {
+  console.log('[gateLookup] Width matching gates (gateLength >= gateWidthMm):', widthMatchingGates.map(g => ({ name: g.name, gateLength: g.gateLength, gateHeight: g.gateHeight })));
+
+  if (widthMatchingGates.length === 0) {
     throw {
       error: 'NO_GATE_FOUND',
       message: 'Не найдены ворота с указанными параметрами',
       details: {
         requiredWidth: gateWidthMm,
+        requiredHeight: fenceHeightMm,
         gateType: gateTypeValue,
         suggestion: 'Попробуйте выбрать другую ширину или тип ворот',
       },
     } as GateLookupError;
   }
 
-  const selectedGate = matchingGates[0];
+  const exactWidthMatch = widthMatchingGates.filter((g) => g.gateLength === gateWidthMm);
+  const candidatesByWidth = exactWidthMatch.length > 0 ? exactWidthMatch : widthMatchingGates;
+
+  const heightMatchingGates = candidatesByWidth.filter((g) => g.gateHeight >= fenceHeightMm);
+
+  console.log('[gateLookup] Height matching gates (gateHeight >= fenceHeightMm):', heightMatchingGates.map(g => ({ name: g.name, gateHeight: g.gateHeight })));
+
+  if (heightMatchingGates.length === 0) {
+    throw {
+      error: 'NO_GATE_FOUND',
+      message: 'Не найдены ворота с указанными параметрами',
+      details: {
+        requiredWidth: gateWidthMm,
+        requiredHeight: fenceHeightMm,
+        gateType: gateTypeValue,
+        suggestion: 'Попробуйте выбрать другую высоту забора, ширину или тип ворот',
+      },
+    } as GateLookupError;
+  }
+
+  const exactHeightMatch = heightMatchingGates.filter((g) => g.gateHeight === fenceHeightMm);
+  const finalCandidates = exactHeightMatch.length > 0 ? exactHeightMatch : heightMatchingGates;
+
+  finalCandidates.sort((a, b) => a.priority - b.priority);
+  const selectedGate = finalCandidates[0];
+
+  console.log('[gateLookup] Selected gate:', { name: selectedGate.name, gateHeight: selectedGate.gateHeight, gateLength: selectedGate.gateLength });
 
   return {
     id: selectedGate.id,
     name: selectedGate.name,
     type: selectedGate.type,
+    gateHeight: selectedGate.gateHeight,
     gateLength: selectedGate.gateLength,
     retailPrice: selectedGate.retailPrice,
   };

@@ -337,7 +337,7 @@ describe('panel3DCalculator', () => {
       expect(result.nomenclatureName).toBe('3D-панель 2000x2500 high priority');
     });
 
-    it('should select panel with higher priority among higher panels', async () => {
+    it('should select closest height panel when no exact match', async () => {
       const mockPanels = [
         {
           id: 'panel1',
@@ -361,8 +361,45 @@ describe('panel3DCalculator', () => {
 
       const result = await calculatePanel3D(50, 2.2);
 
-      expect(result.nomenclatureId).toBe('panel2');
-      expect(result.nomenclatureName).toBe('3D-панель 3000x2500 high priority');
+      expect(result.nomenclatureId).toBe('panel1');
+      expect(result.nomenclatureName).toBe('3D-панель 2500x2500 low priority');
+    });
+
+    it('BUG-FIX: should select 1530mm panel for 1.5m fence, not 2030mm', async () => {
+      const mockPanels = [
+        {
+          id: 'panel-2030',
+          name: '3D-панель 2030x2500',
+          panelHeight: 2030,
+          panelWidth: 2500,
+          retailPricePerUnit: 5000,
+          priority: 0,
+        },
+        {
+          id: 'panel-1530',
+          name: '3D-панель 1530x2500',
+          panelHeight: 1530,
+          panelWidth: 2500,
+          retailPricePerUnit: 4000,
+          priority: 3,
+        },
+        {
+          id: 'panel-2530',
+          name: '3D-панель 2530x2500',
+          panelHeight: 2530,
+          panelWidth: 2500,
+          retailPricePerUnit: 6000,
+          priority: 0,
+        },
+      ];
+
+      mockPrisma.panel3D.findMany.mockResolvedValue(mockPanels as any);
+
+      const result = await calculatePanel3D(50, 1.5);
+
+      expect(result.nomenclatureId).toBe('panel-1530');
+      expect(result.nomenclatureName).toBe('3D-панель 1530x2500');
+      expect(result.panelHeight).toBe(1530);
     });
   });
 });
