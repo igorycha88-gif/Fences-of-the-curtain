@@ -8,6 +8,7 @@ describe('fenceEstimateService', () => {
   let testLagTypeId: string;
   let testProfnastilTypeId: string;
   let testGateTypeId: string;
+  let testSlidingGateTypeId: string;
   let testWicketTypeId: string;
   let testMountingHardwareId1: string;
   let testMountingHardwareId2: string;
@@ -107,6 +108,24 @@ describe('fenceEstimateService', () => {
       },
     });
     testGateTypeId = gateType.id;
+
+    const slidingGateType = await prisma.gateType.create({
+      data: {
+        id: 'test-gate-type-sliding-1',
+        name: 'Тестовые откатные ворота 4000мм h-1950мм',
+        type: 'Откатные',
+        gateLength: 4000,
+        gateHeight: 1950,
+        metalThickness: 2.0,
+        sectionWidth: 60,
+        sectionHeight: 40,
+        retailPrice: 50000,
+        active: true,
+        priority: 0,
+        updatedAt: new Date(),
+      },
+    });
+    testSlidingGateTypeId = slidingGateType.id;
 
     const wicketType = await prisma.wicketType.create({
       data: {
@@ -222,6 +241,7 @@ describe('fenceEstimateService', () => {
 
     const { cache } = await import('@/lib/cache');
     await cache.delPattern('calculator:works:');
+    await cache.delPattern('calculator:gates:');
 
     await prisma.workRelation.create({
       data: {
@@ -277,6 +297,7 @@ describe('fenceEstimateService', () => {
       },
     });
     await prisma.gateType.delete({ where: { id: testGateTypeId } });
+    await prisma.gateType.delete({ where: { id: testSlidingGateTypeId } });
     await prisma.wicketType.delete({ where: { id: testWicketTypeId } });
     await prisma.profnastilType.delete({ where: { id: testProfnastilTypeId } });
     await prisma.lagType.delete({ where: { id: testLagTypeId } });
@@ -654,6 +675,47 @@ describe('fenceEstimateService', () => {
       error: 'NO_WICKET_FOUND',
       message: 'Не найдена калитка с указанными параметрами',
     });
+  });
+
+  it('should find sliding gate via height fallback when gateHeight < fenceHeight', async () => {
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: 20,
+      height: 2.0,
+      lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: true,
+      gateType: 'SLIDING' as const,
+      gateWidth: 4.0,
+      hasWicket: false,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const gateItem = result.items.find(item => item.category === 'gates');
+    expect(gateItem).toBeDefined();
+    expect(gateItem!.nomenclatureName).toContain('откатные');
+    expect(gateItem!.totalPrice).toBe(50000);
+  });
+
+  it('should find sliding gate via height fallback for 2.2m fence', async () => {
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: 20,
+      height: 2.2,
+      lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: true,
+      gateType: 'SLIDING' as const,
+      gateWidth: 4.0,
+      hasWicket: false,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const gateItem = result.items.find(item => item.category === 'gates');
+    expect(gateItem).toBeDefined();
+    expect(gateItem!.totalPrice).toBe(50000);
   });
 
   describe('Transaction', () => {

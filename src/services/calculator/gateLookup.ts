@@ -78,21 +78,20 @@ export async function findGateByTypeAndLength(
 
   console.log('[gateLookup] Height matching gates (gateHeight >= fenceHeightMm):', heightMatchingGates.map(g => ({ name: g.name, gateHeight: g.gateHeight })));
 
-  if (heightMatchingGates.length === 0) {
-    throw {
-      error: 'NO_GATE_FOUND',
-      message: 'Не найдены ворота с указанными параметрами',
-      details: {
-        requiredWidth: gateWidthMm,
-        requiredHeight: fenceHeightMm,
-        gateType: gateTypeValue,
-        suggestion: 'Попробуйте выбрать другую высоту забора, ширину или тип ворот',
-      },
-    } as GateLookupError;
-  }
+  let finalCandidates: typeof candidatesByWidth;
 
-  const exactHeightMatch = heightMatchingGates.filter((g) => g.gateHeight === fenceHeightMm);
-  const finalCandidates = exactHeightMatch.length > 0 ? exactHeightMatch : heightMatchingGates;
+  if (heightMatchingGates.length > 0) {
+    const exactHeightMatch = heightMatchingGates.filter((g) => g.gateHeight === fenceHeightMm);
+    finalCandidates = exactHeightMatch.length > 0 ? exactHeightMatch : heightMatchingGates;
+  } else {
+    const sortedByHeightDesc = [...candidatesByWidth].sort((a, b) => b.gateHeight - a.gateHeight);
+    finalCandidates = [sortedByHeightDesc[0]];
+    console.warn('[gateLookup] No gate meets height requirement. Falling back to tallest available:', {
+      requiredHeight: fenceHeightMm,
+      selectedHeight: finalCandidates[0].gateHeight,
+      gateName: finalCandidates[0].name,
+    });
+  }
 
   finalCandidates.sort((a, b) => a.priority - b.priority);
   const selectedGate = finalCandidates[0];
