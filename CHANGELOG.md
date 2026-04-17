@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.1] - 2026-04-17
+
+### Добавлено
+- feat: add phone link button to portfolio page (b8ff1f3)
+- feat: add SiteNavigationElement JSON-LD for search engine sitelinks (5800c29)
+- feat: add MESH (Сетка-рабица) to Works and Mounting Hardware reference types (c0d9d8d)
+- feat: add Google Analytics gtag.js (G-N4KVS3N0B1) to root layout (e18f705)
+
+### Исправлено
+- fix: подбор откатных ворот по ближайшей высоте вместо максимальной (cafaa65)
+- fix: подбор откатных ворот — fallback по высоте когда gateHeight < fenceHeight (0a37127)
+- fix: add force-dynamic to /api/contact-info route to prevent Next.js response caching (c193920)
+- fix: add yandex.ru to CSP frame-src for Yandex Maps widget (f466b1b)
+
 ## [1.6.0] - 2026-04-16
 
 ### Добавлено
