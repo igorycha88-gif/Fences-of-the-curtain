@@ -82,7 +82,12 @@ export async function findGateByTypeAndLength(
 
   if (heightMatchingGates.length > 0) {
     const exactHeightMatch = heightMatchingGates.filter((g) => g.gateHeight === fenceHeightMm);
-    finalCandidates = exactHeightMatch.length > 0 ? exactHeightMatch : heightMatchingGates;
+    if (exactHeightMatch.length > 0) {
+      finalCandidates = exactHeightMatch;
+    } else {
+      const minHeight = Math.min(...heightMatchingGates.map((g) => g.gateHeight));
+      finalCandidates = heightMatchingGates.filter((g) => g.gateHeight === minHeight);
+    }
   } else {
     const sortedByHeightDesc = [...candidatesByWidth].sort((a, b) => b.gateHeight - a.gateHeight);
     finalCandidates = [sortedByHeightDesc[0]];

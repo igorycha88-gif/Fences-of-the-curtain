@@ -9,6 +9,7 @@ describe('fenceEstimateService', () => {
   let testProfnastilTypeId: string;
   let testGateTypeId: string;
   let testSlidingGateTypeId: string;
+  let testSlidingGate1750TypeId: string;
   let testWicketTypeId: string;
   let testMountingHardwareId1: string;
   let testMountingHardwareId2: string;
@@ -126,6 +127,24 @@ describe('fenceEstimateService', () => {
       },
     });
     testSlidingGateTypeId = slidingGateType.id;
+
+    const slidingGate1750Type = await prisma.gateType.create({
+      data: {
+        id: 'test-gate-type-sliding-1750',
+        name: 'Тестовые откатные ворота 4000мм h-1750мм',
+        type: 'Откатные',
+        gateLength: 4000,
+        gateHeight: 1750,
+        metalThickness: 2.0,
+        sectionWidth: 60,
+        sectionHeight: 40,
+        retailPrice: 48000,
+        active: true,
+        priority: 0,
+        updatedAt: new Date(),
+      },
+    });
+    testSlidingGate1750TypeId = slidingGate1750Type.id;
 
     const wicketType = await prisma.wicketType.create({
       data: {
@@ -716,6 +735,26 @@ describe('fenceEstimateService', () => {
     const gateItem = result.items.find(item => item.category === 'gates');
     expect(gateItem).toBeDefined();
     expect(gateItem!.totalPrice).toBe(50000);
+  });
+
+  it('should pick closest sliding gate height for 1.5m fence (1750 not 1950)', async () => {
+    const input = {
+      fenceTypeId: testFenceTypeId,
+      length: 20,
+      height: 1.5,
+      lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: true,
+      gateType: 'SLIDING' as const,
+      gateWidth: 4.0,
+      hasWicket: false,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const gateItem = result.items.find(item => item.category === 'gates');
+    expect(gateItem).toBeDefined();
+    expect(gateItem!.totalPrice).toBe(48000);
   });
 
   describe('Transaction', () => {
