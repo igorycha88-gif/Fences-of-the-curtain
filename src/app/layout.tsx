@@ -6,7 +6,7 @@ import SessionProvider from '@/components/providers/SessionProvider';
 import ContactInfoProvider from '@/components/providers/ContactInfoProvider';
 import JsonLdScript from '@/components/seo/JsonLdScript';
 import CookieConsentProvider from '@/components/cookie-consent/CookieConsentProvider';
-import { generateOrganizationJsonLd, generateWebSiteJsonLd } from '@/lib/seo/jsonld';
+import { generateOrganizationJsonLd, generateWebSiteJsonLd, generateSiteNavigationJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import { recordTiming } from '@/lib/http-metrics';
 import './globals.css';
@@ -104,11 +104,12 @@ export default function RootLayout({
 
   const organizationJsonLd = generateOrganizationJsonLd();
   const websiteJsonLd = generateWebSiteJsonLd();
+  const siteNavigationJsonLd = generateSiteNavigationJsonLd();
 
   return (
     <html lang="ru">
       <head>
-        <JsonLdScript data={[organizationJsonLd, websiteJsonLd]} />
+        <JsonLdScript data={[organizationJsonLd, websiteJsonLd, siteNavigationJsonLd]} />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GTAG_ID}`}
           strategy="afterInteractive"

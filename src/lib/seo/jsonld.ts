@@ -8,6 +8,7 @@ import {
   JsonLdContactPage,
   JsonLdItemList,
   JsonLdFaqPage,
+  JsonLdSiteNavigation,
 } from './types';
 
 export function generateOrganizationJsonLd(): JsonLdOrganization {
@@ -37,6 +38,27 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
     ],
     priceRange: BUSINESS_INFO.priceRange,
     areaServed: [BUSINESS_INFO.address.locality, BUSINESS_INFO.address.region],
+  };
+}
+
+export function generateSiteNavigationJsonLd(): JsonLdSiteNavigation {
+  const navItems = [
+    { name: 'Калькулятор', url: '/calculator' },
+    { name: 'Портфолио', url: '/portfolio' },
+    { name: 'Услуги', url: '/services' },
+    { name: 'О нас', url: '/about' },
+    { name: 'Контакты', url: '/contacts' },
+  ];
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: navItems.map((item, index) => ({
+      '@type': 'SiteNavigationElement',
+      position: index + 1,
+      name: item.name,
+      url: `${SEO_CONFIG.BASE_URL}${item.url}`,
+    })),
   };
 }
 
