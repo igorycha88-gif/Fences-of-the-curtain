@@ -35,6 +35,73 @@ DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$DEPLOY_LOG"; }
 fatal() { log "FATAL: $1"; exit 1; }
 
+wait_for_health() {
+    local port="$1"
+    local container="$2"
+    local timeout="${3:-$HEALTH_TIMEOUT}"
+    local elapsed=0
+
+    while [ $elapsed -lt $timeout ]; do
+        if ! docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
+            log "    Container $container is not running"
+            docker logs "$container" --tail=20 2>&1 | tee -a "$DEPLOY_LOG"
+            return 1
+        fi
+
+        if curl -sf --max-time 3 "http://127.0.0.1:${port}/api/health" 2>/dev/null | grep -q '"status":"ok"'; then
+            log "    Health check passed on port ${port} (${elapsed}s)"
+            return 0
+        fi
+
+        sleep $HEALTH_INTERVAL
+        elapsed=$((elapsed + HEALTH_INTERVAL))
+    done
+
+    log "    Health check FAILED on port ${port} after ${timeout}s"
+    docker logs "$container" --tail=30 2>&1 | tee -a "$DEPLOY_LOG"
+    return 1
+}
+
+switch_nginx() {
+    local target_port="$1"
+
+    mkdir -p /etc/nginx/conf.d
+
+    cat > "$NGINX_UPSTREAM_FILE" <<EOF
+upstream app {
+    server 127.0.0.1:${target_port};
+    keepalive 32;
+}
+EOF
+
+    NGINX_MAIN="/etc/nginx/nginx.conf"
+    if [ -f "$NGINX_MAIN" ] && ! grep -q "include.*conf.d" "$NGINX_MAIN"; then
+        log "  Patching nginx.conf to include conf.d..."
+        sed -i '/http {/a \    include /etc/nginx/conf.d/*.conf;' "$NGINX_MAIN"
+    fi
+
+    for site_conf in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
+        if [ -f "$site_conf" ] && [ "$site_conf" != "$NGINX_UPSTREAM_FILE" ] && grep -q "upstream app" "$site_conf"; then
+            log "  Removing inline upstream from $site_conf (using conf.d instead)..."
+            sed -i '/upstream app {/,/}/d' "$site_conf"
+        fi
+    done
+
+    if ! nginx -t 2>&1; then
+        log "  FATAL: nginx config test failed"
+        cat "$NGINX_UPSTREAM_FILE"
+        nginx -T 2>&1 | tail -20 | tee -a "$DEPLOY_LOG"
+        fatal "nginx -t failed after upstream change"
+    fi
+
+    nginx -s reload 2>&1 || {
+        log "  WARN: nginx -s reload failed, trying systemctl..."
+        systemctl reload nginx 2>/dev/null || log "  WARN: systemctl reload also failed"
+    }
+
+    log "  nginx upstream switched to port ${target_port}"
+}
+
 DEPLOY_START=$(date +%s)
 cd "$APP_DIR" || fatal "App dir not found: $APP_DIR"
 
@@ -324,75 +391,3 @@ fi
 docker image prune -f 2>/dev/null || true
 
 log "=== DEPLOY FINISHED ==="
-
-# ── Helper functions ─────────────────────────────────────────────────────────
-
-wait_for_health() {
-    local port="$1"
-    local container="$2"
-    local timeout="${3:-$HEALTH_TIMEOUT}"
-    local elapsed=0
-
-    while [ $elapsed -lt $timeout ]; do
-        # Check container is running
-        if ! docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
-            log "    Container $container is not running"
-            docker logs "$container" --tail=20 2>&1 | tee -a "$DEPLOY_LOG"
-            return 1
-        fi
-
-        if curl -sf --max-time 3 "http://127.0.0.1:${port}/api/health" 2>/dev/null | grep -q '"status":"ok"'; then
-            log "    Health check passed on port ${port} (${elapsed}s)"
-            return 0
-        fi
-
-        sleep $HEALTH_INTERVAL
-        elapsed=$((elapsed + HEALTH_INTERVAL))
-    done
-
-    log "    Health check FAILED on port ${port} after ${timeout}s"
-    docker logs "$container" --tail=30 2>&1 | tee -a "$DEPLOY_LOG"
-    return 1
-}
-
-switch_nginx() {
-    local target_port="$1"
-
-    mkdir -p /etc/nginx/conf.d
-
-    cat > "$NGINX_UPSTREAM_FILE" <<EOF
-upstream app {
-    server 127.0.0.1:${target_port};
-    keepalive 32;
-}
-EOF
-
-    # Self-heal: ensure nginx includes conf.d
-    NGINX_MAIN="/etc/nginx/nginx.conf"
-    if [ -f "$NGINX_MAIN" ] && ! grep -q "include.*conf.d" "$NGINX_MAIN"; then
-        log "  Patching nginx.conf to include conf.d..."
-        sed -i '/http {/a \    include /etc/nginx/conf.d/*.conf;' "$NGINX_MAIN"
-    fi
-
-    # Self-heal: if site config has inline upstream, remove it (use conf.d instead)
-    for site_conf in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
-        if [ -f "$site_conf" ] && [ "$site_conf" != "$NGINX_UPSTREAM_FILE" ] && grep -q "upstream app" "$site_conf"; then
-            log "  Removing inline upstream from $site_conf (using conf.d instead)..."
-            sed -i '/upstream app {/,/}/d' "$site_conf"
-        fi
-    done
-
-    if ! nginx -t 2>&1; then
-        log "  FATAL: nginx config test failed"
-        cat "$NGINX_UPSTREAM_FILE"
-        nginx -T 2>&1 | tail -20 | tee -a "$DEPLOY_LOG"
-        fatal "nginx -t failed after upstream change"
-    fi
-
-    nginx -s reload 2>&1 || {
-        log "  WARN: nginx -s reload failed, trying systemctl..."
-        systemctl reload nginx 2>/dev/null || log "  WARN: systemctl reload also failed"
-    }
-
-    log "  nginx upstream switched to port ${target_port}"
-}
