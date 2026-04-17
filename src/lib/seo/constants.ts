@@ -90,11 +90,11 @@ export const SITEMAP_CONFIG = {
   pages: [
     { path: '/', priority: 1.0, changefreq: 'weekly' as const },
     { path: '/services', priority: 0.8, changefreq: 'monthly' as const },
-    { path: '/calculator', priority: 0.8, changefreq: 'monthly' as const },
+    { path: '/calculator', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/calculator/fence', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/calculator/canopy', priority: 0.9, changefreq: 'weekly' as const },
-    { path: '/portfolio', priority: 0.7, changefreq: 'weekly' as const },
-    { path: '/contacts', priority: 0.6, changefreq: 'monthly' as const },
+    { path: '/portfolio', priority: 0.9, changefreq: 'weekly' as const },
+    { path: '/contacts', priority: 0.9, changefreq: 'monthly' as const },
     { path: '/faq', priority: 0.5, changefreq: 'monthly' as const },
   ],
 } as const;

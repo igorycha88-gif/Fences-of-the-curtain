@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const ReferenceTypeEnum = z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D']);
+export const ReferenceTypeEnum = z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D', 'MESH']);
 
 export const CalculationMethodEnum = z.enum(['BY_QUANTITY', 'BY_LENGTH', 'BY_AREA', 'BY_RATIO', 'BY_INVERSE_RATIO']);
 

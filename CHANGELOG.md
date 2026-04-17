@@ -26,6 +26,7 @@
 - fix: replace Link with <a> in CookieConsentBanner to prevent 404 prefetch on /privacy-policy (6f807f2)
 - fix: phone badge visibility, Docker gosu permissions, security ЧТЗ docs (9f4c8a5)
 
+
 ## [1.4.0] - 2026-04-15
 
 ### Добавлено

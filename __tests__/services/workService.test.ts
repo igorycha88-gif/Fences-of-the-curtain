@@ -619,6 +619,7 @@ describe('WorkService', () => {
         { value: 'PANEL_3D', label: '3D-панели' },
         { value: 'GATE', label: 'Ворота' },
         { value: 'WICKET', label: 'Калитки' },
+        { value: 'MESH', label: 'Сетка-рабица' },
       ]);
     });
   });

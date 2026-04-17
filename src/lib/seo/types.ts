@@ -148,6 +148,17 @@ export interface JsonLdFaqPage {
   }[];
 }
 
+export interface JsonLdSiteNavigation {
+  '@context': 'https://schema.org';
+  '@type': 'ItemList';
+  itemListElement: {
+    '@type': 'SiteNavigationElement';
+    position: number;
+    name: string;
+    url: string;
+  }[];
+}
+
 export type JsonLdData =
   | JsonLdOrganization
   | JsonLdWebSite
@@ -156,4 +167,5 @@ export type JsonLdData =
   | JsonLdBreadcrumbList
   | JsonLdContactPage
   | JsonLdItemList
-  | JsonLdFaqPage;
+  | JsonLdFaqPage
+  | JsonLdSiteNavigation;

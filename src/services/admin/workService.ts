@@ -188,6 +188,7 @@ export class WorkService {
       'PANEL_3D': '3D-панели',
       'GATE': 'Ворота',
       'WICKET': 'Калитки',
+      'MESH': 'Сетка-рабица',
     };
     return typeMap[fenceType] || fenceType;
   }
@@ -201,6 +202,7 @@ export class WorkService {
       'PANEL_3D': '3D-панели',
       'GATE': 'Ворота',
       'WICKET': 'Калитки',
+      'MESH': 'Сетка-рабица',
     };
     return typeMap[referenceType] || referenceType;
   }
@@ -377,11 +379,12 @@ export class WorkService {
       { value: 'PANEL_3D', label: '3D-панели' },
       { value: 'GATE', label: 'Ворота' },
       { value: 'WICKET', label: 'Калитки' },
+      { value: 'MESH', label: 'Сетка-рабица' },
     ];
   }
 
   async getReferenceOptions() {
-    const [lagItems, postItems, profnastilItems, picketItems, gateItems, wicketItems, panel3dItems] = await Promise.all([
+    const [lagItems, postItems, profnastilItems, picketItems, gateItems, wicketItems, panel3dItems, meshItems] = await Promise.all([
       referenceRegistry.getItems('LAG'),
       referenceRegistry.getItems('POST'),
       referenceRegistry.getItems('PROFNASTIL'),
@@ -389,6 +392,7 @@ export class WorkService {
       referenceRegistry.getItems('GATE'),
       referenceRegistry.getItems('WICKET'),
       referenceRegistry.getItems('PANEL_3D'),
+      referenceRegistry.getItems('MESH'),
     ]);
 
     return {
@@ -427,6 +431,11 @@ export class WorkService {
           type: 'PANEL_3D',
           name: '3D-панели',
           items: panel3dItems,
+        },
+        {
+          type: 'MESH',
+          name: 'Сетка-рабица',
+          items: meshItems,
         },
       ],
     };

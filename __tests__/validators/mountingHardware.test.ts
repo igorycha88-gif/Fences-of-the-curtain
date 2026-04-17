@@ -366,7 +366,7 @@ describe('MountingHardware Validators', () => {
 
   describe('ReferenceTypeEnum', () => {
     it('should contain all expected values', () => {
-      const expectedValues = ['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D'];
+      const expectedValues = ['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D', 'MESH'];
       const enumValues = ReferenceTypeEnum.options;
 
       expect(enumValues).toEqual(expect.arrayContaining(expectedValues));
