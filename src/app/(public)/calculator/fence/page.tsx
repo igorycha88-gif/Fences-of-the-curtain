@@ -248,6 +248,32 @@ export default function FenceCalculatorPage() {
       .catch(err => console.error('Error reloading mesh options:', err));
   }, [calculations, fenceTypes]);
 
+  useEffect(() => {
+    if (!meshOptions.wireThicknesses.length && !meshOptions.cellSizes.length) return;
+
+    setCalculations(prev => prev.map(calc => {
+      const ft = fenceTypes.find(t => t.id === calc.formData.fenceTypeId);
+      if (ft?.name !== 'Сетка-рабица') return calc;
+
+      const updates: Partial<FenceCalculatorForm> = {};
+
+      if (meshOptions.wireThicknesses.length > 0 && !meshOptions.wireThicknesses.includes(calc.formData.meshWireThickness)) {
+        updates.meshWireThickness = meshOptions.wireThicknesses[0];
+      }
+      if (meshOptions.cellSizes.length > 0 && !meshOptions.cellSizes.includes(calc.formData.meshCellSize)) {
+        updates.meshCellSize = meshOptions.cellSizes[0];
+      }
+      if (Object.keys(meshOptions.coatings).length > 0 && !(calc.formData.meshCoating in meshOptions.coatings)) {
+        updates.meshCoating = Object.keys(meshOptions.coatings)[0] as 'GALVANIZED' | 'POLYMER';
+      }
+
+      if (Object.keys(updates).length > 0) {
+        return { ...calc, formData: { ...calc.formData, ...updates } };
+      }
+      return calc;
+    }));
+  }, [meshOptions, fenceTypes]);
+
   const updateCalcFormData = useCallback((calcId: string, updates: Partial<FenceCalculatorForm>) => {
     setCalculations(prev => prev.map(calc => {
       if (calc.id !== calcId) return calc;
@@ -368,9 +394,18 @@ export default function FenceCalculatorPage() {
       }
 
       if (isMesh) {
-        requestBody.meshCellSize = formData.meshCellSize;
-        requestBody.meshWireThickness = formData.meshWireThickness;
-        requestBody.meshCoating = formData.meshCoating;
+        const validWireThickness = meshOptions.wireThicknesses.includes(formData.meshWireThickness)
+          ? formData.meshWireThickness
+          : (meshOptions.wireThicknesses[0] || formData.meshWireThickness);
+        const validCellSize = meshOptions.cellSizes.includes(formData.meshCellSize)
+          ? formData.meshCellSize
+          : (meshOptions.cellSizes[0] || formData.meshCellSize);
+        const validMeshCoating = formData.meshCoating in meshOptions.coatings
+          ? formData.meshCoating
+          : ((Object.keys(meshOptions.coatings)[0] as 'GALVANIZED' | 'POLYMER') || formData.meshCoating);
+        requestBody.meshCellSize = validCellSize;
+        requestBody.meshWireThickness = validWireThickness;
+        requestBody.meshCoating = validMeshCoating;
       }
 
       if (formData.hasGate) {
