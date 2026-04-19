@@ -9,7 +9,7 @@ import NomenclatureNotFoundModal from '@/components/calculator/NomenclatureNotFo
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
 import { EVENT_NAMES } from '@/types/analytics';
 import { trackEvent } from '@/lib/analytics';
-import { validateLength } from '@/lib/validators/calculator';
+import { validateLength, validateHeight } from '@/lib/validators/calculator';
 import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface FenceType {
@@ -34,7 +34,7 @@ interface PicketProfileType {
 interface FenceCalculatorForm {
   fenceTypeId: string;
   length: number | '';
-  height: number;
+  height: number | '';
   postType: string;
   lagType: string;
   lagRows: '2' | '3';
@@ -113,7 +113,7 @@ const RECOMMENDED_MAX_CALCULATIONS = 4;
 const defaultFormData = (): FenceCalculatorForm => ({
   fenceTypeId: '',
   length: '',
-  height: 2.0,
+  height: '',
   postType: 'standard',
   lagType: 'standard',
   lagRows: '2',
@@ -147,6 +147,7 @@ export default function FenceCalculatorPage() {
   }>({ coatings: {}, cellSizes: [], wireThicknesses: [] });
 
   const lengthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const heightInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [calculations, setCalculations] = useState<Array<{
     id: string;
@@ -156,6 +157,7 @@ export default function FenceCalculatorPage() {
     gateWarning: string | null;
     wicketWarning: string | null;
     lengthError: string | null;
+    heightError: string | null;
     expanded: boolean;
   }>>([{
     id: crypto.randomUUID(),
@@ -165,6 +167,7 @@ export default function FenceCalculatorPage() {
     gateWarning: null,
     wicketWarning: null,
     lengthError: null,
+    heightError: null,
     expanded: true,
   }]);
 
@@ -318,6 +321,7 @@ export default function FenceCalculatorPage() {
         gateWarning: null,
         wicketWarning: null,
         lengthError: null,
+    heightError: null,
         expanded: true,
       }];
     });
@@ -357,6 +361,13 @@ export default function FenceCalculatorPage() {
       return;
     }
 
+    if (formData.height === '' || isNaN(Number(formData.height)) || Number(formData.height) < 1.5 || Number(formData.height) > 3.5) {
+      const error = validateHeight(formData.height);
+      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, heightError: error, loading: false } : c));
+      heightInputRefs.current[calcId]?.focus();
+      return;
+    }
+
     const isPanel3D = selectedFenceType.name === '3D-панели';
     const isPicket = selectedFenceType.name === 'Евроштакетник';
     const isMesh = selectedFenceType.name === 'Сетка-рабица';
@@ -378,7 +389,7 @@ export default function FenceCalculatorPage() {
       const requestBody: Record<string, unknown> = {
         fenceTypeId: formData.fenceTypeId,
         length: Number(formData.length),
-        height: formData.height,
+        height: Number(formData.height),
         coating: formData.coating,
       };
 
@@ -459,21 +470,28 @@ export default function FenceCalculatorPage() {
 
     const updatedCalculations = [...calculations];
     for (const calc of validCalculations) {
-      const error = validateLength(calc.formData.length);
+      const lengthError = validateLength(calc.formData.length);
+      const heightError = validateHeight(calc.formData.height);
       const idx = updatedCalculations.findIndex(c => c.id === calc.id);
       if (idx !== -1) {
-        updatedCalculations[idx] = { ...updatedCalculations[idx], lengthError: error };
+        updatedCalculations[idx] = { ...updatedCalculations[idx], lengthError, heightError };
       }
-      if (error && !firstInvalidCalcId) {
+      if ((lengthError || heightError) && !firstInvalidCalcId) {
         firstInvalidCalcId = calc.id;
       }
     }
 
     if (firstInvalidCalcId) {
+      const firstCalc = updatedCalculations.find(c => c.id === firstInvalidCalcId);
       setCalculations(updatedCalculations);
       setTimeout(() => {
-        lengthInputRefs.current[firstInvalidCalcId!]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        lengthInputRefs.current[firstInvalidCalcId!]?.focus();
+        if (firstCalc?.lengthError) {
+          lengthInputRefs.current[firstInvalidCalcId!]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          lengthInputRefs.current[firstInvalidCalcId!]?.focus();
+        } else if (firstCalc?.heightError) {
+          heightInputRefs.current[firstInvalidCalcId!]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          heightInputRefs.current[firstInvalidCalcId!]?.focus();
+        }
       }, 100);
       return false;
     }
@@ -504,7 +522,7 @@ export default function FenceCalculatorPage() {
         const estimate: Record<string, unknown> = {
           fenceTypeId: calc.formData.fenceTypeId,
           length: Number(calc.formData.length),
-          height: calc.formData.height,
+          height: Number(calc.formData.height),
           coating: calc.formData.coating,
         };
 
@@ -708,16 +726,42 @@ export default function FenceCalculatorPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Высота (м)</label>
+                <label className="block text-sm font-medium mb-2">Высота (м) *</label>
                 <input
+                  ref={(el) => { heightInputRefs.current[calc.id] = el; }}
                   type="number"
                   value={formData.height}
-                  onChange={(e) => updateCalcFormData(calc.id, { height: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? '' : Number(e.target.value);
+                    updateCalcFormData(calc.id, { height: val });
+                    if (calc.heightError) {
+                      const error = validateHeight(val);
+                      if (!error) {
+                        setCalculations(prev => prev.map(c =>
+                          c.id === calc.id ? { ...c, heightError: null } : c
+                        ));
+                      }
+                    }
+                  }}
+                  onFocus={() => setFocusedCalcId(calc.id)}
+                  onBlur={() => {
+                    setFocusedCalcId(null);
+                    const error = validateHeight(formData.height);
+                    setCalculations(prev => prev.map(c =>
+                      c.id === calc.id ? { ...c, heightError: error } : c
+                    ));
+                  }}
                   min="1.5"
                   max="3.5"
                   step="0.1"
-                  className="input-modern"
+                  className={`input-modern ${
+                    calc.heightError && focusedCalcId !== calc.id ? 'border-destructive' : ''
+                  }`}
+                  required
                 />
+                {calc.heightError && (
+                  <p className="text-sm text-destructive mt-1">{calc.heightError}</p>
+                )}
               </div>
             </div>
 
