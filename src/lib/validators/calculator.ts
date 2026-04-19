@@ -78,3 +78,20 @@ export function validateLength(length: number | ''): string | null {
   }
   return null;
 }
+
+export function validateHeight(height: number | ''): string | null {
+  if (height === '' || height === null || height === undefined) {
+    return 'Укажите высоту забора в метрах';
+  }
+  const num = Number(height);
+  if (isNaN(num)) {
+    return 'Введите числовое значение';
+  }
+  if (num < 1.5) {
+    return 'Минимальная высота — 1.5 м';
+  }
+  if (num > 3.5) {
+    return 'Максимальная высота — 3.5 м';
+  }
+  return null;
+}

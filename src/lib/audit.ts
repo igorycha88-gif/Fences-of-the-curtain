@@ -107,7 +107,9 @@ export async function createAuditLogAsync(params: AuditLogParams): Promise<void>
   }
 
   const enrichedParams: AuditLogParams = { ...params, ipAddress, userAgent };
-  setImmediate(() => createAuditLog(enrichedParams));
+  setImmediate(() => {
+    createAuditLog(enrichedParams).catch(() => {});
+  });
 }
 
 export function resetSystemUserIdCache(): void {

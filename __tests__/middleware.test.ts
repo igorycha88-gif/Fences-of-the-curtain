@@ -160,6 +160,24 @@ describe('middleware', () => {
       expect(csp).toContain("frame-ancestors 'self'");
     });
 
+    it('should allow Google Tag Manager domains', async () => {
+      const mockRequest = {
+        nextUrl: { pathname: '/', searchParams: new URLSearchParams() },
+        headers: { get: jest.fn().mockReturnValue('') } as any,
+        cookies: { get: jest.fn() },
+      } as any;
+
+      await middleware(mockRequest);
+
+      const cspCall = mockResponse.headers.set.mock.calls.find(
+        (call: string[]) => call[0] === 'Content-Security-Policy'
+      );
+      const csp = cspCall?.[1];
+
+      expect(csp).toContain('https://www.googletagmanager.com');
+      expect(csp).toContain('https://www.google-analytics.com');
+    });
+
     it('should allow Yandex Metrika domains', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/', searchParams: new URLSearchParams() },

@@ -51,6 +51,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
         {
           id: 'post2',
@@ -60,6 +61,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
       ];
 
@@ -83,6 +85,77 @@ describe('postCalculator', () => {
       expect(result.pricePerUnit).toBe(1500);
     });
 
+    it('should exclude forMesh=true posts from profnastil calculation', async () => {
+      const fenceLengthM = 10;
+      const fenceHeightM = 2;
+      const postSpacingM = 2.5;
+
+      mockRoundUp.mockReturnValue(4);
+
+      const mockPosts = [
+        {
+          id: 'mesh-post',
+          name: 'Столб для сетки 2.9м',
+          length: 2.9,
+          retailPricePerUnit: 800,
+          active: true,
+          validFrom: null,
+          expirationDate: null,
+          forMesh: true,
+        },
+        {
+          id: 'normal-post',
+          name: 'Столб 3.0м',
+          length: 3.0,
+          retailPricePerUnit: 1500,
+          active: true,
+          validFrom: null,
+          expirationDate: null,
+          forMesh: false,
+        },
+      ];
+
+      mockPrisma.postType.findMany.mockResolvedValue(mockPosts as any);
+
+      const result = await calculatePostsForProfnastil(fenceLengthM, fenceHeightM, postSpacingM);
+
+      expect(result.nomenclatureId).toBe('normal-post');
+      expect(result.pricePerUnit).toBe(1500);
+    });
+
+    it('should throw NO_POSTS_FOUND when only forMesh=true posts exist', async () => {
+      const fenceLengthM = 10;
+      const fenceHeightM = 2;
+      const postSpacingM = 2.5;
+
+      mockRoundUp.mockReturnValue(4);
+
+      const mockPosts = [
+        {
+          id: 'mesh-post',
+          name: 'Столб для сетки 3.0м',
+          length: 3.0,
+          retailPricePerUnit: 900,
+          active: true,
+          validFrom: null,
+          expirationDate: null,
+          forMesh: true,
+        },
+      ];
+
+      mockPrisma.postType.findMany.mockResolvedValue(mockPosts as any);
+
+      let error: PostCalculationError | null = null;
+      try {
+        await calculatePostsForProfnastil(fenceLengthM, fenceHeightM, postSpacingM);
+      } catch (e) {
+        error = e as PostCalculationError;
+      }
+
+      expect(error).not.toBeNull();
+      expect(error!.error).toBe('NO_POSTS_FOUND');
+    });
+
     it('should select shortest post that meets required height', async () => {
       const fenceLengthM = 10;
       const fenceHeightM = 2;
@@ -99,6 +172,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
         {
           id: 'post2',
@@ -108,6 +182,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
       ];
 
@@ -139,6 +214,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
       ];
 
@@ -174,6 +250,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
         {
           id: 'post2',
@@ -183,6 +260,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
       ];
 
@@ -222,6 +300,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
         {
           id: 'post2',
@@ -231,6 +310,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
       ];
 
@@ -244,6 +324,44 @@ describe('postCalculator', () => {
 
       expect(result.nomenclatureId).toBe('post1');
       expect(result.nomenclatureName).toBe('Столб 3.2м');
+    });
+
+    it('should exclude forMesh=true posts from 3D panels calculation', async () => {
+      const fenceLengthM = 10;
+      const fenceHeightM = 2;
+      const postSpacingM = 2.5;
+
+      mockRoundUp.mockReturnValue(4);
+
+      const mockPosts = [
+        {
+          id: 'mesh-post',
+          name: 'Столб для сетки 3.0м',
+          length: 3.0,
+          retailPricePerUnit: 800,
+          active: true,
+          validFrom: null,
+          expirationDate: null,
+          forMesh: true,
+        },
+        {
+          id: 'normal-post',
+          name: 'Столб 3.2м',
+          length: 3.2,
+          retailPricePerUnit: 1800,
+          active: true,
+          validFrom: null,
+          expirationDate: null,
+          forMesh: false,
+        },
+      ];
+
+      mockPrisma.postType.findMany.mockResolvedValue(mockPosts as any);
+
+      const result = await calculatePostsForPanel3D(fenceLengthM, fenceHeightM, postSpacingM);
+
+      expect(result.nomenclatureId).toBe('normal-post');
+      expect(result.pricePerUnit).toBe(1800);
     });
 
     it('should throw error when no suitable posts found for 3D panels', async () => {
@@ -262,6 +380,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
       ];
 
@@ -295,6 +414,7 @@ describe('postCalculator', () => {
           active: true,
           validFrom: null,
           expirationDate: null,
+          forMesh: false,
         },
       ] as any);
       mockRoundUp.mockReturnValue(4);

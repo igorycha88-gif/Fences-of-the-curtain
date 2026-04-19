@@ -92,6 +92,22 @@ describe('fenceEstimateService', () => {
     });
     testProfnastilTypeId = profnastilType.id;
 
+    await prisma.profnastilType.create({
+      data: {
+        id: 'test-profnastil-type-2200',
+        name: 'Тестовый профнастил С8 0.5мм 2200мм',
+        metalThickness: 0.5,
+        fullWidth: 1200,
+        usefulWidth: 1150,
+        length: 2200,
+        coating: 'Полимерное (одностороннее)',
+        retailPricePerUnit: 600,
+        active: true,
+        priority: 1,
+        updatedAt: new Date(),
+      },
+    });
+
     const gateType = await prisma.gateType.create({
       data: {
         id: 'test-gate-type-1',
