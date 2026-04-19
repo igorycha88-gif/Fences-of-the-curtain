@@ -61,10 +61,10 @@ export async function calculatePostsForProfnastil(
 
   const posts = await getActivePosts();
 
-  const matchingPosts = posts.filter(p => p.length >= requiredHeightMm / 1000);
+  const matchingPosts = posts.filter(p => !p.forMesh && p.length >= requiredHeightMm / 1000);
 
   if (matchingPosts.length === 0) {
-    const allPosts = posts.sort((a, b) => b.length - a.length);
+    const allPosts = posts.filter(p => !p.forMesh).sort((a, b) => b.length - a.length);
 
     const error: PostCalculationError = {
       error: 'NO_POSTS_FOUND',
@@ -103,10 +103,10 @@ export async function calculatePostsForPanel3D(
 
   const posts = await getActivePosts();
 
-  const matchingPosts = posts.filter(p => p.length >= requiredHeightMm / 1000);
+  const matchingPosts = posts.filter(p => !p.forMesh && p.length >= requiredHeightMm / 1000);
 
   if (matchingPosts.length === 0) {
-    const allPosts = posts.sort((a, b) => b.length - a.length);
+    const allPosts = posts.filter(p => !p.forMesh).sort((a, b) => b.length - a.length);
 
     const error: PostCalculationError = {
       error: 'NO_POSTS_FOUND',
