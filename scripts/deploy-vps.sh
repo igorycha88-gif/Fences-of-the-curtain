@@ -307,7 +307,7 @@ endpoints=(
     "GET|200|/"
     "GET|200|/admin/login"
     "GET|200|/api/materials"
-    "POST|405|/api/calculator/fence"
+    "POST|400|/api/calculator/fence"
 )
 
 for ep in "${endpoints[@]}"; do
