@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.7.0] - 2026-04-20
+
+### Добавлено
+- feat: SEO-оптимизация — canonical fix, посадочные страницы, блог, перелинковка, FAQ (034012b)
+
+### Исправлено
+- fix: add analytics.google.com to CSP connect-src for GA4 (d584293)
+- fix: update smoke test expected status for POST /api/calculator/fence (405 → 400) (a7988ae)
+
 ## [1.6.2] - 2026-04-19
 
 ### Добавлено
