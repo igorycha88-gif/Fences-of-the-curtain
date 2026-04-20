@@ -181,10 +181,10 @@ export default function HomePage() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { icon: Home, title: 'Заборы', desc: 'Профнастил, штакетник, сетка', href: '/services' },
-                { icon: Car, title: 'Навесы', desc: 'Для авто, террасы, беседки', href: '/services' },
-                { icon: TreePine, title: '3D-панели', desc: 'Современный дизайн', href: '/services' },
-                { icon: Award, title: 'Под ключ', desc: 'Замер + монтаж', href: '/services' },
+                { icon: Home, title: 'Заборы из профнастила', desc: 'Надёжно и практично', href: '/services/zabory-iz-profnastila' },
+                { icon: Car, title: 'Навес под машину', desc: 'Защита от осадков', href: '/services/navesy-dlya-avto' },
+                { icon: TreePine, title: 'Евроштакетник', desc: 'Стиль и эстетика', href: '/services/evroshtaketnik' },
+                { icon: Award, title: 'Навесы из поликарбоната', desc: 'Свет и защита', href: '/services/navesy-iz-polikarbonata' },
               ].map((service, index) => (
                 <AnimatedSection key={index} animation="scale-in" delay={index * 100}>
                   <Link
