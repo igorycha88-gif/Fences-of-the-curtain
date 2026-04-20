@@ -17,25 +17,25 @@ import HomeFooter from '@/components/layout/HomeFooter';
 const fenceServices = [
   {
     title: 'Забор из профнастила',
-    slug: 'zabory-iz-profnastila',
+    slug: 'zabor-iz-profnastila',
     description: 'Практичное и надежное решение. Широкий выбор цветов и покрытий. Устойчив к коррозии и механическим повреждениям.',
     features: ['Быстрый монтаж', 'Шумоизоляция', 'Долговечность'],
   },
   {
     title: 'Евроштакетник',
-    slug: 'evroshtaketnik',
+    slug: 'zabor-iz-evroshtaketnika',
     description: 'Стильный и современный забор с эстетичным внешним видом. Возможность выбора расстояния между штакетинами.',
     features: ['Вентиляция', 'Эстетика', 'Проветривание'],
   },
   {
     title: 'Сетка-рабица',
-    slug: 'zabory-iz-setki-rabitsy',
+    slug: 'zabor-iz-setki-rabitsy',
     description: 'Экономичный вариант ограждения. Пропускает свет, хорошо просматривается, не затеняет участок.',
     features: ['Экономичность', 'Простота', 'Лёгкость'],
   },
   {
     title: '3D-панели',
-    slug: 'zabory-iz-3d-panelej',
+    slug: 'zabor-iz-3d-panelej',
     description: 'Современный дизайн и высокая прочность. Идеальное решение для частных домов и коммерческих объектов.',
     features: ['Прочность', 'Дизайн', 'Надёжность'],
   },
@@ -44,19 +44,19 @@ const fenceServices = [
 const canopyServices = [
   {
     title: 'Навес под автомобиль',
-    slug: 'navesy-dlya-avto',
+    slug: 'naves-pod-mashinu',
     description: 'Защита автомобиля от солнца, дождя и снега. Различные конструкции: односкатные, двускатные и арочные.',
     features: ['Защита авто', 'Любой размер', 'Прочность'],
   },
   {
     title: 'Навес из поликарбоната',
-    slug: 'navesy-iz-polikarbonata',
+    slug: 'naves-iz-polikarbonata',
     description: 'Лёгкая и прочная конструкция для защиты от осадков и солнца. Подходит для авто, террас и беседок.',
     features: ['Светопропускаемость', 'Долговечность', 'Стиль'],
   },
   {
     title: 'Навес-терраса',
-    slug: 'navesy-iz-polikarbonata',
+    slug: 'naves-iz-polikarbonata',
     description: 'Расширение жилого пространства. Отличное решение для летних вечеров и семейных обедов.',
     features: ['Пространство', 'Стиль', 'Функциональность'],
   },
