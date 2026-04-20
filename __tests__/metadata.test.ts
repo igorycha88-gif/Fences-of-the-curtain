@@ -9,7 +9,7 @@ describe('generatePageMetadata', () => {
       description: 'Test description',
     });
 
-    expect(result.title).toBe('Test Page | Заборы и Навесы');
+    expect(result.title).toBe('Test Page');
   });
 
   it('should include description', () => {
