@@ -69,6 +69,26 @@ export default async function ServicePage({ params }: ServicePageProps) {
     page.priceRange || undefined
   );
 
+  const otherServices = await prisma.pageContent.findMany({
+    where: {
+      isActive: true,
+      category: { not: null },
+      slug: { not: slug },
+    },
+    select: { slug: true, title: true, priceRange: true, category: true },
+    take: 4,
+  });
+
+  const relatedServices = otherServices.filter(
+    (s) => s.category === page.category
+  );
+  const crossServices = otherServices.filter(
+    (s) => s.category !== page.category
+  );
+  const displayServices = relatedServices.length >= 2
+    ? relatedServices.slice(0, 4)
+    : [...relatedServices, ...crossServices].slice(0, 4);
+
   return (
     <div className="min-h-screen bg-background">
       <JsonLdScript data={[breadcrumbJsonLd, serviceJsonLd]} />
@@ -121,7 +141,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
                         </h2>
                       )}
                       {section.text && (
-                        <div className="text-muted-foreground leading-relaxed">
+                        <div className="text-muted-foreground leading-relaxed whitespace-pre-line">
                           {section.text}
                         </div>
                       )}
@@ -132,6 +152,33 @@ export default async function ServicePage({ params }: ServicePageProps) {
             )}
           </div>
         </section>
+
+        {displayServices.length > 0 && (
+          <section className="py-16 px-4 bg-secondary/30">
+            <div className="container mx-auto max-w-4xl">
+              <h2 className="text-2xl font-bold mb-8">Другие услуги</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {displayServices.map((s) => (
+                  <Link
+                    key={s.slug}
+                    href={`/services/${s.slug}`}
+                    className="card-modern p-5 hover-lift group flex items-center justify-between"
+                  >
+                    <div>
+                      <h3 className="font-semibold group-hover:text-primary transition-colors">
+                        {s.title}
+                      </h3>
+                      {s.priceRange && (
+                        <p className="text-sm text-muted-foreground mt-1">{s.priceRange}</p>
+                      )}
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="py-16 px-4 bg-primary text-primary-foreground">
           <div className="container mx-auto max-w-3xl text-center">

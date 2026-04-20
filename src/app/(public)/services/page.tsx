@@ -1,43 +1,41 @@
-'use client';
-
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { prisma } from '@/lib/prisma';
 import Header from '@/components/layout/Header';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
-import { useAnalytics } from '@/lib/hooks/useAnalytics';
-import { EVENT_NAMES } from '@/types/analytics';
-import { trackEvent } from '@/lib/analytics';
-import { 
-  Calculator, 
-  Shield, 
-  Clock, 
+import {
+  Calculator,
+  Shield,
+  Clock,
   Award,
   ArrowRight,
   CheckCircle2,
   Zap,
-  Users,
-  Star
 } from 'lucide-react';
+import HomeFooter from '@/components/layout/HomeFooter';
 
 const fenceServices = [
   {
     title: 'Забор из профнастила',
+    slug: 'zabory-iz-profnastila',
     description: 'Практичное и надежное решение. Широкий выбор цветов и покрытий. Устойчив к коррозии и механическим повреждениям.',
     features: ['Быстрый монтаж', 'Шумоизоляция', 'Долговечность'],
   },
   {
     title: 'Евроштакетник',
+    slug: 'evroshtaketnik',
     description: 'Стильный и современный забор с эстетичным внешним видом. Возможность выбора расстояния между штакетинами.',
     features: ['Вентиляция', 'Эстетика', 'Проветривание'],
   },
   {
     title: 'Сетка-рабица',
+    slug: 'zabory-iz-setki-rabitsy',
     description: 'Экономичный вариант ограждения. Пропускает свет, хорошо просматривается, не затеняет участок.',
     features: ['Экономичность', 'Простота', 'Лёгкость'],
   },
   {
     title: '3D-панели',
+    slug: 'zabory-iz-3d-panelej',
     description: 'Современный дизайн и высокая прочность. Идеальное решение для частных домов и коммерческих объектов.',
     features: ['Прочность', 'Дизайн', 'Надёжность'],
   },
@@ -46,39 +44,43 @@ const fenceServices = [
 const canopyServices = [
   {
     title: 'Навес под автомобиль',
+    slug: 'navesy-dlya-avto',
     description: 'Защита автомобиля от солнца, дождя и снега. Различные конструкции: односкатные, двускатные и арочные.',
     features: ['Защита авто', 'Любой размер', 'Прочность'],
   },
   {
-    title: 'Беседка',
-    description: 'Уютное место для отдыха на свежем воздухе. Возможность установки барбекю, освещения и мебели.',
-    features: ['Отдых', 'Комфорт', 'Уют'],
+    title: 'Навес из поликарбоната',
+    slug: 'navesy-iz-polikarbonata',
+    description: 'Лёгкая и прочная конструкция для защиты от осадков и солнца. Подходит для авто, террас и беседок.',
+    features: ['Светопропускаемость', 'Долговечность', 'Стиль'],
   },
   {
     title: 'Навес-терраса',
+    slug: 'navesy-iz-polikarbonata',
     description: 'Расширение жилого пространства. Отличное решение для летних вечеров и семейных обедов.',
     features: ['Пространство', 'Стиль', 'Функциональность'],
-  },
-  {
-    title: 'Хозблок',
-    description: 'Практичное решение для хранения инструментов и инвентаря. Может использоваться как гараж для мотоцикла.',
-    features: ['Хранение', 'Защита', 'Практичность'],
   },
 ];
 
 const advantages = [
-  { icon: Calculator, title: 'Точный расчёт', description: 'Онлайн-калькулятор за несколько секунд' },
-  { icon: Shield, title: 'Гарантия качества', description: 'На все выполненные работы' },
-  { icon: Clock, title: 'Быстрый монтаж', description: 'Установка в кратчайшие сроки' },
-  { icon: Award, title: 'Опыт работы', description: 'Большой опыт на рынке' },
+  { icon: 'Calculator', title: 'Точный расчёт', description: 'Онлайн-калькулятор за несколько секунд' },
+  { icon: 'Shield', title: 'Гарантия качества', description: 'На все выполненные работы' },
+  { icon: 'Clock', title: 'Быстрый монтаж', description: 'Установка в кратчайшие сроки' },
+  { icon: 'Award', title: 'Опыт работы', description: 'Большой опыт на рынке' },
 ];
 
-export default function ServicesPage() {
-  const { trackEvent: trackFromHook } = useAnalytics();
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    trackEvent(EVENT_NAMES.SERVICES_VIEW);
-  }, []);
+export default async function ServicesPage() {
+  let servicePages: { slug: string; priceRange: string | null }[] = [];
+  try {
+    servicePages = await prisma.pageContent.findMany({
+      where: { isActive: true, category: { not: null } },
+      select: { slug: true, priceRange: true },
+    });
+  } catch {}
+
+  const getPrice = (slug: string) => servicePages.find((p) => p.slug === slug)?.priceRange;
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,9 +118,14 @@ export default function ServicesPage() {
               {fenceServices.map((service, index) => (
                 <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
                   <div className="card-modern p-6 h-full hover-lift group">
-                    <h3 className="text-xl font-bold mb-4 group-hover:text-primary transition-colors">
-                      {service.title}
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                      <Link href={`/services/${service.slug}`}>{service.title}</Link>
                     </h3>
+                    {getPrice(service.slug) && (
+                      <p className="text-primary font-semibold text-sm mb-3">
+                        {getPrice(service.slug)}
+                      </p>
+                    )}
                     <p className="text-muted-foreground mb-4">{service.description}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {service.features.map((feature, i) => (
@@ -127,13 +134,20 @@ export default function ServicesPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="pt-4 border-t border-border/50">
+                    <div className="pt-4 border-t border-border/50 flex gap-3">
                       <Link
-                        href="/calculator/fence"
+                        href={`/services/${service.slug}`}
                         className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"
                       >
-                        Рассчитать
+                        Подробнее
                         <ArrowRight className="w-4 h-4" />
+                      </Link>
+                      <Link
+                        href="/calculator/fence"
+                        className="text-sm px-4 py-2 inline-flex items-center gap-2 text-primary hover:underline"
+                      >
+                        <Calculator className="w-4 h-4" />
+                        Рассчитать
                       </Link>
                     </div>
                   </div>
@@ -157,9 +171,14 @@ export default function ServicesPage() {
               {canopyServices.map((service, index) => (
                 <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
                   <div className="card-modern p-6 h-full hover-lift group">
-                    <h3 className="text-xl font-bold mb-4 group-hover:text-primary transition-colors">
-                      {service.title}
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                      <Link href={`/services/${service.slug}`}>{service.title}</Link>
                     </h3>
+                    {getPrice(service.slug) && (
+                      <p className="text-primary font-semibold text-sm mb-3">
+                        {getPrice(service.slug)}
+                      </p>
+                    )}
                     <p className="text-muted-foreground mb-4">{service.description}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {service.features.map((feature, i) => (
@@ -168,13 +187,20 @@ export default function ServicesPage() {
                         </span>
                       ))}
                     </div>
-                    <div className="pt-4 border-t border-border/50">
+                    <div className="pt-4 border-t border-border/50 flex gap-3">
                       <Link
-                        href="/calculator/canopy"
+                        href={`/services/${service.slug}`}
                         className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"
                       >
-                        Рассчитать
+                        Подробнее
                         <ArrowRight className="w-4 h-4" />
+                      </Link>
+                      <Link
+                        href="/calculator/canopy"
+                        className="text-sm px-4 py-2 inline-flex items-center gap-2 text-primary hover:underline"
+                      >
+                        <Calculator className="w-4 h-4" />
+                        Рассчитать
                       </Link>
                     </div>
                   </div>
@@ -198,7 +224,10 @@ export default function ServicesPage() {
                 <AnimatedSection key={index} animation="scale-in" delay={index * 100}>
                   <div className="text-center">
                     <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 hover:bg-primary group transition-colors">
-                      <adv.icon className="w-8 h-8 text-primary group-hover:text-white transition-colors" />
+                      {adv.icon === 'Calculator' && <Calculator className="w-8 h-8 text-primary group-hover:text-white transition-colors" />}
+                      {adv.icon === 'Shield' && <Shield className="w-8 h-8 text-primary group-hover:text-white transition-colors" />}
+                      {adv.icon === 'Clock' && <Clock className="w-8 h-8 text-primary group-hover:text-white transition-colors" />}
+                      {adv.icon === 'Award' && <Award className="w-8 h-8 text-primary group-hover:text-white transition-colors" />}
                     </div>
                     <h3 className="text-lg font-semibold mb-2">{adv.title}</h3>
                     <p className="text-muted-foreground text-sm">{adv.description}</p>
@@ -212,13 +241,6 @@ export default function ServicesPage() {
         <section className="py-16 px-4 bg-primary text-primary-foreground">
           <div className="container mx-auto">
             <AnimatedSection animation="scale-in" className="max-w-3xl mx-auto text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Star className="w-6 h-6 fill-current" />
-                <Star className="w-6 h-6 fill-current" />
-                <Star className="w-6 h-6 fill-current" />
-                <Star className="w-6 h-6 fill-current" />
-                <Star className="w-6 h-6 fill-current" />
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
                 Готовы начать?
               </h2>
@@ -271,6 +293,8 @@ export default function ServicesPage() {
           </div>
         </section>
       </main>
+
+      <HomeFooter />
     </div>
   );
 }

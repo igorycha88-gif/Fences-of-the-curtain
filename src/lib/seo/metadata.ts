@@ -22,7 +22,7 @@ export function generatePageMetadata(options: PageMetadataOptions): Metadata {
     noIndex = false,
   } = options;
 
-  const fullTitle = `${title} | ${SEO_CONFIG.SITE_NAME}`;
+  const fullTitle = title;
   const fullOgImage = ogImage.startsWith('http') ? ogImage : `${SEO_CONFIG.BASE_URL}${ogImage}`;
   const canonicalPath = canonical || path || '';
   const canonicalUrl = canonicalPath ? `${SEO_CONFIG.BASE_URL}${canonicalPath}` : SEO_CONFIG.BASE_URL;
