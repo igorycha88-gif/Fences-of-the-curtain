@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 const servicePages = [
   {
-    slug: 'zabory-iz-profnastila',
+    slug: 'zabor-iz-profnastila',
     title: 'Забор из профнастила в Москве — монтаж под ключ',
     content: {
       description:
@@ -55,7 +55,7 @@ const servicePages = [
     sortOrder: 1,
   },
   {
-    slug: 'evroshtaketnik',
+    slug: 'zabor-iz-evroshtaketnika',
     title: 'Забор из евроштакетника в Москве — монтаж под ключ',
     content: {
       description:
@@ -106,7 +106,7 @@ const servicePages = [
     sortOrder: 2,
   },
   {
-    slug: 'zabory-iz-3d-panelej',
+    slug: 'zabor-iz-3d-panelej',
     title: 'Забор из 3D-панелей в Москве — монтаж под ключ',
     content: {
       description:
@@ -153,7 +153,7 @@ const servicePages = [
     sortOrder: 3,
   },
   {
-    slug: 'zabory-iz-setki-rabitsy',
+    slug: 'zabor-iz-setki-rabitsy',
     title: 'Забор из сетки-рабицы в Москве — установка под ключ',
     content: {
       description:
@@ -200,7 +200,7 @@ const servicePages = [
     sortOrder: 4,
   },
   {
-    slug: 'navesy-dlya-avto',
+    slug: 'naves-pod-mashinu',
     title: 'Навес для автомобиля в Москве — изготовление под ключ',
     content: {
       description:
@@ -251,7 +251,7 @@ const servicePages = [
     sortOrder: 5,
   },
   {
-    slug: 'navesy-iz-polikarbonata',
+    slug: 'naves-iz-polikarbonata',
     title: 'Навес из поликарбоната в Москве — изготовление под ключ',
     content: {
       description:

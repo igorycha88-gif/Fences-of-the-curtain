@@ -101,6 +101,36 @@ const nextConfig = {
         destination: 'https://zabor-i-naves.ru/:path*',
         permanent: true,
       },
+      {
+        source: '/services/zabory-iz-profnastila',
+        destination: '/services/zabor-iz-profnastila',
+        permanent: true,
+      },
+      {
+        source: '/services/evroshtaketnik',
+        destination: '/services/zabor-iz-evroshtaketnika',
+        permanent: true,
+      },
+      {
+        source: '/services/zabory-iz-3d-panelej',
+        destination: '/services/zabor-iz-3d-panelej',
+        permanent: true,
+      },
+      {
+        source: '/services/zabory-iz-setki-rabitsy',
+        destination: '/services/zabor-iz-setki-rabitsy',
+        permanent: true,
+      },
+      {
+        source: '/services/navesy-dlya-avto',
+        destination: '/services/naves-pod-mashinu',
+        permanent: true,
+      },
+      {
+        source: '/services/navesy-iz-polikarbonata',
+        destination: '/services/naves-iz-polikarbonata',
+        permanent: true,
+      },
     ];
   },
 

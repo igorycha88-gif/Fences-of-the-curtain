@@ -26,18 +26,18 @@ export default function HomeFooter() {
           <div>
             <h4 className="font-semibold mb-4">Заборы</h4>
             <ul className="space-y-2 text-muted-foreground text-sm">
-              <li><Link href="/services/zabory-iz-profnastila" className="hover:text-primary transition-colors">Забор из профнастила</Link></li>
-              <li><Link href="/services/evroshtaketnik" className="hover:text-primary transition-colors">Забор из евроштакетника</Link></li>
-              <li><Link href="/services/zabory-iz-3d-panelej" className="hover:text-primary transition-colors">Забор из 3D-панелей</Link></li>
-              <li><Link href="/services/zabory-iz-setki-rabitsy" className="hover:text-primary transition-colors">Забор из сетки-рабицы</Link></li>
+              <li><Link href="/services/zabor-iz-profnastila" className="hover:text-primary transition-colors">Забор из профнастила</Link></li>
+              <li><Link href="/services/zabor-iz-evroshtaketnika" className="hover:text-primary transition-colors">Забор из евроштакетника</Link></li>
+              <li><Link href="/services/zabor-iz-3d-panelej" className="hover:text-primary transition-colors">Забор из 3D-панелей</Link></li>
+              <li><Link href="/services/zabor-iz-setki-rabitsy" className="hover:text-primary transition-colors">Забор из сетки-рабицы</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Навесы</h4>
             <ul className="space-y-2 text-muted-foreground text-sm">
-              <li><Link href="/services/navesy-dlya-avto" className="hover:text-primary transition-colors">Навес под машину</Link></li>
-              <li><Link href="/services/navesy-iz-polikarbonata" className="hover:text-primary transition-colors">Навес из поликарбоната</Link></li>
+              <li><Link href="/services/naves-pod-mashinu" className="hover:text-primary transition-colors">Навес под машину</Link></li>
+              <li><Link href="/services/naves-iz-polikarbonata" className="hover:text-primary transition-colors">Навес из поликарбоната</Link></li>
               <li><Link href="/calculator/fence" className="hover:text-primary transition-colors">Калькулятор забора</Link></li>
               <li><Link href="/calculator/canopy" className="hover:text-primary transition-colors">Калькулятор навеса</Link></li>
             </ul>
