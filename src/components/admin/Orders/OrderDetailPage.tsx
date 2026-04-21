@@ -311,7 +311,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   }
 
   const { order, estimate, adminEstimate, multiEstimates, showPurchasePrices } = data;
-  const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !multiEstimates);
+  const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !adminEstimate && !multiEstimates);
   const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
   const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
   const isAdmin = showPurchasePrices;
@@ -556,28 +556,57 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                 onEditAdminEstimate={handleEditMultiAdminEstimate}
               />
             </>
-          ) : estimate ? (
+          ) : estimate || adminEstimate ? (
             <>
               <FenceParameters
-                fenceType={estimate.fenceType}
-                fenceTypeName={estimate.fenceType.name}
-                length={estimate.length}
-                height={estimate.height}
-                lagRows={estimate.lagRows}
-                coating={estimate.coating}
-                coatingLabel={estimate.coatingLabel}
-                hasGate={estimate.hasGate}
-                gateType={estimate.gateType}
-                gateTypeLabel={estimate.gateTypeLabel}
-                gateLength={estimate.gateLength}
-                gateNomenclatureName={estimate.gateNomenclatureName}
-                hasWicket={estimate.hasWicket}
-                wicketWidth={estimate.wicketWidth}
-                wicketNomenclatureName={estimate.wicketNomenclatureName}
-                city={estimate.city}
+                fenceType={(estimate || adminEstimate).fenceType}
+                fenceTypeName={(estimate || adminEstimate).fenceType.name}
+                length={(estimate || adminEstimate).length}
+                height={(estimate || adminEstimate).height}
+                lagRows={(estimate || adminEstimate).lagRows}
+                coating={(estimate || adminEstimate).coating}
+                coatingLabel={(estimate || adminEstimate).coatingLabel}
+                hasGate={(estimate || adminEstimate).hasGate}
+                gateType={(estimate || adminEstimate).gateType}
+                gateTypeLabel={(estimate || adminEstimate).gateTypeLabel}
+                gateLength={(estimate || adminEstimate).gateLength}
+                gateNomenclatureName={(estimate || adminEstimate).gateNomenclatureName}
+                hasWicket={(estimate || adminEstimate).hasWicket}
+                wicketWidth={(estimate || adminEstimate).wicketWidth}
+                wicketNomenclatureName={(estimate || adminEstimate).wicketNomenclatureName}
+                city={(estimate || adminEstimate).city}
               />
 
-              {hasAdminEstimate && (
+              {!estimate && adminEstimate && (
+                <div className="bg-white rounded-xl shadow-md border border-blue-200">
+                  <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="font-bold text-blue-900 text-base">Смета расчёта (от администратора)</span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <EstimateSection
+                      estimateId={adminEstimate.id}
+                      items={adminEstimate.items}
+                      materialsTotal={adminEstimate.materialsTotal}
+                      installationTotal={adminEstimate.installationTotal}
+                      grandTotal={adminEstimate.grandTotal}
+                    />
+                  </div>
+                  <div className="px-6 pb-4 flex items-center gap-2">
+                    <button
+                      onClick={handleEditAdminEstimate}
+                      className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Редактировать смету"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {estimate && hasAdminEstimate && (
                 <div className="bg-white rounded-xl shadow-md border border-orange-200">
                   <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-amber-50">
                     <div className="flex items-start justify-between gap-4">
@@ -707,7 +736,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                 </div>
               )}
 
-              {!hasAdminEstimate && (
+              {estimate && !hasAdminEstimate && (
                 <EstimateSection
                   estimateId={estimate.id}
                   items={estimate.items}
