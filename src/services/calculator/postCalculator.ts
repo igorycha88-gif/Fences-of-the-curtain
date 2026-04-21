@@ -44,7 +44,7 @@ async function getActivePosts() {
             ],
           },
         },
-        orderBy: [{ length: 'asc' }],
+        orderBy: [{ length: 'asc' }, { priority: 'asc' }],
       });
     },
     CACHE_TTL.REFERENCE_DATA
