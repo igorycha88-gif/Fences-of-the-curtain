@@ -18,6 +18,7 @@ const VALID_CATEGORIES = [
   'profnastil',
   'panel3d',
   'picket',
+  'mesh',
   'gates',
   'wickets',
   'mounting_hardware',
@@ -86,6 +87,18 @@ async function searchPicket(search: string): Promise<NomenclatureItem[]> {
   return items.map((i) => ({ id: i.id, name: i.name, retailPrice: i.retailPricePerUnit, unit: 'шт', category: 'picket' }));
 }
 
+async function searchMesh(search: string): Promise<NomenclatureItem[]> {
+  const items = await prisma.meshType.findMany({
+    where: {
+      active: true,
+      ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
+    },
+    orderBy: { priority: 'desc' },
+    take: 50,
+  });
+  return items.map((i) => ({ id: i.id, name: i.name, retailPrice: i.retailPricePerUnit, unit: 'шт', category: 'mesh' }));
+}
+
 async function searchGates(search: string): Promise<NomenclatureItem[]> {
   const items = await prisma.gateType.findMany({
     where: {
@@ -140,6 +153,7 @@ const searchers: Record<Category, (search: string) => Promise<NomenclatureItem[]
   profnastil: searchProfnastil,
   panel3d: searchPanel3d,
   picket: searchPicket,
+  mesh: searchMesh,
   gates: searchGates,
   wickets: searchWickets,
   mounting_hardware: searchMountingHardware,
@@ -152,6 +166,7 @@ const categoryLabels: Record<Category, string> = {
   profnastil: 'Профнастил',
   panel3d: '3D-панели',
   picket: 'Евроштакетник',
+  mesh: 'Сетка-рабица',
   gates: 'Ворота',
   wickets: 'Калитки',
   mounting_hardware: 'Монтажная фурнитура',

@@ -122,6 +122,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </li>
             <li>
               <a
+                href="/admin/calculator"
+                onClick={handleNavClick}
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/calculator')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Калькулятор
+              </a>
+            </li>
+            <li>
+              <a
                 href="/admin/truss-calculator"
                 onClick={handleNavClick}
                 className={`block px-3 py-3 rounded-lg transition-colors ${

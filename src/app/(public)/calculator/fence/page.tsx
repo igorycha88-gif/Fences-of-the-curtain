@@ -236,6 +236,17 @@ export default function FenceCalculatorPage() {
   }, []);
 
   useEffect(() => {
+    if (picketProfileTypes.length === 0) return;
+    setCalculations(prev => prev.map(calc => {
+      const ft = fenceTypes.find(t => t.id === calc.formData.fenceTypeId);
+      if (ft?.name === 'Евроштакетник' && !calc.formData.picketProfileType) {
+        return { ...calc, formData: { ...calc.formData, picketProfileType: picketProfileTypes[0].id } };
+      }
+      return calc;
+    }));
+  }, [picketProfileTypes, fenceTypes]);
+
+  useEffect(() => {
     const meshCalc = calculations.find(c => {
       const ft = fenceTypes.find(t => t.id === c.formData.fenceTypeId);
       return ft?.name === 'Сетка-рабица';
@@ -371,6 +382,12 @@ export default function FenceCalculatorPage() {
     const isPanel3D = selectedFenceType.name === '3D-панели';
     const isPicket = selectedFenceType.name === 'Евроштакетник';
     const isMesh = selectedFenceType.name === 'Сетка-рабица';
+
+    if (isPicket && !formData.picketProfileType) {
+      alert('Выберите тип профиля евроштакетника');
+      setCalculations(prev => prev.map(c => c.id === calcId ? { ...c, loading: false } : c));
+      return;
+    }
 
     const length = Number(formData.length);
 

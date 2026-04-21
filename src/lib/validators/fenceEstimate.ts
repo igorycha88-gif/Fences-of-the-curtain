@@ -11,7 +11,7 @@ export const fenceEstimateSchema = z.object({
   gateWidth: z.number().min(2.0).max(6.0).optional(),
   hasWicket: z.boolean().default(false),
   wicketWidth: z.number().min(0.8).max(1.5).optional(),
-  picketProfileType: z.string().optional(),
+  picketProfileType: z.string().min(1).optional(),
   picketCoating: z.string().optional(),
   picketStep: z.number().min(1).max(20).optional(),
   picketMountingType: z.enum(['SINGLE', 'CHESS']).optional(),

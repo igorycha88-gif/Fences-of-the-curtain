@@ -140,6 +140,18 @@ export default function AdminLayout({
             </li>
             <li>
               <a
+                href="/admin/calculator"
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/calculator')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Калькулятор
+              </a>
+            </li>
+            <li>
+              <a
                 href="/admin/truss-calculator"
                 className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/truss-calculator')
