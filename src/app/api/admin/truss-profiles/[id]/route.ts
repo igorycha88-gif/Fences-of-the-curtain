@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { trussProfileCreateSchema } from '@/lib/validators/trussCalculator';
 import { ZodError } from 'zod';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function GET(
     return NextResponse.json({ profile });
   } catch (error) {
     console.error('[TRUSS-PROFILE GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -62,7 +63,7 @@ export async function PUT(
       })) }, { status: 400 });
     }
     console.error('[TRUSS-PROFILE PUT] Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -82,7 +83,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[TRUSS-PROFILE DELETE] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -107,6 +108,6 @@ export async function PATCH(
     return NextResponse.json({ profile: updated });
   } catch (error) {
     console.error('[TRUSS-PROFILE PATCH] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

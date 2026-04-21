@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
+import { requireAuth } from '@/lib/admin-auth';
 
 const ANALYTICS_KEY_PREFIX = 'analytics:';
 const ANALYTICS_TTL = 86400 * 30;
 const SESSION_TTL = 86400 * 1;
+
+const ANALYTICS_RATE_LIMIT = { max: 100, windowSec: 60 };
+const SAFE_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/;
+
+function getClientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
+    || 'unknown';
+}
 
 function logMetricError(context: string, err: unknown) {
   console.error(`Analytics metric error (${context}):`, err);
@@ -11,12 +21,39 @@ function logMetricError(context: string, err: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rlKey = `rate_limit:analytics:${ip}`;
+    const attempts = await redis.incr(rlKey);
+    if (attempts === 1) {
+      await redis.expire(rlKey, ANALYTICS_RATE_LIMIT.windowSec);
+    }
+    if (attempts > ANALYTICS_RATE_LIMIT.max) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { eventName, sessionId, page, referrer, timestamp } = body;
 
     if (!eventName || !sessionId) {
       return NextResponse.json(
         { error: 'eventName and sessionId are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!SAFE_ID_REGEX.test(String(eventName))) {
+      return NextResponse.json(
+        { error: 'Invalid eventName format' },
+        { status: 400 }
+      );
+    }
+
+    if (!SAFE_ID_REGEX.test(String(sessionId))) {
+      return NextResponse.json(
+        { error: 'Invalid sessionId format' },
         { status: 400 }
       );
     }
@@ -106,6 +143,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     const { searchParams } = new URL(req.url);
     const period = searchParams.get('period') || '7d';
 

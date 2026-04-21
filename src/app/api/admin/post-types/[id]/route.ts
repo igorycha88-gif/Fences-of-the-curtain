@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { postTypeService } from '@/services/admin/postTypeService';
 import { postTypeUpdateSchema } from '@/lib/validators/postType';
 import { ZodError } from 'zod';
-import { validationError } from '@/lib/api-error';
+import { validationError, safeErrorResponse } from '@/lib/api-error';
 import { apiCache } from '@/lib/apiCache';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +33,7 @@ export async function GET(
     return NextResponse.json(post);
   } catch (error) {
     console.error('Error fetching post type:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -85,7 +85,7 @@ export async function PUT(
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -113,7 +113,7 @@ export async function DELETE(
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -137,6 +137,6 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

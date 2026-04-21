@@ -1,5 +1,9 @@
 import { portfolioService } from '@/services/admin/portfolioService';
 
+jest.mock('@/lib/utils/fileUpload', () => ({
+  deleteImage: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@/lib/prisma', () => {
   const mockPrisma = {
     portfolioItem: {
@@ -16,6 +20,7 @@ jest.mock('@/lib/prisma', () => {
     auditLog: {
       create: jest.fn(),
     },
+    $transaction: jest.fn((ops: any) => Promise.all(ops)),
   };
   return {
     prisma: mockPrisma,
@@ -137,6 +142,139 @@ describe('PortfolioService', () => {
       const result = await portfolioService.toggleActive('1', 'user1');
 
       expect(result.active).toBe(false);
+    });
+  });
+
+  describe('update', () => {
+    it('should update item and log action', async () => {
+      const oldItem = { id: '1', title: 'Old', images: ['/old.jpg'] };
+      const newItem = { id: '1', title: 'New', images: ['/new.jpg'] };
+
+      (prisma.portfolioItem.findUnique as any).mockResolvedValue(oldItem);
+      (prisma.portfolioItem.update as any).mockResolvedValue(newItem);
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      const result = await portfolioService.update('1', { title: 'New', images: ['/new.jpg'] }, 'user1');
+
+      expect(result.title).toBe('New');
+      expect(prisma.auditLog.create).toHaveBeenCalled();
+    });
+
+    it('should throw when item not found', async () => {
+      (prisma.portfolioItem.findUnique as any).mockResolvedValue(null);
+
+      await expect(
+        portfolioService.update('nonexistent', { title: 'New' }, 'user1')
+      ).rejects.toThrow('Элемент портфолио не найден');
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete item and its images', async () => {
+      const item = { id: '1', images: ['/img1.jpg', '/img2.jpg'] };
+
+      (prisma.portfolioItem.findUnique as any).mockResolvedValue(item);
+      (prisma.portfolioItem.delete as any).mockResolvedValue({});
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      await portfolioService.delete('1', 'user1');
+
+      expect(prisma.portfolioItem.delete).toHaveBeenCalledWith({ where: { id: '1' } });
+    });
+
+    it('should throw when item not found', async () => {
+      (prisma.portfolioItem.findUnique as any).mockResolvedValue(null);
+
+      await expect(
+        portfolioService.delete('nonexistent', 'user1')
+      ).rejects.toThrow('Элемент портфолио не найден');
+    });
+  });
+
+  describe('bulkActivate', () => {
+    it('should activate multiple items', async () => {
+      (prisma.portfolioItem.updateMany as any).mockResolvedValue({ count: 3 });
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      const result = await portfolioService.bulkActivate(['1', '2', '3'], 'user1');
+
+      expect(result.updated).toBe(3);
+      expect(result.message).toContain('3');
+    });
+  });
+
+  describe('bulkDeactivate', () => {
+    it('should deactivate multiple items', async () => {
+      (prisma.portfolioItem.updateMany as any).mockResolvedValue({ count: 2 });
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      const result = await portfolioService.bulkDeactivate(['1', '2'], 'user1');
+
+      expect(result.updated).toBe(2);
+    });
+  });
+
+  describe('bulkDelete', () => {
+    it('should delete multiple items and their images', async () => {
+      const items = [
+        { id: '1', images: ['/img1.jpg'] },
+        { id: '2', images: ['/img2.jpg'] },
+      ];
+
+      (prisma.portfolioItem.findMany as any).mockResolvedValue(items);
+      (prisma.portfolioItem.deleteMany as any).mockResolvedValue({ count: 2 });
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      const result = await portfolioService.bulkDelete(['1', '2'], 'user1');
+
+      expect(result.deleted).toBe(2);
+    });
+  });
+
+  describe('reorder', () => {
+    it('should update sort order for all items', async () => {
+      const items = [
+        { id: '1', sortOrder: 2 },
+        { id: '2', sortOrder: 1 },
+      ];
+
+      (prisma.portfolioItem.update as any).mockResolvedValue({});
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      const result = await portfolioService.reorder(items, 'user1');
+
+      expect(result.updated).toBe(2);
+      expect(result.message).toContain('Порядок обновлён');
+    });
+  });
+
+  describe('getPublicList', () => {
+    it('should return only active items', async () => {
+      const mockItems = [
+        { id: '1', title: 'Test', category: 'fence', active: true },
+      ];
+
+      (prisma.portfolioItem.findMany as any).mockResolvedValue(mockItems);
+
+      const result = await portfolioService.getPublicList();
+
+      expect(prisma.portfolioItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ active: true }),
+        })
+      );
+    });
+
+    it('should filter by category', async () => {
+      (prisma.portfolioItem.findMany as any).mockResolvedValue([]);
+
+      await portfolioService.getPublicList('fence');
+
+      expect(prisma.portfolioItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'fence' }),
+        })
+      );
     });
   });
 });

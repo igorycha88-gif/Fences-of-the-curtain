@@ -6,21 +6,21 @@ services:
       dockerfile: docker/Dockerfile
       network: host
       args:
-        - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@127.0.0.1:5432/fences
+        - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/fences
     container_name: fences-app
     restart: unless-stopped
     network_mode: host
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@127.0.0.1:5432/fences
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:5432/fences
       - REDIS_HOST=127.0.0.1
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - REDIS_URL=redis://127.0.0.1:6379
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-me}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@127.0.0.1:6379
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=https://zabor-i-naves.ru
-      - CRON_SECRET=${CRON_SECRET:-dev-cron-secret}
+      - CRON_SECRET=${CRON_SECRET}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}

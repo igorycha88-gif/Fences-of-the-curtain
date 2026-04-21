@@ -425,4 +425,193 @@ describe('OrdersService', () => {
       expect(result!.estimate).toBeNull();
     });
   });
+
+  describe('getOrderById', () => {
+    it('should return order by id with status label', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findFirst.mockResolvedValue({
+        id: '1',
+        clientName: 'Иван',
+        status: 'NEW',
+        calculatedCost: 100000,
+        createdAt: new Date(),
+        estimate: null,
+      });
+
+      const result = await ordersService.getOrderById('1');
+
+      expect(result).not.toBeNull();
+      expect(result!.statusLabel).toBeDefined();
+    });
+
+    it('should return null when order not found', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findFirst.mockResolvedValue(null);
+
+      const result = await ordersService.getOrderById('nonexistent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('updateOrder — error cases', () => {
+    it('should throw when order not found', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findUnique.mockResolvedValue(null);
+
+      await expect(
+        ordersService.updateOrder('nonexistent', { status: 'NEW' }, 'user-1')
+      ).rejects.toThrow('Order not found');
+    });
+
+    it('should throw on invalid status transition', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findUnique.mockResolvedValue({
+        id: '1',
+        status: 'NEW',
+      });
+
+      await expect(
+        ordersService.updateOrder('1', { status: 'COMPLETED' }, 'user-1')
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('deleteOrder', () => {
+    it('should soft delete order', async () => {
+      const { prisma } = require('@/lib/prisma');
+      const mockOrder = {
+        id: '1',
+        clientName: 'Test',
+        phone: '+79001234567',
+        email: 'test@test.com',
+        serviceType: 'fence',
+        parameters: {},
+        calculatedCost: 100000,
+        status: 'NEW',
+        managerComment: null,
+        assignedTo: null,
+        estimateId: null,
+      };
+      prisma.order.findUnique.mockResolvedValue(mockOrder);
+      prisma.order.update.mockResolvedValue({ ...mockOrder, active: false });
+
+      const result = await ordersService.deleteOrder('1', 'user-1');
+
+      expect(prisma.order.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { active: false },
+      });
+    });
+
+    it('should throw when order not found', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findUnique.mockResolvedValue(null);
+
+      await expect(
+        ordersService.deleteOrder('nonexistent', 'user-1')
+      ).rejects.toThrow('Order not found');
+    });
+  });
+
+  describe('batchUpdateOrders', () => {
+    it('should update multiple orders', async () => {
+      const { prisma } = require('@/lib/prisma');
+      const mockAuditLog = require('@/lib/audit');
+      mockAuditLog.createAuditLogAsync = jest.fn().mockResolvedValue(undefined);
+
+      prisma.order.findUnique
+        .mockResolvedValueOnce({ id: '1', status: 'NEW', assignedTo: null })
+        .mockResolvedValueOnce({ id: '1', status: 'NEW', assignedTo: null })
+        .mockResolvedValueOnce({ id: '2', status: 'NEW', assignedTo: null })
+        .mockResolvedValueOnce({ id: '2', status: 'NEW', assignedTo: null });
+      prisma.order.update
+        .mockResolvedValueOnce({ id: '1', status: 'ESTIMATE_APPROVAL', calculatedCost: 100 })
+        .mockResolvedValueOnce({ id: '2', status: 'ESTIMATE_APPROVAL', calculatedCost: 200 });
+      prisma.user.findUnique.mockResolvedValue({ name: 'Admin' });
+
+      const result = await ordersService.batchUpdateOrders(
+        ['1', '2'],
+        { status: 'ESTIMATE_APPROVAL' },
+        'user-1'
+      );
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('should skip non-existent orders', async () => {
+      const { prisma } = require('@/lib/prisma');
+      const mockAuditLog = require('@/lib/audit');
+      mockAuditLog.createAuditLogAsync = jest.fn().mockResolvedValue(undefined);
+
+      prisma.order.findUnique
+        .mockResolvedValueOnce({ id: '1', status: 'NEW', assignedTo: null })
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: '1', status: 'NEW', assignedTo: null });
+      prisma.order.update.mockResolvedValue({ id: '1', status: 'ESTIMATE_APPROVAL', calculatedCost: 100 });
+      prisma.user.findUnique.mockResolvedValue({ name: 'Admin' });
+
+      const result = await ordersService.batchUpdateOrders(
+        ['1', 'nonexistent'],
+        { status: 'ESTIMATE_APPROVAL' },
+        'user-1'
+      );
+
+      const nonNull = result.filter((r: any) => r !== null);
+      expect(nonNull).toHaveLength(1);
+    });
+  });
+
+  describe('getOrders — with filters', () => {
+    it('should filter by service type', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(0);
+
+      await ordersService.getOrders({ serviceType: 'fence' });
+
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ serviceType: 'fence' }),
+        })
+      );
+    });
+
+    it('should filter by date range', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(0);
+
+      const dateFrom = new Date('2026-01-01');
+      const dateTo = new Date('2026-01-31');
+
+      await ordersService.getOrders({ dateFrom, dateTo });
+
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: { gte: dateFrom, lte: dateTo },
+          }),
+        })
+      );
+    });
+
+    it('should filter by search', async () => {
+      const { prisma } = require('@/lib/prisma');
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(0);
+
+      await ordersService.getOrders({ search: 'Иван' });
+
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([
+              expect.objectContaining({ clientName: expect.anything() }),
+            ]),
+          }),
+        })
+      );
+    });
+  });
 });

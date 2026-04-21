@@ -4,7 +4,7 @@ import { picketTypeService } from '@/services/admin/picketTypeService';
 import { picketTypeSchema } from '@/lib/validators/picketType';
 import { safeParseInt } from '@/lib/parse-params';
 import { ZodError } from 'zod';
-import { validationError } from '@/lib/api-error';
+import { validationError, safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching picket types:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -91,6 +91,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

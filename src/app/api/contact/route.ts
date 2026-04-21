@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { contactFormSchema } from '@/lib/validators';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,15 +16,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof Error) {
       console.error('Contact form error:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
     }
 
-    return NextResponse.json(
-      { error: 'Ошибка отправки заявки' },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500);
   }
 }

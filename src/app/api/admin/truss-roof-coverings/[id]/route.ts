@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { trussRoofCoveringCreateSchema } from '@/lib/validators/trussCalculator';
 import { ZodError } from 'zod';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function GET(
     return NextResponse.json({ covering });
   } catch (error) {
     console.error('[TRUSS-ROOF-COVERING GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -62,7 +63,7 @@ export async function PUT(
       })) }, { status: 400 });
     }
     console.error('[TRUSS-ROOF-COVERING PUT] Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -82,7 +83,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[TRUSS-ROOF-COVERING DELETE] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -107,6 +108,6 @@ export async function PATCH(
     return NextResponse.json({ covering: updated });
   } catch (error) {
     console.error('[TRUSS-ROOF-COVERING PATCH] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

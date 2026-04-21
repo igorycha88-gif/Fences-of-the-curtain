@@ -4,6 +4,7 @@ import { meshService } from '@/services/admin/meshService';
 import { createAuditLogAsync } from '@/lib/audit';
 import { meshUpdateSchema } from '@/lib/validators/mesh';
 import { ZodError } from 'zod';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,10 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(item);
   } catch (error) {
     console.error('[API] Error in GET /api/admin/materials/mesh-types/[id]:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal error' },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -62,14 +60,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.message.includes('не найдена') ? 404 : 500 }
-      );
-    }
-
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -98,14 +89,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   } catch (error) {
     console.error('[API] Error in DELETE /api/admin/materials/mesh-types/[id]:', error);
 
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.message.includes('не найдена') ? 404 : 500 }
-      );
-    }
-
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -133,9 +117,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] Error in PATCH /api/admin/materials/mesh-types/[id]:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal error' },
-      { status: error instanceof Error && error.message.includes('не найдена') ? 404 : 500 }
-    );
+    return safeErrorResponse(error, 500);
   }
 }

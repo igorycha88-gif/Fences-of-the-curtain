@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { trussProfileCreateSchema } from '@/lib/validators/trussCalculator';
 import { ZodError } from 'zod';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ profiles, total, page, pageSize });
   } catch (error) {
     console.error('[TRUSS-PROFILES GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -130,6 +131,6 @@ export async function POST(request: NextRequest) {
       })) }, { status: 400 });
     }
     console.error('[TRUSS-PROFILES POST] Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

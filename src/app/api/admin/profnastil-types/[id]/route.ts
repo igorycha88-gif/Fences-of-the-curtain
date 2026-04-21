@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { profnastilTypeService } from '@/services/admin/profnastilTypeService';
 import { profnastilTypeUpdateSchema } from '@/lib/validators/profnastilType';
 import { ZodError } from 'zod';
-import { validationError } from '@/lib/api-error';
+import { validationError, safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +32,7 @@ export async function GET(
     return NextResponse.json(profnastil);
   } catch (error) {
     console.error('Error fetching profnastil type:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -95,7 +95,7 @@ export async function PUT(
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -122,7 +122,7 @@ export async function DELETE(
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
     
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -145,6 +145,6 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
     
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

@@ -4,6 +4,7 @@ import { meshService } from '@/services/admin/meshService';
 import { createAuditLogAsync } from '@/lib/audit';
 import { meshSchema } from '@/lib/validators/mesh';
 import { ZodError } from 'zod';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,10 +39,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] Error in GET /api/admin/materials/mesh-types:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal error' },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -79,13 +77,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
