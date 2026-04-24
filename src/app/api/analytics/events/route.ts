@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
 import { requireAuth } from '@/lib/admin-auth';
+import { isNotifiableEvent, sendAnalyticsNotification } from '@/services/telegram/analytics-notifier';
 
 const ANALYTICS_KEY_PREFIX = 'analytics:';
 const ANALYTICS_TTL = 86400 * 30;
@@ -81,6 +82,16 @@ export async function POST(req: NextRequest) {
     pipeline.expire(sessionKey, SESSION_TTL);
 
     await pipeline.exec();
+
+    if (isNotifiableEvent(eventName)) {
+      sendAnalyticsNotification({
+        eventName,
+        page: metricsPage,
+        sessionId,
+        timestamp: timestamp || new Date().toISOString(),
+        ip,
+      }).catch(err => logMetricError('telegram_notification', err));
+    }
 
     if (eventName === 'contact_form_submit') {
       redis.incr('analytics:metrics:rates:forms_last_minute').then(() => {
