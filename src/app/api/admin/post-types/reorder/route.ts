@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import { priorityService } from '@/services/admin/priorityService';
 import { z, ZodError } from 'zod';
-import { validationError } from '@/lib/api-error';
+import { validationError, safeErrorResponse } from '@/lib/api-error';
 import { apiCache } from '@/lib/apiCache';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +46,6 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

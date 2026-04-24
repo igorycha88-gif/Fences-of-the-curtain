@@ -5,6 +5,7 @@ import { saveTrussCalculationSchema } from '@/lib/validators/trussCalculator';
 import { calculateTruss } from '@/services/truss/trussCalculator';
 import { TrussProfileData } from '@/services/truss/types';
 import { ZodError } from 'zod';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ calculations });
   } catch (error) {
     console.error('[TRUSS-CALCULATIONS GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -160,6 +161,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.errors.map(e => e.message).join(', ') }, { status: 400 });
     }
     console.error('[TRUSS-CALCULATIONS POST] Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

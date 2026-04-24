@@ -35,7 +35,7 @@ class AppLogger {
 
   private getLevelFromEnv(): LogLevel {
     if (typeof window === 'undefined' && process.env.LOG_LEVEL) {
-      const level = process.env.LOG_LEVEL.toUpperCase();
+      const level = process.env.LOG_LEVEL.toLowerCase();
       return Object.values(LogLevel).includes(level as LogLevel) ? level as LogLevel : LogLevel.INFO;
     }
     return LogLevel.INFO;

@@ -18,6 +18,7 @@ interface Estimate {
   city: string | null;
   deviceType: string;
   isEditedByAdmin?: boolean;
+  sourceEstimateId?: string | null;
   user: {
     id: string;
     name: string | null;
@@ -441,9 +442,14 @@ export default function EstimatesPage() {
                     <div>
                       <span className="text-sm text-gray-500">#{estimate.id.slice(0, 8)}</span>
                       <span className="ml-2 font-medium">{estimate.fenceType?.name || '-'}</span>
-                      {estimate.isEditedByAdmin && (
+                      {estimate.isEditedByAdmin && !estimate.sourceEstimateId && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                          Создан администратором
+                        </span>
+                      )}
+                      {estimate.isEditedByAdmin && estimate.sourceEstimateId && (
                         <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                          ✏️ Корректировка
+                          Корректировка
                         </span>
                       )}
                     </div>
@@ -489,9 +495,14 @@ export default function EstimatesPage() {
                       className="border-b hover:bg-gray-50 cursor-pointer"
                     >
                       <td className="py-3 px-4 text-sm text-gray-600">#{estimate.id.slice(0, 8)}
-                        {estimate.isEditedByAdmin && (
+                        {estimate.isEditedByAdmin && !estimate.sourceEstimateId && (
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                            Создан администратором
+                          </span>
+                        )}
+                        {estimate.isEditedByAdmin && estimate.sourceEstimateId && (
                           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                            ✏️ Корректировка
+                            Корректировка
                           </span>
                         )}
                       </td>

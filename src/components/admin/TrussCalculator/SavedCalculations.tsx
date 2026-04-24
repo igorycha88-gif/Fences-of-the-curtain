@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { sanitizeSvg } from '@/lib/sanitize';
 
 interface SavedCalculation {
   id: string;
@@ -256,7 +257,7 @@ function CalculationRow({
                 {calc.svgDrawing && (
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 mb-2">Схема</h4>
-                    <div className="bg-white rounded border overflow-auto max-h-64" dangerouslySetInnerHTML={{ __html: calc.svgDrawing }} />
+                    <div className="bg-white rounded border overflow-auto max-h-64" dangerouslySetInnerHTML={{ __html: sanitizeSvg(calc.svgDrawing) }} />
                   </div>
                 )}
               </div>

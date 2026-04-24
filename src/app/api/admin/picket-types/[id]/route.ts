@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { picketTypeService } from '@/services/admin/picketTypeService';
 import { picketTypeUpdateSchema } from '@/lib/validators/picketType';
 import { ZodError } from 'zod';
-import { validationError } from '@/lib/api-error';
+import { validationError, safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +32,7 @@ export async function GET(
     return NextResponse.json(picket);
   } catch (error) {
     console.error('Error fetching picket type:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -82,7 +82,7 @@ export async function PUT(
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -109,7 +109,7 @@ export async function DELETE(
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
     
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -132,6 +132,6 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
     
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

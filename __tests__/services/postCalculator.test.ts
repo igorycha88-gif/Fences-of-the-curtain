@@ -76,7 +76,7 @@ describe('postCalculator', () => {
         where: expect.objectContaining({
           active: true,
         }),
-        orderBy: [{ length: 'asc' }],
+        orderBy: [{ length: 'asc' }, { priority: 'asc' }],
       });
 
       expect(result.category).toBe('posts');
@@ -275,7 +275,7 @@ describe('postCalculator', () => {
         where: expect.objectContaining({
           active: true,
         }),
-        orderBy: [{ length: 'asc' }],
+        orderBy: [{ length: 'asc' }, { priority: 'asc' }],
       });
 
       expect(result.category).toBe('posts');

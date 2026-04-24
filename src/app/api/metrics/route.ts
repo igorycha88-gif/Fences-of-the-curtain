@@ -6,6 +6,19 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      const authHeader = req.headers.get('authorization');
+      const metricsToken = process.env.METRICS_BEARER_TOKEN;
+
+      if (!metricsToken) {
+        return new NextResponse('Not Found', { status: 404 });
+      }
+
+      if (authHeader !== `Bearer ${metricsToken}`) {
+        return new NextResponse('Unauthorized', { status: 401 });
+      }
+    }
+
     const metrics = await getMetricsString();
     return new NextResponse(metrics, {
       headers: {

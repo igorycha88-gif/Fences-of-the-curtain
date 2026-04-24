@@ -3,6 +3,7 @@ import { multiFenceEstimateSchema } from '@/lib/validators/multiFenceEstimate';
 import { calculateMultiFenceEstimate, MultiEstimateCalculationError } from '@/services/calculator/multiFenceEstimateService';
 import { getClientIPFromHeaders } from '@/lib/utils';
 import { getSessionId } from '@/lib/session';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,10 +37,7 @@ export async function POST(req: NextRequest) {
 
     if (error instanceof Error) {
       console.error('Multi fence estimate error:', error);
-      return NextResponse.json(
-        { error: 'VALIDATION_ERROR', message: error.message },
-        { status: 400 }
-      );
+      return safeErrorResponse(error, 400);
     }
 
     console.error('Multi fence estimate error:', error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function GET(
     return NextResponse.json(review);
   } catch (error) {
     console.error('Error fetching review:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -58,7 +59,7 @@ export async function PUT(
     return NextResponse.json(review);
   } catch (error: any) {
     console.error('Error updating review:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -81,6 +82,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Review deleted' });
   } catch (error: any) {
     console.error('Error deleting review:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

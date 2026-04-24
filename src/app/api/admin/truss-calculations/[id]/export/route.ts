@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { generateTrussWord } from '@/services/truss/wordGenerator';
 import { calculateTruss } from '@/services/truss/trussCalculator';
 import { TrussProfileData } from '@/services/truss/types';
+import { safeErrorResponse } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +83,7 @@ export async function GET(
     });
   } catch (error: any) {
     console.error('[TRUSS-CALCULATION EXPORT GET] Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 

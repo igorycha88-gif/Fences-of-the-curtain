@@ -1,5 +1,7 @@
 'use client';
 
+import { sanitizeSvg } from '@/lib/sanitize';
+
 interface Props {
   svgString: string;
 }
@@ -12,7 +14,7 @@ export default function TrussDrawing({ svgString }: Props) {
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Чертёж фермы</h3>
       <div
         className="w-full overflow-auto"
-        dangerouslySetInnerHTML={{ __html: svgString }}
+        dangerouslySetInnerHTML={{ __html: sanitizeSvg(svgString) }}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { postTypeService } from '@/services/admin/postTypeService';
 import { postTypeSchema } from '@/lib/validators/postType';
 import { safeParseInt } from '@/lib/parse-params';
 import { ZodError } from 'zod';
-import { validationError } from '@/lib/api-error';
+import { validationError, safeErrorResponse } from '@/lib/api-error';
 import { apiCache } from '@/lib/apiCache';
 
 export const dynamic = 'force-dynamic';
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('[POST-TYPES GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }
 
@@ -90,6 +90,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return safeErrorResponse(error, 500);
   }
 }

@@ -7,6 +7,7 @@ import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { applyRateLimitByEndpoint } from '@/lib/rate-limit';
 import { sendOrderNotification, sendClientConfirmation } from '@/services/email/sender';
 import { sendOrderNotification as sendTelegramNotification } from '@/services/telegram';
+import { safeErrorResponse } from '@/lib/api-error';
 
 function getClientIp(request: NextRequest): string {
   const xForwardedFor = request.headers.get('x-forwarded-for');
@@ -51,15 +52,12 @@ export async function POST(req: NextRequest) {
 
       if (error.name === 'ZodError') {
         return NextResponse.json(
-          { error: 'VALIDATION_ERROR', message: error.message },
+          { error: 'VALIDATION_ERROR', message: 'Проверьте введённые данные' },
           { status: 400 }
         );
       }
 
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return safeErrorResponse(error, 400);
     }
 
     return NextResponse.json(

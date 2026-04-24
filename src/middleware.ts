@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https:;
     font-src 'self';
-    connect-src 'self' https://mc.yandex.ru https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com;
+    connect-src 'self' https://mc.yandex.ru https://www.google-analytics.com https://analytics.google.com https://region1.analytics.google.com https://www.googletagmanager.com;
     frame-src https://www.google.com https://www.gstatic.com https://yandex.ru;
     object-src 'none';
     base-uri 'self';
