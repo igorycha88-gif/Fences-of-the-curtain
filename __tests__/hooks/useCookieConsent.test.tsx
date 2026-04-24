@@ -46,7 +46,7 @@ describe('useCookieConsent', () => {
   });
 
   it('acceptAll hides banner and saves consent', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
 
     const { result } = renderHook(() => useCookieConsent());
 
@@ -67,7 +67,7 @@ describe('useCookieConsent', () => {
   });
 
   it('saveSettings saves analytics=false', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
 
     const { result } = renderHook(() => useCookieConsent());
 
@@ -115,7 +115,7 @@ describe('useCookieConsent', () => {
   });
 
   it('closeSettings does not re-show banner if consent was given', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
 
     const { result } = renderHook(() => useCookieConsent());
 
@@ -137,7 +137,7 @@ describe('useCookieConsent', () => {
   });
 
   it('declineAll hides banner with analytics=false', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
 
     const { result } = renderHook(() => useCookieConsent());
 

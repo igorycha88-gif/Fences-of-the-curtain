@@ -64,7 +64,7 @@ describe('CookieConsentProvider', () => {
   });
 
   it('hides banner after accepting all cookies', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({ ok: true, json: async () => ({}) }) as any;
 
     render(
       <CookieConsentProvider>

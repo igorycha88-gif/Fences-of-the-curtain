@@ -197,9 +197,9 @@ describe('PostTypeService', () => {
 
       const result = await postTypeService.create(data as any, mockUserId);
 
-      expect(result).toHaveProperty('warning');
-      expect(result.warning.type).toBe('duplicate_params');
-      expect(result.canProceed).toBe(true);
+      expect(result as any).toHaveProperty('warning');
+      expect((result as any).warning.type).toBe('duplicate_params');
+      expect((result as any).canProceed).toBe(true);
     });
 
     it('should throw when duplicate has same price', async () => {

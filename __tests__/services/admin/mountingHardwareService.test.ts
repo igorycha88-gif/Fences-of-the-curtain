@@ -25,9 +25,9 @@ jest.mock('@/lib/prisma', () => ({
 
 jest.mock('@/lib/referenceRegistry', () => ({
   referenceRegistry: {
-    getItemName: jest.fn().mockResolvedValue('Test Reference'),
-    getAll: jest.fn().mockReturnValue([]),
-    getItems: jest.fn().mockResolvedValue([]),
+    getItemName: jest.fn<any>().mockResolvedValue('Test Reference'),
+    getAll: jest.fn<any>().mockReturnValue([]),
+    getItems: jest.fn<any>().mockResolvedValue([]),
   },
 }));
 

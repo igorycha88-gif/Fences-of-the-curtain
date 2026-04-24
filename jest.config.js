@@ -60,7 +60,7 @@ module.exports = {
           },
         }],
       },
-      setupFilesAfterSetup: ['<rootDir>/__tests__/setup.ts'],
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
       collectCoverageFrom: [
         'src/**/*.{js,jsx,ts,tsx}',
         ...sharedCoverageExcludes,

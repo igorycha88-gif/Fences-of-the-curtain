@@ -21,9 +21,9 @@ import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 
 const mockPrisma = prisma as any;
-const mockRedisGet = redis.get as jest.Mock;
-const mockRedisSet = redis.set as jest.Mock;
-const mockRedisDel = redis.del as jest.Mock;
+const mockRedisGet = redis.get as jest.Mock<any>;
+const mockRedisSet = redis.set as jest.Mock<any>;
+const mockRedisDel = redis.del as jest.Mock<any>;
 
 const mockFenceTypes = [
   {

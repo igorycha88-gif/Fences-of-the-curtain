@@ -48,7 +48,7 @@ describe('analytics', () => {
         expect.any(String)
       );
 
-      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1]);
+      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1] as string);
       expect(sentData.eventName).toBe('page_view');
       expect(sentData.properties).toEqual({ path: '/calculator' });
       expect(sentData.sessionId).toBe('test-uuid-1234');
@@ -62,7 +62,7 @@ describe('analytics', () => {
 
       trackEvent('calculator_open');
 
-      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1]);
+      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1] as string);
       expect(sentData.eventName).toBe('calculator_open');
       expect(sentData.properties).toBeUndefined();
     });
@@ -74,7 +74,7 @@ describe('analytics', () => {
 
       trackEvent('test_event');
 
-      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1]);
+      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1] as string);
       expect(sentData.sessionId).toBe('existing-session-id');
     });
 
@@ -85,7 +85,7 @@ describe('analytics', () => {
 
       trackEvent('test_event');
 
-      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1]);
+      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1] as string);
       expect(sentData.sessionId).toBe('cookie-session-id');
     });
   });
@@ -96,7 +96,7 @@ describe('analytics', () => {
 
       trackPageView('/calculator');
 
-      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1]);
+      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1] as string);
       expect(sentData.eventName).toBe('page_view');
       expect(sentData.properties).toEqual({ path: '/calculator' });
     });
@@ -108,7 +108,7 @@ describe('analytics', () => {
 
       trackUserJourney('calculator_open', { fenceType: 'profnastil' });
 
-      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1]);
+      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1] as string);
       expect(sentData.eventName).toBe('calculator_open');
       expect(sentData.properties).toEqual({
         journey_step: 'calculator_open',
@@ -121,7 +121,7 @@ describe('analytics', () => {
 
       trackUserJourney('page_view');
 
-      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1]);
+      const sentData = JSON.parse(mockSendBeacon.mock.calls[0][1] as string);
       expect(sentData.properties).toEqual({ journey_step: 'page_view' });
     });
   });
@@ -130,10 +130,10 @@ describe('analytics', () => {
     it('should log to console when analytics disabled in dev', async () => {
       const originalEnv = process.env.NODE_ENV;
       const originalDisable = process.env.NEXT_PUBLIC_DISABLE_ANALYTICS;
-      process.env.NODE_ENV = 'development';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
       process.env.NEXT_PUBLIC_DISABLE_ANALYTICS = 'true';
 
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       const { trackEvent } = await import('@/lib/analytics');
 
@@ -142,7 +142,7 @@ describe('analytics', () => {
       expect(consoleSpy).toHaveBeenCalledWith('[Analytics]', expect.any(Object));
       expect(mockSendBeacon).not.toHaveBeenCalled();
 
-      process.env.NODE_ENV = originalEnv;
+      (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
       process.env.NEXT_PUBLIC_DISABLE_ANALYTICS = originalDisable;
       consoleSpy.mockRestore();
     });

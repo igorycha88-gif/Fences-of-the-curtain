@@ -111,10 +111,11 @@ describe('NomenclatureNotFoundModal', () => {
   });
 
   it('submits successfully and shows success state', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any) = (jest.fn() as any).mockResolvedValue({
       ok: true,
       json: async () => ({ orderId: 'ord-1' }),
-    }) as any;
+    });
 
     render(<NomenclatureNotFoundModal {...defaultProps} />);
 
@@ -132,10 +133,11 @@ describe('NomenclatureNotFoundModal', () => {
   });
 
   it('shows error on rate limit exceeded', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any) = (jest.fn() as any).mockResolvedValue({
       ok: false,
       json: async () => ({ error: 'RATE_LIMIT_EXCEEDED' }),
-    }) as any;
+    });
 
     render(<NomenclatureNotFoundModal {...defaultProps} />);
 
@@ -149,10 +151,11 @@ describe('NomenclatureNotFoundModal', () => {
   });
 
   it('sends isIndividualRequest and fenceParameters in request body', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any) = (jest.fn() as any).mockResolvedValue({
       ok: true,
       json: async () => ({ orderId: 'ord-1' }),
-    }) as any;
+    });
 
     render(<NomenclatureNotFoundModal {...defaultProps} />);
 
@@ -164,7 +167,8 @@ describe('NomenclatureNotFoundModal', () => {
       expect(global.fetch).toHaveBeenCalledWith('/api/orders', expect.objectContaining({ method: 'POST' }));
     });
 
-    const callBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callBody = JSON.parse((global.fetch as any).mock.calls[0][1].body as string);
     expect(callBody.isIndividualRequest).toBe(true);
     expect(callBody.fenceParameters.fenceTypeName).toBe('Штакетник');
   });

@@ -1,4 +1,4 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 describe('logger', () => {
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
@@ -9,11 +9,11 @@ describe('logger', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
-    consoleTraceSpy = jest.spyOn(console, 'trace').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+    consoleTraceSpy = jest.spyOn(console, 'trace').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -122,8 +122,8 @@ describe('logger', () => {
       const LoggerClass = Object.getPrototypeOf(LoggerModule.default).constructor;
       const logger = new LoggerClass({ environment: 'test' });
 
-      const errSpy = jest.spyOn(console, 'error').mockImplementation();
-      const logSpy = jest.spyOn(console, 'log').mockImplementation();
+      const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       logger.error('Error message');
       expect(errSpy).toHaveBeenCalled();

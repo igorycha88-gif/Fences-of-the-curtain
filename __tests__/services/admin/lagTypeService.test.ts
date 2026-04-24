@@ -220,9 +220,9 @@ describe('LagTypeService', () => {
 
       const result = await lagTypeService.create(data as any, mockUserId);
 
-      expect(result).toHaveProperty('warning');
-      expect(result.warning.type).toBe('duplicate_params');
-      expect(result).toHaveProperty('canProceed', true);
+      expect(result as any).toHaveProperty('warning');
+      expect((result as any).warning.type).toBe('duplicate_params');
+      expect(result as any).toHaveProperty('canProceed', true);
     });
 
     it('should throw when duplicate has same price', async () => {

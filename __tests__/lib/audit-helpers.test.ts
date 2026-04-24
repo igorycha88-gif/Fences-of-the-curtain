@@ -1,13 +1,13 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 jest.mock('@/lib/audit', () => ({
-  createAuditLogAsync: jest.fn().mockResolvedValue(undefined),
+  createAuditLogAsync: jest.fn<any>().mockResolvedValue(undefined),
 }));
 
 import { createAuditLogAsync } from '@/lib/audit';
 import { logPriceChange } from '@/lib/audit-helpers';
 
-const mockCreateAuditLog = createAuditLogAsync as jest.Mock;
+const mockCreateAuditLog = createAuditLogAsync as jest.Mock<any>;
 
 describe('audit-helpers', () => {
   beforeEach(() => {
