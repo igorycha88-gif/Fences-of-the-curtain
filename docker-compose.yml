@@ -35,6 +35,7 @@ services:
       - NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=${NEXT_PUBLIC_GOOGLE_ANALYTICS_ID:-}
       - NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${NEXT_PUBLIC_YANDEX_MAPS_API_KEY:-}
       - LOG_LEVEL=info
+      - METRICS_BEARER_TOKEN=${METRICS_BEARER_TOKEN:-}
     volumes:
       - /var/www/uploads:/app/public/uploads
       - app_logs:/var/log/app
