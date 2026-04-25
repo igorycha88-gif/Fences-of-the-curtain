@@ -10,12 +10,14 @@ export async function GET(req: NextRequest) {
       const authHeader = req.headers.get('authorization');
       const metricsToken = process.env.METRICS_BEARER_TOKEN;
 
-      if (!metricsToken) {
-        return new NextResponse('Not Found', { status: 404 });
-      }
+      if (metricsToken && authHeader !== `Bearer ${metricsToken}`) {
+        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+          || req.headers.get('x-real-ip')
+          || 'unknown';
 
-      if (authHeader !== `Bearer ${metricsToken}`) {
-        return new NextResponse('Unauthorized', { status: 401 });
+        if (clientIp !== '127.0.0.1' && clientIp !== '::1' && clientIp !== 'unknown') {
+          return new NextResponse('Unauthorized', { status: 401 });
+        }
       }
     }
 
