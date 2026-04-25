@@ -1,17 +1,6 @@
-import { NextResponse } from 'next/server';
-import { timingSafeEqual } from 'crypto';
 import { redis } from '@/lib/redis';
 import { sendTelegramMessage } from '@/services/telegram/bot';
 import { getMoscowDate } from '@/lib/timezone';
-
-function safeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
-  } catch {
-    return false;
-  }
-}
 
 const KEY_EVENTS = [
   { key: 'calculator_calculate', emoji: '🧮', label: 'Расчёты калькулятора' },
@@ -30,12 +19,7 @@ function formatDuration(seconds: number): string {
   return `${min}м ${sec}с`;
 }
 
-export async function POST(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (!process.env.CRON_SECRET || !authHeader || !safeCompare(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function sendDailySummary(): Promise<boolean> {
   try {
     const today = getMoscowDate();
     const dailyKey = `analytics:daily:${today}`;
@@ -65,15 +49,59 @@ ${keyEventsLines}
 ⏱ Средняя сессия: ${avgDuration > 0 ? formatDuration(avgDuration) : '—'}
 📈 Конверсия (формы/просмотры): ${funnelRate > 0 ? (funnelRate * 100).toFixed(1) + '%' : '—'}`;
 
-    const sent = await sendTelegramMessage(message);
-
-    if (!sent) {
-      return NextResponse.json({ error: 'Failed to send Telegram message' }, { status: 500 });
-    }
-
-    return NextResponse.json({ ok: true, date: today, messageSent: true });
+    return await sendTelegramMessage(message);
   } catch (error) {
-    console.error('Daily summary cron error:', error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    console.error('[Cron] Daily summary error:', error);
+    return false;
   }
 }
+
+let schedulerInterval: ReturnType<typeof setInterval> | null = null;
+let lastSentDate: string | null = null;
+
+function checkAndSend(): void {
+  const now = new Date();
+  const moscowParts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Moscow',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(now);
+
+  const hour = parseInt(moscowParts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minute = parseInt(moscowParts.find(p => p.type === 'minute')?.value || '0', 10);
+  const today = getMoscowDate();
+
+  if (hour === 20 && minute === 0 && lastSentDate !== today) {
+    console.log('[Cron] Sending daily summary at 20:00 Moscow time...');
+    lastSentDate = today;
+    sendDailySummary().then(sent => {
+      if (sent) {
+        console.log('[Cron] Daily summary sent successfully');
+      } else {
+        console.error('[Cron] Daily summary failed to send');
+        lastSentDate = null;
+      }
+    }).catch(err => {
+      console.error('[Cron] Daily summary error:', err);
+      lastSentDate = null;
+    });
+  }
+}
+
+export function startScheduler(): void {
+  if (schedulerInterval) return;
+
+  console.log('[Cron] Starting daily summary scheduler (20:00 Europe/Moscow)');
+  schedulerInterval = setInterval(checkAndSend, 60_000);
+}
+
+export function stopScheduler(): void {
+  if (schedulerInterval) {
+    clearInterval(schedulerInterval);
+    schedulerInterval = null;
+    console.log('[Cron] Scheduler stopped');
+  }
+}
+
+export { sendDailySummary };

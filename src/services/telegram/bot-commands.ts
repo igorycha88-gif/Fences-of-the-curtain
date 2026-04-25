@@ -1,4 +1,5 @@
 import { redis } from '@/lib/redis';
+import { getMoscowDate } from '@/lib/timezone';
 
 const KEY_EVENTS = [
   { key: 'calculator_calculate', emoji: '🧮', label: 'Расчёты калькулятора' },
@@ -49,7 +50,7 @@ function formatDuration(seconds: number): string {
 }
 
 async function getTodayDailyData(): Promise<Record<string, string>> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getMoscowDate();
   const dailyKey = `analytics:daily:${today}`;
   return redis.hgetall(dailyKey);
 }

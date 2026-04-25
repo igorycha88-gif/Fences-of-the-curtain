@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
 import { requireAuth } from '@/lib/admin-auth';
 import { isNotifiableEvent, sendAnalyticsNotification } from '@/services/telegram/analytics-notifier';
+import { getMoscowDate } from '@/lib/timezone';
 
 const ANALYTICS_KEY_PREFIX = 'analytics:';
 const ANALYTICS_TTL = 86400 * 30;
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     const pipeline = redis.pipeline();
 
-    const dailyKey = `${ANALYTICS_KEY_PREFIX}daily:${new Date().toISOString().split('T')[0]}`;
+    const dailyKey = `${ANALYTICS_KEY_PREFIX}daily:${getMoscowDate()}`;
     pipeline.hincrby(dailyKey, eventName, 1);
     pipeline.expire(dailyKey, ANALYTICS_TTL);
 
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
       }).catch(err => logMetricError('funnel_completion', err));
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getMoscowDate();
     const uniquePipeline = redis.pipeline();
     uniquePipeline.sadd(`analytics:metrics:unique_users_set:${today}`, sessionId);
     uniquePipeline.expire(`analytics:metrics:unique_users_set:${today}`, 86400);
@@ -166,7 +167,7 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < days; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' });
       const dailyKey = `${ANALYTICS_KEY_PREFIX}daily:${dateStr}`;
       const data = await redis.hgetall(dailyKey);
       if (Object.keys(data).length > 0) {
