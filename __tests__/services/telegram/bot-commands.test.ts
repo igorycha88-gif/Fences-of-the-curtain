@@ -10,6 +10,14 @@ jest.mock('@/lib/redis', () => ({
   },
 }));
 
+const mockGetMoscowDate = jest.fn() as any;
+mockGetMoscowDate.mockReturnValue('2026-04-25');
+
+jest.mock('@/lib/timezone', () => ({
+  getMoscowDate: mockGetMoscowDate,
+  getMoscowDateTime: jest.fn(() => '25.04.2026, 14:30:00'),
+}));
+
 const mockFetch = jest.fn() as any;
 global.fetch = mockFetch;
 

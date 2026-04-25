@@ -53,7 +53,7 @@ ${escapedEmail ? `📧 <b>Email:</b> ${escapedEmail}` : ''}
 
 🏠 <b>Тип:</b> ${order.serviceType === 'fence' ? 'Забор' : 'Навес'}
 💰 <b>Стоимость:</b> ${Number(order.calculatedCost || 0).toLocaleString('ru-RU')} ₽
-📅 <b>Дата:</b> ${new Date(order.createdAt).toLocaleDateString('ru-RU')}
+📅 <b>Дата:</b> ${new Date(order.createdAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}
 
 Обработайте заявку в админ-панели.
   `.trim();
@@ -66,6 +66,7 @@ export function sendContactForm(data: any) {
   const escapedPhone = (data.phone || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const escapedEmail = (data.email || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const escapedMessage = (data.message || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const timeStr = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
 
   const message = `
 📨 <b>Форма обратной связи</b>
@@ -76,6 +77,8 @@ ${escapedEmail ? `📧 <b>Email:</b> ${escapedEmail}` : ''}
 
 💬 <b>Сообщение:</b>
 ${escapedMessage}
+
+🕐 <b>Время:</b> ${timeStr}
   `.trim();
 
   return sendTelegramMessage(message);

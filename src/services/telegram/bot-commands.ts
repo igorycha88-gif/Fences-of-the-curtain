@@ -1,4 +1,5 @@
 import { redis } from '@/lib/redis';
+import { getMoscowDate } from '@/lib/timezone';
 import { getTelegramDispatcher } from '@/lib/telegram-proxy';
 
 const KEY_EVENTS = [
@@ -52,7 +53,7 @@ function formatDuration(seconds: number): string {
 }
 
 async function getTodayDailyData(): Promise<Record<string, string>> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getMoscowDate();
   const dailyKey = `analytics:daily:${today}`;
   return redis.hgetall(dailyKey);
 }

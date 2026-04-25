@@ -10,6 +10,11 @@ jest.mock('@/lib/redis', () => ({
   },
 }));
 
+jest.mock('@/lib/timezone', () => ({
+  getMoscowDate: jest.fn(() => '2026-04-25'),
+  getMoscowDateTime: jest.fn(() => '25.04.2026, 14:30:00'),
+}));
+
 const mockGetCityByIP = jest.fn() as any;
 mockGetCityByIP.mockResolvedValue('Москва, Московская обл.');
 
