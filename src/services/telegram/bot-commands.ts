@@ -1,5 +1,6 @@
 import { redis } from '@/lib/redis';
 import { getMoscowDate } from '@/lib/timezone';
+import { getTelegramDispatcher } from '@/lib/telegram-proxy';
 
 const KEY_EVENTS = [
   { key: 'calculator_calculate', emoji: '🧮', label: 'Расчёты калькулятора' },
@@ -18,6 +19,7 @@ async function sendBotMessage(chatId: number | string, text: string): Promise<vo
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
+    const dispatcher = getTelegramDispatcher();
 
     try {
       const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -29,6 +31,7 @@ async function sendBotMessage(chatId: number | string, text: string): Promise<vo
           parse_mode: 'HTML',
         }),
         signal: controller.signal,
+        ...(dispatcher ? { dispatcher } : {}),
       });
 
       if (!response.ok) {

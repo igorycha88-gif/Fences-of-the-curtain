@@ -121,10 +121,11 @@ describe('CanopyNomenclatureNotFoundModal', () => {
   });
 
   it('submits successfully and shows success state', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any) = (jest.fn() as any).mockResolvedValue({
       ok: true,
       json: async () => ({ orderId: 'ord-1' }),
-    }) as any;
+    });
 
     render(<CanopyNomenclatureNotFoundModal {...defaultProps} />);
 
@@ -142,10 +143,11 @@ describe('CanopyNomenclatureNotFoundModal', () => {
   });
 
   it('sends isIndividualRequest and canopyParameters in request body', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any) = (jest.fn() as any).mockResolvedValue({
       ok: true,
       json: async () => ({ orderId: 'ord-1' }),
-    }) as any;
+    });
 
     render(<CanopyNomenclatureNotFoundModal {...defaultProps} />);
 
@@ -157,13 +159,15 @@ describe('CanopyNomenclatureNotFoundModal', () => {
       expect(global.fetch).toHaveBeenCalledWith('/api/orders', expect.objectContaining({ method: 'POST' }));
     });
 
-    const callBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callBody = JSON.parse((global.fetch as any).mock.calls[0][1].body as string);
     expect(callBody.isIndividualRequest).toBe(true);
     expect(callBody.canopyParameters.canopyType).toBe('attached');
   });
 
   it('shows error on fetch failure', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any) = (jest.fn() as any).mockRejectedValue(new Error('Network error'));
 
     render(<CanopyNomenclatureNotFoundModal {...defaultProps} />);
 

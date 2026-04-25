@@ -11,14 +11,14 @@ jest.mock('@/lib/prisma', () => ({
 
 jest.mock('@/lib/cache', () => ({
   cache: {
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn().mockResolvedValue(undefined),
-    del: jest.fn().mockResolvedValue(undefined),
-    delPattern: jest.fn().mockResolvedValue(undefined),
-    getOrSet: jest.fn().mockImplementation(async (_key: string, factory: () => Promise<any>) => {
+    get: jest.fn<any>().mockResolvedValue(null),
+    set: jest.fn<any>().mockResolvedValue(undefined),
+    del: jest.fn<any>().mockResolvedValue(undefined),
+    delPattern: jest.fn<any>().mockResolvedValue(undefined),
+    getOrSet: jest.fn<any>().mockImplementation(async (_key: string, factory: () => Promise<any>) => {
       return await factory();
     }),
-    healthCheck: jest.fn().mockResolvedValue({ redis: false, memory: true }),
+    healthCheck: jest.fn<any>().mockResolvedValue({ redis: false, memory: true }),
   },
 }));
 

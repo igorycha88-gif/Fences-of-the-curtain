@@ -1,3 +1,5 @@
+import { getTelegramDispatcher } from '@/lib/telegram-proxy';
+
 export async function sendTelegramMessage(message: string): Promise<boolean> {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -7,6 +9,8 @@ export async function sendTelegramMessage(message: string): Promise<boolean> {
       console.warn('Telegram credentials not configured');
       return false;
     }
+
+    const dispatcher = getTelegramDispatcher();
 
     const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -18,6 +22,7 @@ export async function sendTelegramMessage(message: string): Promise<boolean> {
         text: message,
         parse_mode: 'HTML',
       }),
+      ...(dispatcher ? { dispatcher } : {}),
     });
 
     if (response.ok) {

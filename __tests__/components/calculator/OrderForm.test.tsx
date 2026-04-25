@@ -132,7 +132,7 @@ describe('OrderForm (single mode)', () => {
   });
 
   it('submits form successfully and shows success state', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({
       ok: true,
       json: async () => ({ orderId: 'ord-1' }),
     }) as any;
@@ -153,7 +153,7 @@ describe('OrderForm (single mode)', () => {
   });
 
   it('shows error on API failure', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({
       ok: false,
       json: async () => ({ message: 'Сервер недоступен' }),
     }) as any;
@@ -170,7 +170,7 @@ describe('OrderForm (single mode)', () => {
   });
 
   it('shows session expired error', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({
       ok: false,
       json: async () => ({ error: 'SESSION_EXPIRED' }),
     }) as any;
@@ -187,7 +187,7 @@ describe('OrderForm (single mode)', () => {
   });
 
   it('shows rate limit error', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({
       ok: false,
       json: async () => ({ error: 'RATE_LIMIT_EXCEEDED' }),
     }) as any;
@@ -204,7 +204,7 @@ describe('OrderForm (single mode)', () => {
   });
 
   it('shows network error on fetch failure', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as any;
+    global.fetch = jest.fn<(...args: any[]) => any>().mockRejectedValue(new Error('Network error')) as any;
 
     render(<OrderForm {...singleProps} />);
 
@@ -245,7 +245,7 @@ describe('OrderForm (multi mode)', () => {
   });
 
   it('submits multi estimate with isMultiEstimate flag', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = jest.fn<(...args: any[]) => any>().mockResolvedValue({
       ok: true,
       json: async () => ({ orderId: 'ord-2' }),
     }) as any;
@@ -262,7 +262,7 @@ describe('OrderForm (multi mode)', () => {
       }));
     });
 
-    const callBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    const callBody = JSON.parse(((global.fetch as jest.Mock).mock.calls[0][1] as any).body as string);
     expect(callBody.isMultiEstimate).toBe(true);
     expect(callBody.multiEstimateId).toBe('multi-1');
   });

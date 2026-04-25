@@ -9,13 +9,20 @@ jest.mock('@/components/admin/Orders/StatusHistory', () => ({
   ),
 }));
 
-const defaultHistory = [
+const defaultHistory: Array<{
+  status: 'NEW' | 'ESTIMATE_APPROVAL' | 'MEASUREMENT' | 'PRODUCTION' | 'INSTALLATION' | 'COMPLETED' | 'CANCELLED';
+  statusLabel: string;
+  changedAt: string;
+  changedBy: string;
+  changedByName: string;
+  data: Record<string, unknown>;
+}> = [
   { status: 'NEW', statusLabel: 'Новая', changedAt: '2026-01-01T10:00:00Z', changedBy: 'user1', changedByName: 'Admin', data: {} },
   { status: 'ESTIMATE_APPROVAL', statusLabel: 'Согласование сметы', changedAt: '2026-01-02T10:00:00Z', changedBy: 'user1', changedByName: 'Admin', data: {} },
 ];
 
 const defaultProps = {
-  status: 'ESTIMATE_APPROVAL',
+  status: 'ESTIMATE_APPROVAL' as const,
   statusLabel: 'Согласование сметы',
   measurementAddress: 'ул. Ленина, д. 10' as string | null,
   measurementDate: '2026-01-15' as string | null,

@@ -17,8 +17,8 @@ import { getToken } from 'next-auth/jwt';
 import { hasPermission } from '@/lib/permissions/rbac';
 import { requireAuth, requirePermission, requireAdmin } from '@/lib/admin-auth';
 
-const mockGetToken = getToken as jest.Mock;
-const mockHasPermission = hasPermission as jest.Mock;
+const mockGetToken = getToken as jest.Mock<any>;
+const mockHasPermission = hasPermission as jest.Mock<any>;
 
 function createMockRequest() {
   return new NextRequest(new URL('http://localhost/api/test'));

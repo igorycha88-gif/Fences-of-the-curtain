@@ -20,7 +20,7 @@ jest.mock('@/lib/prisma', () => ({
 }));
 
 jest.mock('@/lib/password', () => ({
-  hash: jest.fn().mockResolvedValue('hashed_password_123'),
+  hash: jest.fn<any>().mockResolvedValue('hashed_password_123'),
 }));
 
 describe('UsersService', () => {
@@ -218,7 +218,7 @@ describe('UsersService', () => {
     it('should return notification settings', async () => {
       const { prisma } = require('@/lib/prisma');
       const mockSettings = { userId: 'u-1', emailNotifications: true };
-      (prisma.userNotificationSettings.findUnique as jest.Mock).mockResolvedValue(mockSettings);
+      (prisma.userNotificationSettings.findUnique as jest.Mock<any>).mockResolvedValue(mockSettings);
 
       const result = await usersService.getUserNotificationSettings('u-1');
 
@@ -231,8 +231,8 @@ describe('UsersService', () => {
       const { prisma } = require('@/lib/prisma');
       const existing = { userId: 'u-1', emailNotifications: true };
       const updated = { userId: 'u-1', emailNotifications: false };
-      (prisma.userNotificationSettings.findUnique as jest.Mock).mockResolvedValue(existing);
-      (prisma.userNotificationSettings.update as jest.Mock).mockResolvedValue(updated);
+      (prisma.userNotificationSettings.findUnique as jest.Mock<any>).mockResolvedValue(existing);
+      (prisma.userNotificationSettings.update as jest.Mock<any>).mockResolvedValue(updated);
 
       const result = await usersService.updateUserNotificationSettings('u-1', { emailNotifications: false });
 
@@ -246,8 +246,8 @@ describe('UsersService', () => {
     it('should create settings when none exist', async () => {
       const { prisma } = require('@/lib/prisma');
       const created = { userId: 'u-1', emailNotifications: true };
-      (prisma.userNotificationSettings.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.userNotificationSettings.create as jest.Mock).mockResolvedValue(created);
+      (prisma.userNotificationSettings.findUnique as jest.Mock<any>).mockResolvedValue(null);
+      (prisma.userNotificationSettings.create as jest.Mock<any>).mockResolvedValue(created);
 
       const result = await usersService.updateUserNotificationSettings('u-1', { emailNotifications: true });
 

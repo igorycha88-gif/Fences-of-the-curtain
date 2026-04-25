@@ -37,7 +37,7 @@ describe('useScrollReveal', () => {
       disconnect: jest.fn(),
     };
 
-    (global as any).IntersectionObserver = jest.fn((cb) => {
+    (global as any).IntersectionObserver = jest.fn((cb: IntersectionObserverCallback) => {
       observerCallback = cb;
       return observerMock;
     }) as any;

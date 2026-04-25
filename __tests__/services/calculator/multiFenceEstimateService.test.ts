@@ -21,18 +21,18 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
-const mockCalculateFenceEstimate = jest.fn();
+const mockCalculateFenceEstimate = jest.fn<(...args: any[]) => any>();
 jest.mock('@/services/calculator/fenceEstimateService', () => ({
   calculateFenceEstimate: (...args: any[]) => mockCalculateFenceEstimate(...args),
 }));
 
 jest.mock('@/services/admin/ipLookupService', () => ({
-  getCityByIP: jest.fn().mockResolvedValue(null),
+  getCityByIP: jest.fn<(...args: any[]) => any>().mockResolvedValue(null),
 }));
 
 jest.mock('@/lib/audit', () => ({
-  createAuditLogAsync: jest.fn().mockResolvedValue(undefined),
-  getSystemUserId: jest.fn().mockResolvedValue('system-user-id'),
+  createAuditLogAsync: jest.fn<(...args: any[]) => any>().mockResolvedValue(undefined),
+  getSystemUserId: jest.fn<(...args: any[]) => any>().mockResolvedValue('system-user-id'),
 }));
 
 import { prisma } from '@/lib/prisma';
@@ -96,8 +96,8 @@ describe('multiFenceEstimateService', () => {
         createdAt: new Date(),
       };
 
-      const txMultiCreate = jest.fn().mockResolvedValue(mockMulti);
-      const txFenceUpdate = jest.fn().mockResolvedValue({});
+      const txMultiCreate = jest.fn<(...args: any[]) => any>().mockResolvedValue(mockMulti);
+      const txFenceUpdate = jest.fn<(...args: any[]) => any>().mockResolvedValue({});
       mockPrisma.$transaction.mockImplementation(async (fn: any) =>
         fn({ multiFenceEstimate: { create: txMultiCreate }, fenceEstimate: { update: txFenceUpdate } })
       );
@@ -129,8 +129,8 @@ describe('multiFenceEstimateService', () => {
         createdAt: new Date(),
       };
 
-      const txMultiCreate = jest.fn().mockResolvedValue(mockMulti);
-      const txFenceUpdate = jest.fn().mockResolvedValue({});
+      const txMultiCreate = jest.fn<(...args: any[]) => any>().mockResolvedValue(mockMulti);
+      const txFenceUpdate = jest.fn<(...args: any[]) => any>().mockResolvedValue({});
       mockPrisma.$transaction.mockImplementation(async (fn: any) =>
         fn({ multiFenceEstimate: { create: txMultiCreate }, fenceEstimate: { update: txFenceUpdate } })
       );
@@ -320,8 +320,8 @@ describe('multiFenceEstimateService', () => {
         createdAt: new Date(),
       };
 
-      const txMultiCreate = jest.fn().mockResolvedValue(mockMulti);
-      const txFenceUpdate = jest.fn().mockResolvedValue({});
+      const txMultiCreate = jest.fn<(...args: any[]) => any>().mockResolvedValue(mockMulti);
+      const txFenceUpdate = jest.fn<(...args: any[]) => any>().mockResolvedValue({});
       mockPrisma.$transaction.mockImplementation(async (fn: any) =>
         fn({ multiFenceEstimate: { create: txMultiCreate }, fenceEstimate: { update: txFenceUpdate } })
       );
