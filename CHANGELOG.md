@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.1] - 2026-04-25
+
+### Исправлено
+- fix: timezone UTC+3 во всех Telegram-уведомлениях + встроенный cron статистики в 20:00 МСК (1bd3f30)
+- fix: allow Prometheus to scrape metrics from localhost without bearer token (e630fea)
+
+### Добавлено
+- feat: add VLESS proxy support for Telegram bot on production (bfb95c2)
+
 ## [1.8.0] - 2026-04-24
 
 ### Добавлено
