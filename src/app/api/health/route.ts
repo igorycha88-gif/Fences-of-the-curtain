@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import logger from '@/lib/logger';
+import { checkAndSend } from '@/services/cron';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -43,6 +44,8 @@ async function checkRedis(): Promise<{ ok: boolean; latencyMs?: number; error?: 
 }
 
 export async function GET() {
+  checkAndSend().catch(() => {});
+
   const checks = {
     database: await checkDatabase(),
     redis: await checkRedis(),
