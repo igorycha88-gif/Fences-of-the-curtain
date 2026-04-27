@@ -32,8 +32,7 @@ export default async function ServiceSlugLayout({
 
   const serviceJsonLd = generateServiceJsonLd(
     serviceName,
-    page?.seoDescription || '',
-    page?.priceRange || undefined
+    page?.seoDescription || ''
   );
 
   return (
