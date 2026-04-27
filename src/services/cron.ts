@@ -56,10 +56,11 @@ ${keyEventsLines}
   }
 }
 
-let schedulerInterval: ReturnType<typeof setInterval> | null = null;
-let lastSentDate: string | null = null;
+const LAST_SENT_KEY = 'cron:daily_summary:last_sent_date';
 
-function checkAndSend(): void {
+let schedulerInterval: ReturnType<typeof setInterval> | null = null;
+
+export async function checkAndSend(): Promise<void> {
   const now = new Date();
   const moscowParts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Moscow',
@@ -72,20 +73,25 @@ function checkAndSend(): void {
   const minute = parseInt(moscowParts.find(p => p.type === 'minute')?.value || '0', 10);
   const today = getMoscowDate();
 
-  if (hour === 20 && minute === 0 && lastSentDate !== today) {
-    console.log('[Cron] Sending daily summary at 20:00 Moscow time...');
-    lastSentDate = today;
-    sendDailySummary().then(sent => {
-      if (sent) {
-        console.log('[Cron] Daily summary sent successfully');
-      } else {
-        console.error('[Cron] Daily summary failed to send');
-        lastSentDate = null;
-      }
-    }).catch(err => {
-      console.error('[Cron] Daily summary error:', err);
-      lastSentDate = null;
-    });
+  if (hour !== 20 || minute !== 0) return;
+
+  const lastSentDate = await redis.get(LAST_SENT_KEY);
+  if (lastSentDate === today) return;
+
+  console.log('[Cron] Sending daily summary at 20:00 Moscow time...');
+  await redis.set(LAST_SENT_KEY, today, 'EX', 86400);
+
+  try {
+    const sent = await sendDailySummary();
+    if (sent) {
+      console.log('[Cron] Daily summary sent successfully');
+    } else {
+      console.error('[Cron] Daily summary failed to send');
+      await redis.del(LAST_SENT_KEY);
+    }
+  } catch (err) {
+    console.error('[Cron] Daily summary error:', err);
+    await redis.del(LAST_SENT_KEY);
   }
 }
 

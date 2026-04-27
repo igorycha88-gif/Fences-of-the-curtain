@@ -72,15 +72,13 @@ const advantages = [
 export const dynamic = 'force-dynamic';
 
 export default async function ServicesPage() {
-  let servicePages: { slug: string; priceRange: string | null }[] = [];
+  let servicePages: { slug: string }[] = [];
   try {
     servicePages = await prisma.pageContent.findMany({
       where: { isActive: true, category: { not: null } },
-      select: { slug: true, priceRange: true },
+      select: { slug: true },
     });
   } catch {}
-
-  const getPrice = (slug: string) => servicePages.find((p) => p.slug === slug)?.priceRange;
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,11 +119,6 @@ export default async function ServicesPage() {
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
                       <Link href={`/services/${service.slug}`}>{service.title}</Link>
                     </h3>
-                    {getPrice(service.slug) && (
-                      <p className="text-primary font-semibold text-sm mb-3">
-                        {getPrice(service.slug)}
-                      </p>
-                    )}
                     <p className="text-muted-foreground mb-4">{service.description}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {service.features.map((feature, i) => (
@@ -136,18 +129,18 @@ export default async function ServicesPage() {
                     </div>
                     <div className="pt-4 border-t border-border/50 flex gap-3">
                       <Link
+                        href="/calculator/fence"
+                        className="btn-primary text-sm px-4 py-2 inline-flex items-center gap-2"
+                      >
+                        <Calculator className="w-4 h-4" />
+                        Рассчитать стоимость
+                      </Link>
+                      <Link
                         href={`/services/${service.slug}`}
-                        className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"
+                        className="text-sm px-4 py-2 inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                       >
                         Подробнее
                         <ArrowRight className="w-4 h-4" />
-                      </Link>
-                      <Link
-                        href="/calculator/fence"
-                        className="text-sm px-4 py-2 inline-flex items-center gap-2 text-primary hover:underline"
-                      >
-                        <Calculator className="w-4 h-4" />
-                        Рассчитать
                       </Link>
                     </div>
                   </div>
@@ -174,11 +167,6 @@ export default async function ServicesPage() {
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
                       <Link href={`/services/${service.slug}`}>{service.title}</Link>
                     </h3>
-                    {getPrice(service.slug) && (
-                      <p className="text-primary font-semibold text-sm mb-3">
-                        {getPrice(service.slug)}
-                      </p>
-                    )}
                     <p className="text-muted-foreground mb-4">{service.description}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {service.features.map((feature, i) => (
@@ -189,18 +177,18 @@ export default async function ServicesPage() {
                     </div>
                     <div className="pt-4 border-t border-border/50 flex gap-3">
                       <Link
+                        href="/calculator/canopy"
+                        className="btn-primary text-sm px-4 py-2 inline-flex items-center gap-2"
+                      >
+                        <Calculator className="w-4 h-4" />
+                        Рассчитать стоимость
+                      </Link>
+                      <Link
                         href={`/services/${service.slug}`}
-                        className="btn-secondary text-sm px-4 py-2 inline-flex items-center gap-2"
+                        className="text-sm px-4 py-2 inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                       >
                         Подробнее
                         <ArrowRight className="w-4 h-4" />
-                      </Link>
-                      <Link
-                        href="/calculator/canopy"
-                        className="text-sm px-4 py-2 inline-flex items-center gap-2 text-primary hover:underline"
-                      >
-                        <Calculator className="w-4 h-4" />
-                        Рассчитать
                       </Link>
                     </div>
                   </div>
