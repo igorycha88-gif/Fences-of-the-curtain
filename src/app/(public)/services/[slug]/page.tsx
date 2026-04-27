@@ -65,8 +65,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
   const serviceJsonLd = generateServiceJsonLd(
     page.title,
-    page.seoDescription || page.title,
-    page.priceRange || undefined
+    page.seoDescription || page.title
   );
 
   const otherServices = await prisma.pageContent.findMany({
@@ -75,7 +74,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
       category: { not: null },
       slug: { not: slug },
     },
-    select: { slug: true, title: true, priceRange: true, category: true },
+    select: { slug: true, title: true, category: true },
     take: 4,
   });
 
@@ -108,11 +107,14 @@ export default async function ServicePage({ params }: ServicePageProps) {
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
                 {page.title}
               </h1>
-              {page.priceRange && (
-                <p className="text-2xl text-primary font-semibold mb-4">
-                  {page.priceRange}
-                </p>
-              )}
+              <Link
+                href={calculatorLink}
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors mb-6"
+              >
+                <Calculator className="w-5 h-5" />
+                Рассчитать стоимость
+                <ArrowRight className="w-5 h-5" />
+              </Link>
               {page.seoDescription && (
                 <p className="text-lg text-muted-foreground mb-8">
                   {page.seoDescription}
@@ -168,9 +170,6 @@ export default async function ServicePage({ params }: ServicePageProps) {
                       <h3 className="font-semibold group-hover:text-primary transition-colors">
                         {s.title}
                       </h3>
-                      {s.priceRange && (
-                        <p className="text-sm text-muted-foreground mt-1">{s.priceRange}</p>
-                      )}
                     </div>
                     <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </Link>
