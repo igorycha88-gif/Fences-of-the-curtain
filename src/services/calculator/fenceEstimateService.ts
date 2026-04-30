@@ -323,24 +323,27 @@ export async function calculateFenceEstimateCore(
     ? null
     : await calculateLags(correctedLength, lagRows!);
 
+  const baseHardwareParams = {
+    fenceLengthM: correctedLength,
+    fenceHeightM: height,
+    postsCount: postsResult.quantity,
+    lagsCount: lagsResult?.quantity ?? 0,
+    ...(selectedGate ? { gateId: selectedGate.id, gateCount: 1 } : {}),
+    ...(selectedWicket ? { wicketId: selectedWicket.id, wicketCount: 1 } : {}),
+  };
+
   let mountingHardwareResult: MountingHardwareCalculationResult[];
 
   if (panel3dResult) {
     mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: 0,
+      ...baseHardwareParams,
       postTypeId: postsResult.nomenclatureId,
       panel3dId: panel3dResult.nomenclatureId,
       panel3dCount: panel3dResult.quantity,
     });
   } else if (picketResult) {
     mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: lagsResult!.quantity,
+      ...baseHardwareParams,
       postTypeId: postsResult.nomenclatureId,
       lagTypeId: lagsResult!.nomenclatureId,
       picketId: picketResult.nomenclatureId,
@@ -348,10 +351,7 @@ export async function calculateFenceEstimateCore(
     });
   } else if (meshResult) {
     mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: lagsResult!.quantity,
+      ...baseHardwareParams,
       postTypeId: postsResult.nomenclatureId,
       lagTypeId: lagsResult!.nomenclatureId,
       meshId: meshResult.nomenclatureId,
@@ -359,39 +359,17 @@ export async function calculateFenceEstimateCore(
     });
   } else if (profnastilResult) {
     mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: lagsResult!.quantity,
+      ...baseHardwareParams,
       profnastilCount: profnastilResult.quantity,
       postTypeId: postsResult.nomenclatureId,
       lagTypeId: lagsResult!.nomenclatureId,
       profnastilTypeId: profnastilResult.nomenclatureId,
     });
-  } else if (selectedGate) {
-    mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: lagsResult!.quantity,
-      gateId: selectedGate.id,
-      gateCount: 1,
-    });
-  } else if (selectedWicket) {
-    mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: lagsResult!.quantity,
-      wicketId: selectedWicket.id,
-      wicketCount: 1,
-    });
   } else {
     mountingHardwareResult = await calculateMountingHardware({
-      fenceLengthM: correctedLength,
-      fenceHeightM: height,
-      postsCount: postsResult.quantity,
-      lagsCount: lagsResult!.quantity,
+      ...baseHardwareParams,
+      postTypeId: postsResult.nomenclatureId,
+      ...(lagsResult ? { lagTypeId: lagsResult.nomenclatureId } : {}),
     });
   }
 
