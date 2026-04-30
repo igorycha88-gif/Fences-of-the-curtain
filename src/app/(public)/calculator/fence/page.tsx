@@ -300,9 +300,10 @@ export default function FenceCalculatorPage() {
     trackEvent(EVENT_NAMES.CALCULATOR_FENCE_TYPE_SELECT, { fenceType: fenceType.name });
     const isPicketType = fenceType.name === 'Евроштакетник';
     const isMeshType = fenceType.name === 'Сетка-рабица';
+    const clampedLagRows = fenceType.defaultLagRows === 2 || fenceType.defaultLagRows === 3 ? fenceType.defaultLagRows : 2;
     updateCalcFormData(calcId, {
       fenceTypeId: fenceType.id,
-      lagRows: String(fenceType.defaultLagRows) as '2' | '3',
+      lagRows: String(clampedLagRows) as '2' | '3',
       difficultyCoef: fenceType.difficultyCoef,
       postSpacing: fenceType.postSpacing,
       picketProfileType: isPicketType ? (picketProfileTypes[0]?.id || '') : '',
@@ -323,7 +324,7 @@ export default function FenceCalculatorPage() {
         formData: {
           ...defaultFormData(),
           fenceTypeId: firstType?.id || '',
-          lagRows: String(firstType?.defaultLagRows || 2) as '2' | '3',
+          lagRows: String(firstType?.defaultLagRows === 2 || firstType?.defaultLagRows === 3 ? firstType.defaultLagRows : 2) as '2' | '3',
           difficultyCoef: firstType?.difficultyCoef,
           postSpacing: firstType?.postSpacing,
         },
