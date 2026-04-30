@@ -297,8 +297,11 @@ export async function calculateFenceEstimateCore(
         message: 'Для расчёта Сетки-рабицы необходимо указать размер ячейки, толщину прутка и тип покрытия',
       } as CalculationError;
     }
+    const meshLength = length
+      + (selectedGate ? selectedGate.gateLength / 1000 : 0)
+      + (selectedWicket ? selectedWicket.wicketLength / 1000 : 0);
     meshResult = await calculateMesh(
-      correctedLength,
+      meshLength,
       height,
       input.meshCellSize,
       input.meshWireThickness,
