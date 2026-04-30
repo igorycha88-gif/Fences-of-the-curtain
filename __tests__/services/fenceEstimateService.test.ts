@@ -526,7 +526,7 @@ describe('fenceEstimateService', () => {
     expect(result).toBeNull();
   });
 
-  it('should calculate profnastil on corrected length when gate is present', async () => {
+  it('should calculate profnastil on full length when gate is present', async () => {
     const fenceLength = 10;
     const gateWidth = 4;
 
@@ -548,10 +548,9 @@ describe('fenceEstimateService', () => {
     expect(profnastilItem).toBeDefined();
 
     const usefulWidth = 1150;
-    const correctedLength = fenceLength - gateWidth;
-    const correctedLengthSheets = Math.ceil(correctedLength * 1000 / usefulWidth) + 2;
+    const fullLengthSheets = Math.ceil(fenceLength * 1000 / usefulWidth) + 2;
 
-    expect(profnastilItem!.quantity).toBe(correctedLengthSheets);
+    expect(profnastilItem!.quantity).toBe(fullLengthSheets);
   });
 
   it('should calculate posts and lags on corrected length when gate is present', async () => {

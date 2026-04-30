@@ -167,7 +167,7 @@ describe('panel3DCalculator - Integration Tests', () => {
 
       const result = await calculatePanel3D(50, 2.0);
 
-      expect(result.quantity).toBe(20);
+      expect(result.quantity).toBe(22);
       expect(result.panelWidth).toBe(2500);
     });
   });
@@ -181,7 +181,7 @@ describe('panel3DCalculator - Integration Tests', () => {
 
       const result = await calculatePanel3D(45.5, 2.0);
 
-      expect(result.quantity).toBe(19);
+      expect(result.quantity).toBe(21);
     });
   });
 
@@ -196,7 +196,7 @@ describe('panel3DCalculator - Integration Tests', () => {
 
       expect(result.panelHeight).toBe(2000);
       expect(result.panelWidth).toBe(2500);
-      expect(result.quantity).toBe(20);
+      expect(result.quantity).toBe(22);
       expect(result.totalPrice).toBe(result.quantity * result.pricePerUnit);
     });
   });

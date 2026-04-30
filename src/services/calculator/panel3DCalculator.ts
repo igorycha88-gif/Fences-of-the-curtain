@@ -132,7 +132,7 @@ export async function calculatePanel3D(
 
   const usefulWidth = selectedPanel.panelWidth;
 
-  const panelsCount = roundUp(fenceLengthMm / usefulWidth);
+  const panelsCount = roundUp(fenceLengthMm / usefulWidth) + 2;
   const pricePerUnit = selectedPanel.retailPricePerUnit;
   const totalPrice = panelsCount * pricePerUnit;
 

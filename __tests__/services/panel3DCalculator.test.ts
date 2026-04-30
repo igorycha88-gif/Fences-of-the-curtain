@@ -48,8 +48,8 @@ describe('panel3DCalculator', () => {
 
       const result = await calculatePanel3D(50, 2.0);
 
-      expect(result.quantity).toBe(20);
-      expect(result.totalPrice).toBe(100000);
+      expect(result.quantity).toBe(22);
+      expect(result.totalPrice).toBe(110000);
       expect(result.category).toBe('panel3d');
     });
 
@@ -69,7 +69,7 @@ describe('panel3DCalculator', () => {
 
       const result = await calculatePanel3D(45.5, 2.0);
 
-      expect(result.quantity).toBe(19); 
+      expect(result.quantity).toBe(21); 
     });
 
     it('TC-CAL-003: should calculate total price correctly', async () => {
@@ -88,7 +88,7 @@ describe('panel3DCalculator', () => {
 
       const result = await calculatePanel3D(50, 2.0);
 
-      expect(result.totalPrice).toBe(100000);
+      expect(result.totalPrice).toBe(110000);
       expect(result.pricePerUnit).toBe(5000);
     });
 
@@ -128,7 +128,7 @@ describe('panel3DCalculator', () => {
 
       const result = await calculatePanel3D(100, 2.0);
 
-      expect(result.quantity).toBe(40);
+      expect(result.quantity).toBe(42);
     });
 
     it('should select panel with smallest height >= required height', async () => {

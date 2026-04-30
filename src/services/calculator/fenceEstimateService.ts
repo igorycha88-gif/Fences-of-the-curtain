@@ -270,10 +270,12 @@ export async function calculateFenceEstimateCore(
   let picketResult: PicketCalculationResult | undefined;
   let meshResult: MeshCalculationResult | undefined;
 
+  const materialLength = length;
+
   if (fenceType.name === 'Профнастил') {
-    profnastilResult = await calculateProfnastil(correctedLength, height, coating);
+    profnastilResult = await calculateProfnastil(materialLength, height, coating);
   } else if (fenceType.name === '3D-панели') {
-    panel3dResult = await calculatePanel3D(correctedLength, height);
+    panel3dResult = await calculatePanel3D(materialLength, height);
   } else if (fenceType.name === 'Евроштакетник') {
     if (!input.picketProfileType || !input.picketStep || !input.picketMountingType) {
       throw {
@@ -282,7 +284,7 @@ export async function calculateFenceEstimateCore(
       } as CalculationError;
     }
     picketResult = await calculatePicket({
-      fenceLengthM: correctedLength,
+      fenceLengthM: materialLength,
       fenceHeightM: height,
       profileTypeName: input.picketProfileType,
       stepCm: input.picketStep,
