@@ -3,7 +3,7 @@ import { WorkCategory, WorkUnit } from '../enums/work';
 
 const relationSchema = z.object({
   fenceType: z.string().optional(),
-  referenceType: z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D', 'MESH']).optional(),
+  referenceType: z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D', 'MESH', 'AUTOMATION']).optional(),
   referenceId: z.string().optional(),
 }).refine(
   (data) => data.fenceType || (data.referenceType && data.referenceId),
@@ -46,7 +46,7 @@ export const workQuerySchema = z.object({
   active: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   useInCalculator: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   fenceType: z.string().optional(),
-  referenceType: z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D', 'MESH']).optional(),
+  referenceType: z.enum(['LAG', 'POST', 'PROFNASTIL', 'PICKET', 'GATE', 'WICKET', 'PANEL_3D', 'MESH', 'AUTOMATION']).optional(),
   referenceId: z.string().optional(),
 });
 

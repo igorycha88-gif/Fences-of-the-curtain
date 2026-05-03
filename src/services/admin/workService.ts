@@ -203,6 +203,7 @@ export class WorkService {
       'GATE': 'Ворота',
       'WICKET': 'Калитки',
       'MESH': 'Сетка-рабица',
+      'AUTOMATION': 'Автоматика',
     };
     return typeMap[referenceType] || referenceType;
   }
@@ -384,7 +385,7 @@ export class WorkService {
   }
 
   async getReferenceOptions() {
-    const [lagItems, postItems, profnastilItems, picketItems, gateItems, wicketItems, panel3dItems, meshItems] = await Promise.all([
+    const [lagItems, postItems, profnastilItems, picketItems, gateItems, wicketItems, panel3dItems, meshItems, automationItems] = await Promise.all([
       referenceRegistry.getItems('LAG'),
       referenceRegistry.getItems('POST'),
       referenceRegistry.getItems('PROFNASTIL'),
@@ -393,6 +394,7 @@ export class WorkService {
       referenceRegistry.getItems('WICKET'),
       referenceRegistry.getItems('PANEL_3D'),
       referenceRegistry.getItems('MESH'),
+      referenceRegistry.getItems('AUTOMATION'),
     ]);
 
     return {
@@ -436,6 +438,11 @@ export class WorkService {
           type: 'MESH',
           name: 'Сетка-рабица',
           items: meshItems,
+        },
+        {
+          type: 'AUTOMATION',
+          name: 'Автоматика',
+          items: automationItems,
         },
       ],
     };
