@@ -142,6 +142,15 @@ export async function getPurchasePrice(
     case 'installation_works': {
       return null;
     }
+    case 'automation':
+    case 'Автоматика': {
+      const item = await prisma.automationType.findUnique({
+        where: { id: nomenclatureId },
+        select: { purchasePrice: true },
+      });
+      console.log('[marginCalculator] automation lookup result:', item);
+      return item?.purchasePrice ?? null;
+    }
     default:
       console.log('[marginCalculator] Unknown category:', category);
       return null;

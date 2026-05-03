@@ -10,6 +10,7 @@ export const CACHE_KEYS = {
   PICKET_COATINGS_ACTIVE: 'calculator:picket:coatings:active',
   GATES_ACTIVE: 'calculator:gates:active',
   WICKETS_ACTIVE: 'calculator:wickets:active',
+  AUTOMATION_ACTIVE: 'calculator:automation:active',
   WORKS_BY_FENCE_TYPE: (fenceType: string) => `calculator:works:fence:${fenceType}`,
   WORKS_BY_REFERENCE: (refType: string, refId: string) => `calculator:works:ref:${refType}:${refId}`,
   MOUNTING_HARDWARE: (postTypeId: string, lagTypeId: string, profnastilTypeId: string) =>

@@ -53,6 +53,8 @@ interface FenceCalculatorForm {
   meshCoating: 'GALVANIZED' | 'POLYMER';
   meshCellSize: number;
   meshWireThickness: number;
+  hasAutomation: boolean;
+  automationId: string;
 }
 
 interface EstimateItem {
@@ -88,6 +90,10 @@ interface CalculatorResult {
     wicket?: {
       width: number;
       height: number;
+      selectedName: string;
+    };
+    automation?: {
+      id: string;
       selectedName: string;
     };
   };
@@ -130,6 +136,8 @@ const defaultFormData = (): FenceCalculatorForm => ({
   meshCoating: 'GALVANIZED',
   meshCellSize: 50,
   meshWireThickness: 2.0,
+  hasAutomation: false,
+  automationId: '',
 });
 
 export default function FenceCalculatorPage() {
@@ -145,6 +153,8 @@ export default function FenceCalculatorPage() {
     cellSizes: number[];
     wireThicknesses: number[];
   }>({ coatings: {}, cellSizes: [], wireThicknesses: [] });
+
+  const [automationTypes, setAutomationTypes] = useState<Array<{ id: string; name: string; retailPrice: number }>>([]);
 
   const lengthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const heightInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -233,6 +243,13 @@ export default function FenceCalculatorPage() {
         if (data.coatings || data.cellSizes) setMeshOptions(data);
       })
       .catch(err => console.error('Error loading mesh options:', err));
+
+    fetch('/api/calculator/automation-types')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setAutomationTypes(data);
+      })
+      .catch(err => console.error('Error loading automation types:', err));
   }, []);
 
   useEffect(() => {
@@ -448,6 +465,11 @@ export default function FenceCalculatorPage() {
         requestBody.wicketWidth = formData.wicketWidth;
       }
 
+      if (formData.hasAutomation && formData.automationId && formData.gateType === 'SLIDING') {
+        requestBody.hasAutomation = true;
+        requestBody.automationId = formData.automationId;
+      }
+
       const response = await fetch('/api/calculator/fence/estimate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -570,6 +592,11 @@ export default function FenceCalculatorPage() {
         if (calc.formData.hasWicket) {
           estimate.hasWicket = true;
           estimate.wicketWidth = calc.formData.wicketWidth;
+        }
+
+        if (calc.formData.hasAutomation && calc.formData.automationId && calc.formData.gateType === 'SLIDING') {
+          estimate.hasAutomation = true;
+          estimate.automationId = calc.formData.automationId;
         }
 
         return estimate;
@@ -921,7 +948,10 @@ export default function FenceCalculatorPage() {
                 <input
                   type="checkbox"
                   checked={formData.hasGate}
-                  onChange={(e) => updateCalcFormData(calc.id, { hasGate: e.target.checked })}
+                  onChange={(e) => updateCalcFormData(calc.id, { 
+                    hasGate: e.target.checked,
+                    ...(!e.target.checked ? { hasAutomation: false, automationId: '' } : {})
+                  })}
                   className="w-5 h-5 rounded text-primary focus:ring-primary accent-primary"
                 />
                 <span className="font-medium">Ворота</span>
@@ -950,7 +980,13 @@ export default function FenceCalculatorPage() {
                     <label className="block text-sm font-medium mb-2">Тип ворот</label>
                     <select
                       value={formData.gateType}
-                      onChange={(e) => updateCalcFormData(calc.id, { gateType: e.target.value as 'SWING' | 'SLIDING' })}
+                      onChange={(e) => {
+                        const newGateType = e.target.value as 'SWING' | 'SLIDING';
+                        updateCalcFormData(calc.id, { 
+                          gateType: newGateType,
+                          ...(newGateType !== 'SLIDING' ? { hasAutomation: false, automationId: '' } : {})
+                        });
+                      }}
                       className="select-modern"
                     >
                       <option value="SWING">Распашные</option>
@@ -970,6 +1006,38 @@ export default function FenceCalculatorPage() {
                     />
                   </div>
                 </div>
+
+                {formData.gateType === 'SLIDING' && automationTypes.length > 0 && (
+                  <div className="mt-4 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                    <label className="flex items-center gap-3 cursor-pointer mb-3">
+                      <input
+                        type="checkbox"
+                        checked={formData.hasAutomation}
+                        onChange={(e) => updateCalcFormData(calc.id, { hasAutomation: e.target.checked, automationId: '' })}
+                        className="w-5 h-5 rounded text-primary focus:ring-primary accent-primary"
+                      />
+                      <span className="font-medium">Добавить автоматику</span>
+                    </label>
+
+                    {formData.hasAutomation && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Тип автоматики</label>
+                        <select
+                          value={formData.automationId}
+                          onChange={(e) => updateCalcFormData(calc.id, { automationId: e.target.value })}
+                          className="select-modern"
+                        >
+                          <option value="">Выберите автоматику</option>
+                          {automationTypes.map((at) => (
+                            <option key={at.id} value={at.id}>
+                              {at.name} — {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(at.retailPrice)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

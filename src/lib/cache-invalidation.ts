@@ -26,6 +26,11 @@ export async function invalidateWicketTypesCache(): Promise<void> {
   console.log('[Cache] Invalidated WICKETS_ACTIVE');
 }
 
+export async function invalidateAutomationTypesCache(): Promise<void> {
+  await cache.del(CACHE_KEYS.AUTOMATION_ACTIVE);
+  console.log('[Cache] Invalidated AUTOMATION_ACTIVE');
+}
+
 export async function invalidateFenceTypesCache(): Promise<void> {
   await cache.del(CACHE_KEYS.FENCE_TYPES);
   console.log('[Cache] Invalidated FENCE_TYPES');
@@ -58,6 +63,7 @@ export async function invalidateAllCalculatorCache(): Promise<void> {
     invalidateProfnastilTypesCache(),
     invalidateGateTypesCache(),
     invalidateWicketTypesCache(),
+    invalidateAutomationTypesCache(),
     invalidateFenceTypesCache(),
     invalidateWorksCache(),
     invalidateMountingHardwareCache(),

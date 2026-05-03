@@ -614,6 +614,11 @@ model FenceEstimate {
   meshInstallationTotal    Float               @default(0)
   meshNomenclatureName     String?
   meshTotal                Float               @default(0)
+  hasAutomation              Boolean  @default(false)
+  automationNomenclatureId   String?
+  automationNomenclatureName String?
+  automationTotal            Float   @default(0)
+  automationInstallationTotal Float  @default(0)
   fenceType                FenceType           @relation(fields: [fenceTypeId], references: [id])
   multiEstimate            MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
   sourceEstimate           FenceEstimate?      @relation("AdminEstimateEdit", fields: [sourceEstimateId], references: [id])
@@ -924,8 +929,29 @@ model TrussCalculation {
   archProfile     TrussProfileType? @relation("CalcArch", fields: [archProfileId], references: [id])
   user            User?             @relation(fields: [createdBy], references: [id])
 
-  @@index([canopyType])
+   @@index([canopyType])
   @@index([createdBy])
   @@index([createdAt])
   @@index([isActive])
+}
+
+model AutomationType {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  retailPrice    Float
+  purchasePrice  Float?
+  image          String?
+  active         Boolean   @default(true)
+  validFrom      DateTime?
+  expirationDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  priority       Int       @default(0)
+
+  @@index([active])
+  @@index([validFrom])
+  @@index([expirationDate])
+  @@index([priority])
+  @@index([name])
 }

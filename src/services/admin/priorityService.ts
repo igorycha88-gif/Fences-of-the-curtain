@@ -10,7 +10,8 @@ type ModelName =
   | 'gateType' 
   | 'wicketType' 
   | 'fenceType'
-  | 'panel3D';
+  | 'panel3D'
+  | 'automationType';
 
 const modelMap: Record<ModelName, any> = {
   profnastilType: prisma.profnastilType,
@@ -21,6 +22,7 @@ const modelMap: Record<ModelName, any> = {
   wicketType: prisma.wicketType,
   fenceType: prisma.fenceType,
   panel3D: (prisma as any).panel3D,
+  automationType: prisma.automationType,
 };
 
 interface ReorderResult {

@@ -370,6 +370,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -395,6 +396,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -414,6 +416,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -433,6 +436,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -451,6 +455,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -470,6 +475,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     await expect(calculateFenceEstimate(input)).rejects.toEqual({
@@ -487,6 +493,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -511,6 +518,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const created = await calculateFenceEstimate(input);
@@ -538,6 +546,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: true,
       hasWicket: false,
+      hasAutomation: false,
       gateType: 'SWING' as const,
       gateWidth: gateWidth,
     };
@@ -566,6 +575,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: true,
       hasWicket: false,
+      hasAutomation: false,
       gateType: 'SWING' as const,
       gateWidth: gateWidth,
     };
@@ -593,6 +603,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: true,
+      hasAutomation: false,
       wicketWidth: 1.0,
     };
 
@@ -617,6 +628,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: true,
+      hasAutomation: false,
       wicketWidth: wicketWidth,
     };
 
@@ -648,6 +660,7 @@ describe('fenceEstimateService', () => {
       gateType: 'SWING' as const,
       gateWidth: gateWidth,
       hasWicket: true,
+      hasAutomation: false,
       wicketWidth: wicketWidth,
     };
 
@@ -678,6 +691,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: true,
+      hasAutomation: false,
       wicketWidth: 1.0,
     };
 
@@ -702,6 +716,7 @@ describe('fenceEstimateService', () => {
       coating: 'POLYMER_SINGLE' as const,
       hasGate: false,
       hasWicket: true,
+      hasAutomation: false,
       wicketWidth: 5.0,
     };
 
@@ -722,6 +737,7 @@ describe('fenceEstimateService', () => {
       gateType: 'SLIDING' as const,
       gateWidth: 4.0,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -743,6 +759,7 @@ describe('fenceEstimateService', () => {
       gateType: 'SLIDING' as const,
       gateWidth: 4.0,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -763,6 +780,7 @@ describe('fenceEstimateService', () => {
       gateType: 'SLIDING' as const,
       gateWidth: 4.0,
       hasWicket: false,
+      hasAutomation: false,
     };
 
     const result = await calculateFenceEstimate(input);
@@ -782,6 +800,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const result = await calculateFenceEstimate(input);
@@ -810,6 +829,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       await expect(calculateFenceEstimate(input)).rejects.toThrow(
@@ -828,6 +848,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const results = await Promise.all([
@@ -859,6 +880,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const startTime = Date.now();
@@ -891,6 +913,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const result = await calculateFenceEstimate(input);
@@ -912,6 +935,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const result = await calculateFenceEstimate(input);
@@ -931,6 +955,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const result = await calculateFenceEstimate(input);
@@ -950,6 +975,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const result = await calculateFenceEstimate(input);
@@ -998,6 +1024,7 @@ describe('fenceEstimateService', () => {
         coating: 'POLYMER_SINGLE' as const,
         hasGate: false,
         hasWicket: false,
+      hasAutomation: false,
       };
 
       const result = await calculateFenceEstimate(input);

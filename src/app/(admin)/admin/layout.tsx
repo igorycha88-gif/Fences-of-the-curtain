@@ -380,6 +380,18 @@ export default function AdminLayout({
                 </li>
                 <li>
                   <a 
+                    href="/admin/references/automation" 
+                    className={`block px-6 py-3 rounded-lg transition-colors ${
+                      isActive('/admin/references/automation')
+                        ? 'bg-primary text-white font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Автоматика
+                  </a>
+                </li>
+                <li>
+                  <a 
                     href="/admin/references/mounting-hardware" 
                     className={`block px-6 py-3 rounded-lg transition-colors ${
                       isActive('/admin/references/mounting-hardware')

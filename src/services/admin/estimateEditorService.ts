@@ -555,6 +555,8 @@ export class EstimateEditorService {
       picketMountingType: (newParams.picketMountingType ?? source.picketMountingType ?? undefined) as 'SINGLE' | 'CHESS' | undefined,
       picketProfileType: newParams.picketProfileType ?? source.picketProfileType ?? undefined,
       picketCoating: newParams.picketCoating ?? source.picketCoatingName ?? undefined,
+      hasAutomation: newParams.hasAutomation ?? false,
+      automationId: newParams.automationId ?? undefined,
     };
   }
 

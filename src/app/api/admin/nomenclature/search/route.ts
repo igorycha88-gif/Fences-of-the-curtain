@@ -21,6 +21,7 @@ const VALID_CATEGORIES = [
   'mesh',
   'gates',
   'wickets',
+  'automation',
   'mounting_hardware',
   'installation',
 ] as const;
@@ -147,6 +148,18 @@ async function searchInstallation(search: string): Promise<NomenclatureItem[]> {
   return items.map((i) => ({ id: i.id, name: i.name, retailPrice: i.price, unit: i.unit, category: 'installation' }));
 }
 
+async function searchAutomation(search: string): Promise<NomenclatureItem[]> {
+  const items = await prisma.automationType.findMany({
+    where: {
+      active: true,
+      ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
+    },
+    orderBy: { priority: 'desc' },
+    take: 50,
+  });
+  return items.map((i) => ({ id: i.id, name: i.name, retailPrice: i.retailPrice, unit: 'шт', category: 'automation' }));
+}
+
 const searchers: Record<Category, (search: string) => Promise<NomenclatureItem[]>> = {
   posts: searchPosts,
   lags: searchLags,
@@ -156,6 +169,7 @@ const searchers: Record<Category, (search: string) => Promise<NomenclatureItem[]
   mesh: searchMesh,
   gates: searchGates,
   wickets: searchWickets,
+  automation: searchAutomation,
   mounting_hardware: searchMountingHardware,
   installation: searchInstallation,
 };
@@ -169,6 +183,7 @@ const categoryLabels: Record<Category, string> = {
   mesh: 'Сетка-рабица',
   gates: 'Ворота',
   wickets: 'Калитки',
+  automation: 'Автоматика',
   mounting_hardware: 'Монтажная фурнитура',
   installation: 'Работы',
 };

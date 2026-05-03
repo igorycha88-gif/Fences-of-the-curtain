@@ -18,6 +18,8 @@ export const adminCalculatorInputSchema = z.object({
   meshCellSize: z.number().min(10).max(100).optional(),
   meshWireThickness: z.number().min(0.5).max(10).optional(),
   meshCoating: z.enum(['GALVANIZED', 'POLYMER']).optional(),
+  hasAutomation: z.boolean().default(false),
+  automationId: z.string().optional(),
 }).refine(
   (data) => !data.hasGate || (data.gateType && data.gateWidth),
   { message: "При выборе ворот необходимо указать тип и ширину" }

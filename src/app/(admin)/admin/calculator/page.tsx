@@ -36,6 +36,8 @@ interface FenceCalculatorForm {
   meshCoating: 'GALVANIZED' | 'POLYMER';
   meshCellSize: number;
   meshWireThickness: number;
+  hasAutomation: boolean;
+  automationId: string;
 }
 
 interface AdminEstimateResult {
@@ -78,6 +80,8 @@ const defaultFormData = (): FenceCalculatorForm => ({
   meshCoating: 'GALVANIZED',
   meshCellSize: 50,
   meshWireThickness: 2.0,
+  hasAutomation: false,
+  automationId: '',
 });
 
 const COATING_LABELS: Record<string, string> = {
@@ -95,6 +99,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   mesh: 'Сетка-рабица',
   gates: 'Ворота',
   wickets: 'Калитки',
+  automation: 'Автоматика',
   mounting_hardware: 'Монтажная фурнитура',
   installation: 'Работы',
 };
@@ -134,6 +139,7 @@ export default function AdminCalculatorPage() {
     cellSizes: number[];
     wireThicknesses: number[];
   }>({ coatings: {}, cellSizes: [], wireThicknesses: [] });
+  const [automationTypes, setAutomationTypes] = useState<Array<{ id: string; name: string; retailPrice: number }>>([]);
 
   const [calculations, setCalculations] = useState<Array<{
     id: string;
@@ -207,6 +213,11 @@ export default function AdminCalculatorPage() {
       .then(res => res.json())
       .then(data => { if (data.coatings || data.cellSizes) setMeshOptions(data); })
       .catch(() => {});
+
+    fetch('/api/calculator/automation-types')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setAutomationTypes(data); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -267,6 +278,10 @@ export default function AdminCalculatorPage() {
     if (formData.hasWicket) {
       body.hasWicket = true;
       body.wicketWidth = formData.wicketWidth;
+    }
+    if (formData.hasAutomation && formData.automationId && (formData.gateType === 'SLIDING')) {
+      body.hasAutomation = true;
+      body.automationId = formData.automationId;
     }
 
     return body;
@@ -820,7 +835,10 @@ export default function AdminCalculatorPage() {
             <input
               type="checkbox"
               checked={calc.formData.hasGate}
-              onChange={e => updateCalcFormData(calc.id, { hasGate: e.target.checked })}
+              onChange={e => updateCalcFormData(calc.id, { 
+                hasGate: e.target.checked,
+                ...(!e.target.checked ? { hasAutomation: false, automationId: '' } : {})
+              })}
               className="rounded border-gray-300"
             />
             Ворота
@@ -831,7 +849,10 @@ export default function AdminCalculatorPage() {
                 <label className="block text-xs text-gray-500 mb-1">Тип</label>
                 <select
                   value={calc.formData.gateType}
-                  onChange={e => updateCalcFormData(calc.id, { gateType: e.target.value as 'SWING' | 'SLIDING' })}
+                  onChange={e => updateCalcFormData(calc.id, { 
+                    gateType: e.target.value as 'SWING' | 'SLIDING',
+                    ...(e.target.value !== 'SLIDING' ? { hasAutomation: false, automationId: '' } : {})
+                  })}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="SWING">Распашные</option>
@@ -850,6 +871,34 @@ export default function AdminCalculatorPage() {
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+            </div>
+          )}
+
+          {calc.formData.hasGate && calc.formData.gateType === 'SLIDING' && automationTypes.length > 0 && (
+            <div className="pl-6 space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={calc.formData.hasAutomation}
+                  onChange={e => updateCalcFormData(calc.id, { hasAutomation: e.target.checked, automationId: '' })}
+                  className="rounded border-gray-300"
+                />
+                Автоматика
+              </label>
+              {calc.formData.hasAutomation && (
+                <select
+                  value={calc.formData.automationId}
+                  onChange={e => updateCalcFormData(calc.id, { automationId: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Выберите автоматику</option>
+                  {automationTypes.map(at => (
+                    <option key={at.id} value={at.id}>
+                      {at.name} — {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(at.retailPrice)}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
 

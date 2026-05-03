@@ -10,13 +10,24 @@ import { calculateMesh, MeshCalculationResult, MeshCoatingType } from './meshCal
 import { calculateMountingHardware, MountingHardwareCalculationResult } from './mountingHardwareCalculator';
 import { findGateByTypeAndLength, GateTypeValue } from './gateLookup';
 import { findWicketByHeightAndWidth } from './wicketLookup';
+import { findAutomationById } from './automationLookup';
 import { workService } from '@/services/admin/workService';
 import { fenceTypeCalculatorService } from '@/services/calculator/fenceTypeCalculatorService';
 import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { getFenceTypeCodeByName } from '@/lib/fenceTypeMap';
 
-type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | PicketCalculationResult | MeshCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult;
+type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | PicketCalculationResult | MeshCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult | AutomationCalculationResult;
+
+export interface AutomationCalculationResult {
+  category: 'automation';
+  nomenclatureId: string;
+  nomenclatureName: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalPrice: number;
+}
 
 export interface GateCalculationResult {
   category: 'gates';
@@ -73,6 +84,11 @@ export interface WicketInfo {
   selectedName: string;
 }
 
+export interface AutomationInfo {
+  id: string;
+  selectedName: string;
+}
+
 export interface FenceEstimateCoreResult {
   items: EstimateItem[];
   totals: {
@@ -89,10 +105,12 @@ export interface FenceEstimateCoreResult {
     coating?: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
     gate?: GateInfo;
     wicket?: WicketInfo;
+    automation?: AutomationInfo;
   };
   correctedLength: number;
   gateInfo?: GateInfo;
   wicketInfo?: WicketInfo;
+  automationInfo?: AutomationInfo;
 }
 
 export interface FenceEstimateResult {
@@ -112,6 +130,7 @@ export interface FenceEstimateResult {
     coating?: 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE';
     gate?: GateInfo;
     wicket?: WicketInfo;
+    automation?: AutomationInfo;
   };
   calculatedAt: string;
 }
@@ -156,6 +175,9 @@ export async function calculateFenceEstimateCore(
   let wicketInfo: WicketInfo | undefined;
   let wicketTotal = 0;
   let wicketInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
+  let automationInfo: AutomationInfo | undefined;
+  let automationTotal = 0;
+  let automationInstallationWorks: Array<{ id: string; name: string; price: number }> = [];
 
   console.log('[fenceEstimate] Gate params:', { hasGate, gateType, gateWidth });
 
@@ -259,6 +281,26 @@ export async function calculateFenceEstimateCore(
       if (wicketInstallationWorksList.length > 0) {
         wicketInstallationWorks = wicketInstallationWorksList.map(w => ({ id: w.id, name: w.name, price: w.price }));
       }
+    }
+  }
+
+  if (selectedGate && gateType === 'SLIDING' && input.hasAutomation && input.automationId) {
+    try {
+      const selectedAutomation = await findAutomationById(input.automationId);
+
+      automationInfo = {
+        id: selectedAutomation.id,
+        selectedName: selectedAutomation.name,
+      };
+      automationTotal = selectedAutomation.retailPrice;
+
+      const automationWorks = await workService.getWorksForCalculatorByReference('AUTOMATION', selectedAutomation.id);
+
+      if (automationWorks.length > 0) {
+        automationInstallationWorks = automationWorks.map(w => ({ id: w.id, name: w.name, price: w.price }));
+      }
+    } catch (err) {
+      console.warn('[fenceEstimate] Automation not found, skipping:', err);
     }
   }
 
@@ -431,6 +473,19 @@ export async function calculateFenceEstimateCore(
     items.push(wicketItem);
   }
 
+  if (input.hasAutomation && automationInfo) {
+    const automationItem: AutomationCalculationResult = {
+      category: 'automation',
+      nomenclatureId: automationInfo.id,
+      nomenclatureName: automationInfo.selectedName,
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: automationTotal,
+      totalPrice: automationTotal,
+    };
+    items.push(automationItem);
+  }
+
   console.log('[fenceEstimate] About to call getWorksForCalculator with:', { fenceTypeName: fenceType.name, fenceTypeCode });
   const fenceTypeWorks = await workService.getWorksForCalculator(fenceTypeCode);
   console.log('[fenceEstimate] Fence type works:', { fenceType: fenceType.name, fenceTypeCode, total: fenceTypeWorks.length });
@@ -517,6 +572,19 @@ export async function calculateFenceEstimateCore(
     items.push(wicketInstallationItem);
   }
 
+  for (const work of automationInstallationWorks) {
+    const automationInstallationItem: GateInstallationCalculationResult = {
+      category: 'installation',
+      nomenclatureId: work.id,
+      nomenclatureName: work.name,
+      quantity: 1,
+      unit: 'шт',
+      pricePerUnit: work.price,
+      totalPrice: work.price,
+    };
+    items.push(automationInstallationItem);
+  }
+
   for (const work of panel3dInstallationWorks) {
     const panel3dInstallationItem: GateInstallationCalculationResult = {
       category: 'installation',
@@ -569,8 +637,10 @@ export async function calculateFenceEstimateCore(
     return sum + work.price;
   }, 0);
 
-  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + (picketResult?.totalPrice || 0) + (meshResult?.totalPrice || 0) + gateTotal + wicketTotal + mountingHardwareTotal;
-  const installation = gateInstallationTotal + wicketInstallationTotal + panel3dInstallationTotal + meshInstallationTotal + fenceTypeMountingWorksTotal;
+  const automationInstallationTotal = automationInstallationWorks.reduce((sum, work) => sum + work.price, 0);
+
+  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + (picketResult?.totalPrice || 0) + (meshResult?.totalPrice || 0) + gateTotal + wicketTotal + automationTotal + mountingHardwareTotal;
+  const installation = gateInstallationTotal + wicketInstallationTotal + automationInstallationTotal + panel3dInstallationTotal + meshInstallationTotal + fenceTypeMountingWorksTotal;
   const grandTotal = materials + installation;
 
   return {
@@ -589,10 +659,12 @@ export async function calculateFenceEstimateCore(
       coating,
       ...(gateInfo ? { gate: gateInfo } : {}),
       ...(wicketInfo ? { wicket: wicketInfo } : {}),
+      ...(automationInfo ? { automation: automationInfo } : {}),
     },
     correctedLength,
     gateInfo,
     wicketInfo,
+    automationInfo,
   };
 }
 
@@ -654,6 +726,13 @@ export async function calculateFenceEstimate(
         meshTotal: (coreResult.items.find(i => i.category === 'mesh')?.totalPrice || 0),
         meshInstallationTotal: coreResult.items
           .filter(i => i.category === 'installation' && i.nomenclatureName.includes('сетк'))
+          .reduce((sum, item) => sum + item.totalPrice, 0),
+        hasAutomation: input.hasAutomation || false,
+        automationNomenclatureId: coreResult.automationInfo ? coreResult.automationInfo.id : null,
+        automationNomenclatureName: coreResult.automationInfo ? coreResult.automationInfo.selectedName : null,
+        automationTotal: (coreResult.items.find(i => i.category === 'automation')?.totalPrice || 0),
+        automationInstallationTotal: coreResult.items
+          .filter(i => i.category === 'installation' && i.nomenclatureName.includes('автомат'))
           .reduce((sum, item) => sum + item.totalPrice, 0),
         installationTotal: coreResult.totals.installation,
         materialsTotal: coreResult.totals.materials,
@@ -733,6 +812,13 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
       }
     : undefined;
 
+  const automationInfoResult: AutomationInfo | undefined = estimate.hasAutomation && estimate.automationNomenclatureId
+    ? {
+        id: estimate.automationNomenclatureId,
+        selectedName: estimate.automationNomenclatureName || 'Автоматика',
+      }
+    : undefined;
+
   return {
     estimateId: estimate.id,
     items: estimate.items as unknown as EstimateItem[],
@@ -750,6 +836,7 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
       coating: estimate.coating as 'GALVANIZED' | 'POLYMER_SINGLE' | 'POLYMER_DOUBLE',
       ...(gateInfo ? { gate: gateInfo } : {}),
       ...(wicketInfo ? { wicket: wicketInfo } : {}),
+      ...(automationInfoResult ? { automation: automationInfoResult } : {}),
     },
     calculatedAt: estimate.createdAt.toISOString(),
   };

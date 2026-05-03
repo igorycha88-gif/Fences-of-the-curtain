@@ -18,12 +18,23 @@ export const fenceEstimateSchema = z.object({
   meshCellSize: z.number().min(10).max(100).optional(),
   meshWireThickness: z.number().min(0.5).max(10).optional(),
   meshCoating: z.enum(['GALVANIZED', 'POLYMER']).optional(),
+  hasAutomation: z.boolean().default(false),
+  automationId: z.string().min(1).optional(),
 }).refine(
   (data) => !data.hasGate || (data.gateType && data.gateWidth),
   { message: "При выборе ворот необходимо указать тип и ширину" }
 ).refine(
   (data) => !data.hasWicket || data.wicketWidth,
   { message: "При выборе калитки необходимо указать ширину" }
+).refine(
+  (data) => !data.hasAutomation || data.automationId,
+  { message: "При выборе автоматики необходимо указать тип автоматики" }
+).refine(
+  (data) => !data.hasAutomation || data.hasGate,
+  { message: "Автоматика доступна только при наличии ворот" }
+).refine(
+  (data) => !data.hasAutomation || data.gateType === 'SLIDING',
+  { message: "Автоматика доступна только для откатных ворот" }
 );
 
 export type FenceEstimateInput = z.infer<typeof fenceEstimateSchema>;

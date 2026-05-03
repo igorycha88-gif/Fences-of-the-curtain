@@ -80,6 +80,12 @@ class ReferenceRegistry {
           select: { id: true, name: true },
           orderBy: { name: 'asc' }
         });
+      case 'AUTOMATION':
+        return prisma.automationType.findMany({
+          where: { active: true },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' }
+        });
       default:
         throw new Error(`Unknown reference type: ${type}`);
     }
@@ -117,6 +123,9 @@ class ReferenceRegistry {
         case 'MESH':
           const mesh = await prisma.meshType.findUnique({ where: { id } });
           return mesh !== null;
+        case 'AUTOMATION':
+          const automation = await prisma.automationType.findUnique({ where: { id } });
+          return automation !== null;
         default:
           return false;
       }
@@ -157,6 +166,9 @@ class ReferenceRegistry {
         case 'MESH':
           const mesh = await prisma.meshType.findUnique({ where: { id }, select: { name: true } });
           return mesh?.name || 'Неизвестно';
+        case 'AUTOMATION':
+          const automation = await prisma.automationType.findUnique({ where: { id }, select: { name: true } });
+          return automation?.name || 'Неизвестно';
         default:
           return 'Неизвестно';
       }
@@ -214,4 +226,10 @@ referenceRegistry.register({
   type: 'MESH',
   name: 'Сетка-рабица',
   modelName: 'MeshType',
+});
+
+referenceRegistry.register({
+  type: 'AUTOMATION',
+  name: 'Автоматика',
+  modelName: 'AutomationType',
 });
