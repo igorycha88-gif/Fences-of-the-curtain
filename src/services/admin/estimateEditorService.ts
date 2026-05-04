@@ -309,10 +309,7 @@ export class EstimateEditorService {
       throw new Error('Specified estimate is not an admin estimate');
     }
 
-    const sourceEstimate = existing.sourceEstimate;
-    if (!sourceEstimate) {
-      throw new Error('Source estimate not found for admin estimate');
-    }
+    const sourceEstimate = existing.sourceEstimate ?? existing;
 
     const { editComment, parameters, items: itemChanges } = input;
 
