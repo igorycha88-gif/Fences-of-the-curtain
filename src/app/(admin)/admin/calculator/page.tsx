@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Calculator, Send, Plus, Trash2, ChevronDown, ChevronUp, ShoppingCart, Save, AlertCircle, X, Package, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { ExtendedEstimateItem, EstimateSummary } from '@/lib/utils/marginCalculator';
@@ -1213,12 +1214,12 @@ export default function AdminCalculatorPage() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Заявка создана!</h3>
                 <p className="text-gray-500 mb-4">Заявка успешно создана и появится во вкладке «Заявки»</p>
                 {createdOrderId && (
-                  <a
+                  <Link
                     href={`/admin/orders/${createdOrderId}`}
                     className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Перейти к заявке
-                  </a>
+                  </Link>
                 )}
                 <button
                   onClick={() => {
