@@ -29,6 +29,7 @@ interface Order {
   isMultiEstimate?: boolean;
   estimateIds?: string[];
   hasAdminEstimate?: boolean;
+  parameters?: Record<string, unknown> | null;
 }
 
 interface OrdersResponse {
@@ -329,7 +330,9 @@ export default function OrdersPage() {
                       <td className="py-3 px-4">{order.phone}</td>
                       <td className="py-3 px-4 font-semibold">
                         {order.calculatedCost === 0 && !order.estimateId
-                          ? 'Индивидуальный расчёт (0 ₽)'
+                          ? (order.parameters as Record<string, unknown>)?.serviceType === 'garage'
+                            ? 'Гараж (инд. расчёт)'
+                            : 'Индивидуальный расчёт (0 ₽)'
                           : formatCurrency(order.calculatedCost)
                         }
                       </td>

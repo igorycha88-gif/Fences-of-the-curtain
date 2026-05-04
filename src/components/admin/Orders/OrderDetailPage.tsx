@@ -756,7 +756,30 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                       Индивидуальный расчёт
                     </span>
                   </div>
-                  {(order.parameters as any).canopyTypeLabel ? (
+                  {(order.parameters as any).serviceType === 'garage' ? (
+                    <>
+                      <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                        <span className="text-xl">🏗️</span>
+                        Заявка на гараж из сендвич-панелей
+                      </h2>
+                      <div className="space-y-3">
+                        <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                          <label className="text-sm text-primary font-medium block">Услуга</label>
+                          <p className="font-medium">
+                            {(order.parameters as any).title || 'Гараж из сендвич-панелей под ключ'}
+                          </p>
+                        </div>
+                        {(order.parameters as any).message && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Комментарий клиента</label>
+                            <p className="font-medium text-gray-700 bg-gray-50 p-3 rounded-lg">
+                              {(order.parameters as any).message}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (order.parameters as any).canopyTypeLabel ? (
                     <>
                       <h2 className="text-lg font-bold mb-4">Параметры навеса</h2>
                       <div className="space-y-3">

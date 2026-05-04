@@ -49,6 +49,11 @@ export const canopyParametersSchema = z.object({
   hasWaterSystem: z.boolean(),
 });
 
+export const garageParametersSchema = z.object({
+  serviceType: z.literal('garage'),
+  title: z.string().optional(),
+});
+
 export const individualOrderSchema = z.object({
   clientName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
   phone: z.string().regex(/^\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}$/, 'Формат: +7 (XXX) XXX-XX-XX'),
@@ -57,12 +62,14 @@ export const individualOrderSchema = z.object({
   isIndividualRequest: z.literal(true),
   fenceParameters: fenceParametersSchema.optional(),
   canopyParameters: canopyParametersSchema.optional(),
-}).refine((data) => data.fenceParameters || data.canopyParameters, {
-  message: 'Необходимы параметры забора или навеса',
+  garageParameters: garageParametersSchema.optional(),
+}).refine((data) => data.fenceParameters || data.canopyParameters || data.garageParameters, {
+  message: 'Необходимы параметры забора, навеса или гаража',
 });
 
 export type FenceParameters = z.infer<typeof fenceParametersSchema>;
 export type CanopyParameters = z.infer<typeof canopyParametersSchema>;
+export type GarageParameters = z.infer<typeof garageParametersSchema>;
 export type IndividualOrderRequest = z.infer<typeof individualOrderSchema>;
 
 export const ORDER_STATUSES = [
