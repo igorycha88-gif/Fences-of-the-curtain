@@ -243,9 +243,36 @@ jobs:
               else
                 PAYLOAD="{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":\"✅ Деплой успешен\nВерсия: ${{ needs.docker.outputs.short_sha }}\nИнициатор: ${{ github.actor }}\",\"parse_mode\":\"HTML\"}"
               fi
-              curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              CURL_PROXY_ARGS=""
+              if [ -n "${TELEGRAM_PROXY_URL:-}" ]; then
+                CURL_PROXY_ARGS="--proxy ${TELEGRAM_PROXY_URL}"
+              fi
+              curl -s --max-time 15 $CURL_PROXY_ARGS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                 -H "Content-Type: application/json" \
                 -d "$PAYLOAD" > /dev/null 2>&1 || true
+            fi
+
+      - name: Notify Telegram (Failure)
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SSH_HOST || '37.143.13.196' }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: false
+          command_timeout: 30s
+          script: |
+            source /root/Fences-of-the-curtain/.env 2>/dev/null || true
+            if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+              CURL_PROXY_ARGS=""
+              if [ -n "${TELEGRAM_PROXY_URL:-}" ]; then
+                CURL_PROXY_ARGS="--proxy ${TELEGRAM_PROXY_URL}"
+              fi
+              curl -s --max-time 15 $CURL_PROXY_ARGS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                -H "Content-Type: application/json" \
+                -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"❌ Деплой FAILED\nВерсия: ${{ needs.docker.outputs.short_sha }}\nИнициатор: ${{ github.actor }}\nПроверьте логи: /var/log/fences-deploy/\"}" > /dev/null 2>&1 || true
             fi
 
       - name: Notify Telegram (Failure)
