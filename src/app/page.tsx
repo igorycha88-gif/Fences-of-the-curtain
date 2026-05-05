@@ -20,13 +20,58 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { YandexReviews } from '@/components/reviews/YandexReviews';
+import { generateAggregateRatingJsonLd, generateReviewJsonLd } from '@/lib/seo/jsonld';
+import { SEO_CONFIG, BUSINESS_INFO } from '@/lib/seo/constants';
+
+const reviewsData = [
+  {
+    author: 'Алексей М.',
+    text: 'Отличная работа! Установили забор из профнастила за 2 дня. Качество на высоте, цена — как договаривались. Рекомендую!',
+    rating: 5,
+  },
+  {
+    author: 'Марина К.',
+    text: 'Заказывали навес для автомобиля из поликарбоната. Монтажники приехали вовремя, сделали всё аккуратно и быстро. Навес выглядит отлично!',
+    rating: 5,
+  },
+  {
+    author: 'Дмитрий В.',
+    text: 'Выбрал евроштакетник в шахматку — выглядит потрясающе! Спасибо менеджеру за помощь с расчётом. Установили под ключ за 3 дня.',
+    rating: 5,
+  },
+];
 
 export default function HomePage() {
+  const aggregateRatingJsonLd = generateAggregateRatingJsonLd(4.9, 127);
+  const reviewsJsonLd = reviewsData.map(r => generateReviewJsonLd(r.author, r.text, r.rating));
+  const localBusinessWithReviews = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    '@id': `${SEO_CONFIG.BASE_URL}/#organization`,
+    name: BUSINESS_INFO.name,
+    url: SEO_CONFIG.BASE_URL,
+    telephone: BUSINESS_INFO.telephone,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: BUSINESS_INFO.address.locality,
+      addressRegion: BUSINESS_INFO.address.region,
+      addressCountry: BUSINESS_INFO.address.country,
+    },
+    aggregateRating: aggregateRatingJsonLd,
+    review: reviewsJsonLd,
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(localBusinessWithReviews),
+          }}
+        />
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
           <div className="absolute inset-0 gradient-mesh" />
 
@@ -44,8 +89,8 @@ export default function HomePage() {
 
               <AnimatedSection animation="fade-in-up" delay={100}>
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-                  Профессиональные
-                  <span className="block text-gradient mt-2">заборы и навесы</span>
+                  Забор из профнастила
+                  <span className="block text-gradient mt-2">и навесы под ключ</span>
                 </h1>
               </AnimatedSection>
 
