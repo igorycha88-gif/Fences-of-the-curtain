@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.10.1] - 2026-05-05
+
+### Исправлено
+- fix: add relative positioning to portfolio image container (80f7a4e)
+- fix(ci): use TELEGRAM_PROXY_URL for curl in deploy notifications (964c908)
+
 ## [1.10.0] - 2026-05-05
 
 ### Добавлено
