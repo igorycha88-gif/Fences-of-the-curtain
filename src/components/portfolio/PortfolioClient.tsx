@@ -78,7 +78,7 @@ export default function PortfolioClient({ items }: PortfolioClientProps) {
                 metrikaEvents.portfolioView(item.id);
               }}
             >
-              <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300">
+              <div className="relative aspect-video bg-gradient-to-br from-slate-200 to-slate-300">
                 {thumbnailUrl ? (
                   <ImageWithFallback
                     src={thumbnailUrl}
