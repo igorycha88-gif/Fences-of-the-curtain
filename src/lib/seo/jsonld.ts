@@ -19,6 +19,7 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
     name: BUSINESS_INFO.name,
     url: SEO_CONFIG.BASE_URL,
     logo: `${SEO_CONFIG.BASE_URL}/logo.png`,
+    image: [`${SEO_CONFIG.BASE_URL}/logo.png`],
     description: SEO_CONFIG.DEFAULT_DESCRIPTION,
     telephone: BUSINESS_INFO.telephone,
     email: BUSINESS_INFO.email,
@@ -27,6 +28,11 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
       addressLocality: BUSINESS_INFO.address.locality,
       addressRegion: BUSINESS_INFO.address.region,
       addressCountry: BUSINESS_INFO.address.country,
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: BUSINESS_INFO.geo.latitude,
+      longitude: BUSINESS_INFO.geo.longitude,
     },
     openingHoursSpecification: [
       {
@@ -37,7 +43,11 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
       },
     ],
     priceRange: BUSINESS_INFO.priceRange,
-    areaServed: [BUSINESS_INFO.address.locality, BUSINESS_INFO.address.region],
+    areaServed: [
+      { '@type': 'City', name: 'Москва' },
+      { '@type': 'AdministrativeArea', name: 'Московская область' },
+    ],
+    sameAs: BUSINESS_INFO.sameAs,
   };
 }
 
@@ -68,11 +78,6 @@ export function generateWebSiteJsonLd(): JsonLdWebSite {
     '@type': 'WebSite',
     name: SEO_CONFIG.SITE_NAME,
     url: SEO_CONFIG.BASE_URL,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${SEO_CONFIG.BASE_URL}/services?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
   };
 }
 
@@ -91,7 +96,10 @@ export function generateServiceJsonLd(
       '@id': `${SEO_CONFIG.BASE_URL}/#organization`,
       name: BUSINESS_INFO.name,
     },
-    areaServed: BUSINESS_INFO.address.country,
+    areaServed: [
+      { '@type': 'City', name: 'Москва' },
+      { '@type': 'AdministrativeArea', name: 'Московская область' },
+    ],
     offers: {
       '@type': 'Offer',
       priceRange: priceRange || BUSINESS_INFO.priceRange,

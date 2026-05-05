@@ -1,23 +1,18 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { prisma } from '@/lib/prisma';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
+import ImageWithFallback from '@/components/ui/ImageWithFallback';
+import AboutCTA from '@/components/about/AboutCTA';
 import {
   Factory,
   Cog,
   Shield,
   BadgePercent,
-  ArrowRight,
-  Calculator,
-  Phone,
   CheckCircle2,
-  ImageOff,
 } from 'lucide-react';
-import { useContactInfo } from '@/components/providers/ContactInfoProvider';
 
 interface Advantage {
   icon: string;
@@ -36,16 +31,6 @@ interface Photo {
   caption: string;
 }
 
-interface AboutData {
-  about_hero_title: string;
-  about_hero_subtitle: string;
-  about_hero_image: string;
-  about_text: string;
-  about_advantages: string;
-  about_steps: string;
-  about_photos: string;
-}
-
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Factory,
   Cog,
@@ -53,62 +38,80 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   BadgePercent,
 };
 
-export default function AboutPage() {
-  const contactInfo = useContactInfo();
-  const [data, setData] = useState<AboutData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+const ABOUT_KEYS = [
+  'about_hero_title',
+  'about_hero_subtitle',
+  'about_hero_image',
+  'about_text',
+  'about_advantages',
+  'about_steps',
+  'about_photos',
+] as const;
 
-  useEffect(() => {
-    const fetchAbout = async () => {
-      try {
-        const res = await fetch('/api/about');
-        if (res.ok) {
-          const json = await res.json();
-          setData(json);
-        }
-      } catch (error) {
-        console.error('Error fetching about:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAbout();
-  }, []);
+const DEFAULT_VALUES: Record<string, string> = {
+  about_hero_title: 'О компании',
+  about_hero_subtitle: 'Полный цикл производства и монтажа заборов и навесов — от сырья до готового объекта',
+  about_hero_image: '/images/about/production.jpg',
+  about_text: 'Компания «Заборы и Навесы» — это команда профессионалов, которая выполняет полный цикл работ по производству и установке заборов, навесов и ограждений. Мы контролируем каждый этап: от закупки сертифицированных материалов до финального монтажа на объекте.\n\nСобственное производство позволяет нам гарантировать качество и предлагать честные цены без посредников. Каждый проект — это индивидуальный подход, точный расчёт и соблюдение сроков.',
+  about_advantages: JSON.stringify([
+    { icon: 'Factory', title: 'Собственное производство', description: 'Контроль качества на каждом этапе' },
+    { icon: 'Cog', title: 'Полный цикл работ', description: 'От замера до сдачи объекта' },
+    { icon: 'Shield', title: 'Гарантия на работы', description: 'На все выполненные работы' },
+    { icon: 'BadgePercent', title: 'Честные цены', description: 'Без скрытых платежей и наценок посредников' },
+  ]),
+  about_steps: JSON.stringify([
+    { number: 1, title: 'Замер и консультация', description: 'Бесплатный выезд специалиста, обсуждение задачи' },
+    { number: 2, title: 'Расчёт стоимости', description: 'Точный расчёт материалов и работ' },
+    { number: 3, title: 'Производство', description: 'Изготовление конструкций на собственном производстве' },
+    { number: 4, title: 'Доставка и монтаж', description: 'Профессиональная установка в оговорённые сроки' },
+    { number: 5, title: 'Сдача объекта', description: 'Приёмка работ и подписание акта' },
+  ]),
+  about_photos: JSON.stringify([
+    { image: '/images/about/production.jpg', caption: 'Наше производство' },
+    { image: '/images/about/mounting.jpg', caption: 'Монтаж на объекте' },
+    { image: '/images/about/workshop.jpg', caption: 'Производственный цех' },
+    { image: '/images/about/materials.jpg', caption: 'Сертифицированные материалы' },
+    { image: '/images/about/team.jpg', caption: 'Наша команда' },
+  ]),
+};
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex items-center justify-center py-40">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    );
+export const revalidate = 300;
+
+async function getAboutData() {
+  try {
+    const settings = await prisma.setting.findMany({
+      where: { key: { in: [...ABOUT_KEYS] } },
+    });
+
+    const result: Record<string, string> = {};
+    for (const key of ABOUT_KEYS) {
+      const setting = settings.find((s) => s.key === key);
+      result[key] = setting?.value ?? DEFAULT_VALUES[key] ?? '';
+    }
+    return result;
+  } catch {
+    return DEFAULT_VALUES;
   }
+}
+
+export default async function AboutPage() {
+  const data = await getAboutData();
 
   let advantages: Advantage[] = [];
   let steps: Step[] = [];
   let photos: Photo[] = [];
   try {
-    advantages = data?.about_advantages ? JSON.parse(data.about_advantages) : [];
+    advantages = data.about_advantages ? JSON.parse(data.about_advantages) : [];
   } catch { /* ignore */ }
   try {
-    steps = data?.about_steps ? JSON.parse(data.about_steps) : [];
+    steps = data.about_steps ? JSON.parse(data.about_steps) : [];
   } catch { /* ignore */ }
   try {
-    photos = data?.about_photos ? JSON.parse(data.about_photos) : [];
+    photos = data.about_photos ? JSON.parse(data.about_photos) : [];
   } catch { /* ignore */ }
-  const heroImage = data?.about_hero_image || '/images/about/production.jpg';
-  const paragraphs = (data?.about_text || '').split('\n').filter(Boolean);
 
-  const handleImageError = (src: string) => {
-    setImageErrors((prev) => new Set(prev).add(src));
-  };
-
-  const phoneForLink = contactInfo.phone
-    ? contactInfo.phone.replace(/\D/g, '')
-    : '74993901595';
+  const heroImage = data.about_hero_image || '/images/about/production.jpg';
+  const paragraphs = (data.about_text || '').split('\n').filter(Boolean);
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,29 +124,23 @@ export default function AboutPage() {
             <Breadcrumbs items={[{ label: 'О нас' }]} />
             <AnimatedSection animation="fade-in-up" className="text-center mb-12">
               <h1 className="section-title mb-4">
-                {data?.about_hero_title || 'О компании'}
+                {data.about_hero_title || 'О компании'}
               </h1>
               <p className="section-subtitle">
-                {data?.about_hero_subtitle || ''}
+                {data.about_hero_subtitle || ''}
               </p>
             </AnimatedSection>
 
             <AnimatedSection animation="scale-in" delay={200}>
               <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-border/50">
                 <div className="relative aspect-[21/9] bg-secondary/50">
-                  {!imageErrors.has(heroImage) ? (
-                    <img
-                      src={heroImage}
-                      alt="О компании"
-                      className="w-full h-full object-cover"
-                      onError={() => handleImageError(heroImage)}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                      <ImageOff className="w-12 h-12 mb-2" />
-                      <span className="text-sm">Фото</span>
-                    </div>
-                  )}
+                  <ImageWithFallback
+                    src={heroImage}
+                    alt="О компании"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
               </div>
@@ -246,19 +243,12 @@ export default function AboutPage() {
                 >
                   <div className="card-modern overflow-hidden hover-lift group">
                     <div className="relative aspect-[16/10] bg-secondary/50">
-                      {!imageErrors.has(photo.image) ? (
-                        <img
-                          src={photo.image}
-                          alt={photo.caption}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={() => handleImageError(photo.image)}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                          <ImageOff className="w-10 h-10 mb-2" />
-                          <span className="text-sm">Нет фото</span>
-                        </div>
-                      )}
+                      <ImageWithFallback
+                        src={photo.image}
+                        alt={photo.caption}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
                     <div className="p-4">
@@ -298,35 +288,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="py-16 px-4 bg-primary text-primary-foreground">
-          <div className="container mx-auto">
-            <AnimatedSection animation="scale-in" className="max-w-3xl mx-auto text-center">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                Готовы начать?
-              </h2>
-              <p className="text-xl opacity-90 mb-8">
-                Рассчитайте стоимость прямо сейчас — это бесплатно и займёт всего минуту
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href="/calculator/fence"
-                  className="inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-semibold hover:bg-white/90 transition-colors"
-                >
-                  <Calculator className="w-5 h-5" />
-                  Рассчитать забор
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <a
-                  href={`tel:${phoneForLink}`}
-                  className="inline-flex items-center justify-center gap-2 bg-white/20 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/30 transition-colors border border-white/30"
-                >
-                  <Phone className="w-5 h-5" />
-                  Позвонить нам
-                </a>
-              </div>
-            </AnimatedSection>
-          </div>
-        </section>
+        <AboutCTA />
       </main>
 
       <Footer />

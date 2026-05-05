@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import { generatePageMetadata } from '@/lib/seo/metadata';
+import { PAGE_METADATA } from '@/lib/seo/constants';
 
 export const metadata: Metadata = generatePageMetadata({
-  title: 'Статьи о заборах и навесах — Полезные советы',
-  description: 'Полезные статьи о выборе забора, навеса, материалов. Советы по установке и уходу. Москва и МО.',
-  keywords: ['статьи заборы', 'советы навесы', 'как выбрать забор'],
-  path: '/blog',
-  ogImage: '/og/og-main.jpg',
+  title: PAGE_METADATA.blog.title,
+  description: PAGE_METADATA.blog.description,
+  keywords: PAGE_METADATA.blog.keywords,
+  path: PAGE_METADATA.blog.path,
+  ogImage: PAGE_METADATA.blog.ogImage,
 });

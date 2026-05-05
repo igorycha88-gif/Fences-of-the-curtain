@@ -1,16 +1,14 @@
 import { Metadata } from 'next';
+import { generatePageMetadata } from '@/lib/seo/metadata';
+import { PAGE_METADATA } from '@/lib/seo/constants';
 
-export const metadata: Metadata = {
-  title: 'О компании — Заборы и Навесы | Производство и монтаж',
-  description:
-    'Компания «Заборы и Навесы» — полный цикл производства и монтажа заборов, навесов и ограждений. Собственное производство, гарантия качества, честные цены.',
-  keywords: 'о компании, заборы и навесы, производство заборов, монтаж заборов, ограждения',
-  openGraph: {
-    title: 'О компании — Заборы и Навесы',
-    description:
-      'Полный цикл производства и монтажа заборов, навесов и ограждений. Собственное производство, гарантия качества.',
-  },
-};
+export const metadata: Metadata = generatePageMetadata({
+  title: PAGE_METADATA.about.title,
+  description: PAGE_METADATA.about.description,
+  keywords: PAGE_METADATA.about.keywords,
+  path: PAGE_METADATA.about.path,
+  ogImage: PAGE_METADATA.about.ogImage,
+});
 
 export default function AboutLayout({ children }: { children: React.ReactNode }) {
   return children;

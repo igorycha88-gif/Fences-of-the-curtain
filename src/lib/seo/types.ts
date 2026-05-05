@@ -44,7 +44,9 @@ export interface JsonLdOrganization {
     closes: string;
   }[];
   priceRange?: string;
-  areaServed?: string[];
+  areaServed?: (string | { '@type': string; name: string })[];
+  image?: string[];
+  sameAs?: string[];
 }
 
 export interface JsonLdWebSite {
@@ -69,7 +71,7 @@ export interface JsonLdService {
     '@id'?: string;
     name: string;
   };
-  areaServed?: string | string[];
+  areaServed?: string | string[] | { '@type': string; name: string }[];
   offers?: {
     '@type': 'Offer';
     priceRange?: string;

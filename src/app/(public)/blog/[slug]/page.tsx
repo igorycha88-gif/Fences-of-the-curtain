@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
+import JsonLdScript from '@/components/seo/JsonLdScript';
+import { generateBreadcrumbJsonLd, generateArticleJsonLd } from '@/lib/seo/jsonld';
 import { generatePageMetadata } from '@/lib/seo/metadata';
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import { Calculator, ArrowRight } from 'lucide-react';
@@ -73,6 +75,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <JsonLdScript data={[
+        generateBreadcrumbJsonLd([
+          { name: 'Главная', url: '/' },
+          { name: 'Блог', url: '/blog' },
+          { name: post.title },
+        ]),
+        generateArticleJsonLd(
+          post.title,
+          post.excerpt || '',
+          `/blog/${slug}`,
+          post.coverImage || undefined,
+          post.createdAt?.toISOString()
+        ),
+      ]} />
       <Header />
 
       <main className="pt-24">

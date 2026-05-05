@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google';
 import SessionProvider from '@/components/providers/SessionProvider';
 import ContactInfoProvider from '@/components/providers/ContactInfoProvider';
 import JsonLdScript from '@/components/seo/JsonLdScript';
+import YandexMetrika from '@/components/seo/YandexMetrika';
 import CookieConsentProvider from '@/components/cookie-consent/CookieConsentProvider';
 import { generateOrganizationJsonLd, generateWebSiteJsonLd, generateSiteNavigationJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
@@ -12,6 +13,7 @@ import { recordTiming } from '@/lib/http-metrics';
 import './globals.css';
 
 const GTAG_ID = 'G-N4KVS3N0B1';
+const YANDEX_METRIKA_ID = Number(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID) || 0;
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -131,6 +133,7 @@ export default function RootLayout({
             </CookieConsentProvider>
           </ContactInfoProvider>
         </SessionProvider>
+        {YANDEX_METRIKA_ID > 0 && <YandexMetrika metrikaId={YANDEX_METRIKA_ID} />}
       </body>
     </html>
   );

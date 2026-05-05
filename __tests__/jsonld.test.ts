@@ -67,13 +67,10 @@ describe('JSON-LD Generators', () => {
       expect(result.url).toBe('https://zabor-i-naves.ru');
     });
 
-    it('should have SearchAction for Google sitelinks search box', () => {
+    it('should not have SearchAction until search is implemented', () => {
       const result = generateWebSiteJsonLd();
 
-      expect(result.potentialAction).toBeDefined();
-      expect(result.potentialAction?.['@type']).toBe('SearchAction');
-      expect(result.potentialAction?.target).toContain('search_term_string');
-      expect(result.potentialAction?.['query-input']).toContain('required name=search_term_string');
+      expect(result.potentialAction).toBeUndefined();
     });
   });
 
@@ -115,10 +112,13 @@ describe('JSON-LD Generators', () => {
       expect(result.offers?.priceRange).toBe('₽₽');
     });
 
-    it('should have areaServed', () => {
+    it('should have areaServed as Moscow and MO', () => {
       const result = generateServiceJsonLd('Test', 'Description');
 
-      expect(result.areaServed).toBe('Россия');
+      expect(result.areaServed).toEqual([
+        { '@type': 'City', name: 'Москва' },
+        { '@type': 'AdministrativeArea', name: 'Московская область' },
+      ]);
     });
   });
 
