@@ -42,9 +42,9 @@ export default function MessengerWidget() {
   };
 
   return (
-    <div ref={widgetRef} className="fixed bottom-6 right-6 z-40" data-testid="messenger-widget">
+    <div ref={widgetRef} className="fixed bottom-6 left-6 z-40" data-testid="messenger-widget">
       {isOpen && (
-        <div className="absolute bottom-full right-0 mb-3 w-64 rounded-2xl bg-popover border border-border shadow-2xl p-4 animate-fade-in-up">
+        <div className="absolute bottom-full left-0 mb-3 w-64 rounded-2xl bg-popover border border-border shadow-2xl p-4 animate-fade-in-up">
           <p className="text-sm font-semibold text-popover-foreground mb-3">
             Выберите мессенджер
           </p>
