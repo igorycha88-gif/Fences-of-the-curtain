@@ -191,7 +191,7 @@ export class PortfolioService {
     return { updated: items.length, message: 'Порядок обновлён' };
   }
 
-  async getPublicList(category?: 'fence' | 'canopy') {
+  async getPublicList(category?: 'fence' | 'canopy' | 'garage') {
     const where: Prisma.PortfolioItemWhereInput = {
       active: true,
     };

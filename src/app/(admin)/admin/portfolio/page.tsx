@@ -95,9 +95,9 @@ function SortableRow({ item, onEdit, onDelete, onToggleActive, isSelected, onSel
       <td className="px-4 py-3 font-medium text-gray-900">{item.title}</td>
       <td className="px-4 py-3">
         <span className={`px-2 py-1 rounded text-xs font-medium ${
-          item.category === 'fence' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+          item.category === 'fence' ? 'bg-blue-100 text-blue-800' : item.category === 'canopy' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
         }`}>
-          {item.category === 'fence' ? 'Заборы' : 'Навесы'}
+          {item.category === 'fence' ? 'Заборы' : item.category === 'canopy' ? 'Навесы' : 'Гаражи'}
         </span>
       </td>
       <td className="px-4 py-3">
@@ -363,6 +363,7 @@ export default function PortfolioListPage() {
               <option value="">Все категории</option>
               <option value="fence">Заборы</option>
               <option value="canopy">Навесы</option>
+              <option value="garage">Гаражи</option>
             </select>
             <select
               value={activeFilter}
@@ -473,9 +474,9 @@ export default function PortfolioListPage() {
                         <h3 className="font-medium text-gray-900 truncate">{item.title}</h3>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            item.category === 'fence' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                            item.category === 'fence' ? 'bg-blue-100 text-blue-800' : item.category === 'canopy' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
                           }`}>
-                            {item.category === 'fence' ? 'Заборы' : 'Навесы'}
+                            {item.category === 'fence' ? 'Заборы' : item.category === 'canopy' ? 'Навесы' : 'Гаражи'}
                           </span>
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                             item.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'

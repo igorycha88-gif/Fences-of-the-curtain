@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') as 'fence' | 'canopy' | null;
+    const category = searchParams.get('category') as 'fence' | 'canopy' | 'garage' | null;
 
     const items = await portfolioService.getPublicList(category || undefined);
 

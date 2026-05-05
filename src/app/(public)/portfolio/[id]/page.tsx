@@ -27,8 +27,8 @@ export default async function PortfolioDetailPage({
   }
 
   const images = (item.images as string[]) || [];
-  const categoryLabel = item.category === 'fence' ? 'Забор' : 'Навес';
-  const categoryHref = item.category === 'fence' ? 'fence' : 'canopy';
+  const categoryLabel = item.category === 'fence' ? 'Забор' : item.category === 'canopy' ? 'Навес' : 'Гараж';
+  const categoryHref = item.category === 'fence' ? 'fence' : item.category === 'canopy' ? 'canopy' : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -81,15 +81,19 @@ export default async function PortfolioDetailPage({
                   Хотите подобный проект?
                 </h2>
                 <p className="text-gray-600 text-sm mb-4">
-                  Рассчитайте стоимость с учётом ваших размеров и материалов
+                  {categoryHref
+                    ? 'Рассчитайте стоимость с учётом ваших размеров и материалов'
+                    : 'Свяжитесь с нами для расчёта стоимости'}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href={`/calculator/${categoryHref}`}
-                    className="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
-                  >
-                    Рассчитать подобный проект
-                  </Link>
+                  {categoryHref && (
+                    <Link
+                      href={`/calculator/${categoryHref}`}
+                      className="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      Рассчитать подобный проект
+                    </Link>
+                  )}
                   <PhoneLinkButton />
                 </div>
               </div>

@@ -8,7 +8,7 @@ import { ImageUploader } from '@/components/admin/Portfolio/ImageUploader';
 
 interface PortfolioFormData {
   title: string;
-  category: 'fence' | 'canopy';
+  category: 'fence' | 'canopy' | 'garage';
   type: string;
   description: string;
   images: string[];
@@ -126,6 +126,17 @@ export function PortfolioForm({ initialData, onSubmit, isEditing }: PortfolioFor
                 className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
               />
               <span className="ml-2 text-gray-700">Навесы</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="category"
+                value="garage"
+                checked={formData.category === 'garage'}
+                onChange={() => setFormData({ ...formData, category: 'garage' })}
+                className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
+              />
+              <span className="ml-2 text-gray-700">Гаражи из сендвич-панелей</span>
             </label>
           </div>
         </div>

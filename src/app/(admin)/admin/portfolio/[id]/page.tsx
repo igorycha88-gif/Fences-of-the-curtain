@@ -88,7 +88,7 @@ export default function EditPortfolioPage() {
       <PortfolioForm
         initialData={{
           title: item.title,
-          category: item.category as 'fence' | 'canopy',
+          category: item.category as 'fence' | 'canopy' | 'garage',
           type: item.type || '',
           description: item.description || '',
           images: item.images as string[],

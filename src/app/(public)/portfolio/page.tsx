@@ -23,7 +23,7 @@ interface PortfolioItem {
 
 export default function PortfolioPage() {
   const { trackEvent } = useAnalytics();
-  const [filter, setFilter] = useState<'all' | 'fence' | 'canopy'>('all');
+  const [filter, setFilter] = useState<'all' | 'fence' | 'canopy' | 'garage'>('all');
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +117,16 @@ export default function PortfolioPage() {
               >
                 Навесы
               </button>
+              <button
+                onClick={() => setFilter('garage')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filter === 'garage'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Гаражи
+              </button>
             </div>
           </div>
         </div>
@@ -169,7 +179,7 @@ export default function PortfolioPage() {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
-                        {item.type || (item.category === 'fence' ? 'Заборы' : 'Навесы')}
+                        {item.type || (item.category === 'fence' ? 'Заборы' : item.category === 'canopy' ? 'Навесы' : 'Гаражи')}
                       </span>
                     </div>
                     <h3 className="text-xl font-semibold mb-2 text-gray-900">{item.title}</h3>

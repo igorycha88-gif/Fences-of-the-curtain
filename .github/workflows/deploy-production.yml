@@ -179,6 +179,50 @@ jobs:
             echo "Smoke: $PASS passed, $FAIL failed"
             [ "$FAIL" -eq 0 ] || exit 1
 
+      - name: Extract release notes
+        id: release_notes
+        if: success()
+        continue-on-error: true
+        run: |
+          VERSION=$(jq -r .version package.json)
+          BODY=""
+
+          if [ -f CHANGELOG.md ]; then
+            BODY=$(awk -v ver="\\[${VERSION}\\]" '
+              /^## \[/ {
+                if (found) exit
+                if ($0 ~ ver) { found=1; next }
+              }
+              found && /^### / {
+                gsub(/^### /, "")
+                printf "\n%s:\n", $0
+                next
+              }
+              found && /^- / {
+                line = $0
+                sub(/^- /, "", line)
+                sub(/ \([0-9a-f]+\)$/, "", line)
+                printf "• %s\n", line
+                next
+              }
+            ' CHANGELOG.md | sed '/^$/d')
+          fi
+
+          if [ -z "$BODY" ]; then
+            BODY=$(git log --oneline -10 | while IFS=' ' read -r hash msg; do printf "• %s\n" "$msg"; done)
+          fi
+
+          MSG="🚀 Релиз v${VERSION}
+
+          ${BODY}
+
+          👤 Инициатор: ${{ github.actor }}
+          🏷 Образ: ${{ needs.docker.outputs.image_tag }}"
+
+          PAYLOAD=$(printf '%s' "$MSG" | jq -Rs '{chat_id: "__CHATID__", text: (.[0:3500]), parse_mode: "HTML"}')
+          PAYLOAD_B64=$(printf '%s' "$PAYLOAD" | base64 -w0)
+          echo "payload_b64=${PAYLOAD_B64}" >> $GITHUB_OUTPUT
+
       - name: Notify Telegram (Success)
         if: success()
         uses: appleboy/ssh-action@v1.0.3
@@ -193,9 +237,15 @@ jobs:
           script: |
             source /root/Fences-of-the-curtain/.env 2>/dev/null || true
             if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+              PAYLOAD_B64="${{ steps.release_notes.outputs.payload_b64 }}"
+              if [ -n "$PAYLOAD_B64" ]; then
+                PAYLOAD=$(echo "$PAYLOAD_B64" | base64 -d | sed "s/__CHATID__/${TELEGRAM_CHAT_ID}/")
+              else
+                PAYLOAD="{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":\"✅ Деплой успешен\nВерсия: ${{ needs.docker.outputs.short_sha }}\nИнициатор: ${{ github.actor }}\",\"parse_mode\":\"HTML\"}"
+              fi
               curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                 -H "Content-Type: application/json" \
-                -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\", \"text\": \"✅ Деплой успешен\nВерсия: ${{ needs.docker.outputs.short_sha }}\nОбраз: ${{ needs.docker.outputs.image_tag }}\nИнициатор: ${{ github.actor }}\"}" > /dev/null 2>&1 || true
+                -d "$PAYLOAD" > /dev/null 2>&1 || true
             fi
 
       - name: Notify Telegram (Failure)

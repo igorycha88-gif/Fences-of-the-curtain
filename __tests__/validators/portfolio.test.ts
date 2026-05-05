@@ -54,9 +54,10 @@ describe('Portfolio Validators', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should accept both valid categories', () => {
+    it('should accept all valid categories', () => {
       expect(portfolioInputSchema.safeParse({ ...validInput, category: 'fence' }).success).toBe(true);
       expect(portfolioInputSchema.safeParse({ ...validInput, category: 'canopy' }).success).toBe(true);
+      expect(portfolioInputSchema.safeParse({ ...validInput, category: 'garage' }).success).toBe(true);
     });
 
     it('should reject empty images array', () => {

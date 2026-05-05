@@ -4,7 +4,7 @@ export const portfolioInputSchema = z.object({
   title: z.string()
     .min(1, 'Название обязательно')
     .max(255, 'Максимум 255 символов'),
-  category: z.enum(['fence', 'canopy'], {
+  category: z.enum(['fence', 'canopy', 'garage'], {
     errorMap: () => ({ message: 'Выберите категорию' }),
   }),
   type: z.string()
@@ -29,7 +29,7 @@ export const portfolioListParamsSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().max(255).optional(),
-  category: z.enum(['fence', 'canopy']).optional(),
+  category: z.enum(['fence', 'canopy', 'garage']).optional(),
   active: z.coerce.boolean().optional(),
 });
 
