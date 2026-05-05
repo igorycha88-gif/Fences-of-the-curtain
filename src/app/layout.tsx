@@ -7,6 +7,7 @@ import ContactInfoProvider from '@/components/providers/ContactInfoProvider';
 import JsonLdScript from '@/components/seo/JsonLdScript';
 import YandexMetrika from '@/components/seo/YandexMetrika';
 import CookieConsentProvider from '@/components/cookie-consent/CookieConsentProvider';
+import MessengerWidget from '@/components/layout/MessengerWidget';
 import { generateOrganizationJsonLd, generateWebSiteJsonLd, generateSiteNavigationJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import { recordTiming } from '@/lib/http-metrics';
@@ -130,6 +131,7 @@ export default function RootLayout({
           <ContactInfoProvider>
             <CookieConsentProvider>
               {children}
+              <MessengerWidget />
             </CookieConsentProvider>
           </ContactInfoProvider>
         </SessionProvider>

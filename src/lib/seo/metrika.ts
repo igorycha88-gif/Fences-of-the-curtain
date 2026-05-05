@@ -50,4 +50,8 @@ export const metrikaEvents = {
   faqExpand(question: string) {
     reachGoal('faq_expand', { question });
   },
+
+  messengerClick(messenger: 'telegram' | 'max') {
+    reachGoal('messenger_click', { messenger });
+  },
 };
