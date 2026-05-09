@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { order, estimate, adminEstimate, multiEstimates } = data;
     const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
-    const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !multiEstimates);
+    const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !adminEstimate && !multiEstimates);
 
     if (isIndividualRequest) {
       return NextResponse.json(
