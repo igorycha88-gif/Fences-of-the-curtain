@@ -497,7 +497,20 @@ export default function AdminCalculatorPage() {
         }));
         toast.success('Позиция удалена');
       } else {
-        toast.error('Ошибка удаления');
+        const errorData = await response.json().catch(() => null);
+        if (response.status === 404) {
+          const freshResp = await fetch(`/api/admin/calculator/estimate/${estimateId}`);
+          if (freshResp.ok) {
+            const freshData = await freshResp.json();
+            setCalculations(prev => prev.map(c => {
+              if (c.result?.estimateId !== estimateId) return c;
+              return { ...c, result: freshData };
+            }));
+          }
+          toast.error(errorData?.error || 'Позиция не найдена — данные обновлены');
+        } else {
+          toast.error(errorData?.error || 'Ошибка удаления');
+        }
       }
     } catch {
       toast.error('Ошибка сети');
