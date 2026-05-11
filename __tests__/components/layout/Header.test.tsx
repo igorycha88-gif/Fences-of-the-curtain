@@ -54,9 +54,9 @@ describe('Header', () => {
     });
   });
 
-  it('renders theme toggle button', () => {
+  it('renders theme toggle button (desktop and mobile)', () => {
     render(<Header />);
-    expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Toggle theme').length).toBe(2);
   });
 
   it('toggles mobile menu on hamburger click', async () => {
@@ -75,11 +75,20 @@ describe('Header', () => {
 
   it('toggles dark mode on theme button click', async () => {
     render(<Header />);
-    const themeBtn = screen.getByLabelText('Toggle theme');
+    const themeBtns = screen.getAllByLabelText('Toggle theme');
+    const themeBtn = themeBtns[0];
     await userEvent.click(themeBtn);
     expect(document.documentElement.classList.contains('dark')).toBe(true);
     await userEvent.click(themeBtn);
     expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+
+  it('does not render Telegram and Max icons in mobile version', () => {
+    render(<Header />);
+    expect(screen.queryByLabelText('Написать в Telegram')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Написать в Макс')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Написать в Telegram').length).toBe(1);
+    expect(screen.getAllByLabelText('Написать в Макс').length).toBe(1);
   });
 
   it('renders all nav links with correct hrefs', () => {

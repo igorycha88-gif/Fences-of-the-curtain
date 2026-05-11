@@ -126,27 +126,15 @@ export default function Header() {
 
         <div className="flex lg:hidden items-center gap-1">
           <ContactPhoneBadge variant="header" />
-          <a
-            href="https://t.me/+79261505088"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-8 h-8 rounded-lg bg-[#26A5E4]/10 hover:bg-[#26A5E4]/20 text-[#26A5E4] flex items-center justify-center transition-all duration-300"
-            title="Написать в Telegram"
-            aria-label="Написать в Telegram"
+
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="w-10 h-10 rounded-xl bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-all duration-300 hover:scale-105"
+            aria-label="Toggle theme"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.94z"/></svg>
-          </a>
-          <a
-            href="https://max.ru/u/f9LHodD0cOJ7LGkDL9PvtHHVrZvCEayUREFPLzA_z2T6S8TZGGuCAzOPWpY"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-8 h-8 rounded-lg bg-[#007AFF]/10 hover:bg-[#007AFF]/20 text-[#007AFF] flex items-center justify-center transition-all duration-300"
-            title="Написать в Макс"
-            aria-label="Написать в Макс"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 25 24" fill="currentColor"><path fillRule="evenodd" clipRule="evenodd" d="M12.3405 23.9342C9.97568 23.9342 8.87728 23.5899 6.97252 22.2125C5.76041 23.762 1.94518 24.9672 1.77774 22.9012C1.77774 21.3535 1.42788 20.0492 1.04269 18.6132C0.570922 16.8544 0.0461426 14.898 0.0461426 12.0546C0.0461426 5.27426 5.6424 0.175079 12.2777 0.175079C18.913 0.175079 24.1153 5.52322 24.1153 12.1205C24.1153 18.7178 18.7474 23.9342 12.3405 23.9342ZM12.4368 6.03673C9.20791 5.86848 6.68817 8.0948 6.13253 11.5794C5.6724 14.465 6.48821 17.9812 7.18602 18.1582C7.51488 18.2416 8.35763 17.564 8.87711 17.0475C9.73154 17.5981 10.712 18.0245 11.8019 18.0813C15.1168 18.254 18.0544 15.6761 18.228 12.382C18.4016 9.08792 15.7517 6.20946 12.4368 6.03673Z"/></svg>
-          </a>
-          
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center transition-colors"
