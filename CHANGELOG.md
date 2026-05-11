@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.2] - 2026-05-11
+
+### Исправлено
+- fix: убрать иконки Telegram и Max из мобильного хедера для улучшения UX (5f4533f)
+- fix: диагностика и обработка 404 при удалении номенклатуры из сметы (4c70042)
+- fix: add adminEstimate check to Word export guard for admin-created orders (51ba5dc)
+
 ## [1.10.1] - 2026-05-05
 
 ### Исправлено
