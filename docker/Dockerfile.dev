@@ -35,21 +35,11 @@ ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 ENV NODE_OPTIONS="--max-old-space-size=512"
 
-COPY package.json package-lock.json ./
-
-RUN npm install --legacy-peer-deps && npm cache clean --force
-
-COPY . .
-
-RUN npx prisma generate
-
-RUN node -e "import('cloakbrowser').then(m => m.ensureBinary()).then(() => console.log('CloakBrowser binary ready')).catch(e => console.warn('CloakBrowser binary download skipped:', e.message))"
-
 RUN mkdir -p /app/public/uploads/portfolio
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1
 
-CMD ["npm", "run", "dev"]
+CMD ["/bin/sh", "/opt/entrypoint.dev.sh"]

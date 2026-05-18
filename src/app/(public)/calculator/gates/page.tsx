@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calculator, Plus, Trash2, Loader2, AlertCircle, DoorOpen } from 'lucide-react';
+import { Calculator, Plus, Trash2, Loader2, AlertCircle, DoorOpen, Send, Zap, Shield, Clock } from 'lucide-react';
 import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import OrderForm from '@/components/calculator/OrderForm';
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
@@ -237,309 +236,344 @@ export default function GatesCalculatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-12">
-        <AnimatedSection>
-          <div className="text-center mb-10">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <DoorOpen className="w-10 h-10 text-primary" />
-              <h1 className="text-4xl font-bold text-gray-900">Калькулятор ворот и калиток</h1>
+      <main className="pt-24 pb-16">
+        <div className="container mx-auto px-4">
+          <AnimatedSection animation="fade-in-up" className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+              <Zap className="w-4 h-4" />
+              Расчёт за 30 секунд
             </div>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <h1 className="section-title mb-4">Калькулятор ворот и калиток</h1>
+            <p className="section-subtitle">
               Рассчитайте стоимость ворот и калиток с монтажом или без
             </p>
-          </div>
-        </AnimatedSection>
+          </AnimatedSection>
 
-        <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          <AnimatedSection>
-            <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8">
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Общая высота (м) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={form.height}
-                    onChange={e => setForm({ ...form, height: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                    min={1.5}
-                    max={3.0}
-                    step={0.1}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                    placeholder="2.0"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">От 1.5 до 3.0 м</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Ворота</h3>
-                    {form.gates.length < MAX_GATES && (
-                      <button
-                        type="button"
-                        onClick={addGate}
-                        className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Добавить
-                      </button>
-                    )}
-                  </div>
-
-                  {form.gates.map((gate, index) => (
-                    <div key={index} className="border border-gray-200 rounded-xl p-4 space-y-3 relative">
-                      {form.gates.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeGate(index)}
-                          className="absolute top-3 right-3 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      <div className="flex items-center gap-2 mb-1">
-                        <DoorOpen className="w-4 h-4 text-primary" />
-                        <span className="font-medium text-gray-800">Ворота {index + 1}</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Тип ворот</label>
-                          <select
-                            value={gate.gateType}
-                            onChange={e => updateGate(index, { gateType: e.target.value as 'SWING' | 'SLIDING' })}
-                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                          >
-                            <option value="SWING">Распашные</option>
-                            <option value="SLIDING">Откатные</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Ширина (м)</label>
-                          <input
-                            type="number"
-                            value={gate.gateWidth}
-                            onChange={e => updateGate(index, { gateWidth: parseFloat(e.target.value) || 2.0 })}
-                            min={2.0}
-                            max={6.0}
-                            step={0.5}
-                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {gate.gateType === 'SLIDING' && (
-                        <div className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={gate.hasAutomation}
-                              onChange={e => updateGate(index, { hasAutomation: e.target.checked })}
-                              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm text-gray-700">Добавить автоматику</span>
-                          </label>
-                          {gate.hasAutomation && (
-                            <select
-                              value={gate.automationId}
-                              onChange={e => updateGate(index, { automationId: e.target.value })}
-                              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                            >
-                              <option value="">Выберите автоматику</option>
-                              {automationTypes.map(at => (
-                                <option key={at.id} value={at.id}>
-                                  {at.name} — {formatCurrency(at.retailPrice)}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Калитки</h3>
-                    {form.wickets.length < MAX_WICKETS && (
-                      <button
-                        type="button"
-                        onClick={addWicket}
-                        className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Добавить
-                      </button>
-                    )}
-                  </div>
-
-                  {form.wickets.map((wicket, index) => (
-                    <div key={index} className="border border-gray-200 rounded-xl p-4 space-y-3 relative">
-                      <button
-                        type="button"
-                        onClick={() => removeWicket(index)}
-                        className="absolute top-3 right-3 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <div className="flex items-center gap-2 mb-1">
-                        <DoorOpen className="w-4 h-4 text-primary rotate-180" />
-                        <span className="font-medium text-gray-800">Калитка {index + 1}</span>
-                      </div>
+          <div className="max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-5 gap-8 lg:items-start">
+              <div className="lg:col-span-3">
+                <AnimatedSection animation="fade-in-right">
+                  <div className="card-modern p-4 sm:p-6">
+                    <div className="space-y-6">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Ширина (м)</label>
+                        <label className="block text-sm font-medium mb-2">
+                          Общая высота (м) <span className="text-destructive">*</span>
+                        </label>
                         <input
                           type="number"
-                          value={wicket.wicketWidth}
-                          onChange={e => updateWicket(index, { wicketWidth: parseFloat(e.target.value) || 1.0 })}
-                          min={0.8}
-                          max={1.5}
+                          value={form.height}
+                          onChange={e => setForm({ ...form, height: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                          min={1.5}
+                          max={3.0}
                           step={0.1}
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                          className="input-modern"
+                          placeholder="2.0"
                         />
-                        <p className="text-xs text-gray-400 mt-1">От 0.8 до 1.5 м</p>
+                        <p className="text-xs text-muted-foreground mt-1">От 1.5 до 3.0 м</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold uppercase tracking-wider">Ворота</h3>
+                          {form.gates.length < MAX_GATES && (
+                            <button
+                              type="button"
+                              onClick={addGate}
+                              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Добавить
+                            </button>
+                          )}
+                        </div>
+
+                        {form.gates.map((gate, index) => (
+                          <div key={index} className="border border-border rounded-xl p-4 space-y-3 relative">
+                            {form.gates.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeGate(index)}
+                                className="absolute top-3 right-3 p-1 text-muted-foreground hover:text-destructive transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            <div className="flex items-center gap-2 mb-1">
+                              <DoorOpen className="w-4 h-4 text-primary" />
+                              <span className="font-medium">Ворота {index + 1}</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">Тип ворот</label>
+                                <select
+                                  value={gate.gateType}
+                                  onChange={e => updateGate(index, { gateType: e.target.value as 'SWING' | 'SLIDING' })}
+                                  className="select-modern text-sm"
+                                >
+                                  <option value="SWING">Распашные</option>
+                                  <option value="SLIDING">Откатные</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">Ширина (м)</label>
+                                <input
+                                  type="number"
+                                  value={gate.gateWidth}
+                                  onChange={e => updateGate(index, { gateWidth: parseFloat(e.target.value) || 2.0 })}
+                                  min={2.0}
+                                  max={6.0}
+                                  step={0.5}
+                                  className="input-modern text-sm"
+                                />
+                              </div>
+                            </div>
+
+                            {gate.gateType === 'SLIDING' && (
+                              <div className="space-y-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={gate.hasAutomation}
+                                    onChange={e => updateGate(index, { hasAutomation: e.target.checked })}
+                                    className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary"
+                                  />
+                                  <span className="text-sm">Добавить автоматику</span>
+                                </label>
+                                {gate.hasAutomation && (
+                                  <select
+                                    value={gate.automationId}
+                                    onChange={e => updateGate(index, { automationId: e.target.value })}
+                                    className="select-modern text-sm"
+                                  >
+                                    <option value="">Выберите автоматику</option>
+                                    {automationTypes.map(at => (
+                                      <option key={at.id} value={at.id}>
+                                        {at.name} — {formatCurrency(at.retailPrice)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold uppercase tracking-wider">Калитки</h3>
+                          {form.wickets.length < MAX_WICKETS && (
+                            <button
+                              type="button"
+                              onClick={addWicket}
+                              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Добавить
+                            </button>
+                          )}
+                        </div>
+
+                        {form.wickets.map((wicket, index) => (
+                          <div key={index} className="border border-border rounded-xl p-4 space-y-3 relative">
+                            <button
+                              type="button"
+                              onClick={() => removeWicket(index)}
+                              className="absolute top-3 right-3 p-1 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center gap-2 mb-1">
+                              <DoorOpen className="w-4 h-4 text-primary rotate-180" />
+                              <span className="font-medium">Калитка {index + 1}</span>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">Ширина (м)</label>
+                              <input
+                                type="number"
+                                value={wicket.wicketWidth}
+                                onChange={e => updateWicket(index, { wicketWidth: parseFloat(e.target.value) || 1.0 })}
+                                min={0.8}
+                                max={1.5}
+                                step={0.1}
+                                className="input-modern text-sm"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">От 0.8 до 1.5 м</p>
+                            </div>
+                          </div>
+                        ))}
+
+                        {form.wickets.length === 0 && (
+                          <div className="text-center py-4 border-2 border-dashed border-border/50 rounded-xl">
+                            <p className="text-sm text-muted-foreground">Калитки не добавлены</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border-t border-border/50 pt-4">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={form.needsInstallation}
+                            onChange={e => setForm({ ...form, needsInstallation: e.target.checked })}
+                            className="w-5 h-5 rounded text-primary focus:ring-primary accent-primary"
+                          />
+                          <div>
+                            <span className="font-medium">Нужен монтаж</span>
+                            <p className="text-xs text-muted-foreground">Включить стоимость монтажных работ в расчёт</p>
+                          </div>
+                        </label>
+                      </div>
+
+                      {error && (
+                        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-destructive">{error}</p>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={calculate}
+                        disabled={loading}
+                        className="w-full btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Расчёт...
+                          </>
+                        ) : (
+                          <>
+                            <Calculator className="w-5 h-5" />
+                            Рассчитать стоимость
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </AnimatedSection>
+              </div>
+
+              <div className="lg:col-span-2 lg:sticky lg:top-28 lg:self-start">
+                {result ? (
+                  <AnimatedSection animation="scale-in">
+                    <div className="card-modern p-6">
+                      <h2 className="text-xl font-bold mb-6">Результат расчёта</h2>
+
+                      <div className="space-y-3 mb-6">
+                        {result.items.filter(i => i.category !== 'installation').map((item, i) => (
+                          <div key={i} className="flex justify-between items-center text-sm py-2 border-b border-border/30">
+                            <div>
+                              <p className="font-medium">{item.nomenclatureName}</p>
+                              <p className="text-xs text-muted-foreground">{item.quantity} {item.unit} × {formatCurrency(item.pricePerUnit)}</p>
+                            </div>
+                            <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {result.items.some(i => i.category === 'installation') && (
+                        <div className="bg-primary/5 rounded-xl p-4 space-y-2 mb-4">
+                          <h4 className="font-semibold text-primary text-sm">Монтажные работы</h4>
+                          {result.items.filter(i => i.category === 'installation').map((item, i) => (
+                            <div key={i} className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">{item.nomenclatureName}</span>
+                              <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="border-t-2 border-primary/20 pt-4 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Материалы</span>
+                          <span>{formatCurrency(result.totals.materials)}</span>
+                        </div>
+                        {form.needsInstallation && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Монтаж</span>
+                            <span>{formatCurrency(result.totals.installation)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-primary/5 p-4 rounded-xl mt-4">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold">Итого</span>
+                          <span className="text-2xl font-bold text-primary">{formatCurrency(result.totals.grandTotal)}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground text-center mt-4">
+                        Расчёт от {new Date(result.calculatedAt).toLocaleString('ru-RU')}
+                      </div>
+
+                      <button
+                        onClick={() => setShowOrderForm(true)}
+                        className="w-full btn-primary flex items-center justify-center gap-2 mt-4"
+                      >
+                        <Send className="w-4 h-4" />
+                        Оформить заявку
+                      </button>
+
+                      {showOrderForm && (
+                        <OrderForm
+                          gateEstimateId={result.estimateId}
+                          calculatedCost={result.totals.grandTotal}
+                          onClose={() => setShowOrderForm(false)}
+                          onSuccess={() => setShowOrderForm(false)}
+                        />
+                      )}
+                    </div>
+                  </AnimatedSection>
+                ) : (
+                  <AnimatedSection animation="fade-in-left">
+                    <div className="card-modern p-6">
+                      <h3 className="font-bold mb-4">Что включено в расчёт?</h3>
+                      <ul className="space-y-3">
+                        {[
+                          'Все необходимые материалы',
+                          'Работы по установке',
+                          'Доставка (при необходимости)',
+                          'Гарантия на работы',
+                        ].map((item, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Shield className="w-4 h-4 text-primary" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="mt-6 p-4 bg-secondary/50 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-4 h-4 text-primary" />
+                          <span className="font-medium text-sm">Быстрый расчёт</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Укажите высоту, добавьте ворота и/или калитки
+                        </p>
                       </div>
                     </div>
-                  ))}
-
-                  {form.wickets.length === 0 && (
-                    <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-xl">
-                      <p className="text-sm text-gray-400">Калитки не добавлены</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.needsInstallation}
-                      onChange={e => setForm({ ...form, needsInstallation: e.target.checked })}
-                      className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <div>
-                      <span className="font-medium text-gray-800">Нужен монтаж</span>
-                      <p className="text-xs text-gray-400">Включить стоимость монтажных работ в расчёт</p>
-                    </div>
-                  </label>
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
+                  </AnimatedSection>
                 )}
-
-                <button
-                  onClick={calculate}
-                  disabled={loading}
-                  className="w-full px-6 py-4 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-semibold text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Расчёт...
-                    </>
-                  ) : (
-                    <>
-                      <Calculator className="w-5 h-5" />
-                      Рассчитать стоимость
-                    </>
-                  )}
-                </button>
               </div>
             </div>
-          </AnimatedSection>
-
-          <AnimatedSection>
-            <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8">
-              {result ? (
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-gray-900">Результат расчёта</h3>
-
-                  <div className="space-y-3">
-                    {result.items.filter(i => i.category !== 'installation').map((item, i) => (
-                      <div key={i} className="flex justify-between items-center py-3 border-b border-gray-100">
-                        <div>
-                          <p className="font-medium text-gray-800">{item.nomenclatureName}</p>
-                          <p className="text-xs text-gray-400">{item.quantity} {item.unit} × {formatCurrency(item.pricePerUnit)}</p>
-                        </div>
-                        <span className="font-semibold text-gray-900">{formatCurrency(item.totalPrice)}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {result.items.some(i => i.category === 'installation') && (
-                    <div className="bg-blue-50 rounded-xl p-4 space-y-2">
-                      <h4 className="font-semibold text-blue-800 text-sm">Монтажные работы</h4>
-                      {result.items.filter(i => i.category === 'installation').map((item, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm">
-                          <span className="text-blue-700">{item.nomenclatureName}</span>
-                          <span className="font-medium text-blue-900">{formatCurrency(item.totalPrice)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Материалы</span>
-                      <span className="font-medium">{formatCurrency(result.totals.materials)}</span>
-                    </div>
-                    {form.needsInstallation && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Монтаж</span>
-                        <span className="font-medium">{formatCurrency(result.totals.installation)}</span>
-                      </div>
-                    )}
-                    <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                      <span className="font-bold text-gray-900">Итого</span>
-                      <span className="text-2xl font-bold text-primary">{formatCurrency(result.totals.grandTotal)}</span>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-gray-400 text-center">
-                    Расчёт от {new Date(result.calculatedAt).toLocaleString('ru-RU')}
-                  </div>
-
-                  <button
-                    onClick={() => setShowOrderForm(true)}
-                    className="w-full px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold text-lg flex items-center justify-center gap-2"
-                  >
-                    Оформить заявку
-                  </button>
-
-                  {showOrderForm && (
-                    <OrderForm
-                      gateEstimateId={result.estimateId}
-                      calculatedCost={result.totals.grandTotal}
-                      onClose={() => setShowOrderForm(false)}
-                      onSuccess={() => setShowOrderForm(false)}
-                    />
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                    <Calculator className="w-10 h-10 text-primary/40" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-400 mb-2">Заполните параметры</h3>
-                  <p className="text-gray-400 text-sm max-w-xs">
-                    Укажите высоту, добавьте ворота и/или калитки, затем нажмите «Рассчитать стоимость»
-                  </p>
-                </div>
-              )}
-            </div>
-          </AnimatedSection>
+          </div>
         </div>
       </main>
 
-      <Footer />
+      {showOrderForm && result && (
+        <OrderForm
+          gateEstimateId={result.estimateId}
+          calculatedCost={result.totals.grandTotal}
+          onClose={() => setShowOrderForm(false)}
+          onSuccess={() => setShowOrderForm(false)}
+        />
+      )}
     </div>
   );
 }
