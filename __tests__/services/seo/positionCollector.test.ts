@@ -22,6 +22,7 @@ const mockGoto = jest.fn() as any;
 const mockWaitForSelector = jest.fn() as any;
 const mockLocator = jest.fn() as any;
 const mockEvaluate = jest.fn() as any;
+const mockUrl = jest.fn().mockReturnValue('https://www.google.ru/search?q=test') as any;
 
 const mockBrowser = {
   newPage: mockNewPage,
@@ -34,6 +35,7 @@ const mockPage = {
   locator: mockLocator,
   evaluate: mockEvaluate,
   close: mockPageClose,
+  url: mockUrl,
 };
 
 mockLaunch.mockResolvedValue(mockBrowser);

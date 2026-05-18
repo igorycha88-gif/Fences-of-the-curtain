@@ -75,6 +75,8 @@ export class PositionCollector {
     let checked = 0;
     let errors = 0;
     let skipped = 0;
+    let consecutiveBlocks = 0;
+    const MAX_CONSECUTIVE_BLOCKS = 3;
 
     try {
       for (let i = 0; i < keywords.length; i++) {
@@ -89,21 +91,39 @@ export class PositionCollector {
           page = await browser.newPage();
           const result = await this.scrapeKeyword(page, kw.keyword, kw.searchEngine);
 
-          await prisma.seoPosition.create({
-            data: {
-              keywordId: kw.id,
-              position: result.position,
-              url: result.url || null,
-              title: result.title || null,
-              snippet: result.snippet || null,
-              found: result.found,
-            },
-          });
+          if (result.blocked) {
+            consecutiveBlocks++;
+            skipped++;
+            console.warn(
+              `[PositionCollector] Blocked (${consecutiveBlocks}/${MAX_CONSECUTIVE_BLOCKS}) for "${kw.keyword}" (${kw.searchEngine})`
+            );
+            if (consecutiveBlocks >= MAX_CONSECUTIVE_BLOCKS) {
+              const remaining = keywords.length - i - 1;
+              console.warn(
+                `[PositionCollector] Too many blocks (${MAX_CONSECUTIVE_BLOCKS}), stopping. ${remaining} keywords skipped.`
+              );
+              skipped += remaining;
+              break;
+            }
+          } else {
+            consecutiveBlocks = 0;
 
-          checked++;
-          console.log(
-            `[PositionCollector] "${kw.keyword}" (${kw.searchEngine}): pos=${result.position}, found=${result.found}`
-          );
+            await prisma.seoPosition.create({
+              data: {
+                keywordId: kw.id,
+                position: result.position,
+                url: result.url || null,
+                title: result.title || null,
+                snippet: result.snippet || null,
+                found: result.found,
+              },
+            });
+
+            checked++;
+            console.log(
+              `[PositionCollector] "${kw.keyword}" (${kw.searchEngine}): pos=${result.position}, found=${result.found}`
+            );
+          }
         } catch (error) {
           errors++;
           console.error(
@@ -143,7 +163,13 @@ export class PositionCollector {
     try {
       browser = await this.launchBrowser(launch);
       const page = await browser.newPage();
-      return await this.scrapeKeyword(page, keyword, searchEngine);
+      return await this.scrapeKeyword(page, keyword, searchEngine).then((r) => ({
+        position: r.position,
+        url: r.url,
+        title: r.title,
+        snippet: r.snippet,
+        found: r.found,
+      }));
     } finally {
       if (browser) {
         await browser.close().catch(() => {});
@@ -161,6 +187,7 @@ export class PositionCollector {
     title?: string;
     snippet?: string;
     found: boolean;
+    blocked: boolean;
   }> {
     const url = this.buildSearchUrl(keyword, searchEngine);
 
@@ -172,7 +199,7 @@ export class PositionCollector {
     const waitSelector =
       searchEngine === 'yandex'
         ? 'li.serp-item, [class*="serp-item"], main, #search-result'
-        : 'div#rso, div.g, #main';
+        : 'div#rso, div.g, #main, h3';
 
     try {
       await page.waitForSelector(waitSelector, { timeout: 15000 });
@@ -189,15 +216,15 @@ export class PositionCollector {
 
     if (parsed.captcha) {
       console.warn(
-        `[PositionCollector] CAPTCHA detected for "${keyword}" (${searchEngine})`
+        `[PositionCollector] CAPTCHA/BLOCK detected for "${keyword}" (${searchEngine}), URL: ${page.url().substring(0, 100)}`
       );
-      return { position: 0, found: false };
+      return { position: 0, found: false, blocked: true };
     }
 
     const siteResult = findSiteInResults(parsed.results, DOMAIN);
 
     if (!siteResult) {
-      return { position: 0, found: false };
+      return { position: 0, found: false, blocked: false };
     }
 
     return {
@@ -206,6 +233,7 @@ export class PositionCollector {
       title: siteResult.title,
       snippet: siteResult.snippet,
       found: true,
+      blocked: false,
     };
   }
 
