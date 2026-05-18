@@ -137,7 +137,7 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'docx', 'xlsx', 'jspdf'],
     instrumentationHook: true,
-    serverComponentsExternalPackages: ['undici'],
+    serverComponentsExternalPackages: ['undici', 'cloakbrowser', 'playwright-core'],
   },
 };
 

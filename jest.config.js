@@ -32,6 +32,7 @@ module.exports = {
       testMatch: ['**/__tests__/**/*.test.ts'],
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
+        '^cloakbrowser$': '<rootDir>/__tests__/__mocks__/cloakbrowser.ts',
       },
       transform: {
         '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }],

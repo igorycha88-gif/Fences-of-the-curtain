@@ -14,14 +14,62 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
-const mockFetch = jest.fn() as any;
-global.fetch = mockFetch;
+const mockLaunch = jest.fn() as any;
+const mockNewPage = jest.fn() as any;
+const mockClose = jest.fn() as any;
+const mockPageClose = jest.fn() as any;
+const mockGoto = jest.fn() as any;
+const mockWaitForSelector = jest.fn() as any;
+const mockLocator = jest.fn() as any;
+const mockEvaluate = jest.fn() as any;
+
+const mockBrowser = {
+  newPage: mockNewPage,
+  close: mockClose,
+};
+
+const mockPage = {
+  goto: mockGoto,
+  waitForSelector: mockWaitForSelector,
+  locator: mockLocator,
+  evaluate: mockEvaluate,
+  close: mockPageClose,
+};
+
+mockLaunch.mockResolvedValue(mockBrowser);
+mockNewPage.mockResolvedValue(mockPage);
+mockPageClose.mockResolvedValue(undefined);
+mockClose.mockResolvedValue(undefined);
+mockGoto.mockResolvedValue(undefined);
+mockWaitForSelector.mockResolvedValue(undefined);
+
+jest.mock('cloakbrowser', () => ({
+  launch: mockLaunch,
+}));
+
+const mockParseGoogleSerp = jest.fn() as any;
+const mockParseYandexSerp = jest.fn() as any;
+
+jest.mock('@/services/seo/serpParser', () => ({
+  parseGoogleSerp: mockParseGoogleSerp,
+  parseYandexSerp: mockParseYandexSerp,
+  findSiteInResults: jest.fn((results: any[], domain: string) =>
+    results.find((r: any) => r.url.includes(domain))
+  ),
+}));
 
 describe('PositionCollector', () => {
   let PositionCollector: typeof import('@/services/seo/positionCollector').PositionCollector;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLaunch.mockResolvedValue(mockBrowser);
+    mockNewPage.mockResolvedValue(mockPage);
+    mockPageClose.mockResolvedValue(undefined);
+    mockClose.mockResolvedValue(undefined);
+    mockGoto.mockResolvedValue(undefined);
+    mockWaitForSelector.mockResolvedValue(undefined);
+
     const mod = jest.requireActual('@/services/seo/positionCollector') as {
       PositionCollector: typeof import('@/services/seo/positionCollector').PositionCollector;
     };
@@ -31,25 +79,18 @@ describe('PositionCollector', () => {
   describe('collectForKeyword', () => {
     it('should find site position in Google results', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          organic_results: [
-            {
-              position: 1,
-              title: 'Other site',
-              link: 'https://other-site.ru',
-            },
-            {
-              position: 2,
-              title: 'Заборы и Навесы',
-              link: 'https://zabor-i-naves.ru/zabory',
-              snippet: 'Заборы под ключ',
-            },
-          ],
-        }),
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [
+          { position: 1, title: 'Other site', url: 'https://other-site.ru' },
+          {
+            position: 2,
+            title: 'Заборы и Навесы',
+            url: 'https://zabor-i-naves.ru/zabory',
+            snippet: 'Заборы под ключ',
+          },
+        ],
+        captcha: false,
       });
 
       const result = await collector.collectForKeyword(
@@ -65,19 +106,12 @@ describe('PositionCollector', () => {
 
     it('should return not found when site is absent', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          organic_results: [
-            {
-              position: 1,
-              title: 'Other',
-              link: 'https://other.ru',
-            },
-          ],
-        }),
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [
+          { position: 1, title: 'Other', url: 'https://other.ru' },
+        ],
+        captcha: false,
       });
 
       const result = await collector.collectForKeyword(
@@ -91,11 +125,10 @@ describe('PositionCollector', () => {
 
     it('should return not found when no organic results', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ organic_results: [] }),
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [],
+        captcha: false,
       });
 
       const result = await collector.collectForKeyword('тест', 'google');
@@ -104,121 +137,134 @@ describe('PositionCollector', () => {
       expect(result.position).toBe(0);
     });
 
-    it('should throw on API error', async () => {
+    it('should return not found on CAPTCHA', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 429,
-        text: async () => 'Rate limited',
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [],
+        captcha: true,
       });
 
-      await expect(
-        collector.collectForKeyword('тест', 'google')
-      ).rejects.toThrow('ValueSERP API error: 429');
+      const result = await collector.collectForKeyword('тест', 'google');
+
+      expect(result.found).toBe(false);
+      expect(result.position).toBe(0);
     });
 
-    it('should throw when request_info.success is false', async () => {
+    it('should use yandex parser for yandex engine', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          request_info: {
-            success: false,
-            message: 'You have used all of your Top Up credits.',
-          },
-        }),
-      });
-
-      await expect(
-        collector.collectForKeyword('тест', 'google')
-      ).rejects.toThrow('ValueSERP API error: You have used all of your Top Up credits.');
-    });
-
-    it('should throw generic error when request_info.success is false without message', async () => {
-      const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          request_info: {
-            success: false,
-          },
-        }),
-      });
-
-      await expect(
-        collector.collectForKeyword('тест', 'google')
-      ).rejects.toThrow('ValueSERP API error: Unknown ValueSERP error');
-    });
-
-    it('should use yandex params for yandex engine', async () => {
-      const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ organic_results: [] }),
+      mockParseYandexSerp.mockResolvedValue({
+        results: [],
+        captcha: false,
       });
 
       await collector.collectForKeyword('забор', 'yandex');
 
-      const fetchUrl = mockFetch.mock.calls[0][0];
-      expect(fetchUrl).toContain('engine=yandex');
-      expect(fetchUrl).toContain('yandex_domain=yandex.ru');
+      expect(mockParseYandexSerp).toHaveBeenCalledWith(mockPage);
     });
 
-    it('should use google params for google engine', async () => {
+    it('should use google parser for google engine', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ organic_results: [] }),
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [],
+        captcha: false,
       });
 
       await collector.collectForKeyword('забор', 'google');
 
-      const fetchUrl = mockFetch.mock.calls[0][0];
-      expect(fetchUrl).toContain('google_domain=google.ru');
+      expect(mockParseGoogleSerp).toHaveBeenCalledWith(mockPage);
+    });
+
+    it('should navigate to google.ru for google engine', async () => {
+      const collector = new PositionCollector();
+
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [],
+        captcha: false,
+      });
+
+      await collector.collectForKeyword('забор', 'google');
+
+      expect(mockGoto).toHaveBeenCalledWith(
+        expect.stringContaining('google.ru/search'),
+        expect.any(Object)
+      );
+    });
+
+    it('should navigate to yandex.ru for yandex engine', async () => {
+      const collector = new PositionCollector();
+
+      mockParseYandexSerp.mockResolvedValue({
+        results: [],
+        captcha: false,
+      });
+
+      await collector.collectForKeyword('забор', 'yandex');
+
+      expect(mockGoto).toHaveBeenCalledWith(
+        expect.stringContaining('yandex.ru/search'),
+        expect.any(Object)
+      );
+    });
+
+    it('should close browser after single keyword collection', async () => {
+      const collector = new PositionCollector();
+
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [],
+        captcha: false,
+      });
+
+      await collector.collectForKeyword('тест', 'google');
+
+      expect(mockClose).toHaveBeenCalled();
     });
   });
 
   describe('collectAll', () => {
-    it('should skip when API key is not set', async () => {
+    it('should skip when no active keywords', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = '';
+
+      mockSeoKeywordFindMany.mockResolvedValue([]);
 
       const result = await collector.collectAll();
 
       expect(result).toEqual({ checked: 0, errors: 0, skipped: 0 });
+      expect(mockLaunch).not.toHaveBeenCalled();
     });
 
     it('should collect positions for all active keywords', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
       mockSeoKeywordFindMany.mockResolvedValue([
         { id: '1', keyword: 'забор', searchEngine: 'google' },
         { id: '2', keyword: 'навес', searchEngine: 'yandex' },
       ]);
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          organic_results: [
-            {
-              position: 3,
-              title: 'Заборы',
-              link: 'https://zabor-i-naves.ru',
-              snippet: 'Test',
-            },
-          ],
-        }),
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [
+          {
+            position: 3,
+            title: 'Заборы',
+            url: 'https://zabor-i-naves.ru',
+            snippet: 'Test',
+          },
+        ],
+        captcha: false,
+      });
+
+      mockParseYandexSerp.mockResolvedValue({
+        results: [
+          {
+            position: 5,
+            title: 'Навесы',
+            url: 'https://zabor-i-naves.ru/canopy',
+            snippet: 'Test',
+          },
+        ],
+        captcha: false,
       });
 
       mockSeoPositionCreate.mockResolvedValue({ id: 'p1' });
@@ -232,27 +278,20 @@ describe('PositionCollector', () => {
 
     it('should handle errors for individual keywords', async () => {
       const collector = new PositionCollector();
-      (collector as any).apiKey = 'test-key';
 
       mockSeoKeywordFindMany.mockResolvedValue([
         { id: '1', keyword: 'забор', searchEngine: 'google' },
         { id: '2', keyword: 'навес', searchEngine: 'google' },
       ]);
 
-      mockFetch
+      mockParseGoogleSerp
         .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            organic_results: [
-              { position: 1, link: 'https://zabor-i-naves.ru' },
-            ],
-          }),
+          results: [
+            { position: 1, url: 'https://zabor-i-naves.ru', title: 'T' },
+          ],
+          captcha: false,
         })
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 500,
-          text: async () => 'Error',
-        });
+        .mockRejectedValueOnce(new Error('Page timeout'));
 
       mockSeoPositionCreate.mockResolvedValue({ id: 'p1' });
 
@@ -260,6 +299,53 @@ describe('PositionCollector', () => {
 
       expect(result.checked).toBe(1);
       expect(result.errors).toBe(1);
+    });
+
+    it('should handle browser launch failure', async () => {
+      const collector = new PositionCollector();
+
+      mockSeoKeywordFindMany.mockResolvedValue([
+        { id: '1', keyword: 'забор', searchEngine: 'google' },
+      ]);
+
+      mockLaunch.mockRejectedValue(new Error('No binary'));
+
+      const result = await collector.collectAll();
+
+      expect(result.checked).toBe(0);
+      expect(result.errors).toBe(0);
+      expect(result.skipped).toBe(1);
+    });
+
+    it('should close browser after all keywords processed', async () => {
+      const collector = new PositionCollector();
+
+      mockSeoKeywordFindMany.mockResolvedValue([
+        { id: '1', keyword: 'забор', searchEngine: 'google' },
+      ]);
+
+      mockParseGoogleSerp.mockResolvedValue({
+        results: [],
+        captcha: false,
+      });
+
+      await collector.collectAll();
+
+      expect(mockClose).toHaveBeenCalled();
+    });
+
+    it('should close browser even if errors occur', async () => {
+      const collector = new PositionCollector();
+
+      mockSeoKeywordFindMany.mockResolvedValue([
+        { id: '1', keyword: 'забор', searchEngine: 'google' },
+      ]);
+
+      mockParseGoogleSerp.mockRejectedValue(new Error('fail'));
+
+      await collector.collectAll();
+
+      expect(mockClose).toHaveBeenCalled();
     });
   });
 });
