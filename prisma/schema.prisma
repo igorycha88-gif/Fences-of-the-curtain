@@ -955,3 +955,42 @@ model AutomationType {
   @@index([priority])
   @@index([name])
 }
+
+model SeoKeyword {
+  id           String       @id @default(cuid())
+  keyword      String
+  searchEngine String       @default("google")
+  pagePath     String?
+  group        String?
+  active       Boolean      @default(true)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  positions    SeoPosition[]
+
+  @@unique([keyword, searchEngine])
+  @@index([active])
+  @@index([searchEngine])
+  @@index([group])
+  @@index([keyword])
+  @@map("seo_keywords")
+}
+
+model SeoPosition {
+  id        String     @id @default(cuid())
+  keywordId String
+  position  Int
+  url       String?
+  title     String?
+  snippet   String?
+  found     Boolean    @default(true)
+  checkedAt DateTime   @default(now())
+  createdAt DateTime   @default(now())
+  keyword   SeoKeyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  @@index([keywordId])
+  @@index([checkedAt])
+  @@index([keywordId, checkedAt])
+  @@index([found])
+  @@map("seo_positions")
+}

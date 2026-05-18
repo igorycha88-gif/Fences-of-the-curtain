@@ -172,6 +172,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 Отзывы
               </a>
             </li>
+            <li>
+              <a
+                href="/admin/seo-monitoring"
+                onClick={handleNavClick}
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/seo-monitoring')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                SEO-мониторинг
+              </a>
+            </li>
             <li className="pt-4 border-t mt-4">
               <button
                 onClick={toggleReferences}

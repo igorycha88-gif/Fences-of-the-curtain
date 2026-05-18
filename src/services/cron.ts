@@ -1,6 +1,7 @@
 import { redis } from '@/lib/redis';
 import { sendTelegramMessage } from '@/services/telegram/bot';
 import { getMoscowDate } from '@/lib/timezone';
+import { positionCollector } from '@/services/seo/positionCollector';
 
 const KEY_EVENTS = [
   { key: 'calculator_calculate', emoji: '🧮', label: 'Расчёты калькулятора' },
@@ -57,6 +58,7 @@ ${keyEventsLines}
 }
 
 const LAST_SENT_KEY = 'cron:daily_summary:last_sent_date';
+const LAST_SEO_KEY = 'cron:seo_positions:last_sent_date';
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -73,25 +75,43 @@ export async function checkAndSend(): Promise<void> {
   const minute = parseInt(moscowParts.find(p => p.type === 'minute')?.value || '0', 10);
   const today = getMoscowDate();
 
-  if (hour !== 20 || minute !== 0) return;
+  if (hour === 20 && minute === 0) {
+    const lastSentDate = await redis.get(LAST_SENT_KEY);
+    if (lastSentDate !== today) {
+      console.log('[Cron] Sending daily summary at 20:00 Moscow time...');
+      await redis.set(LAST_SENT_KEY, today, 'EX', 86400);
 
-  const lastSentDate = await redis.get(LAST_SENT_KEY);
-  if (lastSentDate === today) return;
-
-  console.log('[Cron] Sending daily summary at 20:00 Moscow time...');
-  await redis.set(LAST_SENT_KEY, today, 'EX', 86400);
-
-  try {
-    const sent = await sendDailySummary();
-    if (sent) {
-      console.log('[Cron] Daily summary sent successfully');
-    } else {
-      console.error('[Cron] Daily summary failed to send');
-      await redis.del(LAST_SENT_KEY);
+      try {
+        const sent = await sendDailySummary();
+        if (sent) {
+          console.log('[Cron] Daily summary sent successfully');
+        } else {
+          console.error('[Cron] Daily summary failed to send');
+          await redis.del(LAST_SENT_KEY);
+        }
+      } catch (err) {
+        console.error('[Cron] Daily summary error:', err);
+        await redis.del(LAST_SENT_KEY);
+      }
     }
-  } catch (err) {
-    console.error('[Cron] Daily summary error:', err);
-    await redis.del(LAST_SENT_KEY);
+  }
+
+  if (hour === 3 && minute === 0) {
+    const lastSeoDate = await redis.get(LAST_SEO_KEY);
+    if (lastSeoDate !== today) {
+      console.log('[Cron] Starting SEO position collection at 03:00 Moscow time...');
+      await redis.set(LAST_SEO_KEY, today, 'EX', 86400);
+
+      try {
+        const result = await positionCollector.collectAll();
+        console.log(
+          `[Cron] SEO positions collected: checked=${result.checked}, errors=${result.errors}`
+        );
+      } catch (err) {
+        console.error('[Cron] SEO position collection error:', err);
+        await redis.del(LAST_SEO_KEY);
+      }
+    }
   }
 }
 
