@@ -66,10 +66,21 @@ interface MultiOrderFormProps {
   onSuccess: () => void;
 }
 
-type OrderFormProps = SingleOrderFormProps | MultiOrderFormProps;
+interface GateOrderFormProps {
+  gateEstimateId: string;
+  calculatedCost: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+type OrderFormProps = SingleOrderFormProps | MultiOrderFormProps | GateOrderFormProps;
 
 function isMultiOrderFormProps(props: OrderFormProps): props is MultiOrderFormProps {
   return 'multiEstimateId' in props && 'estimates' in props;
+}
+
+function isGateOrderFormProps(props: OrderFormProps): props is GateOrderFormProps {
+  return 'gateEstimateId' in props && !('multiEstimateId' in props) && !('estimates' in props);
 }
 
 interface FormData {
@@ -209,6 +220,11 @@ export default function OrderForm(props: OrderFormProps) {
       if (isMulti) {
         requestBody.isMultiEstimate = true;
         requestBody.multiEstimateId = props.multiEstimateId;
+      }
+
+      if (isGateOrderFormProps(props)) {
+        requestBody.isGateEstimate = true;
+        requestBody.gateEstimateId = props.gateEstimateId;
       }
 
       const response = await fetch('/api/orders', {

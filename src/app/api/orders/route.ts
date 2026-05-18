@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createOrderSchema, individualOrderSchema, multiEstimateOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
+import { createOrderSchema, individualOrderSchema, multiEstimateOrderSchema, gateEstimateOrderSchema, STATUS_LABELS } from '@/lib/validators/order';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getSessionFromCookie } from '@/lib/session';
@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
 
     if (body.isMultiEstimate) {
       return await createMultiEstimateOrder(body, rlHeaders);
+    }
+
+    if (body.isGateEstimate) {
+      return await createGateEstimateOrder(body, rlHeaders);
     }
 
     return await createStandardOrder(body, rlHeaders);
@@ -286,6 +290,92 @@ async function createStandardOrder(body: unknown, rlHeaders: Record<string, stri
       statusLabel: STATUS_LABELS[order.status],
       estimateId: estimate.id,
       calculatedCost: estimate.grandTotal,
+      createdAt: order.createdAt,
+    },
+    { status: 201, headers: rlHeaders }
+  );
+}
+
+async function createGateEstimateOrder(body: unknown, rlHeaders: Record<string, string>) {
+  const validatedData = gateEstimateOrderSchema.parse(body);
+
+  const gateEstimate = await prisma.gateEstimate.findUnique({
+    where: { id: validatedData.gateEstimateId },
+  });
+
+  if (!gateEstimate) {
+    return NextResponse.json(
+      { error: 'ESTIMATE_NOT_FOUND', message: 'Расчёт не найден. Пожалуйста, выполните расчёт заново.' },
+      { status: 400, headers: rlHeaders }
+    );
+  }
+
+  const order = await prisma.order.create({
+    data: {
+      clientName: validatedData.clientName,
+      phone: validatedData.phone,
+      email: validatedData.email || null,
+      serviceType: 'gates',
+      parameters: {
+        message: validatedData.message || null,
+        height: gateEstimate.height,
+        needsInstallation: gateEstimate.needsInstallation,
+        materialsTotal: gateEstimate.materialsTotal,
+        installationTotal: gateEstimate.installationTotal,
+      },
+      calculatedCost: gateEstimate.grandTotal,
+      status: 'NEW',
+      gateEstimateId: gateEstimate.id,
+      statusHistory: [
+        {
+          status: 'NEW',
+          changedAt: new Date().toISOString(),
+          changedBy: 'system',
+          changedByName: 'Система',
+          data: {},
+        },
+      ],
+    },
+  });
+
+  getSystemUserId().then((systemUserId) => {
+    createAuditLogAsync({
+      userId: systemUserId,
+      action: 'CREATE_GATE_ESTIMATE_ORDER',
+      entityType: 'Order',
+      entityId: order.id,
+      oldValues: null,
+      newValues: {
+        clientName: validatedData.clientName,
+        phone: validatedData.phone,
+        email: validatedData.email,
+        serviceType: 'gates',
+        parameters: order.parameters,
+        calculatedCost: gateEstimate.grandTotal,
+      },
+    });
+  });
+
+  sendOrderNotification(order).catch((err) =>
+    console.error('Failed to send order notification emails:', err)
+  );
+  sendTelegramNotification(order).catch((err) =>
+    console.error('Failed to send Telegram notification:', err)
+  );
+  if (validatedData.email) {
+    sendClientConfirmation(order).catch((err) =>
+      console.error('Failed to send client confirmation email:', err)
+    );
+  }
+
+  return NextResponse.json(
+    {
+      id: order.id,
+      status: order.status,
+      statusLabel: STATUS_LABELS[order.status],
+      gateEstimateId: gateEstimate.id,
+      calculatedCost: gateEstimate.grandTotal,
+      isGateEstimate: true,
       createdAt: order.createdAt,
     },
     { status: 201, headers: rlHeaders }

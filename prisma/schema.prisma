@@ -219,6 +219,8 @@ model Order {
   assignedUser       User?               @relation("AssignedOrders", fields: [assignedTo], references: [id])
   estimate           FenceEstimate?      @relation("OrderEstimate", fields: [estimateId], references: [id])
   multiEstimate      MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
+  gateEstimateId     String?             @unique
+  gateEstimate       GateEstimate?       @relation(fields: [gateEstimateId], references: [id])
 
   @@index([status])
   @@index([estimateId])
@@ -227,6 +229,7 @@ model Order {
   @@index([cancellationReason])
   @@index([completionDate])
   @@index([active])
+  @@index([gateEstimateId])
 }
 
 model PortfolioItem {
@@ -637,6 +640,30 @@ model FenceEstimate {
   @@index([sourceEstimateId])
   @@index([editedByAdminId])
   @@index([active])
+}
+
+model GateEstimate {
+  id                String   @id @default(cuid())
+  height            Float
+  needsInstallation Boolean  @default(false)
+  materialsTotal    Float
+  installationTotal Float
+  grandTotal        Float
+  items             Json
+  userId            String?
+  sessionId         String?
+  userAgent         String?
+  ipAddress         String?
+  city              String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  active            Boolean  @default(true)
+  order             Order?
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([city])
 }
 
 model MountingHardware {

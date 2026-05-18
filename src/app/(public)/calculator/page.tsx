@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Fence, Home } from 'lucide-react';
+import { Fence, Home, DoorOpen } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
@@ -13,10 +13,10 @@ export default function CalculatorPage() {
           Выберите калькулятор
         </h1>
         <p className="text-xl text-gray-600 text-center mb-16 max-w-2xl mx-auto">
-          Рассчитайте стоимость забора или навеса онлайн за несколько минут
+          Рассчитайте стоимость забора, ворот, калиток или навеса онлайн за несколько минут
         </p>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Link
             href="/calculator/fence"
             className="group bg-white rounded-xl shadow-lg p-8 border hover:shadow-xl transition-all hover:scale-105"
@@ -33,6 +33,25 @@ export default function CalculatorPage() {
               <li>• Евроштакетник</li>
               <li>• Сетка-рабица</li>
               <li>• 3D-панели</li>
+            </ul>
+          </Link>
+
+          <Link
+            href="/calculator/gates"
+            className="group bg-white rounded-xl shadow-lg p-8 border hover:shadow-xl transition-all hover:scale-105"
+          >
+            <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+              <DoorOpen className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Калькулятор ворот и калиток</h2>
+            <p className="text-gray-600 mb-4">
+              Рассчитайте стоимость ворот и калиток с монтажом или без
+            </p>
+            <ul className="text-sm text-gray-500 space-y-2">
+              <li>• Распашные ворота</li>
+              <li>• Откатные ворота</li>
+              <li>• Калитки</li>
+              <li>• Автоматика</li>
             </ul>
           </Link>
 

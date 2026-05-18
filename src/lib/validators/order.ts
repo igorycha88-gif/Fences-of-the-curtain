@@ -16,6 +16,15 @@ export const createOrderSchema = z.object({
   message: z.string().max(1000).optional(),
 });
 
+export const gateEstimateOrderSchema = z.object({
+  clientName: z.string().min(2, 'Имя должно содержать минимум 2 символа').max(100),
+  phone: z.string().regex(/^\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}$/, 'Формат: +7 (XXX) XXX-XX-XX'),
+  email: z.string().email('Некорректный email').optional().or(z.literal('')),
+  message: z.string().max(1000).optional(),
+  gateEstimateId: z.string().min(1, 'ID расчёта ворот обязателен'),
+  isGateEstimate: z.literal(true),
+});
+
 export const fenceParametersSchema = z.object({
   fenceTypeId: z.string(),
   fenceTypeName: z.string(),
