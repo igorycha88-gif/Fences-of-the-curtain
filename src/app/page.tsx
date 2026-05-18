@@ -18,6 +18,8 @@ import {
   Award,
   Users,
   CheckCircle2,
+  DoorOpen,
+  Warehouse,
 } from 'lucide-react';
 import { YandexReviews } from '@/components/reviews/YandexReviews';
 import { generateAggregateRatingJsonLd, generateReviewJsonLd } from '@/lib/seo/jsonld';
@@ -102,21 +104,33 @@ export default function HomePage() {
               </AnimatedSection>
 
               <AnimatedSection animation="scale-in" delay={300}>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-col items-center gap-4">
                   <Link
                     href="/calculator/fence"
-                    className="btn-primary inline-flex items-center justify-center gap-2 text-lg px-8 py-4"
+                    className="btn-primary inline-flex items-center justify-center gap-2 text-lg px-10 py-4"
                   >
                     <Calculator className="w-5 h-5" />
                     Рассчитать забор
                     <ArrowRight className="w-5 h-5" />
                   </Link>
-                  <Link
-                    href="/calculator/canopy"
-                    className="btn-secondary inline-flex items-center justify-center gap-2 text-lg px-8 py-4"
-                  >
-                    Рассчитать навес
-                  </Link>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Link
+                      href="/calculator/gates"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20 text-foreground font-medium hover:bg-primary hover:text-white hover:border-primary hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                    >
+                      <DoorOpen className="w-4 h-4" />
+                      Ворота и калитка
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      href="/calculator/canopy"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20 text-foreground font-medium hover:bg-primary hover:text-white hover:border-primary hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                    >
+                      <Warehouse className="w-4 h-4" />
+                      Навес
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
               </AnimatedSection>
 
