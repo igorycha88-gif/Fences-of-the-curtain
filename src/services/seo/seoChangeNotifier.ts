@@ -23,6 +23,12 @@ interface DroppedOut {
   previousPosition: number;
 }
 
+interface CurrentPosition {
+  keyword: string;
+  searchEngine: string;
+  position: number;
+}
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -74,6 +80,7 @@ export class SeoChangeNotifier {
     const improvements: PositionChange[] = [];
     const declines: PositionChange[] = [];
     const droppedOut: DroppedOut[] = [];
+    const currentPositions: CurrentPosition[] = [];
 
     for (const [keywordId, posList] of latestByKeyword) {
       const kw = keywordMap.get(keywordId);
@@ -122,13 +129,19 @@ export class SeoChangeNotifier {
         improvements.push(entry);
       } else if (change < 0) {
         declines.push(entry);
+      } else {
+        currentPositions.push({
+          keyword: kw.keyword,
+          searchEngine: kw.searchEngine,
+          position: latest.position,
+        });
       }
     }
 
     improvements.sort((a, b) => b.change - a.change);
     declines.sort((a, b) => a.change - b.change);
 
-    return this.formatMessage(result, notFound, firstFound, improvements, declines, droppedOut);
+    return this.formatMessage(result, notFound, firstFound, improvements, declines, droppedOut, currentPositions);
   }
 
   private formatMessage(
@@ -137,7 +150,8 @@ export class SeoChangeNotifier {
     firstFound: FirstFound[],
     improvements: PositionChange[],
     declines: PositionChange[],
-    droppedOut: DroppedOut[]
+    droppedOut: DroppedOut[],
+    currentPositions: CurrentPosition[]
   ): string {
     const now = getMoscowDateTime();
     const lines: string[] = [];
@@ -200,9 +214,18 @@ export class SeoChangeNotifier {
       }
     }
 
-    if (improvements.length === 0 && declines.length === 0 && firstFound.length === 0 && droppedOut.length === 0) {
+    if (improvements.length === 0 && declines.length === 0 && firstFound.length === 0 && droppedOut.length === 0 && currentPositions.length === 0) {
       lines.push('');
       lines.push(`ℹ️ Изменений позиций не обнаружено.`);
+    }
+
+    if (currentPositions.length > 0) {
+      lines.push('');
+      lines.push(`📍 <b>Текущие позиции (без изменений):</b>`);
+      for (const item of currentPositions.slice(0, 20)) {
+        const engine = item.searchEngine === 'yandex' ? 'Яндекс' : 'Google';
+        lines.push(`• «${escapeHtml(item.keyword)}» → позиция ${item.position} (${engine})`);
+      }
     }
 
     return lines.join('\n');
@@ -217,15 +240,21 @@ export class SeoChangeNotifier {
         return sendTelegramMessage(message);
       }
 
-      const headerEnd = message.indexOf('🆕 <b>Первые найденные');
-      if (headerEnd === -1) {
-        const headerEndAlt = message.indexOf('📈 <b>Улучшения');
-        if (headerEndAlt === -1) {
-          return sendTelegramMessage(message.substring(0, MAX_TG_LENGTH));
-        }
+      let cutPoint = -1;
+      for (const marker of [
+        '🆕 <b>Первые найденные',
+        '📍 <b>Текущие позиции',
+        '📈 <b>Улучшения',
+        '📉 <b>Ухудшения',
+        '🔴 <b>Выпали из выдачи',
+      ]) {
+        cutPoint = message.indexOf(marker);
+        if (cutPoint > 0) break;
       }
 
-      const cutPoint = headerEnd > 0 ? headerEnd : Math.floor(MAX_TG_LENGTH * 0.8);
+      if (cutPoint <= 0) {
+        cutPoint = Math.floor(MAX_TG_LENGTH * 0.8);
+      }
       const part1 = message.substring(0, cutPoint);
       const part2 = message.substring(cutPoint);
 

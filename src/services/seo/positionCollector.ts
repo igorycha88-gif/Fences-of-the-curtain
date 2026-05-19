@@ -214,8 +214,19 @@ export class PositionCollector {
     if (session.completedBatches >= session.totalBatches) {
       console.log('[PositionCollector] Session already completed');
       await redis.del(SESSION_KEY);
+
+      const total = session.batchResults.reduce(
+        (acc, r) => ({
+          checked: acc.checked + r.checked,
+          errors: acc.errors + r.errors,
+          skipped: acc.skipped + r.skipped,
+          blocked: acc.blocked + r.blocked,
+        }),
+        { checked: 0, errors: 0, skipped: 0, blocked: 0 }
+      );
+
       return {
-        checked: 0, errors: 0, skipped: 0, blocked: 0,
+        ...total,
         totalBatches: session.totalBatches,
         completedBatches: session.completedBatches,
         currentBatch: session.totalBatches,

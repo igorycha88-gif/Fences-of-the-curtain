@@ -164,7 +164,7 @@ describe('SeoChangeNotifier', () => {
       expect(report).toContain('калькулятор забора');
     });
 
-    it('should show no changes message when everything is stable', async () => {
+    it('should show current positions when positions are stable', async () => {
       const now = new Date();
       const prev = new Date(now.getTime() - 86400000);
 
@@ -175,6 +175,20 @@ describe('SeoChangeNotifier', () => {
         makePosition('kw1', 5, true, now),
         makePosition('kw1', 5, true, prev),
       ]);
+
+      const report = await notifier.buildReport(makeResult());
+
+      expect(report).toContain('📍');
+      expect(report).toContain('Текущие позиции');
+      expect(report).toContain('забор под ключ');
+      expect(report).toContain('позиция 5');
+    });
+
+    it('should show no changes message when no positions exist at all', async () => {
+      mockFindManyKeywords.mockResolvedValue([
+        makeKeyword('kw1', 'забор под ключ'),
+      ]);
+      mockFindManyPositions.mockResolvedValue([]);
 
       const report = await notifier.buildReport(makeResult());
 
@@ -190,6 +204,7 @@ describe('SeoChangeNotifier', () => {
         makeKeyword('kw2', 'навес для машины', 'yandex'),
         makeKeyword('kw3', 'калькулятор забора'),
         makeKeyword('kw4', 'забор недорого'),
+        makeKeyword('kw5', 'забор дешево', 'yandex'),
       ]);
       mockFindManyPositions.mockResolvedValue([
         makePosition('kw1', 4, true, now),
@@ -198,6 +213,8 @@ describe('SeoChangeNotifier', () => {
         makePosition('kw3', 5, true, now),
         makePosition('kw3', 3, true, prev),
         makePosition('kw4', 0, false, now),
+        makePosition('kw5', 3, true, now),
+        makePosition('kw5', 3, true, prev),
       ]);
 
       const report = await notifier.buildReport(makeResult());
@@ -208,6 +225,8 @@ describe('SeoChangeNotifier', () => {
       expect(report).toContain('позиция 8');
       expect(report).toContain('калькулятор забора');
       expect(report).toContain('-2');
+      expect(report).toContain('📍');
+      expect(report).toContain('забор дешево');
     });
   });
 
