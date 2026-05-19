@@ -20,6 +20,8 @@ model User {
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   estimates            FenceEstimate[]
+  gateEstimates        GateEstimate[]    @relation("GateEstimateEditedBy")
+  gateEstimateOrders   GateEstimate[]
   multiEstimates       MultiFenceEstimate[]
   ordersAssigned       Order[]                   @relation("AssignedOrders")
   priceHistory         PriceHistory[]
@@ -219,8 +221,10 @@ model Order {
   assignedUser       User?               @relation("AssignedOrders", fields: [assignedTo], references: [id])
   estimate           FenceEstimate?      @relation("OrderEstimate", fields: [estimateId], references: [id])
   multiEstimate      MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
-  gateEstimateId     String?             @unique
-  gateEstimate       GateEstimate?       @relation(fields: [gateEstimateId], references: [id])
+  gateEstimateId      String?             @unique
+  gateEstimate        GateEstimate?       @relation("OrderGateEstimate", fields: [gateEstimateId], references: [id])
+  adminGateEstimateId String?             @unique
+  adminGateEstimate   GateEstimate?       @relation("OrderAdminGateEstimate", fields: [adminGateEstimateId], references: [id])
 
   @@index([status])
   @@index([estimateId])
@@ -230,6 +234,7 @@ model Order {
   @@index([completionDate])
   @@index([active])
   @@index([gateEstimateId])
+  @@index([adminGateEstimateId])
 }
 
 model PortfolioItem {
@@ -643,27 +648,43 @@ model FenceEstimate {
 }
 
 model GateEstimate {
-  id                String   @id @default(cuid())
-  height            Float
-  needsInstallation Boolean  @default(false)
-  materialsTotal    Float
-  installationTotal Float
-  grandTotal        Float
-  items             Json
-  userId            String?
-  sessionId         String?
-  userAgent         String?
-  ipAddress         String?
-  city              String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  active            Boolean  @default(true)
-  order             Order?
+  id                     String   @id @default(cuid())
+  height                 Float
+  needsInstallation      Boolean  @default(false)
+  materialsTotal         Float
+  installationTotal      Float
+  grandTotal             Float
+  items                  Json
+  userId                 String?
+  sessionId              String?
+  userAgent              String?
+  ipAddress              String?
+  city                   String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  active                 Boolean   @default(true)
+  isEditedByAdmin        Boolean   @default(false)
+  editedByAdminId        String?
+  editedAt               DateTime?
+  editComment            String?
+  manualQuantityOverrides Json?
+  sourceEstimateId       String?
+
+  user              User?        @relation(fields: [userId], references: [id])
+  editedByAdmin     User?        @relation("GateEstimateEditedBy", fields: [editedByAdminId], references: [id])
+  sourceEstimate    GateEstimate?  @relation("GateAdminEstimateEdit", fields: [sourceEstimateId], references: [id])
+  adminEdits        GateEstimate[] @relation("GateAdminEstimateEdit")
+  order             Order?       @relation("OrderGateEstimate")
+  adminOrder        Order?       @relation("OrderAdminGateEstimate")
 
   @@index([userId])
   @@index([sessionId])
   @@index([createdAt])
   @@index([city])
+  @@index([isEditedByAdmin])
+  @@index([sourceEstimateId])
+  @@index([editedByAdminId])
+  @@index([active])
 }
 
 model MountingHardware {

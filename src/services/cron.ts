@@ -102,6 +102,8 @@ async function runSeoCollection(timeSlot: string): Promise<void> {
 }
 
 export async function checkAndSend(): Promise<void> {
+  startScheduler();
+
   const now = new Date();
   const moscowParts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Moscow',
