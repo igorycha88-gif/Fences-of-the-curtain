@@ -20,9 +20,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
-    const { order, estimate, adminEstimate, multiEstimates } = data;
+    const { order, estimate, adminEstimate, multiEstimates, gateEstimate, adminGateEstimate } = data;
+    const isGateOrder = order.serviceType === 'gates';
     const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
-    const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !adminEstimate && !multiEstimates);
+    const isIndividualRequest = !isGateOrder && (order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !adminEstimate && !multiEstimates));
 
     if (isIndividualRequest) {
       return NextResponse.json(
@@ -33,7 +34,53 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const estimateSections: WordEstimateSection[] = [];
 
-    if (isMultiEstimate && multiEstimates) {
+    if (isGateOrder) {
+      const effective = adminGateEstimate || gateEstimate;
+      if (!effective) {
+        return NextResponse.json(
+          { error: 'NO_ESTIMATE', message: 'В заявке нет сметы для экспорта' },
+          { status: 400 }
+        );
+      }
+
+      const materials = (effective.items || [])
+        .filter((i: any) => i.category !== 'installation')
+        .map((i: any) => ({
+          name: i.nomenclatureName,
+          unit: i.unit,
+          quantity: i.quantity,
+          pricePerUnit: i.pricePerUnit,
+          totalPrice: i.totalPrice,
+        }));
+
+      const works = (effective.items || [])
+        .filter((i: any) => i.category === 'installation')
+        .map((i: any) => ({
+          name: i.nomenclatureName,
+          unit: i.unit,
+          quantity: i.quantity,
+          pricePerUnit: i.pricePerUnit,
+          totalPrice: i.totalPrice,
+        }));
+
+      estimateSections.push({
+        fenceTypeName: 'Ворота и калитки',
+        length: 0,
+        height: effective.height,
+        lagRows: 0,
+        coatingLabel: '',
+        hasGate: false,
+        gateTypeLabel: null,
+        gateLength: null,
+        hasWicket: false,
+        wicketWidth: null,
+        materials,
+        works,
+        materialsTotal: effective.materialsTotal,
+        installationTotal: effective.installationTotal,
+        grandTotal: effective.grandTotal,
+      });
+    } else if (isMultiEstimate && multiEstimates) {
       for (const est of multiEstimates) {
         const correction = (est as any).adminCorrection;
 

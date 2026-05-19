@@ -44,6 +44,9 @@ interface EstimateEditorProps {
   initialGrandTotal: number;
   onSaveSuccess: () => void;
   existingAdminEstimateId?: string | null;
+  estimateType?: 'fence' | 'gate';
+  gateHeight?: number;
+  gateNeedsInstallation?: boolean;
 }
 
 const COATING_LABELS: Record<string, string> = {
@@ -124,6 +127,9 @@ export function EstimateEditor({
   initialGrandTotal,
   onSaveSuccess,
   existingAdminEstimateId,
+  estimateType = 'fence',
+  gateHeight,
+  gateNeedsInstallation,
 }: EstimateEditorProps) {
   const [params, setParams] = useState<EditorParams>(initialParams);
   const [items, setItems] = useState<EstimateItem[]>(initialItems);
@@ -149,9 +155,9 @@ export function EstimateEditor({
   initialParamsRef.current = initialParams;
   initialItemsRef.current = initialItems;
 
-  const needsRecalculation = lastRecalcParams
+  const needsRecalculation = estimateType === 'gate' ? false : (lastRecalcParams
     ? hasAnyParamChange(params, lastRecalcParams)
-    : hasAnyParamChange(params, initialParams);
+    : hasAnyParamChange(params, initialParams));
 
   const hasPicketParams =
     initialParams.picketProfileType != null ||
@@ -432,6 +438,37 @@ export function EstimateEditor({
               </div>
             )}
 
+            {estimateType === 'gate' ? (
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-700 mb-3">
+                  Параметры ворот/калитки
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
+                      Высота (м)
+                    </label>
+                    <input
+                      type="number"
+                      value={gateHeight ?? ''}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
+                      Монтаж
+                    </label>
+                    <input
+                      type="text"
+                      value={gateNeedsInstallation ? 'Да' : 'Нет'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                      disabled
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div className="mb-6">
               <h4 className="font-semibold text-gray-700 mb-3">
                 Параметры забора
@@ -691,6 +728,7 @@ export function EstimateEditor({
                 </div>
               )}
             </div>
+            )}
 
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">

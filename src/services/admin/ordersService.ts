@@ -544,6 +544,20 @@ export class OrdersService {
               },
             },
           },
+          gateEstimate: {
+            include: {
+              user: {
+                select: { id: true, name: true, role: true },
+              },
+            },
+          },
+          adminGateEstimate: {
+            include: {
+              editedByAdmin: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
         },
       });
       console.log('[getOrderFull] Order found:', !!order);
@@ -615,6 +629,8 @@ export class OrdersService {
     const calculatedCost = resolvedOrder.adminEstimate?.grandTotal 
       ?? resolvedOrder.estimate?.grandTotal 
       ?? resolvedOrder.multiEstimate?.grandTotal 
+      ?? resolvedOrder.adminGateEstimate?.grandTotal
+      ?? resolvedOrder.gateEstimate?.grandTotal
       ?? resolvedOrder.calculatedCost;
 
     const orderWithDetails = {
@@ -1124,11 +1140,158 @@ export class OrdersService {
       });
     }
 
+    let gateEstimate = null;
+    let adminGateEstimate = null;
+
+    if (resolvedOrder.serviceType === 'gates' && resolvedOrder.gateEstimate) {
+      const ge = resolvedOrder.gateEstimate;
+      const items = (ge.items as any[]) || [];
+
+      let purchaseTotal = null;
+      let materialMarginRub = null;
+      let materialMarginPercent = null;
+
+      if (showPurchasePrices) {
+        const extendedItems = await calculateExtendedItems(
+          items.map((item: any) => ({
+            category: item.category,
+            nomenclatureId: item.nomenclatureId,
+            nomenclatureName: item.nomenclatureName,
+            quantity: item.quantity,
+            unit: item.unit,
+            pricePerUnit: item.pricePerUnit,
+            totalPrice: item.totalPrice,
+          }))
+        );
+        const summary = calculateSummary(extendedItems);
+        purchaseTotal = summary.purchaseTotal;
+        materialMarginRub = summary.materialMarginRub;
+        materialMarginPercent = summary.materialMarginPercent;
+      }
+
+      const formattedItems = items.map((item: any) => ({
+        category: item.category,
+        nomenclatureId: item.nomenclatureId,
+        nomenclatureName: item.nomenclatureName,
+        quantity: item.quantity,
+        unit: item.unit,
+        pricePerUnit: item.pricePerUnit,
+        totalPrice: item.totalPrice,
+        ...(showPurchasePrices && {
+          purchasePricePerUnit: item.purchasePricePerUnit || null,
+          purchaseTotal: item.purchaseTotal || null,
+          marginRub: item.marginRub || null,
+          marginPercent: item.marginPercent || null,
+        }),
+      }));
+
+      gateEstimate = {
+        id: ge.id,
+        height: ge.height,
+        needsInstallation: ge.needsInstallation,
+        items: formattedItems,
+        materialsTotal: ge.materialsTotal,
+        installationTotal: ge.installationTotal,
+        grandTotal: ge.grandTotal,
+        ...(showPurchasePrices && {
+          purchaseTotal,
+          materialMarginRub,
+          materialMarginPercent,
+        }),
+        userId: ge.userId,
+        user: ge.user
+          ? {
+              id: ge.user.id,
+              name: ge.user.name || 'Неизвестный',
+              role: ge.user.role,
+            }
+          : null,
+        sessionId: ge.sessionId,
+        ipAddress: ge.ipAddress,
+        userAgent: ge.userAgent,
+        city: ge.city,
+        createdAt: ge.createdAt.toISOString(),
+      };
+    }
+
+    if (resolvedOrder.serviceType === 'gates' && resolvedOrder.adminGateEstimate) {
+      const age = resolvedOrder.adminGateEstimate;
+      const adminItems = (age.items as any[]) || [];
+
+      let adminPurchaseTotal = null;
+      let adminMaterialMarginRub = null;
+      let adminMaterialMarginPercent = null;
+
+      if (showPurchasePrices) {
+        const extItems = await calculateExtendedItems(
+          adminItems.map((item: any) => ({
+            category: item.category,
+            nomenclatureId: item.nomenclatureId,
+            nomenclatureName: item.nomenclatureName,
+            quantity: item.quantity,
+            unit: item.unit,
+            pricePerUnit: item.pricePerUnit,
+            totalPrice: item.totalPrice,
+          }))
+        );
+        const summary = calculateSummary(extItems);
+        adminPurchaseTotal = summary.purchaseTotal;
+        adminMaterialMarginRub = summary.materialMarginRub;
+        adminMaterialMarginPercent = summary.materialMarginPercent;
+      }
+
+      const adminFormattedItems = adminItems.map((item: any) => ({
+        category: item.category,
+        nomenclatureId: item.nomenclatureId,
+        nomenclatureName: item.nomenclatureName,
+        quantity: item.quantity,
+        unit: item.unit,
+        pricePerUnit: item.pricePerUnit,
+        totalPrice: item.totalPrice,
+        ...(showPurchasePrices && {
+          purchasePricePerUnit: item.purchasePricePerUnit || null,
+          purchaseTotal: item.purchaseTotal || null,
+          marginRub: item.marginRub || null,
+          marginPercent: item.marginPercent || null,
+        }),
+      }));
+
+      adminGateEstimate = {
+        id: age.id,
+        height: age.height,
+        needsInstallation: age.needsInstallation,
+        items: adminFormattedItems,
+        materialsTotal: age.materialsTotal,
+        installationTotal: age.installationTotal,
+        grandTotal: age.grandTotal,
+        ...(showPurchasePrices && {
+          purchaseTotal: adminPurchaseTotal,
+          materialMarginRub: adminMaterialMarginRub,
+          materialMarginPercent: adminMaterialMarginPercent,
+        }),
+        editedByAdminId: age.editedByAdminId,
+        editedByAdmin: age.editedByAdmin
+          ? {
+              id: age.editedByAdmin.id,
+              name: age.editedByAdmin.name || 'Неизвестный',
+              email: age.editedByAdmin.email,
+            }
+          : null,
+        editedAt: age.editedAt?.toISOString() || null,
+        editComment: age.editComment,
+        sourceEstimateId: age.sourceEstimateId,
+        manualQuantityOverrides: age.manualQuantityOverrides,
+        createdAt: age.createdAt.toISOString(),
+      };
+    }
+
     return {
       order: orderWithDetails,
       estimate,
       adminEstimate,
       multiEstimates,
+      gateEstimate,
+      adminGateEstimate,
       showPurchasePrices,
     };
   }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
+import { prisma } from '@/lib/prisma';
 import { estimateEditorService } from '@/services/admin/estimateEditorService';
+import { gateEstimateEditorService } from '@/services/admin/gateEstimateEditorService';
 import {
   createAdminEstimateSchema,
   updateAdminEstimateSchema,
@@ -19,6 +21,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const parsed = createAdminEstimateSchema.safeParse(body);
     if (!parsed.success) {
       return validationError(parsed.error);
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { serviceType: true, adminGateEstimateId: true },
+    });
+
+    if (order?.serviceType === 'gates') {
+      if (order.adminGateEstimateId) {
+        return NextResponse.json(
+          { error: 'ADMIN_ESTIMATE_EXISTS', message: 'Для этой заявки уже существует корректировка' },
+          { status: 409 },
+        );
+      }
+      const result = await gateEstimateEditorService.createAdminEstimate(
+        orderId,
+        session.userId,
+        parsed.data,
+      );
+      return NextResponse.json(result, { status: 201 });
     }
 
     const result = await estimateEditorService.createAdminEstimate(
@@ -61,6 +83,41 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return validationError(parsed.error);
     }
 
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { serviceType: true },
+    });
+
+    if (order?.serviceType === 'gates') {
+      let adminEstimateId: string | null = null;
+
+      const sourceEstimateId = parsed.data.sourceEstimateId;
+      if (sourceEstimateId) {
+        const correction = await gateEstimateEditorService.getAdminCorrectionForEstimate(sourceEstimateId);
+        adminEstimateId = correction?.id ?? null;
+      }
+
+      if (!adminEstimateId) {
+        const adminEst = await gateEstimateEditorService.getAdminEstimateForOrder(orderId);
+        adminEstimateId = adminEst?.id ?? null;
+      }
+
+      if (!adminEstimateId) {
+        return NextResponse.json(
+          { error: 'ADMIN_ESTIMATE_NOT_FOUND', message: 'Откорректированный расчет не найден' },
+          { status: 404 },
+        );
+      }
+
+      const result = await gateEstimateEditorService.updateAdminEstimate(
+        adminEstimateId,
+        session.userId,
+        parsed.data,
+      );
+
+      return NextResponse.json(result);
+    }
+
     let adminEstimateId: string | null = null;
 
     const sourceEstimateId = parsed.data.sourceEstimateId;
@@ -70,8 +127,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     if (!adminEstimateId) {
-      const order = await estimateEditorService.getAdminEstimateForOrder(orderId);
-      adminEstimateId = order?.id ?? null;
+      const adminEst = await estimateEditorService.getAdminEstimateForOrder(orderId);
+      adminEstimateId = adminEst?.id ?? null;
     }
 
     if (!adminEstimateId) {

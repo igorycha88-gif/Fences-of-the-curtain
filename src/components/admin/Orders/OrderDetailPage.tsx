@@ -122,17 +122,20 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   const [deleting, setDeleting] = useState(false);
 
   const adminDiff: DiffInfo | undefined = useMemo(() => {
-    if (!data?.adminEstimate || !data?.estimate) return undefined;
+    if (!data?.adminEstimate && !data?.adminGateEstimate) return undefined;
+    const sourceItems = data?.estimate?.items || data?.gateEstimate?.items || [];
+    const adminItems = data?.adminEstimate?.items || data?.adminGateEstimate?.items || [];
+    const overrides = data?.adminEstimate?.manualQuantityOverrides || data?.adminGateEstimate?.manualQuantityOverrides;
     return computeDiff(
-      data.estimate.items || [],
-      data.adminEstimate.items || [],
-      data.adminEstimate.manualQuantityOverrides
+      sourceItems,
+      adminItems,
+      overrides
     );
   }, [data]);
 
   const effectiveGrandTotalCalc = useMemo(() => {
     if (!data) return 0;
-    const { order, estimate, adminEstimate, multiEstimates } = data;
+    const { order, estimate, adminEstimate, multiEstimates, gateEstimate, adminGateEstimate } = data;
     const isMulti = !!multiEstimates && multiEstimates.length > 0;
     if (isMulti && multiEstimates) {
       return multiEstimates.reduce((sum: number, est: any) => {
@@ -140,6 +143,8 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
         return sum + effective.grandTotal;
       }, 0);
     }
+    if (adminGateEstimate) return adminGateEstimate.grandTotal;
+    if (gateEstimate) return gateEstimate.grandTotal;
     if (adminEstimate) return adminEstimate.grandTotal;
     if (estimate) return estimate.grandTotal;
     return order?.calculatedCost ?? 0;
@@ -166,7 +171,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
       }
       const result = await res.json();
       setData(result);
-      if (result.adminEstimate) {
+      if (result.adminEstimate || result.adminGateEstimate) {
         setActiveEstimateTab('admin');
       }
     } catch (err: any) {
@@ -310,30 +315,33 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
     );
   }
 
-  const { order, estimate, adminEstimate, multiEstimates, showPurchasePrices } = data;
-  const isIndividualRequest = order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !adminEstimate && !multiEstimates);
+  const { order, estimate, adminEstimate, multiEstimates, gateEstimate, adminGateEstimate, showPurchasePrices } = data;
+  const isGateOrder = order.serviceType === 'gates';
+  const isIndividualRequest = !isGateOrder && (order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !adminEstimate && !multiEstimates));
   const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
   const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
   const isAdmin = showPurchasePrices;
-  const hasAdminEstimate = !!adminEstimate;
+  const hasAdminEstimate = !!adminEstimate || !!adminGateEstimate;
 
   const effectiveGrandTotal = effectiveGrandTotalCalc;
 
   const editingEstimate = editingEstimateId
-    ? (isMultiEstimate && multiEstimates
-        ? (() => {
-            const found = multiEstimates.find((e: any) => e.id === editingEstimateId);
-            if (found) return found;
-            for (const est of multiEstimates) {
-              if ((est as any).adminCorrection?.id === editingEstimateId) {
-                return (est as any).adminCorrection;
+    ? (isGateOrder
+        ? (editingEstimateId === adminGateEstimate?.id ? adminGateEstimate : gateEstimate)
+        : isMultiEstimate && multiEstimates
+          ? (() => {
+              const found = multiEstimates.find((e: any) => e.id === editingEstimateId);
+              if (found) return found;
+              for (const est of multiEstimates) {
+                if ((est as any).adminCorrection?.id === editingEstimateId) {
+                  return (est as any).adminCorrection;
+                }
               }
-            }
-            return null;
-          })()
-        : editingEstimateId === adminEstimate?.id
-          ? adminEstimate
-          : estimate)
+              return null;
+            })()
+          : editingEstimateId === adminEstimate?.id
+            ? adminEstimate
+            : estimate)
     : null;
 
   return (
@@ -474,7 +482,166 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
               </button>
             </div>
           )}
-          {isMultiEstimate ? (
+          {isGateOrder ? (
+            <>
+              {adminGateEstimate && (
+                <div className="bg-white rounded-xl shadow-md border border-orange-200">
+                  <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FilePenLine className="w-5 h-5 text-orange-600" />
+                          <span className="font-bold text-orange-900 text-base">Смета отредактирована администратором</span>
+                        </div>
+                        {adminGateEstimate.editedAt && (
+                          <div className="text-sm text-gray-700 space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-orange-600" />
+                              <span className="font-medium">
+                                {new Date(adminGateEstimate.editedAt).toLocaleDateString('ru-RU', {
+                                  day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                            {adminGateEstimate.editedByAdmin && (
+                              <div className="flex items-center gap-1.5">
+                                <User className="w-4 h-4 text-orange-600" />
+                                <span className="font-medium">{adminGateEstimate.editedByAdmin.name || adminGateEstimate.editedByAdmin.email || 'Неизвестный'}</span>
+                              </div>
+                            )}
+                            {adminGateEstimate.editComment && (
+                              <div className="mt-2 p-3 bg-white rounded-lg border border-orange-300 text-gray-800">
+                                <span className="text-xs text-gray-500 block mb-1 font-medium">Комментарий:</span>
+                                <p className="text-sm leading-relaxed">{adminGateEstimate.editComment}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center border-b">
+                    <button
+                      onClick={() => setActiveEstimateTab('admin')}
+                      className={cn(
+                        'flex-1 px-4 py-3 text-sm font-semibold transition-all duration-200 text-center',
+                        activeEstimateTab === 'admin'
+                          ? 'text-orange-700 border-b-2 border-orange-500 bg-gradient-to-b from-orange-50 to-orange-100'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <FilePenLine className="w-4 h-4" />
+                        Смета с изменениями
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setActiveEstimateTab('client')}
+                      className={cn(
+                        'flex-1 px-4 py-3 text-sm font-semibold transition-all duration-200 text-center',
+                        activeEstimateTab === 'client'
+                          ? 'text-blue-700 border-b-2 border-blue-500 bg-gradient-to-b from-blue-50 to-blue-100'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Исходная смета
+                      </span>
+                    </button>
+                    {gateEstimate && (
+                    <button
+                      onClick={() => setIsComparisonOpen(true)}
+                      className="px-4 py-3 text-sm font-medium text-gray-500 hover:text-purple-700 hover:bg-purple-50 transition-all duration-200 border-l"
+                      title="Сравнить сметы"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                    </button>
+                    )}
+                  </div>
+
+                  <div className="p-6">
+                    {activeEstimateTab === 'admin' ? (
+                      <EstimateSection
+                        estimateId={adminGateEstimate.id}
+                        items={adminGateEstimate.items}
+                        materialsTotal={adminGateEstimate.materialsTotal}
+                        installationTotal={adminGateEstimate.installationTotal}
+                        grandTotal={adminGateEstimate.grandTotal}
+                        diff={adminDiff}
+                      />
+                    ) : gateEstimate ? (
+                      <EstimateSection
+                        estimateId={gateEstimate.id}
+                        items={gateEstimate.items}
+                        materialsTotal={gateEstimate.materialsTotal}
+                        installationTotal={gateEstimate.installationTotal}
+                        grandTotal={gateEstimate.grandTotal}
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className="px-6 pb-4 flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingEstimateId(adminGateEstimate.id);
+                        setIsEstimateEditorOpen(true);
+                      }}
+                      className="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                      title="Редактировать корректировку"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!adminGateEstimate && gateEstimate && (
+                <div className="bg-white rounded-xl shadow-md border">
+                  <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <span className="font-bold text-blue-900 text-base">Смета ворот/калиток</span>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-600 flex items-center gap-4">
+                      <span>Высота: {gateEstimate.height} м</span>
+                      <span>Монтаж: {gateEstimate.needsInstallation ? 'Да' : 'Нет'}</span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <EstimateSection
+                      estimateId={gateEstimate.id}
+                      items={gateEstimate.items}
+                      materialsTotal={gateEstimate.materialsTotal}
+                      installationTotal={gateEstimate.installationTotal}
+                      grandTotal={gateEstimate.grandTotal}
+                      onEdit={() => {
+                        setEditingEstimateId(gateEstimate.id);
+                        setIsEstimateEditorOpen(true);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showPurchasePrices && gateEstimate && (
+                <TechnicalInfo
+                  estimateId={gateEstimate.id}
+                  userId={gateEstimate.userId}
+                  user={gateEstimate.user}
+                  sessionId={gateEstimate.sessionId}
+                  ipAddress={gateEstimate.ipAddress}
+                  userAgent={gateEstimate.userAgent}
+                />
+              )}
+              {!gateEstimate && !adminGateEstimate && (
+                <div className="bg-white rounded-xl shadow-md border p-6">
+                  <p className="text-gray-500 text-center">Смета не найдена</p>
+                </div>
+              )}
+            </>
+          ) : isMultiEstimate ? (
             <>
               {hasAdminEstimate && adminEstimate && (
                 <div className="bg-white rounded-xl shadow-md border border-orange-200">
@@ -843,6 +1010,59 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                         )}
                       </div>
                     </>
+                  ) : (order.parameters as any).serviceType === 'gates' ? (
+                    <>
+                      <h2 className="text-lg font-bold mb-4">Параметры ворот и калиток</h2>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm text-gray-500 block">Высота</label>
+                            <p className="font-medium">{(order.parameters as any).height} м</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-500 block">Монтаж</label>
+                            <p className="font-medium">{(order.parameters as any).needsInstallation ? 'Да' : 'Нет'}</p>
+                          </div>
+                        </div>
+                        {Array.isArray((order.parameters as any).gates) && (order.parameters as any).gates.length > 0 && (
+                          <div>
+                            <label className="text-sm text-gray-500 block mb-2">Ворота</label>
+                            <div className="space-y-2">
+                              {(order.parameters as any).gates.map((gate: any, i: number) => (
+                                <div key={i} className="p-3 bg-blue-50 rounded-lg">
+                                  <p className="font-medium text-blue-800">
+                                    Ворота {i + 1}: {gate.gateType === 'SWING' ? 'Распашные' : 'Откатные'}, ширина {gate.gateWidth} м
+                                    {gate.hasAutomation && (gate.automationName ? `, автоматика: ${gate.automationName}` : ', с автоматикой')}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {Array.isArray((order.parameters as any).wickets) && (order.parameters as any).wickets.length > 0 && (
+                          <div>
+                            <label className="text-sm text-gray-500 block mb-2">Калитки</label>
+                            <div className="space-y-2">
+                              {(order.parameters as any).wickets.map((wicket: any, i: number) => (
+                                <div key={i} className="p-3 bg-green-50 rounded-lg">
+                                  <p className="font-medium text-green-800">
+                                    Калитка {i + 1}: ширина {wicket.wicketWidth} м
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {(order.parameters as any).message && (
+                          <div>
+                            <label className="text-sm text-gray-500 block">Комментарий клиента</label>
+                            <p className="font-medium text-gray-700 bg-gray-50 p-3 rounded-lg">
+                              {(order.parameters as any).message}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <>
                       <h2 className="text-lg font-bold mb-4">Параметры забора</h2>
@@ -945,6 +1165,9 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           onClose={handleEstimateEditorClose}
           orderId={order.id}
           estimateId={(() => {
+            if (isGateOrder) {
+              return editingEstimateId === adminGateEstimate?.id ? gateEstimate?.id || editingEstimateId : editingEstimateId;
+            }
             if (isMultiEstimate && multiEstimates) {
               const sourceEst = multiEstimates.find((e: any) =>
                 (e as any).adminCorrection?.id === editingEstimateId
@@ -953,7 +1176,14 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
             }
             return editingEstimateId === adminEstimate?.id ? estimate?.id || editingEstimateId : editingEstimateId;
           })()}
-          initialParams={{
+          initialParams={isGateOrder ? {
+            length: 0,
+            height: editingEstimate.height,
+            coating: '',
+            lagRows: 2,
+            hasGate: false,
+            hasWicket: false,
+          } : {
             length: editingEstimate.length,
             height: editingEstimate.height,
             coating: editingEstimate.coating,
@@ -969,7 +1199,13 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
           initialInstallationTotal={editingEstimate.installationTotal}
           initialGrandTotal={editingEstimate.grandTotal}
           onSaveSuccess={handleEstimateEditorSave}
+          estimateType={isGateOrder ? 'gate' : 'fence'}
+          gateHeight={isGateOrder ? editingEstimate.height : undefined}
+          gateNeedsInstallation={isGateOrder ? editingEstimate.needsInstallation : undefined}
           existingAdminEstimateId={(() => {
+            if (isGateOrder) {
+              return adminGateEstimate?.id;
+            }
             if (isMultiEstimate && multiEstimates) {
               const sourceEst = multiEstimates.find((e: any) =>
                 (e as any).adminCorrection?.id === editingEstimateId
@@ -986,7 +1222,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
         />
       )}
 
-      {isComparisonOpen && hasAdminEstimate && estimate && (
+      {isComparisonOpen && hasAdminEstimate && !isGateOrder && estimate && adminEstimate && (
         <EstimateComparisonView
           sourceEstimate={{
             length: estimate.length,
@@ -1024,6 +1260,49 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
             editedAt: adminEstimate.editedAt,
             editComment: adminEstimate.editComment,
             user: adminEstimate.user,
+          }}
+          onClose={() => setIsComparisonOpen(false)}
+        />
+      )}
+
+      {isComparisonOpen && isGateOrder && gateEstimate && adminGateEstimate && (
+        <EstimateComparisonView
+          sourceEstimate={{
+            length: 0,
+            height: gateEstimate.height,
+            lagRows: 0,
+            coating: '',
+            coatingLabel: '',
+            hasGate: false,
+            gateType: null,
+            gateTypeLabel: null,
+            gateLength: null,
+            hasWicket: false,
+            wicketWidth: null,
+            items: gateEstimate.items,
+            materialsTotal: gateEstimate.materialsTotal,
+            installationTotal: gateEstimate.installationTotal,
+            grandTotal: gateEstimate.grandTotal,
+          }}
+          adminEstimate={{
+            length: 0,
+            height: adminGateEstimate.height,
+            lagRows: 0,
+            coating: '',
+            coatingLabel: '',
+            hasGate: false,
+            gateType: null,
+            gateTypeLabel: null,
+            gateLength: null,
+            hasWicket: false,
+            wicketWidth: null,
+            items: adminGateEstimate.items,
+            materialsTotal: adminGateEstimate.materialsTotal,
+            installationTotal: adminGateEstimate.installationTotal,
+            grandTotal: adminGateEstimate.grandTotal,
+            editedAt: adminGateEstimate.editedAt,
+            editComment: adminGateEstimate.editComment,
+            user: adminGateEstimate.editedByAdmin,
           }}
           onClose={() => setIsComparisonOpen(false)}
         />

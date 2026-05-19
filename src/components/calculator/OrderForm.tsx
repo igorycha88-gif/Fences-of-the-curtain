@@ -73,14 +73,38 @@ interface GateOrderFormProps {
   onSuccess: () => void;
 }
 
-type OrderFormProps = SingleOrderFormProps | MultiOrderFormProps | GateOrderFormProps;
+interface GateIndividualOrderFormProps {
+  gateIndividualParameters: {
+    serviceType: 'gates';
+    height: number;
+    needsInstallation: boolean;
+    gates: Array<{
+      gateType: 'SWING' | 'SLIDING';
+      gateWidth: number;
+      hasAutomation?: boolean;
+      automationId?: string;
+      automationName?: string;
+    }>;
+    wickets: Array<{
+      wicketWidth: number;
+    }>;
+  };
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+type OrderFormProps = SingleOrderFormProps | MultiOrderFormProps | GateOrderFormProps | GateIndividualOrderFormProps;
 
 function isMultiOrderFormProps(props: OrderFormProps): props is MultiOrderFormProps {
   return 'multiEstimateId' in props && 'estimates' in props;
 }
 
 function isGateOrderFormProps(props: OrderFormProps): props is GateOrderFormProps {
-  return 'gateEstimateId' in props && !('multiEstimateId' in props) && !('estimates' in props);
+  return 'gateEstimateId' in props && !('multiEstimateId' in props) && !('estimates' in props) && !('gateIndividualParameters' in props);
+}
+
+function isGateIndividualOrderFormProps(props: OrderFormProps): props is GateIndividualOrderFormProps {
+  return 'gateIndividualParameters' in props && !('gateEstimateId' in props);
 }
 
 interface FormData {
@@ -169,7 +193,8 @@ function EstimateBreakdown({ estimate, index }: { estimate: FenceEstimateData; i
 
 export default function OrderForm(props: OrderFormProps) {
   const isMulti = isMultiOrderFormProps(props);
-  const calculatedCost = isMulti ? props.totals.grandTotal : props.calculatedCost;
+  const isGateIndiv = isGateIndividualOrderFormProps(props);
+  const calculatedCost = isMulti ? props.totals.grandTotal : isGateIndiv ? 0 : props.calculatedCost;
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [loading, setLoading] = useState(false);
@@ -227,6 +252,11 @@ export default function OrderForm(props: OrderFormProps) {
         requestBody.gateEstimateId = props.gateEstimateId;
       }
 
+      if (isGateIndiv) {
+        requestBody.isIndividualRequest = true;
+        requestBody.gateParameters = props.gateIndividualParameters;
+      }
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -249,8 +279,10 @@ export default function OrderForm(props: OrderFormProps) {
       }
 
       setSuccess(true);
-      metrikaEvents.orderFormSubmit('fence', isMulti ? (props as MultiOrderFormProps).totals.grandTotal : (props as SingleOrderFormProps).calculatedCost);
-      trackEvent(EVENT_NAMES.CONTACT_FORM_SUBMIT, { formType: isMulti ? 'multi_estimate' : 'single_estimate' });
+      const formCategory = isGateOrderFormProps(props) || isGateIndiv ? 'gates' : 'fence';
+      const formType = isMulti ? 'multi_estimate' : isGateOrderFormProps(props) ? 'gate_estimate' : isGateIndiv ? 'gate_individual' : 'single_estimate';
+      metrikaEvents.orderFormSubmit(formCategory, calculatedCost);
+      trackEvent(EVENT_NAMES.CONTACT_FORM_SUBMIT, { formType });
       setTimeout(() => {
         props.onSuccess();
       }, 2000);
@@ -404,6 +436,11 @@ export default function OrderForm(props: OrderFormProps) {
                   </span>
                 </div>
               </>
+            ) : isGateIndiv ? (
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Стоимость:</span>
+                <span className="text-xl font-bold text-amber-600">Индивидуальный расчёт</span>
+              </div>
             ) : (
               <div className="flex justify-between items-center">
                 <span className="font-medium">Стоимость по расчету:</span>

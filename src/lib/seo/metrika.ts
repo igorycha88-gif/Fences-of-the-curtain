@@ -43,7 +43,7 @@ export const metrikaEvents = {
     reachGoal('order_form_open', { type });
   },
 
-  orderFormSubmit(type: 'fence' | 'canopy', value: number) {
+  orderFormSubmit(type: 'fence' | 'canopy' | 'gates', value: number) {
     reachGoal('order_form_submit', { type, value });
   },
 

@@ -108,6 +108,7 @@ export default function GatesCalculatorPage() {
   const [result, setResult] = useState<GatesCalculatorResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notFoundError, setNotFoundError] = useState<string | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
 
   useEffect(() => {
@@ -197,6 +198,7 @@ export default function GatesCalculatorPage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setNotFoundError(null);
 
     try {
       const body = {
@@ -222,7 +224,11 @@ export default function GatesCalculatorPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || 'Ошибка расчёта');
+        if (data.error === 'NO_GATE_FOUND' || data.error === 'NO_WICKET_FOUND') {
+          setNotFoundError(data.message || 'Не найдены ворота или калитка с указанными параметрами');
+        } else {
+          setError(data.message || 'Ошибка расчёта');
+        }
         return;
       }
 
@@ -234,6 +240,24 @@ export default function GatesCalculatorPage() {
       setLoading(false);
     }
   };
+
+  const buildGateIndividualParameters = () => ({
+    serviceType: 'gates' as const,
+    height: Number(form.height),
+    needsInstallation: form.needsInstallation,
+    gates: form.gates.map(g => ({
+      gateType: g.gateType,
+      gateWidth: g.gateWidth,
+      hasAutomation: g.hasAutomation,
+      automationId: g.automationId || undefined,
+      automationName: g.hasAutomation && g.automationId
+        ? automationTypes.find(at => at.id === g.automationId)?.name
+        : undefined,
+    })),
+    wickets: form.wickets.map(w => ({
+      wicketWidth: w.wicketWidth,
+    })),
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -530,6 +554,53 @@ export default function GatesCalculatorPage() {
                       )}
                     </div>
                   </AnimatedSection>
+                ) : notFoundError ? (
+                  <AnimatedSection animation="scale-in">
+                    <div className="card-modern p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <AlertCircle className="w-5 h-5 text-amber-500" />
+                        <h2 className="text-xl font-bold">Индивидуальный расчёт</h2>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">{notFoundError}</p>
+
+                      <div className="bg-amber-50 rounded-xl p-4 mb-4 space-y-2">
+                        <h4 className="font-semibold text-amber-800 text-sm">Ваши параметры:</h4>
+                        <div className="text-sm text-amber-700 space-y-1">
+                          <p>Высота: {form.height} м</p>
+                          {form.gates.map((g, i) => (
+                            <p key={i}>
+                              Ворота {i + 1}: {g.gateType === 'SWING' ? 'Распашные' : 'Откатные'}, ширина {g.gateWidth} м
+                              {g.hasAutomation && ', с автоматикой'}
+                            </p>
+                          ))}
+                          {form.wickets.map((w, i) => (
+                            <p key={i}>Калитка {i + 1}: ширина {w.wicketWidth} м</p>
+                          ))}
+                          <p>Монтаж: {form.needsInstallation ? 'Да' : 'Нет'}</p>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Оставьте заявку — наш менеджер рассчитает точную стоимость по вашим параметрам
+                      </p>
+
+                      <button
+                        onClick={() => setShowOrderForm(true)}
+                        className="w-full btn-primary flex items-center justify-center gap-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        Оформить заявку на расчёт
+                      </button>
+
+                      {showOrderForm && (
+                        <OrderForm
+                          gateIndividualParameters={buildGateIndividualParameters()}
+                          onClose={() => setShowOrderForm(false)}
+                          onSuccess={() => setShowOrderForm(false)}
+                        />
+                      )}
+                    </div>
+                  </AnimatedSection>
                 ) : (
                   <AnimatedSection animation="fade-in-left">
                     <div className="card-modern p-6">
@@ -566,14 +637,6 @@ export default function GatesCalculatorPage() {
         </div>
       </main>
 
-      {showOrderForm && result && (
-        <OrderForm
-          gateEstimateId={result.estimateId}
-          calculatedCost={result.totals.grandTotal}
-          onClose={() => setShowOrderForm(false)}
-          onSuccess={() => setShowOrderForm(false)}
-        />
-      )}
     </div>
   );
 }

@@ -401,6 +401,10 @@ async function createIndividualOrder(body: unknown, rlHeaders: Record<string, st
     Object.assign(parameters, validatedData.garageParameters);
   }
 
+  if (validatedData.gateParameters) {
+    Object.assign(parameters, validatedData.gateParameters);
+  }
+
   const order = await prisma.order.create({
     data: {
       clientName: validatedData.clientName,

@@ -63,6 +63,26 @@ export const garageParametersSchema = z.object({
   title: z.string().optional(),
 });
 
+const gateItemParametersSchema = z.object({
+  gateType: z.enum(['SWING', 'SLIDING']),
+  gateWidth: z.number(),
+  hasAutomation: z.boolean().optional().default(false),
+  automationId: z.string().optional(),
+  automationName: z.string().optional(),
+});
+
+const wicketItemParametersSchema = z.object({
+  wicketWidth: z.number(),
+});
+
+export const gateParametersSchema = z.object({
+  serviceType: z.literal('gates'),
+  height: z.number(),
+  needsInstallation: z.boolean(),
+  gates: z.array(gateItemParametersSchema),
+  wickets: z.array(wicketItemParametersSchema),
+});
+
 export const individualOrderSchema = z.object({
   clientName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
   phone: z.string().regex(/^\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}$/, 'Формат: +7 (XXX) XXX-XX-XX'),
@@ -72,13 +92,15 @@ export const individualOrderSchema = z.object({
   fenceParameters: fenceParametersSchema.optional(),
   canopyParameters: canopyParametersSchema.optional(),
   garageParameters: garageParametersSchema.optional(),
-}).refine((data) => data.fenceParameters || data.canopyParameters || data.garageParameters, {
-  message: 'Необходимы параметры забора, навеса или гаража',
+  gateParameters: gateParametersSchema.optional(),
+}).refine((data) => data.fenceParameters || data.canopyParameters || data.garageParameters || data.gateParameters, {
+  message: 'Необходимы параметры забора, навеса, гаража или ворот',
 });
 
 export type FenceParameters = z.infer<typeof fenceParametersSchema>;
 export type CanopyParameters = z.infer<typeof canopyParametersSchema>;
 export type GarageParameters = z.infer<typeof garageParametersSchema>;
+export type GateParameters = z.infer<typeof gateParametersSchema>;
 export type IndividualOrderRequest = z.infer<typeof individualOrderSchema>;
 
 export const ORDER_STATUSES = [
