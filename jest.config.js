@@ -58,6 +58,8 @@ module.exports = {
             jsx: 'react-jsx',
             module: 'esnext',
             moduleResolution: 'bundler',
+            skipLibCheck: true,
+            esModuleInterop: true,
           },
         }],
       },
