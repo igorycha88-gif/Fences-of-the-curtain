@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search,
   Download,
@@ -65,7 +65,14 @@ export default function SeoMonitoringPage() {
   const [filterEngine, setFilterEngine] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
   const [collecting, setCollecting] = useState(false);
+  const [collectProgress, setCollectProgress] = useState<{
+    completedBatches: number;
+    totalBatches: number;
+    checked: number;
+    errors: number;
+  } | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchKeywords = useCallback(async () => {
     try {
@@ -198,23 +205,79 @@ export default function SeoMonitoringPage() {
     }
   };
 
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const pollSessionStatus = useCallback(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/admin/seo-monitoring/collect/session', {
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.active) {
+          setCollectProgress({
+            completedBatches: data.completedBatches,
+            totalBatches: data.totalBatches,
+            checked: data.checked,
+            errors: data.errors,
+          });
+        } else if (data.completed) {
+          stopPolling();
+          setCollecting(false);
+          setCollectProgress(null);
+          toast.success(
+            `Сбор завершён: проверено ${data.checked}, ошибок ${data.errors}, батчи ${data.completedBatches}/${data.totalBatches}`
+          );
+          fetchKeywords();
+          fetchSummary();
+        } else {
+          stopPolling();
+          setCollecting(false);
+          setCollectProgress(null);
+        }
+      } catch {
+        stopPolling();
+        setCollecting(false);
+        setCollectProgress(null);
+        toast.error('Ошибка при получении статуса сбора');
+      }
+    };
+
+    poll();
+    pollRef.current = setInterval(poll, 5000);
+  }, [fetchKeywords, fetchSummary, stopPolling]);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
   const handleCollect = async () => {
     setCollecting(true);
+    setCollectProgress(null);
     try {
       const res = await fetch('/api/admin/seo-monitoring/collect', {
         method: 'POST',
         credentials: 'include',
       });
+      if (res.status === 409) {
+        const data = await res.json();
+        toast.error(data.error || 'Сбор уже запущен');
+        setCollecting(true);
+        pollSessionStatus();
+        return;
+      }
       if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      toast.success(
-        `Сбор завершён: проверено ${data.checked}, ошибок ${data.errors}, батчи ${data.completedBatches}/${data.totalBatches}`
-      );
-      fetchKeywords();
-      fetchSummary();
+      toast.success('Сбор позиций запущен в фоновом режиме');
+      pollSessionStatus();
     } catch {
-      toast.error('Ошибка сбора позиций');
-    } finally {
+      toast.error('Ошибка запуска сбора позиций');
       setCollecting(false);
     }
   };
@@ -324,7 +387,11 @@ export default function SeoMonitoringPage() {
             <RefreshCw
               className={`w-4 h-4 ${collecting ? 'animate-spin' : ''}`}
             />
-            {collecting ? 'Сбор...' : 'Собрать сейчас'}
+            {collecting
+              ? collectProgress
+                ? `Батч ${collectProgress.completedBatches}/${collectProgress.totalBatches} (${collectProgress.checked} проверено)`
+                : 'Запуск...'
+              : 'Собрать сейчас'}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
