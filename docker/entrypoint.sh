@@ -27,7 +27,7 @@ if [ "$DB_READY" = "false" ]; then
 fi
 
 echo "[entrypoint] Syncing database schema..."
-if ! npx prisma@5.22.0 db push --skip-generate 2>&1; then
+if ! npx prisma@5.22.0 db push --accept-data-loss --skip-generate 2>&1; then
     echo "[entrypoint] WARNING: Prisma db push failed, trying migrate deploy as fallback..."
     if ! npx prisma@5.22.0 migrate deploy 2>&1; then
         echo "[entrypoint] WARNING: Prisma migrate deploy also failed"
