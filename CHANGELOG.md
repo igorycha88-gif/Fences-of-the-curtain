@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.11.1] - 2026-05-19
+
+### Исправлено
+- fix: self-healing cron scheduler — startScheduler() в checkAndSend() (530fcd6)
+- fix: cloakbrowser в прод-образ + SEO collect через startBatchSession() (5cfc988)
+- fix: add --accept-data-loss to prisma db push in entrypoint (ec52e85)
+- fix: add @testing-library/dom as explicit dependency for CI (edb2eff)
+- fix: add skipLibCheck to dom jest tsconfig for CI compatibility (1496973)
+- fix: exclude __tests__ from tsconfig to fix CI type check (336fef8)
+- fix: калькулятор ворот — индивидуальный расчёт при ненайденных воротах/калитках (4e335d9)
+
 ## [1.11.0] - 2026-05-19
 
 ### Добавлено
