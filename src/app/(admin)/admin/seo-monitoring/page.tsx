@@ -208,7 +208,7 @@ export default function SeoMonitoringPage() {
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       toast.success(
-        `Сбор завершён: проверено ${data.checked}, ошибок ${data.errors}`
+        `Сбор завершён: проверено ${data.checked}, ошибок ${data.errors}, батчи ${data.completedBatches}/${data.totalBatches}`
       );
       fetchKeywords();
       fetchSummary();

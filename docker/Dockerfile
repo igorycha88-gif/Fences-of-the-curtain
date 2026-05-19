@@ -104,6 +104,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
 
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/cloakbrowser ./node_modules/cloakbrowser
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/playwright-core ./node_modules/playwright-core
 COPY --from=deps --chown=nextjs:nodejs /app/.cloakbrowser-cache /home/nextjs/.cloakbrowser
 
 COPY --chmod=755 docker/entrypoint.sh /app/entrypoint.sh
