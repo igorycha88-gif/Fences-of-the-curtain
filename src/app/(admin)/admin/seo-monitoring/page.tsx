@@ -73,6 +73,7 @@ export default function SeoMonitoringPage() {
   } | null>(null);
   const [seeding, setSeeding] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const justStartedRef = useRef(false);
 
   const fetchKeywords = useCallback(async () => {
     try {
@@ -115,7 +116,34 @@ export default function SeoMonitoringPage() {
   useEffect(() => {
     fetchKeywords();
     fetchSummary();
+    fetchSessionStatus();
   }, [fetchKeywords, fetchSummary]);
+
+  const fetchSessionStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/seo-monitoring/collect/session', {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (data.active) {
+        setCollecting(true);
+        setCollectProgress({
+          completedBatches: data.completedBatches,
+          totalBatches: data.totalBatches,
+          checked: data.checked,
+          errors: data.errors,
+        });
+        pollSessionStatus();
+      } else if (data.completed) {
+        setCollecting(false);
+        setCollectProgress(null);
+        fetchKeywords();
+        fetchSummary();
+      }
+    } catch {}
+  };
 
   const handleSeed = async () => {
     setSeeding(true);
@@ -222,6 +250,7 @@ export default function SeoMonitoringPage() {
         const data = await res.json();
 
         if (data.active) {
+          justStartedRef.current = false;
           setCollectProgress({
             completedBatches: data.completedBatches,
             totalBatches: data.totalBatches,
@@ -229,6 +258,7 @@ export default function SeoMonitoringPage() {
             errors: data.errors,
           });
         } else if (data.completed) {
+          justStartedRef.current = false;
           stopPolling();
           setCollecting(false);
           setCollectProgress(null);
@@ -238,6 +268,7 @@ export default function SeoMonitoringPage() {
           fetchKeywords();
           fetchSummary();
         } else {
+          if (justStartedRef.current) return;
           stopPolling();
           setCollecting(false);
           setCollectProgress(null);
@@ -270,10 +301,12 @@ export default function SeoMonitoringPage() {
         const data = await res.json();
         toast.error(data.error || 'Сбор уже запущен');
         setCollecting(true);
+        justStartedRef.current = false;
         pollSessionStatus();
         return;
       }
       if (!res.ok) throw new Error('Failed');
+      justStartedRef.current = true;
       toast.success('Сбор позиций запущен в фоновом режиме');
       pollSessionStatus();
     } catch {

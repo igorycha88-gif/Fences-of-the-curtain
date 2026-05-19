@@ -248,42 +248,48 @@ export class PositionCollector {
   ): Promise<CollectionResult> {
     const batchResults = [...existingResults];
 
-    for (let batchIdx = startFrom; batchIdx < batches.length; batchIdx++) {
-      if (batchIdx > 0) {
-        const pauseMin = (this.batchPauseMs / 60000).toFixed(0);
+    try {
+      for (let batchIdx = startFrom; batchIdx < batches.length; batchIdx++) {
+        if (batchIdx > 0) {
+          const pauseMin = (this.batchPauseMs / 60000).toFixed(0);
+          console.log(
+            `[PositionCollector] Pause before batch ${batchIdx + 1}/${batches.length}: ${pauseMin} min`
+          );
+          await this.delay(this.batchPauseMs);
+        }
+
         console.log(
-          `[PositionCollector] Pause before batch ${batchIdx + 1}/${batches.length}: ${pauseMin} min`
+          `[PositionCollector] Starting batch ${batchIdx + 1}/${batches.length} (${batches[batchIdx].length} keywords)`
         );
-        await this.delay(this.batchPauseMs);
+
+        const batchStart = Date.now();
+        const result = await this.collectBatch(batches[batchIdx], batchIdx);
+        const batchResult: BatchResult = {
+          batchIndex: batchIdx,
+          checked: result.checked,
+          errors: result.errors,
+          skipped: result.skipped,
+          blocked: result.blocked,
+          duration: Date.now() - batchStart,
+        };
+        batchResults.push(batchResult);
+
+        await this.saveSession({
+          totalBatches: batches.length,
+          completedBatches: batchIdx + 1,
+          totalKeywords: batches.reduce((s, b) => s + b.length, 0),
+          batchResults,
+          startedAt,
+        });
+
+        console.log(
+          `[PositionCollector] Batch ${batchIdx + 1}/${batches.length} done: checked=${result.checked}, errors=${result.errors}`
+        );
       }
-
-      console.log(
-        `[PositionCollector] Starting batch ${batchIdx + 1}/${batches.length} (${batches[batchIdx].length} keywords)`
-      );
-
-      const batchStart = Date.now();
-      const result = await this.collectBatch(batches[batchIdx], batchIdx);
-      const batchResult: BatchResult = {
-        batchIndex: batchIdx,
-        checked: result.checked,
-        errors: result.errors,
-        skipped: result.skipped,
-        blocked: result.blocked,
-        duration: Date.now() - batchStart,
-      };
-      batchResults.push(batchResult);
-
-      await this.saveSession({
-        totalBatches: batches.length,
-        completedBatches: batchIdx + 1,
-        totalKeywords: batches.reduce((s, b) => s + b.length, 0),
-        batchResults,
-        startedAt,
-      });
-
-      console.log(
-        `[PositionCollector] Batch ${batchIdx + 1}/${batches.length} done: checked=${result.checked}, errors=${result.errors}`
-      );
+    } catch (error) {
+      console.error('[PositionCollector] Session error, cleaning up Redis:', error);
+      await redis.del(SESSION_KEY).catch(() => {});
+      throw error;
     }
 
     await redis.del(SESSION_KEY);
