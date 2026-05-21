@@ -105,6 +105,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
 
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/cloakbrowser ./node_modules/cloakbrowser
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/tar ./node_modules/tar
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@isaacs ./node_modules/@isaacs
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/chownr ./node_modules/chownr
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/minipass ./node_modules/minipass
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/minizlib ./node_modules/minizlib
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/yallist ./node_modules/yallist
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/playwright-core ./node_modules/playwright-core
 COPY --from=deps --chown=nextjs:nodejs /app/.cloakbrowser-cache /home/nextjs/.cloakbrowser
 
