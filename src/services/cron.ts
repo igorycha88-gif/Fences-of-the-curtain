@@ -137,7 +137,7 @@ export async function checkAndSend(): Promise<void> {
     }
   }
 
-  if ((hour === 0 && minute === 0) || (hour === 9 && minute === 0)) {
+  if (hour === 0 && minute === 0) {
     const timeSlot = `${hour}:00`;
     await runSeoCollection(timeSlot);
   }
@@ -146,7 +146,7 @@ export async function checkAndSend(): Promise<void> {
 export function startScheduler(): void {
   if (schedulerInterval) return;
 
-  console.log('[Cron] Starting scheduler: SEO 00:00/09:00, Daily summary 20:00 (Europe/Moscow)');
+  console.log('[Cron] Starting scheduler: SEO 00:00, Daily summary 20:00 (Europe/Moscow)');
   schedulerInterval = setInterval(checkAndSend, 60_000);
 }
 
