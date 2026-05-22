@@ -501,6 +501,16 @@ export class PositionCollector {
     const siteResult = findSiteInResults(parsed.results, DOMAIN);
 
     if (!siteResult) {
+      if (parsed.results.length > 0) {
+        const sampleUrls = parsed.results.slice(0, 5).map((r) => r.url);
+        console.warn(
+          `[PositionCollector] Site NOT found for "${keyword}" (${searchEngine}). Parsed ${parsed.results.length} results. Sample URLs: ${sampleUrls.join(', ')}`
+        );
+      } else {
+        console.warn(
+          `[PositionCollector] Site NOT found for "${keyword}" (${searchEngine}). Parsed 0 results.`
+        );
+      }
       return { position: 0, found: false, blocked: false };
     }
 
