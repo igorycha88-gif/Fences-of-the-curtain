@@ -16,6 +16,7 @@ import { fenceTypeCalculatorService } from '@/services/calculator/fenceTypeCalcu
 import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { getFenceTypeCodeByName } from '@/lib/fenceTypeMap';
+import { lengthMarkupService } from './lengthMarkupService';
 
 type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | PicketCalculationResult | MeshCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult | AutomationCalculationResult;
 
@@ -111,6 +112,7 @@ export interface FenceEstimateCoreResult {
   gateInfo?: GateInfo;
   wicketInfo?: WicketInfo;
   automationInfo?: AutomationInfo;
+  appliedMarkupPercent: number;
 }
 
 export interface FenceEstimateResult {
@@ -613,6 +615,17 @@ export async function calculateFenceEstimateCore(
 
   items.push(...mountingHardwareResult);
 
+  const markupPercent = await lengthMarkupService.findMarkupPercent(fenceTypeId, length);
+
+  if (markupPercent > 0) {
+    for (const item of items) {
+      if (item.category !== 'installation') {
+        item.pricePerUnit = Math.round(item.pricePerUnit * (1 + markupPercent / 100) * 100) / 100;
+        item.totalPrice = Math.round(item.quantity * item.pricePerUnit * 100) / 100;
+      }
+    }
+  }
+
   const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
   const gateInstallationTotal = gateInstallationWorks.reduce((sum, work) => sum + work.price, 0);
   const wicketInstallationTotal = wicketInstallationWorks.reduce((sum, work) => sum + work.price, 0);
@@ -665,6 +678,7 @@ export async function calculateFenceEstimateCore(
     gateInfo,
     wicketInfo,
     automationInfo,
+    appliedMarkupPercent: markupPercent,
   };
 }
 
@@ -734,6 +748,7 @@ export async function calculateFenceEstimate(
         automationInstallationTotal: coreResult.items
           .filter(i => i.category === 'installation' && i.nomenclatureName.includes('автомат'))
           .reduce((sum, item) => sum + item.totalPrice, 0),
+        markupPercent: coreResult.appliedMarkupPercent,
         installationTotal: coreResult.totals.installation,
         materialsTotal: coreResult.totals.materials,
         grandTotal: coreResult.totals.grandTotal,

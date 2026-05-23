@@ -125,7 +125,10 @@ describe('FenceTypeService', () => {
       expect(result).toEqual(mockType);
       expect(prisma.fenceType.findUnique).toHaveBeenCalledWith({
         where: { id: 'ft-1' },
-        include: { materials: { orderBy: { sortOrder: 'asc' } } },
+        include: {
+          materials: { orderBy: { sortOrder: 'asc' } },
+          lengthMarkups: { orderBy: { priority: 'asc' } },
+        },
       });
     });
 

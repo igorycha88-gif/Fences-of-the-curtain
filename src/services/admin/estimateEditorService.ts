@@ -38,6 +38,8 @@ interface AdminEstimateResult {
   editedAt: string;
   editComment: string | null;
   manualQuantityOverrides: Record<string, { auto: number; manual: number }> | null;
+  markupDisabled: boolean;
+  markupPercent: number;
   createdAt: string;
 }
 
@@ -90,7 +92,7 @@ export class EstimateEditorService {
     adminUserId: string,
     input: CreateAdminEstimateInput
   ): Promise<AdminEstimateResult> {
-    const { sourceEstimateId, editComment, parameters, items: itemChanges } = input;
+    const { sourceEstimateId, editComment, markupDisabled, parameters, items: itemChanges } = input;
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -261,6 +263,8 @@ export class EstimateEditorService {
           editedAt: new Date(),
           editComment: editComment ?? null,
           manualQuantityOverrides: Object.keys(overrides).length > 0 ? overrides : Prisma.JsonNull,
+          markupDisabled: markupDisabled ?? false,
+          markupPercent: 0,
         },
       });
 
@@ -311,8 +315,7 @@ export class EstimateEditorService {
 
     const sourceEstimate = existing.sourceEstimate ?? existing;
 
-    const { editComment, parameters, items: itemChanges } = input;
-
+    const { editComment, markupDisabled, parameters, items: itemChanges } = input;
     const auditChanges: AuditChange[] = [];
     let currentItems: EstimateItem[];
 
@@ -448,6 +451,7 @@ export class EstimateEditorService {
           editedAt: new Date(),
           editComment: editComment !== undefined ? editComment ?? null : existing.editComment,
           manualQuantityOverrides: Object.keys(overrides).length > 0 ? overrides : Prisma.JsonNull,
+          markupDisabled: markupDisabled ?? existing.markupDisabled ?? false,
         },
       });
 
@@ -574,6 +578,8 @@ export class EstimateEditorService {
     editedAt: Date | null;
     editComment: string | null;
     manualQuantityOverrides: unknown;
+    markupDisabled: boolean;
+    markupPercent: number;
     createdAt: Date;
   }): AdminEstimateResult {
     return {
@@ -593,6 +599,8 @@ export class EstimateEditorService {
       editedAt: estimate.editedAt?.toISOString() ?? '',
       editComment: estimate.editComment,
       manualQuantityOverrides: estimate.manualQuantityOverrides as Record<string, { auto: number; manual: number }> | null,
+      markupDisabled: estimate.markupDisabled ?? false,
+      markupPercent: estimate.markupPercent ?? 0,
       createdAt: estimate.createdAt.toISOString(),
     };
   }

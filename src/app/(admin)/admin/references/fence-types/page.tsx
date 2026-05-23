@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/modal';
 import { FenceTypeInput } from '@/lib/validators/fenceType';
 import { PriorityColumn } from '@/components/admin/References/shared';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
+import { LengthMarkupRules } from '@/components/admin/References/LengthMarkupRules';
 import { getFenceTypeCodeFromNameOrCode } from '@/lib/fenceTypeMap';
 import toast from 'react-hot-toast';
 
@@ -18,6 +19,7 @@ interface FenceType {
   difficultyCoef: number;
   postSpacing: number;
   defaultLagRows: number;
+  markupEnabled: boolean;
   active: boolean;
   priority: number;
   createdAt: string;
@@ -75,6 +77,7 @@ export default function FenceTypesPage() {
       difficultyCoef: 1.0,
       postSpacing: 2500,
       defaultLagRows: 2,
+      markupEnabled: true,
       active: true,
       priority: 0,
     });
@@ -90,6 +93,7 @@ export default function FenceTypesPage() {
       difficultyCoef: type.difficultyCoef,
       postSpacing: type.postSpacing,
       defaultLagRows: (type.defaultLagRows === 2 || type.defaultLagRows === 3 ? type.defaultLagRows : 2) as 2 | 3,
+      markupEnabled: type.markupEnabled ?? true,
       active: type.active,
       priority: type.priority,
     });
@@ -205,6 +209,15 @@ export default function FenceTypesPage() {
       render: (type: FenceType) => type.postSpacing,
     },
     { key: 'defaultLagRows', label: 'Кол-во лаг' },
+    {
+      key: 'markupEnabled',
+      label: 'Удорожание',
+      render: (type: FenceType) => (
+        <span className={type.markupEnabled !== false ? 'text-green-600' : 'text-gray-400'}>
+          {type.markupEnabled !== false ? 'Вкл' : 'Выкл'}
+        </span>
+      ),
+    },
     { 
       key: 'priority', 
       label: 'Приоритет',
@@ -253,6 +266,7 @@ export default function FenceTypesPage() {
       ],
     },
     { name: 'active', label: 'Активен', type: 'checkbox' as const },
+    { name: 'markupEnabled', label: 'Удорожание по длине', type: 'checkbox' as const },
   ];
 
   return (
@@ -290,6 +304,22 @@ export default function FenceTypesPage() {
 
         {editingType && (
           <RelatedWorks fenceType={getFenceTypeCodeFromNameOrCode(editingType.name)} />
+        )}
+
+        {editingType && (
+          <LengthMarkupRules
+            fenceTypeId={editingType.id}
+            markupEnabled={formValues.markupEnabled ?? true}
+            onMarkupEnabledChange={(enabled) => {
+              setFormValues((prev) => ({ ...prev, markupEnabled: enabled }));
+              fetch(`/api/admin/materials/fence-types/${editingType.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ markupEnabled: enabled }),
+                credentials: 'include',
+              }).catch(() => {});
+            }}
+          />
         )}
       </Modal>
     </div>

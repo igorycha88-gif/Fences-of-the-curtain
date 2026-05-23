@@ -19,6 +19,7 @@ export const fenceTypeSchema = z.object({
     .default(2500),
   defaultLagRows: z.union([z.literal(2), z.literal(3)])
     .default(2),
+  markupEnabled: z.boolean().default(true),
   active: z.boolean().default(true),
   priority: z.number().int().default(0),
 });

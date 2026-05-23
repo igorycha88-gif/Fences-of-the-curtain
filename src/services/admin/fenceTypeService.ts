@@ -54,6 +54,9 @@ export class FenceTypeService {
         materials: {
           orderBy: { sortOrder: 'asc' },
         },
+        lengthMarkups: {
+          orderBy: { priority: 'asc' },
+        },
       },
     });
   }

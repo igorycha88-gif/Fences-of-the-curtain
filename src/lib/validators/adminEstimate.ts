@@ -33,6 +33,7 @@ export const quantityOverrideSchema = z.object({
 export const createAdminEstimateSchema = z.object({
   sourceEstimateId: z.string().min(1),
   editComment: z.string().max(500).optional(),
+  markupDisabled: z.boolean().optional(),
   parameters: recalculateParamsSchema.optional(),
   items: z.object({
     deleted: z.array(z.string()).optional(),
@@ -44,6 +45,7 @@ export const createAdminEstimateSchema = z.object({
 export const updateAdminEstimateSchema = z.object({
   sourceEstimateId: z.string().min(1).optional(),
   editComment: z.string().max(500).optional(),
+  markupDisabled: z.boolean().optional(),
   parameters: recalculateParamsSchema.optional(),
   items: z.object({
     deleted: z.array(z.string()).optional(),

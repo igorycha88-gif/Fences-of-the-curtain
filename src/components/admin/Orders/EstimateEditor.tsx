@@ -139,6 +139,7 @@ export function EstimateEditor({
   );
   const [addedItems, setAddedItems] = useState<EstimateItem[]>([]);
   const [editComment, setEditComment] = useState('');
+  const [markupDisabled, setMarkupDisabled] = useState(false);
   const [isNomenclaturePickerOpen, setIsNomenclaturePickerOpen] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -308,6 +309,7 @@ export function EstimateEditor({
       const payload = {
         sourceEstimateId: estimateId,
         editComment: editComment || undefined,
+        markupDisabled: markupDisabled || undefined,
         parameters: paramDiff,
         items: {
           deleted: Array.from(deletedIds),
@@ -938,6 +940,23 @@ export function EstimateEditor({
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={markupDisabled}
+                  onChange={(e) => setMarkupDisabled(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <span className="font-medium text-gray-700">
+                  Отключить удорожание по длине
+                </span>
+              </label>
+              <p className="text-xs text-gray-400 mt-1 ml-6">
+                Материалы будут добавлены по базовым ценам из справочников без надбавки
+              </p>
             </div>
 
             <div className="mb-6">

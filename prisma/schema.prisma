@@ -74,22 +74,41 @@ model CanopyMaterial {
 }
 
 model FenceType {
-  id             String          @id @default(cuid())
+  id             String             @id @default(cuid())
   name           String
   description    String?
   image          String?
-  difficultyCoef Float           @default(1.0)
-  postSpacing    Int             @default(2500)
-  defaultLagRows Int             @default(2)
-  active         Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  priority       Int             @default(0)
+  difficultyCoef Float              @default(1.0)
+  postSpacing    Int                @default(2500)
+  defaultLagRows Int                @default(2)
+  markupEnabled  Boolean            @default(true)
+  active         Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  priority       Int                @default(0)
   estimates      FenceEstimate[]
   materials      FenceMaterial[]
+  lengthMarkups  FenceLengthMarkup[]
 
   @@index([active])
   @@index([priority])
+}
+
+model FenceLengthMarkup {
+  id            String    @id @default(cuid())
+  fenceTypeId   String
+  minLength     Float
+  maxLength     Float
+  markupPercent Float
+  active        Boolean   @default(true)
+  priority      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  fenceType     FenceType @relation(fields: [fenceTypeId], references: [id], onDelete: Cascade)
+
+  @@index([fenceTypeId])
+  @@index([active])
+  @@index([minLength, maxLength])
 }
 
 model PostType {
@@ -627,6 +646,8 @@ model FenceEstimate {
   automationNomenclatureName String?
   automationTotal            Float   @default(0)
   automationInstallationTotal Float  @default(0)
+  markupDisabled             Boolean  @default(false)
+  markupPercent              Float    @default(0)
   fenceType                FenceType           @relation(fields: [fenceTypeId], references: [id])
   multiEstimate            MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
   sourceEstimate           FenceEstimate?      @relation("AdminEstimateEdit", fields: [sourceEstimateId], references: [id])
