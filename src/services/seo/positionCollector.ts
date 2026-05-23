@@ -2,6 +2,7 @@ import type { Browser, Page } from 'playwright-core';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { parseGoogleSerp, parseYandexSerp, findSiteInResults } from './serpParser';
+import { torManager } from './torManager';
 
 const DOMAIN = 'zabor-i-naves.ru';
 
@@ -9,7 +10,12 @@ const BATCH_COUNT = 4;
 const BATCH_PAUSE_MS = 2.5 * 60 * 60 * 1000;
 const SESSION_TTL_S = 12 * 60 * 60;
 const SESSION_KEY = 'seo:collection:session';
-const DEFAULT_DELAY_MS = 20000;
+
+const DEFAULT_DELAY_MIN_MS = 30000;
+const DEFAULT_DELAY_MAX_MS = 75000;
+const YANDEX_DELAY_MULTIPLIER = 1.5;
+const CAPTCHA_DELAY_BOOST = 1.5;
+const CAPTCHA_BOOST_DECAY = 5;
 
 type LaunchFn = (options?: Record<string, unknown>) => Promise<Browser>;
 
@@ -44,6 +50,10 @@ function chunkArray<T>(arr: T[], chunkCount: number): T[][] {
   return result;
 }
 
+function randomBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 export interface BatchResult {
   batchIndex: number;
   checked: number;
@@ -64,6 +74,11 @@ export interface CollectionResult {
   totalKeywords: number;
   duration: number;
   batchResults: BatchResult[];
+  torStats: {
+    enabled: boolean;
+    rotations: number;
+    captchaHits: number;
+  };
 }
 
 interface SessionData {
@@ -72,23 +87,34 @@ interface SessionData {
   totalKeywords: number;
   batchResults: BatchResult[];
   startedAt: number;
+  torStats: {
+    enabled: boolean;
+    rotations: number;
+    captchaHits: number;
+  };
 }
 
 export class PositionCollector {
   private maxResults: number;
   private timeout: number;
-  private delayMs: number;
+  private delayMinMs: number;
+  private delayMaxMs: number;
   private headless: boolean;
   private proxy: string | undefined;
   private batchPauseMs: number;
+  private useTorForYandex: boolean;
+  private torActive: boolean = false;
+  private captchaBoostCount: number = 0;
 
   constructor() {
     this.maxResults = getIntEnv('SEO_PARSER_MAX_RESULTS', 100);
     this.timeout = getIntEnv('SEO_PARSER_TIMEOUT', 30000);
-    this.delayMs = getIntEnv('SEO_PARSER_DELAY', DEFAULT_DELAY_MS);
+    this.delayMinMs = getIntEnv('SEO_DELAY_MIN_MS', DEFAULT_DELAY_MIN_MS);
+    this.delayMaxMs = getIntEnv('SEO_DELAY_MAX_MS', DEFAULT_DELAY_MAX_MS);
     this.headless = process.env.SEO_PARSER_HEADLESS !== 'false';
     this.proxy = process.env.SEO_PROXY || undefined;
     this.batchPauseMs = getIntEnv('SEO_BATCH_PAUSE_MS', BATCH_PAUSE_MS);
+    this.useTorForYandex = torManager.isEnabled;
   }
 
   async collectAll(): Promise<CollectionResult> {
@@ -98,16 +124,14 @@ export class PositionCollector {
     });
 
     if (keywords.length === 0) {
-      return {
-        checked: 0, errors: 0, skipped: 0, blocked: 0,
-        totalBatches: 0, completedBatches: 0, currentBatch: 0,
-        totalKeywords: 0, duration: 0, batchResults: [],
-      };
+      return this.emptyResult();
     }
 
     const batches = chunkArray(keywords, BATCH_COUNT);
     const startedAt = Date.now();
     const batchResults: BatchResult[] = [];
+
+    await this.initTor();
 
     for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
       if (batchIdx > 0) {
@@ -134,12 +158,19 @@ export class PositionCollector {
       };
       batchResults.push(batchResult);
 
+      const torStats = torManager.getStats();
+
       await this.saveSession({
         totalBatches: batches.length,
         completedBatches: batchIdx + 1,
         totalKeywords: keywords.length,
         batchResults,
         startedAt,
+        torStats: {
+          enabled: torManager.isEnabled,
+          rotations: torStats.rotations,
+          captchaHits: torStats.captchaHits,
+        },
       });
 
       console.log(
@@ -148,26 +179,7 @@ export class PositionCollector {
     }
 
     await redis.del(SESSION_KEY);
-
-    const total = batchResults.reduce(
-      (acc, r) => ({
-        checked: acc.checked + r.checked,
-        errors: acc.errors + r.errors,
-        skipped: acc.skipped + r.skipped,
-        blocked: acc.blocked + r.blocked,
-      }),
-      { checked: 0, errors: 0, skipped: 0, blocked: 0 }
-    );
-
-    return {
-      ...total,
-      totalBatches: batches.length,
-      completedBatches: batches.length,
-      currentBatch: batches.length,
-      totalKeywords: keywords.length,
-      duration: Date.now() - startedAt,
-      batchResults,
-    };
+    return this.buildTotalResult(batchResults, batches, startedAt);
   }
 
   async startBatchSession(): Promise<CollectionResult> {
@@ -183,15 +195,13 @@ export class PositionCollector {
     });
 
     if (keywords.length === 0) {
-      return {
-        checked: 0, errors: 0, skipped: 0, blocked: 0,
-        totalBatches: 0, completedBatches: 0, currentBatch: 0,
-        totalKeywords: 0, duration: 0, batchResults: [],
-      };
+      return this.emptyResult();
     }
 
     const batches = chunkArray(keywords, BATCH_COUNT);
     const startedAt = Date.now();
+
+    await this.initTor();
 
     await this.saveSession({
       totalBatches: batches.length,
@@ -199,6 +209,11 @@ export class PositionCollector {
       totalKeywords: keywords.length,
       batchResults: [],
       startedAt,
+      torStats: {
+        enabled: torManager.isEnabled,
+        rotations: 0,
+        captchaHits: 0,
+      },
     });
 
     return this.runSessionBatches(batches, 0, startedAt);
@@ -233,6 +248,7 @@ export class PositionCollector {
         totalKeywords: session.totalKeywords,
         duration: Date.now() - session.startedAt,
         batchResults: session.batchResults,
+        torStats: session.torStats || { enabled: false, rotations: 0, captchaHits: 0 },
       };
     }
 
@@ -247,6 +263,8 @@ export class PositionCollector {
     console.log(
       `[PositionCollector] Resuming from batch ${resumeFrom + 1}/${batches.length}`
     );
+
+    await this.initTor();
 
     return this.runSessionBatches(batches, resumeFrom, session.startedAt, session.batchResults);
   }
@@ -285,12 +303,19 @@ export class PositionCollector {
         };
         batchResults.push(batchResult);
 
+        const torStats = torManager.getStats();
+
         await this.saveSession({
           totalBatches: batches.length,
           completedBatches: batchIdx + 1,
           totalKeywords: batches.reduce((s, b) => s + b.length, 0),
           batchResults,
           startedAt,
+          torStats: {
+            enabled: torManager.isEnabled,
+            rotations: torStats.rotations,
+            captchaHits: torStats.captchaHits,
+          },
         });
 
         console.log(
@@ -304,26 +329,7 @@ export class PositionCollector {
     }
 
     await redis.del(SESSION_KEY);
-
-    const total = batchResults.reduce(
-      (acc, r) => ({
-        checked: acc.checked + r.checked,
-        errors: acc.errors + r.errors,
-        skipped: acc.skipped + r.skipped,
-        blocked: acc.blocked + r.blocked,
-      }),
-      { checked: 0, errors: 0, skipped: 0, blocked: 0 }
-    );
-
-    return {
-      ...total,
-      totalBatches: batches.length,
-      completedBatches: batches.length,
-      currentBatch: batches.length,
-      totalKeywords: batches.reduce((s, b) => s + b.length, 0),
-      duration: Date.now() - startedAt,
-      batchResults,
-    };
+    return this.buildTotalResult(batchResults, batches, startedAt);
   }
 
   async getSessionStatus(): Promise<SessionData | null> {
@@ -348,7 +354,7 @@ export class PositionCollector {
 
     let browser: Browser | null = null;
     try {
-      browser = await this.launchBrowser(launch);
+      browser = await this.launchBrowser(launch, searchEngine);
       const page = await browser.newPage();
       return await this.scrapeKeyword(page, keyword, searchEngine).then((r) => ({
         position: r.position,
@@ -364,6 +370,18 @@ export class PositionCollector {
     }
   }
 
+  private async initTor(): Promise<void> {
+    if (!this.useTorForYandex) return;
+
+    const activated = await torManager.activate();
+    this.torActive = activated;
+    if (activated) {
+      console.log('[PositionCollector] Tor proxy activated for Yandex requests');
+    } else {
+      console.warn('[PositionCollector] Tor proxy NOT available, proceeding without Tor');
+    }
+  }
+
   private async collectBatch(
     keywords: { keyword: string; searchEngine: string; id: string }[],
     batchIndex: number
@@ -376,7 +394,7 @@ export class PositionCollector {
 
     let browser: Browser | null = null;
     try {
-      browser = await this.launchBrowser(launch);
+      browser = await this.launchBrowser(launch, 'default');
     } catch (error) {
       console.error(`[PositionCollector] Failed to launch CloakBrowser for batch ${batchIndex}:`, error);
       return { checked: 0, errors: 0, skipped: keywords.length, blocked: 0 };
@@ -392,11 +410,20 @@ export class PositionCollector {
     try {
       for (let i = 0; i < keywords.length; i++) {
         if (i > 0) {
-          await this.delay(this.delayMs);
+          const isYandex = keywords[i].searchEngine === 'yandex';
+          const delayMs = this.getSmartDelay(isYandex);
+          await this.delay(delayMs);
         }
 
         const kw = keywords[i];
+        const isYandex = kw.searchEngine === 'yandex';
         let page: Page | null = null;
+
+        const needsTorBrowser = isYandex && this.torActive;
+        if (needsTorBrowser && i > 0) {
+          await browser.close().catch(() => {});
+          browser = await this.launchBrowser(launch, 'yandex');
+        }
 
         try {
           page = await browser.newPage();
@@ -405,6 +432,42 @@ export class PositionCollector {
           if (result.blocked) {
             consecutiveBlocks++;
             blocked++;
+
+            const torResult = await this.handleCaptcha(
+              kw.keyword,
+              kw.searchEngine,
+              consecutiveBlocks,
+              MAX_CONSECUTIVE_BLOCKS,
+              launch
+            );
+
+            if (torResult.retried && torResult.result) {
+              if (!torResult.result.blocked) {
+                consecutiveBlocks = 0;
+                await prisma.seoPosition.create({
+                  data: {
+                    keywordId: kw.id,
+                    position: torResult.result.position,
+                    url: torResult.result.url || null,
+                    title: torResult.result.title || null,
+                    snippet: torResult.result.snippet || null,
+                    found: torResult.result.found,
+                  },
+                });
+                checked++;
+                console.log(
+                  `[PositionCollector] "${kw.keyword}" (${kw.searchEngine}): pos=${torResult.result.position}, found=${torResult.result.found} (after Tor retry)`
+                );
+                try {
+                  await browser.close().catch(() => {});
+                  browser = await this.launchBrowser(launch, 'yandex');
+                } catch {
+                  browser = await this.launchBrowser(launch, 'default');
+                }
+                continue;
+              }
+            }
+
             console.warn(
               `[PositionCollector] Blocked (${consecutiveBlocks}/${MAX_CONSECUTIVE_BLOCKS}) for "${kw.keyword}" (${kw.searchEngine})`
             );
@@ -418,6 +481,9 @@ export class PositionCollector {
             }
           } else {
             consecutiveBlocks = 0;
+            if (this.captchaBoostCount > 0) {
+              this.captchaBoostCount--;
+            }
 
             await prisma.seoPosition.create({
               data: {
@@ -452,6 +518,67 @@ export class PositionCollector {
     }
 
     return { checked, errors, skipped, blocked };
+  }
+
+  private async handleCaptcha(
+    keyword: string,
+    searchEngine: string,
+    consecutiveBlocks: number,
+    maxBlocks: number,
+    launch: LaunchFn
+  ): Promise<{ retried: boolean; result?: { position: number; url?: string; title?: string; snippet?: string; found: boolean; blocked: boolean } }> {
+    if (searchEngine !== 'yandex' || !this.torActive) {
+      return { retried: false };
+    }
+
+    this.captchaBoostCount = CAPTCHA_BOOST_DECAY;
+
+    const rotationResult = await torManager.onCaptcha();
+    if (!rotationResult.rotated) {
+      console.warn(
+        `[PositionCollector] Tor rotation failed/skipped for "${keyword}": ${rotationResult.reason}`
+      );
+      return { retried: false };
+    }
+
+    console.log(
+      `[PositionCollector] Retrying "${keyword}" (${searchEngine}) with rotated Tor IP (block ${consecutiveBlocks}/${maxBlocks})`
+    );
+
+    let retryBrowser: Browser | null = null;
+    try {
+      retryBrowser = await this.launchBrowser(launch, 'yandex');
+      const retryPage = await retryBrowser.newPage();
+
+      const result = await this.scrapeKeyword(retryPage, keyword, searchEngine);
+      await retryPage.close().catch(() => {});
+
+      return { retried: true, result };
+    } catch (error) {
+      console.error(`[PositionCollector] Tor retry error for "${keyword}":`, error);
+      return { retried: true, result: { position: 0, found: false, blocked: true } };
+    } finally {
+      if (retryBrowser) {
+        await retryBrowser.close().catch(() => {});
+      }
+    }
+  }
+
+  private getSmartDelay(isYandex: boolean): number {
+    let min = this.delayMinMs;
+    let max = this.delayMaxMs;
+
+    if (isYandex) {
+      min = Math.round(min * YANDEX_DELAY_MULTIPLIER);
+      max = Math.round(max * YANDEX_DELAY_MULTIPLIER);
+    }
+
+    if (this.captchaBoostCount > 0) {
+      min = Math.round(min * CAPTCHA_DELAY_BOOST);
+      max = Math.round(max * CAPTCHA_DELAY_BOOST);
+    }
+
+    return randomBetween(min, max);
   }
 
   private async scrapeKeyword(
@@ -534,7 +661,7 @@ export class PositionCollector {
     return `https://www.google.ru/search?q=${encodedQuery}&hl=ru&gl=ru&num=${this.maxResults}`;
   }
 
-  private async launchBrowser(launch: LaunchFn): Promise<Browser> {
+  private async launchBrowser(launch: LaunchFn, searchEngine: string): Promise<Browser> {
     const options: Record<string, unknown> = {
       headless: this.headless,
       humanize: true,
@@ -543,7 +670,12 @@ export class PositionCollector {
       args: ['--fingerprint=42'],
     };
 
-    if (this.proxy) {
+    if (searchEngine === 'yandex' && this.torActive) {
+      const torProxy = torManager.getProxyString();
+      if (torProxy) {
+        options.proxy = torProxy;
+      }
+    } else if (this.proxy) {
       options.proxy = this.proxy;
     }
 
@@ -566,6 +698,48 @@ export class PositionCollector {
     } catch {
       return null;
     }
+  }
+
+  private emptyResult(): CollectionResult {
+    return {
+      checked: 0, errors: 0, skipped: 0, blocked: 0,
+      totalBatches: 0, completedBatches: 0, currentBatch: 0,
+      totalKeywords: 0, duration: 0, batchResults: [],
+      torStats: { enabled: false, rotations: 0, captchaHits: 0 },
+    };
+  }
+
+  private buildTotalResult(
+    batchResults: BatchResult[],
+    batches: { keyword: string; searchEngine: string; id: string }[][],
+    startedAt: number
+  ): CollectionResult {
+    const total = batchResults.reduce(
+      (acc, r) => ({
+        checked: acc.checked + r.checked,
+        errors: acc.errors + r.errors,
+        skipped: acc.skipped + r.skipped,
+        blocked: acc.blocked + r.blocked,
+      }),
+      { checked: 0, errors: 0, skipped: 0, blocked: 0 }
+    );
+
+    const torStats = torManager.getStats();
+
+    return {
+      ...total,
+      totalBatches: batches.length,
+      completedBatches: batches.length,
+      currentBatch: batches.length,
+      totalKeywords: batches.reduce((s, b) => s + b.length, 0),
+      duration: Date.now() - startedAt,
+      batchResults,
+      torStats: {
+        enabled: torManager.isEnabled,
+        rotations: torStats.rotations,
+        captchaHits: torStats.captchaHits,
+      },
+    };
   }
 }
 

@@ -138,15 +138,24 @@ export async function checkAndSend(): Promise<void> {
   }
 
   if (hour === 0 && minute === 0) {
-    const timeSlot = `${hour}:00`;
-    await runSeoCollection(timeSlot);
+    const dayOfWeek = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Moscow',
+      weekday: 'short',
+    }).format(now);
+
+    if (dayOfWeek === 'Mon') {
+      const timeSlot = `${hour}:00-${dayOfWeek}`;
+      await runSeoCollection(timeSlot);
+    } else {
+      console.log(`[Cron] Today is ${dayOfWeek}, SEO collection runs only on Monday`);
+    }
   }
 }
 
 export function startScheduler(): void {
   if (schedulerInterval) return;
 
-  console.log('[Cron] Starting scheduler: SEO 00:00, Daily summary 20:00 (Europe/Moscow)');
+  console.log('[Cron] Starting scheduler: SEO every Monday 00:00, Daily summary 20:00 (Europe/Moscow)');
   schedulerInterval = setInterval(checkAndSend, 60_000);
 }
 

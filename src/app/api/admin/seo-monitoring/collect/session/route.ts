@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
       blocked,
       startedAt: session.startedAt,
       duration: Date.now() - session.startedAt,
+      torEnabled: session.torStats?.enabled ?? false,
+      torRotations: session.torStats?.rotations ?? 0,
+      captchaHits: session.torStats?.captchaHits ?? 0,
     });
   } catch (error) {
     console.error('[Admin] SEO session status error:', error);

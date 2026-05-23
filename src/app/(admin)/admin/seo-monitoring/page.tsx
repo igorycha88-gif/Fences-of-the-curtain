@@ -70,6 +70,9 @@ export default function SeoMonitoringPage() {
     totalBatches: number;
     checked: number;
     errors: number;
+    torEnabled: boolean;
+    torRotations: number;
+    captchaHits: number;
   } | null>(null);
   const [seeding, setSeeding] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -134,6 +137,9 @@ export default function SeoMonitoringPage() {
           totalBatches: data.totalBatches,
           checked: data.checked,
           errors: data.errors,
+          torEnabled: data.torEnabled ?? false,
+          torRotations: data.torRotations ?? 0,
+          captchaHits: data.captchaHits ?? 0,
         });
         pollSessionStatus();
       } else if (data.completed) {
@@ -256,6 +262,9 @@ export default function SeoMonitoringPage() {
             totalBatches: data.totalBatches,
             checked: data.checked,
             errors: data.errors,
+            torEnabled: data.torEnabled ?? false,
+            torRotations: data.torRotations ?? 0,
+            captchaHits: data.captchaHits ?? 0,
           });
         } else if (data.completed) {
           justStartedRef.current = false;
@@ -422,7 +431,7 @@ export default function SeoMonitoringPage() {
             />
             {collecting
               ? collectProgress
-                ? `Батч ${collectProgress.completedBatches}/${collectProgress.totalBatches} (${collectProgress.checked} проверено)`
+                ? `Батч ${collectProgress.completedBatches}/${collectProgress.totalBatches} (${collectProgress.checked} проверено)${collectProgress.torEnabled ? ` · Tor: ${collectProgress.torRotations} ротаций, ${collectProgress.captchaHits} CAPTCHA` : ''}`
                 : 'Запуск...'
               : 'Собрать сейчас'}
           </button>

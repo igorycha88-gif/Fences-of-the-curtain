@@ -169,8 +169,15 @@ export class SeoChangeNotifier {
     }
     lines.push(`⚠️ Ошибки: ${result.errors}`);
     lines.push(`🚫 Блокировки: ${result.blocked}`);
+    if (result.torStats?.enabled) {
+      lines.push(`🔄 Tor-ротации: ${result.torStats.rotations}`);
+      lines.push(`🛡️ CAPTCHA срабатывания: ${result.torStats.captchaHits}`);
+    }
     lines.push(`📦 Батчи: ${result.completedBatches}/${result.totalBatches}`);
     lines.push(`⏱ Длительность: ${formatDuration(result.duration)}`);
+    if (result.skipped > 0) {
+      lines.push(`⚠️ Пропущено (блокировки): ${result.skipped} — требуется ручная проверка`);
+    }
 
     if (firstFound.length > 0) {
       lines.push('');
