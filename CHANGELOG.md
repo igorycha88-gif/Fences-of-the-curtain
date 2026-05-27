@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.12.1] - 2026-05-27
+
+### Исправлено
+- fix: калькулятор забора — graceful fallback при отсутствии таблицы FenceLengthMarkup (P2021)
+- fix: CSP — добавлен stats.g.doubleclick.net для Google Analytics 4
+
 ## [1.12.0] - 2026-05-27
 
 ### Добавлено

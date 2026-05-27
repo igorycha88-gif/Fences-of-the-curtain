@@ -176,6 +176,7 @@ describe('middleware', () => {
 
       expect(csp).toContain('https://www.googletagmanager.com');
       expect(csp).toContain('https://www.google-analytics.com');
+      expect(csp).toContain('https://stats.g.doubleclick.net');
     });
 
     it('should allow Yandex Metrika domains', async () => {

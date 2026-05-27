@@ -51,22 +51,30 @@ export class LengthMarkupService {
   }
 
   async findMarkupPercent(fenceTypeId: string, fenceLength: number): Promise<number> {
-    const fenceType = await prisma.fenceType.findUnique({
-      where: { id: fenceTypeId },
-      select: { markupEnabled: true },
-    });
+    try {
+      const fenceType = await prisma.fenceType.findUnique({
+        where: { id: fenceTypeId },
+        select: { markupEnabled: true },
+      });
 
-    if (!fenceType || !fenceType.markupEnabled) {
-      return 0;
+      if (!fenceType || !fenceType.markupEnabled) {
+        return 0;
+      }
+
+      const markups = await this.getMarkupsForFenceType(fenceTypeId);
+
+      const matchingRule = markups.find(
+        (m) => m.active && fenceLength >= m.minLength && fenceLength <= m.maxLength
+      );
+
+      return matchingRule ? matchingRule.markupPercent : 0;
+    } catch (error: any) {
+      if (error?.code === 'P2021') {
+        console.warn('[LengthMarkup] Table FenceLengthMarkup not found, skipping markup');
+        return 0;
+      }
+      throw error;
     }
-
-    const markups = await this.getMarkupsForFenceType(fenceTypeId);
-
-    const matchingRule = markups.find(
-      (m) => m.active && fenceLength >= m.minLength && fenceLength <= m.maxLength
-    );
-
-    return matchingRule ? matchingRule.markupPercent : 0;
   }
 
   async createMarkup(
