@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import HomeFooter from '@/components/layout/HomeFooter';
 import GarageBanner from '@/components/garage/GarageBanner';
+import { PromotionBanner } from '@/components/promotions/PromotionBanner';
 import {
   AnimatedSection,
 } from '@/hooks/useScrollReveal';
@@ -151,6 +152,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <PromotionBanner />
 
         <GarageBanner />
 

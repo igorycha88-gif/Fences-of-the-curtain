@@ -38,6 +38,13 @@ export interface WordEstimateSection {
   materialsTotal: number;
   installationTotal: number;
   grandTotal: number;
+  promotion?: {
+    name: string;
+    discountType: string;
+    discountPercent: number;
+    discountTotal: number;
+    totalBeforeDiscount: number;
+  } | null;
 }
 
 export interface WordEstimateData {
@@ -270,6 +277,55 @@ function createEstimateSection(estimate: WordEstimateSection, index: number): Pa
   paragraphs.push(new Paragraph({ children: [] }));
   paragraphs.push(table as unknown as Paragraph);
   paragraphs.push(new Paragraph({ children: [] }));
+
+  if (estimate.promotion) {
+    const discountLabel = estimate.promotion.discountType === 'MATERIALS'
+      ? 'на материалы'
+      : estimate.promotion.discountType === 'WORKS'
+        ? 'на работы'
+        : 'на материалы и работы';
+
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `Акция: ${estimate.promotion.name} — скидка ${estimate.promotion.discountPercent}% ${discountLabel}`,
+            bold: true,
+            size: 20,
+            font: 'Times New Roman',
+          }),
+        ],
+        spacing: { before: 100, after: 50 },
+      })
+    );
+
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Стоимость без скидки: ${formatPrice(estimate.promotion.totalBeforeDiscount)} руб.`, size: 20, font: 'Times New Roman' }),
+        ],
+        spacing: { after: 50 },
+      })
+    );
+
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Скидка по акции: -${formatPrice(estimate.promotion.discountTotal)} руб.`, size: 20, font: 'Times New Roman', bold: true }),
+        ],
+        spacing: { after: 50 },
+      })
+    );
+
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `ИТОГО со скидкой: ${formatPrice(estimate.grandTotal)} руб.`, size: 22, font: 'Times New Roman', bold: true }),
+        ],
+        spacing: { after: 200 },
+      })
+    );
+  }
 
   return paragraphs;
 }

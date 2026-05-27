@@ -8,6 +8,7 @@ import { FenceTypeInput } from '@/lib/validators/fenceType';
 import { PriorityColumn } from '@/components/admin/References/shared';
 import { RelatedWorks } from '@/components/admin/Works/RelatedWorks';
 import { LengthMarkupRules } from '@/components/admin/References/LengthMarkupRules';
+import { PromotionSection } from '@/components/admin/References/PromotionSection';
 import { getFenceTypeCodeFromNameOrCode } from '@/lib/fenceTypeMap';
 import toast from 'react-hot-toast';
 
@@ -320,6 +321,10 @@ export default function FenceTypesPage() {
               }).catch(() => {});
             }}
           />
+        )}
+
+        {editingType && (
+          <PromotionSection fenceTypeId={editingType.id} />
         )}
       </Modal>
     </div>

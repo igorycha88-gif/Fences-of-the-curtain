@@ -15,6 +15,8 @@ export const CACHE_KEYS = {
   WORKS_BY_REFERENCE: (refType: string, refId: string) => `calculator:works:ref:${refType}:${refId}`,
   MOUNTING_HARDWARE: (postTypeId: string, lagTypeId: string, profnastilTypeId: string) =>
     `calculator:hardware:${postTypeId}:${lagTypeId}:${profnastilTypeId}`,
+  PROMOTION_ACTIVE: (fenceTypeId: string) => `calculator:promotion:${fenceTypeId}`,
+  PROMOTIONS_ALL_ACTIVE: 'calculator:promotions:active',
 } as const;
 
 export const CACHE_TTL = {

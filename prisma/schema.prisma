@@ -89,6 +89,7 @@ model FenceType {
   estimates      FenceEstimate[]
   materials      FenceMaterial[]
   lengthMarkups  FenceLengthMarkup[]
+  promotion      Promotion?
 
   @@index([active])
   @@index([priority])
@@ -648,6 +649,12 @@ model FenceEstimate {
   automationInstallationTotal Float  @default(0)
   markupDisabled             Boolean  @default(false)
   markupPercent              Float    @default(0)
+  promotionId                String?
+  promotionName              String?
+  promotionDiscountType      String?
+  promotionDiscountPercent   Float    @default(0)
+  promotionDiscountTotal     Float    @default(0)
+  totalBeforeDiscount        Float?
   fenceType                FenceType           @relation(fields: [fenceTypeId], references: [id])
   multiEstimate            MultiFenceEstimate? @relation(fields: [multiEstimateId], references: [id])
   sourceEstimate           FenceEstimate?      @relation("AdminEstimateEdit", fields: [sourceEstimateId], references: [id])
@@ -876,6 +883,12 @@ enum CanopyRoofType {
   SINGLE_SLOPE_CURVED
 }
 
+enum PromotionDiscountType {
+  MATERIALS
+  WORKS
+  BOTH
+}
+
 model TrussProfileType {
   id                    String   @id @default(cuid())
   name                  String
@@ -1062,4 +1075,24 @@ model SeoPosition {
   @@index([keywordId, checkedAt])
   @@index([found])
   @@map("seo_positions")
+}
+
+model Promotion {
+  id              String                @id @default(cuid())
+  fenceTypeId     String                @unique
+  name            String
+  discountType    PromotionDiscountType @default(BOTH)
+  discountPercent Float
+  bannerTitle     String?
+  bannerText      String?
+  active          Boolean               @default(false)
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  fenceType       FenceType             @relation(fields: [fenceTypeId], references: [id], onDelete: Cascade)
+
+  @@index([fenceTypeId])
+  @@index([active])
+  @@index([endDate])
 }

@@ -97,6 +97,15 @@ interface CalculatorResult {
       selectedName: string;
     };
   };
+  promotion: {
+    id: string;
+    name: string;
+    discountType: string;
+    discountPercent: number;
+    discountTotal: number;
+    totalBeforeDiscount: number;
+    bannerTitle: string | null;
+  } | null;
   calculatedAt: string;
 }
 
@@ -156,6 +165,7 @@ export default function FenceCalculatorPage() {
 
   const [automationTypes, setAutomationTypes] = useState<Array<{ id: string; name: string; retailPrice: number }>>([]);
 
+  const [activePromotions, setActivePromotions] = useState<Record<string, { discountPercent: number; bannerTitle: string | null }>>({});
   const lengthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const heightInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -250,6 +260,19 @@ export default function FenceCalculatorPage() {
         if (Array.isArray(data)) setAutomationTypes(data);
       })
       .catch(err => console.error('Error loading automation types:', err));
+
+    fetch('/api/promotions/active')
+      .then(res => res.json())
+      .then(data => {
+        if (data.promotions && Array.isArray(data.promotions)) {
+          const map: Record<string, { discountPercent: number; bannerTitle: string | null }> = {};
+          data.promotions.forEach((p: any) => {
+            map[p.fenceTypeId] = { discountPercent: p.discountPercent, bannerTitle: p.bannerTitle };
+          });
+          setActivePromotions(map);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -730,6 +753,16 @@ export default function FenceCalculatorPage() {
                   Нет доступных типов заборов
                 </div>
               )}
+              {formData.fenceTypeId && activePromotions[formData.fenceTypeId] && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold">
+                    %
+                  </span>
+                  <span className="text-sm text-orange-700 font-medium">
+                    Акция! Скидка {activePromotions[formData.fenceTypeId].discountPercent}%
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1072,6 +1105,21 @@ export default function FenceCalculatorPage() {
 
             {calc.result && (
               <div className="space-y-3 pt-4 border-t border-border/50">
+                {calc.result.promotion && (
+                  <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-3 flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-500 text-white text-xs font-bold">
+                      -{calc.result.promotion.discountPercent}%
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-orange-800">
+                        {calc.result.promotion.bannerTitle || calc.result.promotion.name}
+                      </p>
+                      <p className="text-xs text-orange-600">
+                        Скидка {calc.result.promotion.discountType === 'MATERIALS' ? 'на материалы' : calc.result.promotion.discountType === 'WORKS' ? 'на работы' : 'на всё'}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Смета</h3>
                 <div className="space-y-1">
                   {calc.result.items.map((item, i) => (
@@ -1089,8 +1137,26 @@ export default function FenceCalculatorPage() {
                   <span className="text-muted-foreground">Монтаж</span>
                   <span>{formatCurrency(calc.result.totals.installation)}</span>
                 </div>
+                {calc.result.promotion && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground line-through">
+                        Без скидки
+                      </span>
+                      <span className="text-muted-foreground line-through">
+                        {formatCurrency(calc.result.promotion.totalBeforeDiscount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm text-green-600 font-medium">
+                      <span>Экономия по акции</span>
+                      <span>-{formatCurrency(calc.result.promotion.discountTotal)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="bg-primary/5 p-4 rounded-xl flex justify-between items-center">
-                  <span className="font-bold">Итого</span>
+                  <span className="font-bold">
+                    {calc.result.promotion ? 'Итого со скидкой' : 'Итого'}
+                  </span>
                   <span className="text-2xl font-bold text-primary">{formatCurrency(calc.result.totals.grandTotal)}</span>
                 </div>
               </div>
@@ -1161,9 +1227,16 @@ export default function FenceCalculatorPage() {
                           {multiResult.estimates.map(({ index, result }) => (
                             <div key={result.estimateId} className="border border-border rounded-xl p-4">
                               <div className="flex justify-between items-center mb-2">
-                                <span className="font-semibold">
-                                  {result.parameters.fenceTypeName}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold">
+                                    {result.parameters.fenceTypeName}
+                                  </span>
+                                  {result.promotion && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
+                                      -{result.promotion.discountPercent}%
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-primary font-bold">
                                   {formatCurrency(result.totals.grandTotal)}
                                 </span>

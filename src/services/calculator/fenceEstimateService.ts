@@ -17,6 +17,7 @@ import { getCityByIP } from '@/services/admin/ipLookupService';
 import { createAuditLogAsync, getSystemUserId } from '@/lib/audit';
 import { getFenceTypeCodeByName } from '@/lib/fenceTypeMap';
 import { lengthMarkupService } from './lengthMarkupService';
+import { promotionService, PromotionData, AppliedPromotion } from './promotionService';
 
 type EstimateItem = PostCalculationResult | LagCalculationResult | ProfnastilCalculationResult | Panel3DCalculationResult | PicketCalculationResult | MeshCalculationResult | MountingHardwareCalculationResult | GateCalculationResult | GateInstallationCalculationResult | WicketCalculationResult | WicketInstallationCalculationResult | AutomationCalculationResult;
 
@@ -113,6 +114,7 @@ export interface FenceEstimateCoreResult {
   wicketInfo?: WicketInfo;
   automationInfo?: AutomationInfo;
   appliedMarkupPercent: number;
+  appliedPromotion: (PromotionData & { discountTotal: number; totalBeforeDiscount: number }) | null;
 }
 
 export interface FenceEstimateResult {
@@ -134,6 +136,15 @@ export interface FenceEstimateResult {
     wicket?: WicketInfo;
     automation?: AutomationInfo;
   };
+  promotion: {
+    id: string;
+    name: string;
+    discountType: string;
+    discountPercent: number;
+    discountTotal: number;
+    totalBeforeDiscount: number;
+    bannerTitle: string | null;
+  } | null;
   calculatedAt: string;
 }
 
@@ -626,34 +637,31 @@ export async function calculateFenceEstimateCore(
     }
   }
 
-  const mountingHardwareTotal = mountingHardwareResult.reduce((sum, item) => sum + item.totalPrice, 0);
-  const gateInstallationTotal = gateInstallationWorks.reduce((sum, work) => sum + work.price, 0);
-  const wicketInstallationTotal = wicketInstallationWorks.reduce((sum, work) => sum + work.price, 0);
-  const panel3dInstallationTotal = panel3dInstallationWorks.reduce((sum, work) => sum + work.price * (panel3dResult ? panel3dResult.quantity : 1), 0);
-  const meshInstallationTotal = meshInstallationWorks.reduce((sum, work) => sum + work.price * (meshResult ? meshResult.quantity : 1), 0);
+  let appliedPromotion: (PromotionData & { discountTotal: number; totalBeforeDiscount: number }) | null = null;
 
-  const fenceTypeMountingWorksTotal = fenceTypeMountingWorks.reduce((sum, work) => {
-    const hasReferenceRelation = work.relations?.some(
-      (rel) => rel.referenceType && rel.referenceId
-    );
-    if (work.unit === 'MP') {
-      return sum + (correctedLength * work.price);
-    } else if (work.unit === 'PCS' && hasReferenceRelation) {
-      const matchingRel = work.relations?.find(
-        (rel) => rel.referenceType && rel.referenceId && referenceQuantityMap[`${rel.referenceType}:${rel.referenceId}`]
-      );
-      if (matchingRel) {
-        const qty = referenceQuantityMap[`${matchingRel.referenceType}:${matchingRel.referenceId}`];
-        return sum + (qty * work.price);
-      }
+  const activePromotion = await promotionService.getActivePromotion(fenceTypeId);
+
+  if (activePromotion) {
+    const promotionResult = promotionService.applyPromotionDiscount(items, activePromotion);
+
+    for (let i = 0; i < items.length; i++) {
+      items[i].pricePerUnit = promotionResult.items[i].pricePerUnit;
+      items[i].totalPrice = promotionResult.items[i].totalPrice;
     }
-    return sum + work.price;
-  }, 0);
 
-  const automationInstallationTotal = automationInstallationWorks.reduce((sum, work) => sum + work.price, 0);
+    appliedPromotion = {
+      ...activePromotion,
+      discountTotal: promotionResult.discountTotal,
+      totalBeforeDiscount: promotionResult.totalBeforeDiscount,
+    };
+  }
 
-  const materials = postsResult.totalPrice + (lagsResult?.totalPrice || 0) + (profnastilResult?.totalPrice || 0) + (panel3dResult?.totalPrice || 0) + (picketResult?.totalPrice || 0) + (meshResult?.totalPrice || 0) + gateTotal + wicketTotal + automationTotal + mountingHardwareTotal;
-  const installation = gateInstallationTotal + wicketInstallationTotal + automationInstallationTotal + panel3dInstallationTotal + meshInstallationTotal + fenceTypeMountingWorksTotal;
+  const materials = items
+    .filter(i => i.category !== 'installation')
+    .reduce((sum, i) => sum + i.totalPrice, 0);
+  const installation = items
+    .filter(i => i.category === 'installation')
+    .reduce((sum, i) => sum + i.totalPrice, 0);
   const grandTotal = materials + installation;
 
   return {
@@ -679,6 +687,7 @@ export async function calculateFenceEstimateCore(
     wicketInfo,
     automationInfo,
     appliedMarkupPercent: markupPercent,
+    appliedPromotion,
   };
 }
 
@@ -749,6 +758,12 @@ export async function calculateFenceEstimate(
           .filter(i => i.category === 'installation' && i.nomenclatureName.includes('автомат'))
           .reduce((sum, item) => sum + item.totalPrice, 0),
         markupPercent: coreResult.appliedMarkupPercent,
+        promotionId: coreResult.appliedPromotion?.id || null,
+        promotionName: coreResult.appliedPromotion?.name || null,
+        promotionDiscountType: coreResult.appliedPromotion?.discountType || null,
+        promotionDiscountPercent: coreResult.appliedPromotion?.discountPercent || 0,
+        promotionDiscountTotal: coreResult.appliedPromotion?.discountTotal || 0,
+        totalBeforeDiscount: coreResult.appliedPromotion?.totalBeforeDiscount || null,
         installationTotal: coreResult.totals.installation,
         materialsTotal: coreResult.totals.materials,
         grandTotal: coreResult.totals.grandTotal,
@@ -781,6 +796,15 @@ export async function calculateFenceEstimate(
     items: coreResult.items,
     totals: coreResult.totals,
     parameters: coreResult.parameters,
+    promotion: coreResult.appliedPromotion ? {
+      id: coreResult.appliedPromotion.id,
+      name: coreResult.appliedPromotion.name,
+      discountType: coreResult.appliedPromotion.discountType,
+      discountPercent: coreResult.appliedPromotion.discountPercent,
+      discountTotal: coreResult.appliedPromotion.discountTotal,
+      totalBeforeDiscount: coreResult.appliedPromotion.totalBeforeDiscount,
+      bannerTitle: coreResult.appliedPromotion.bannerTitle,
+    } : null,
     calculatedAt: estimate.createdAt.toISOString(),
   };
 }
@@ -794,6 +818,15 @@ export async function calculateFenceEstimateDryRun(
     items: coreResult.items,
     totals: coreResult.totals,
     parameters: coreResult.parameters,
+    promotion: coreResult.appliedPromotion ? {
+      id: coreResult.appliedPromotion.id,
+      name: coreResult.appliedPromotion.name,
+      discountType: coreResult.appliedPromotion.discountType,
+      discountPercent: coreResult.appliedPromotion.discountPercent,
+      discountTotal: coreResult.appliedPromotion.discountTotal,
+      totalBeforeDiscount: coreResult.appliedPromotion.totalBeforeDiscount,
+      bannerTitle: coreResult.appliedPromotion.bannerTitle,
+    } : null,
   };
 }
 
@@ -853,6 +886,15 @@ export async function getFenceEstimateById(id: string): Promise<FenceEstimateRes
       ...(wicketInfo ? { wicket: wicketInfo } : {}),
       ...(automationInfoResult ? { automation: automationInfoResult } : {}),
     },
+    promotion: estimate.promotionId ? {
+      id: estimate.promotionId,
+      name: estimate.promotionName || 'Акция',
+      discountType: estimate.promotionDiscountType || 'BOTH',
+      discountPercent: estimate.promotionDiscountPercent,
+      discountTotal: estimate.promotionDiscountTotal,
+      totalBeforeDiscount: estimate.totalBeforeDiscount || 0,
+      bannerTitle: null,
+    } : null,
     calculatedAt: estimate.createdAt.toISOString(),
   };
 }

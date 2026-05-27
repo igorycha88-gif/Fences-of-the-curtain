@@ -157,6 +157,12 @@ export async function getMultiFenceEstimateById(id: string): Promise<MultiFenceE
     wicketNomenclatureName: string | null;
     createdAt: Date;
     fenceType: { name: string };
+    promotionId: string | null;
+    promotionName: string | null;
+    promotionDiscountType: string | null;
+    promotionDiscountPercent: number;
+    promotionDiscountTotal: number;
+    totalBeforeDiscount: number | null;
   }, index: number): { index: number; result: FenceEstimateResult } => {
     const parameters: FenceEstimateResult['parameters'] = {
       fenceTypeId: est.fenceTypeId,
@@ -197,6 +203,15 @@ export async function getMultiFenceEstimateById(id: string): Promise<MultiFenceE
           grandTotal: est.grandTotal,
         },
         parameters,
+        promotion: est.promotionId ? {
+          id: est.promotionId,
+          name: est.promotionName || 'Акция',
+          discountType: est.promotionDiscountType || 'BOTH',
+          discountPercent: est.promotionDiscountPercent,
+          discountTotal: est.promotionDiscountTotal,
+          totalBeforeDiscount: est.totalBeforeDiscount || 0,
+          bannerTitle: null,
+        } : null,
         calculatedAt: est.createdAt.toISOString(),
       },
     };
