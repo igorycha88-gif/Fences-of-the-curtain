@@ -58,17 +58,8 @@ export function PromotionBanner() {
   };
 
   return (
-    <section className="py-12 px-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-red-500 to-rose-500" />
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-full h-full"
-          style={{
-            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.1) 35px, rgba(255,255,255,0.1) 70px)',
-          }}
-        />
-      </div>
-
-      <div className="container mx-auto relative z-10">
+    <section className="py-12 px-4">
+      <div className="container mx-auto">
         <div className="max-w-4xl mx-auto">
           <div className="glass rounded-2xl p-8 md:p-10 bg-white/95 backdrop-blur-sm shadow-2xl">
             <div className="flex flex-col md:flex-row items-center gap-6">

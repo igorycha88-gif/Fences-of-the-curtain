@@ -1141,7 +1141,7 @@ export default function FenceCalculatorPage() {
                   <>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground line-through">
-                        Без скидки
+                        Итого без скидки
                       </span>
                       <span className="text-muted-foreground line-through">
                         {formatCurrency(calc.result.promotion.totalBeforeDiscount)}
