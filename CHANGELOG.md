@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.12.0] - 2026-05-27
+
+### Добавлено
+- feat: SEO антибан Яндекс — Tor-прокси с ротацией IP, еженедельный cron, Tor-статистика в отчёте (09a7a1c)
+- feat: add fence length-based material markup system (dc6a01c)
+
+### Исправлено
+- fix: add prisma db push + seed to dev entrypoint (2ae67c8)
+
 ## [1.11.4] - 2026-05-22
 
 ### Исправлено
