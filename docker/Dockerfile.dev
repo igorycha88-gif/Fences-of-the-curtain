@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV NODE_ENV=development
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
-ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
 RUN mkdir -p /app/public/uploads/portfolio
 
