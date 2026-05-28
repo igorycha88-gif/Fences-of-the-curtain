@@ -53,6 +53,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (body.minLength !== undefined && body.minLength !== null) {
+      if (typeof body.minLength !== 'number' || isNaN(body.minLength) || body.minLength < 0) {
+        return NextResponse.json(
+          { error: 'Минимальный метраж должен быть неотрицательным числом' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.maxLength !== undefined && body.maxLength !== null) {
+      if (typeof body.maxLength !== 'number' || isNaN(body.maxLength) || body.maxLength < 0) {
+        return NextResponse.json(
+          { error: 'Максимальный метраж должен быть неотрицательным числом' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.minLength != null && body.maxLength != null && body.minLength > body.maxLength) {
+      return NextResponse.json(
+        { error: 'Минимальный метраж не может быть больше максимального' },
+        { status: 400 }
+      );
+    }
+
     const promotion = await promotionService.createPromotion({
       fenceTypeId: body.fenceTypeId,
       name: body.name,
@@ -63,6 +88,8 @@ export async function POST(request: NextRequest) {
       active: body.active || false,
       startDate: body.startDate ? new Date(body.startDate) : undefined,
       endDate: body.endDate ? new Date(body.endDate) : undefined,
+      minLength: body.minLength !== undefined ? body.minLength : null,
+      maxLength: body.maxLength !== undefined ? body.maxLength : null,
     });
 
     await promotionService.invalidateCache(body.fenceTypeId);

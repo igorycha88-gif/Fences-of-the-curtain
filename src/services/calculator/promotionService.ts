@@ -16,6 +16,8 @@ export interface PromotionData {
   startDate: Date | null;
   endDate: Date | null;
   fenceTypeName: string;
+  minLength: number | null;
+  maxLength: number | null;
 }
 
 export interface AppliedPromotion {
@@ -95,6 +97,8 @@ export class PromotionService {
       startDate: promotion.startDate,
       endDate: promotion.endDate,
       fenceTypeName: promotion.fenceType.name,
+      minLength: promotion.minLength,
+      maxLength: promotion.maxLength,
     };
 
     try {
@@ -104,6 +108,16 @@ export class PromotionService {
     }
 
     return result;
+  }
+
+  isLengthInRange(promotion: PromotionData, length: number): boolean {
+    if (promotion.minLength !== null && promotion.minLength !== undefined && length < promotion.minLength) {
+      return false;
+    }
+    if (promotion.maxLength !== null && promotion.maxLength !== undefined && length > promotion.maxLength) {
+      return false;
+    }
+    return true;
   }
 
   applyPromotionDiscount(
@@ -182,6 +196,8 @@ export class PromotionService {
         startDate: p.startDate,
         endDate: p.endDate,
         fenceTypeName: p.fenceType.name,
+        minLength: p.minLength,
+        maxLength: p.maxLength,
       }));
 
     try {
@@ -214,6 +230,8 @@ export class PromotionService {
     active?: boolean;
     startDate?: Date;
     endDate?: Date;
+    minLength?: number | null;
+    maxLength?: number | null;
   }) {
     const existing = await prisma.promotion.findUnique({
       where: { fenceTypeId: data.fenceTypeId },
@@ -240,6 +258,8 @@ export class PromotionService {
     active?: boolean;
     startDate?: Date | null;
     endDate?: Date | null;
+    minLength?: number | null;
+    maxLength?: number | null;
   }) {
     const promotion = await prisma.promotion.update({
       where: { id },

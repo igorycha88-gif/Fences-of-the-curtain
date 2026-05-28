@@ -28,6 +28,31 @@ export async function PUT(
       );
     }
 
+    if (body.minLength !== undefined && body.minLength !== null) {
+      if (typeof body.minLength !== 'number' || isNaN(body.minLength) || body.minLength < 0) {
+        return NextResponse.json(
+          { error: 'Минимальный метраж должен быть неотрицательным числом' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.maxLength !== undefined && body.maxLength !== null) {
+      if (typeof body.maxLength !== 'number' || isNaN(body.maxLength) || body.maxLength < 0) {
+        return NextResponse.json(
+          { error: 'Максимальный метраж должен быть неотрицательным числом' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.minLength != null && body.maxLength != null && body.minLength > body.maxLength) {
+      return NextResponse.json(
+        { error: 'Минимальный метраж не может быть больше максимального' },
+        { status: 400 }
+      );
+    }
+
     const promotion = await promotionService.updatePromotion(params.id, {
       name: body.name,
       discountType: body.discountType,
@@ -36,6 +61,8 @@ export async function PUT(
       bannerText: body.bannerText,
       startDate: body.startDate ? new Date(body.startDate) : (body.startDate === null ? null : undefined),
       endDate: body.endDate ? new Date(body.endDate) : (body.endDate === null ? null : undefined),
+      minLength: body.minLength !== undefined ? (body.minLength === null ? null : body.minLength) : undefined,
+      maxLength: body.maxLength !== undefined ? (body.maxLength === null ? null : body.maxLength) : undefined,
     });
 
     return NextResponse.json({ promotion });

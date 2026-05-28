@@ -14,6 +14,8 @@ interface PromotionData {
   active: boolean;
   startDate: string | null;
   endDate: string | null;
+  minLength: number | null;
+  maxLength: number | null;
 }
 
 interface PromotionSectionProps {
@@ -28,6 +30,8 @@ const defaultForm = {
   bannerText: '',
   startDate: '',
   endDate: '',
+  minLength: '',
+  maxLength: '',
 };
 
 export function PromotionSection({ fenceTypeId }: PromotionSectionProps) {
@@ -59,6 +63,8 @@ export function PromotionSection({ fenceTypeId }: PromotionSectionProps) {
             endDate: data.promotion.endDate
               ? new Date(data.promotion.endDate).toISOString().slice(0, 10)
               : '',
+            minLength: data.promotion.minLength != null ? String(data.promotion.minLength) : '',
+            maxLength: data.promotion.maxLength != null ? String(data.promotion.maxLength) : '',
           });
         } else {
           setPromotion(null);
@@ -86,6 +92,24 @@ export function PromotionSection({ fenceTypeId }: PromotionSectionProps) {
       return;
     }
 
+    const minLen = form.minLength !== '' ? Number(form.minLength) : null;
+    const maxLen = form.maxLength !== '' ? Number(form.maxLength) : null;
+
+    if (minLen !== null && minLen < 0) {
+      toast.error('Минимальный метраж должен быть положительным числом');
+      return;
+    }
+
+    if (maxLen !== null && maxLen < 0) {
+      toast.error('Максимальный метраж должен быть положительным числом');
+      return;
+    }
+
+    if (minLen !== null && maxLen !== null && minLen > maxLen) {
+      toast.error('Минимальный метраж не может быть больше максимального');
+      return;
+    }
+
     try {
       const payload: Record<string, unknown> = {
         fenceTypeId,
@@ -95,6 +119,8 @@ export function PromotionSection({ fenceTypeId }: PromotionSectionProps) {
         bannerTitle: form.bannerTitle || null,
         bannerText: form.bannerText || null,
         active: false,
+        minLength: minLen,
+        maxLength: maxLen,
       };
 
       if (form.startDate) payload.startDate = form.startDate;
@@ -258,6 +284,18 @@ export function PromotionSection({ fenceTypeId }: PromotionSectionProps) {
               <span className="text-gray-500">Окончание:</span>{' '}
               <span>{promotion.endDate ? new Date(promotion.endDate).toLocaleDateString('ru-RU') : '—'}</span>
             </div>
+            <div>
+              <span className="text-gray-500">Метраж:</span>{' '}
+              <span className="font-medium">
+                {promotion.minLength != null && promotion.maxLength != null
+                  ? `от ${promotion.minLength} м до ${promotion.maxLength} м`
+                  : promotion.minLength != null
+                  ? `от ${promotion.minLength} м`
+                  : promotion.maxLength != null
+                  ? `до ${promotion.maxLength} м`
+                  : 'без ограничения'}
+              </span>
+            </div>
           </div>
           <div className="flex gap-2 mt-3">
             <button
@@ -363,6 +401,39 @@ export function PromotionSection({ fenceTypeId }: PromotionSectionProps) {
                 onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
                 className="w-full border rounded px-2 py-1.5 text-sm"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Мин. метраж (м)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={form.minLength}
+                onChange={(e) => setForm((prev) => ({ ...prev, minLength: e.target.value }))}
+                className="w-full border rounded px-2 py-1.5 text-sm"
+                placeholder="Например: 100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Макс. метраж (м)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={form.maxLength}
+                onChange={(e) => setForm((prev) => ({ ...prev, maxLength: e.target.value }))}
+                className="w-full border rounded px-2 py-1.5 text-sm"
+                placeholder="Необязательно"
+              />
+            </div>
+            <div className="col-span-2">
+              <p className="text-xs text-gray-400">
+                Оставьте поля пустыми для применения акции без ограничения по длине забора
+              </p>
             </div>
           </div>
           <div className="flex gap-2 mt-3">

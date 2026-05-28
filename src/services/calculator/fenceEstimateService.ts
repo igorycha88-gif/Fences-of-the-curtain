@@ -642,18 +642,22 @@ export async function calculateFenceEstimateCore(
   const activePromotion = await promotionService.getActivePromotion(fenceTypeId);
 
   if (activePromotion) {
-    const promotionResult = promotionService.applyPromotionDiscount(items, activePromotion);
+    const lengthInRange = promotionService.isLengthInRange(activePromotion, length);
 
-    for (let i = 0; i < items.length; i++) {
-      items[i].pricePerUnit = promotionResult.items[i].pricePerUnit;
-      items[i].totalPrice = promotionResult.items[i].totalPrice;
+    if (lengthInRange) {
+      const promotionResult = promotionService.applyPromotionDiscount(items, activePromotion);
+
+      for (let i = 0; i < items.length; i++) {
+        items[i].pricePerUnit = promotionResult.items[i].pricePerUnit;
+        items[i].totalPrice = promotionResult.items[i].totalPrice;
+      }
+
+      appliedPromotion = {
+        ...activePromotion,
+        discountTotal: promotionResult.discountTotal,
+        totalBeforeDiscount: promotionResult.totalBeforeDiscount,
+      };
     }
-
-    appliedPromotion = {
-      ...activePromotion,
-      discountTotal: promotionResult.discountTotal,
-      totalBeforeDiscount: promotionResult.totalBeforeDiscount,
-    };
   }
 
   const materials = items

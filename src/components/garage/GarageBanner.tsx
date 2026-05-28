@@ -52,9 +52,17 @@ export default function GarageBanner() {
                   Быстрое возведение, энергоэффективность и долговечность.
                 </p>
 
-                <div className="flex items-baseline gap-2 mb-6">
-                  <span className="text-3xl md:text-4xl font-bold text-primary">от 1 450 000 ₽</span>
+                <div className="mb-2">
+                  <span className="text-lg text-muted-foreground line-through">от 1 450 000 ₽</span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-3xl md:text-4xl font-bold text-primary">от 1 250 000 ₽</span>
                   <span className="text-muted-foreground text-sm">Гараж 6×6</span>
+                </div>
+                <div className="mb-6">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-semibold">
+                    Акция до конца июня 2026
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 mb-8">

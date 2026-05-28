@@ -165,7 +165,7 @@ export default function FenceCalculatorPage() {
 
   const [automationTypes, setAutomationTypes] = useState<Array<{ id: string; name: string; retailPrice: number }>>([]);
 
-  const [activePromotions, setActivePromotions] = useState<Record<string, { discountPercent: number; bannerTitle: string | null }>>({});
+  const [activePromotions, setActivePromotions] = useState<Record<string, { discountPercent: number; bannerTitle: string | null; minLength: number | null; maxLength: number | null }>>({});
   const lengthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const heightInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -265,9 +265,9 @@ export default function FenceCalculatorPage() {
       .then(res => res.json())
       .then(data => {
         if (data.promotions && Array.isArray(data.promotions)) {
-          const map: Record<string, { discountPercent: number; bannerTitle: string | null }> = {};
+          const map: Record<string, { discountPercent: number; bannerTitle: string | null; minLength: number | null; maxLength: number | null }> = {};
           data.promotions.forEach((p: any) => {
-            map[p.fenceTypeId] = { discountPercent: p.discountPercent, bannerTitle: p.bannerTitle };
+            map[p.fenceTypeId] = { discountPercent: p.discountPercent, bannerTitle: p.bannerTitle, minLength: p.minLength ?? null, maxLength: p.maxLength ?? null };
           });
           setActivePromotions(map);
         }
@@ -1120,6 +1120,32 @@ export default function FenceCalculatorPage() {
                     </div>
                   </div>
                 )}
+                {!calc.result.promotion && calc.result.parameters && activePromotions[calc.result.parameters.fenceTypeId] && (() => {
+                  const promo = activePromotions[calc.result.parameters.fenceTypeId];
+                  const length = calc.result.parameters.length;
+                  const hasMin = promo.minLength != null && length < promo.minLength;
+                  const hasMax = promo.maxLength != null && length > promo.maxLength;
+                  if (!hasMin && !hasMax) return null;
+                  const lengthInfo = [
+                    promo.minLength != null ? `от ${promo.minLength} м` : '',
+                    promo.maxLength != null ? `до ${promo.maxLength} м` : '',
+                  ].filter(Boolean).join(' ');
+                  return (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-400 text-white text-xs font-bold">
+                        !
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-blue-800">
+                          Акция доступна при длине забора {lengthInfo}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          Скидка {promo.discountPercent}% не применена
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Смета</h3>
                 <div className="space-y-1">
                   {calc.result.items.map((item, i) => (

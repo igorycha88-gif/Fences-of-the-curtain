@@ -1086,6 +1086,8 @@ model Promotion {
   bannerTitle     String?
   bannerText      String?
   active          Boolean               @default(false)
+  minLength       Float?
+  maxLength       Float?
   startDate       DateTime?
   endDate         DateTime?
   createdAt       DateTime              @default(now())
