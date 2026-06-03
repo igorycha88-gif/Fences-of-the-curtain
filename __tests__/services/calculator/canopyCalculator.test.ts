@@ -47,6 +47,7 @@ const baseInput: CanopyCalculatorInput = {
   length: 6,
   width: 3,
   height: 2.5,
+  ridgeHeight: 1.0,
   roofCoveringId: 'covering-1',
   installationType: 'ground',
   hasWaterSystem: false,

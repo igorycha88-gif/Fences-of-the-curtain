@@ -51,6 +51,7 @@ interface CanopyCalculatorForm {
   length: number;
   width: number;
   height: number;
+  ridgeHeight: number;
   roofCoveringId: string;
   installationType: 'ground' | 'wall' | 'base';
   hasWaterSystem: boolean;
@@ -84,6 +85,7 @@ export default function CanopyCalculatorPage() {
     length: 6,
     width: 4,
     height: 2.5,
+    ridgeHeight: 1.0,
     roofCoveringId: '',
     installationType: 'ground',
     hasWaterSystem: false,
@@ -168,6 +170,7 @@ export default function CanopyCalculatorPage() {
     length: formData.length,
     width: formData.width,
     height: formData.height,
+    ridgeHeight: formData.ridgeHeight,
     roofCoveringId: formData.roofCoveringId,
     roofCoveringName: selectedRoofCoveringName,
     installationType: formData.installationType,
@@ -247,7 +250,7 @@ export default function CanopyCalculatorPage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Высота (м)</label>
                     <input
@@ -261,6 +264,21 @@ export default function CanopyCalculatorPage() {
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Высота конька (м)</label>
+                    <input
+                      type="number"
+                      value={formData.ridgeHeight}
+                      onChange={(e) => setFormData({ ...formData, ridgeHeight: Number(e.target.value) })}
+                      min="0.5"
+                      max="2"
+                      step="0.1"
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Длина (м)</label>
                     <input
@@ -383,6 +401,10 @@ export default function CanopyCalculatorPage() {
                       <div>
                         <span className="text-muted-foreground">Высота:</span>{' '}
                         <span className="font-medium">{canopyParameters.height} м</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Высота конька:</span>{' '}
+                        <span className="font-medium">{canopyParameters.ridgeHeight} м</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Кровля:</span>{' '}

@@ -108,13 +108,14 @@ describe('Calculator Validators', () => {
 
   describe('canopyCalculatorSchema', () => {
     const validInput = {
-      canopyType: 'single-slope',
+      canopyType: 'SINGLE_SLOPE',
       purpose: 'car-1',
+      postTypeId: 'post-1',
       length: 6,
       width: 3,
       height: 3,
-      frameMaterial: 'steel',
-      roofMaterial: 'profnastil',
+      ridgeHeight: 1.0,
+      roofCoveringId: 'covering-1',
       installationType: 'ground',
       hasWaterSystem: false,
     };
@@ -160,10 +161,25 @@ describe('Calculator Validators', () => {
     });
 
     it('should accept all valid canopy types', () => {
-      for (const type of ['single-slope', 'double-slope', 'arch']) {
+      for (const type of ['SINGLE_SLOPE', 'DOUBLE_SLOPE', 'ARCH', 'SINGLE_SLOPE_CURVED']) {
         const result = canopyCalculatorSchema.safeParse({ ...validInput, canopyType: type });
         expect(result.success).toBe(true);
       }
+    });
+
+    it('should reject ridgeHeight below 0.5', () => {
+      const result = canopyCalculatorSchema.safeParse({ ...validInput, ridgeHeight: 0.4 });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject ridgeHeight above 2', () => {
+      const result = canopyCalculatorSchema.safeParse({ ...validInput, ridgeHeight: 2.1 });
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept ridgeHeight at boundaries', () => {
+      expect(canopyCalculatorSchema.safeParse({ ...validInput, ridgeHeight: 0.5 }).success).toBe(true);
+      expect(canopyCalculatorSchema.safeParse({ ...validInput, ridgeHeight: 2.0 }).success).toBe(true);
     });
   });
 

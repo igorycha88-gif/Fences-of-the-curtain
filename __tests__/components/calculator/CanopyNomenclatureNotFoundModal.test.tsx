@@ -27,13 +27,16 @@ const canopyParameters = {
   canopyTypeLabel: 'Пристроенный',
   purpose: 'carport',
   purposeLabel: 'Навес для авто',
+  postTypeId: 'post-1',
+  postTypeName: 'Профиль 80x80',
   length: 6,
   width: 3,
   height: 2.5,
+  ridgeHeight: 1.0,
+  roofCoveringId: 'covering-1',
+  roofCoveringName: 'Поликарбонат',
   installationType: 'concrete',
   installationTypeLabel: 'Бетонирование',
-  roofMaterial: 'polycarbonate',
-  roofMaterialLabel: 'Поликарбонат',
   hasWaterSystem: true,
 };
 

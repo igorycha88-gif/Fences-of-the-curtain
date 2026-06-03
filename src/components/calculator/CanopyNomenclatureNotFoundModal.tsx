@@ -13,6 +13,7 @@ interface CanopyParameters {
   length: number;
   width: number;
   height: number;
+  ridgeHeight: number;
   roofCoveringId: string;
   roofCoveringName: string;
   installationType: string;
@@ -316,6 +317,10 @@ export default function CanopyNomenclatureNotFoundModal({
               <div>
                 <span className="text-muted-foreground">Высота:</span>{' '}
                 <span className="font-medium">{canopyParameters.height} м</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Высота конька:</span>{' '}
+                <span className="font-medium">{canopyParameters.ridgeHeight} м</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Кровля:</span>{' '}

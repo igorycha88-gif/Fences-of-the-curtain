@@ -30,6 +30,7 @@ export interface CanopyCalculatorInput {
   length: number;
   width: number;
   height: number;
+  ridgeHeight: number;
   roofCoveringId: string;
   installationType: 'ground' | 'wall' | 'base';
   hasWaterSystem: boolean;

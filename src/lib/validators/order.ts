@@ -53,6 +53,7 @@ export const canopyParametersSchema = z.object({
   length: z.number().min(1),
   width: z.number().min(1),
   height: z.number().min(1),
+  ridgeHeight: z.number().min(0.5).max(2),
   roofCoveringId: z.string(),
   roofCoveringName: z.string(),
   installationType: z.string(),

@@ -41,6 +41,7 @@ export const canopyCalculatorSchema = z.object({
   length: z.number().min(3).max(50),
   width: z.number().min(2).max(20),
   height: z.number().min(2).max(6),
+  ridgeHeight: z.number().min(0.5).max(2),
   roofCoveringId: z.string().min(1),
   installationType: z.enum(['ground', 'wall', 'base']),
   hasWaterSystem: z.boolean(),
