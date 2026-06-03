@@ -157,18 +157,6 @@ export class PromotionService {
   }
 
   async getActivePromotionsForBanner(): Promise<PromotionData[]> {
-    const cacheKey = CACHE_KEYS.PROMOTIONS_ALL_ACTIVE;
-
-    try {
-      const cached = await redis.get(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached) as PromotionData[];
-        return parsed.filter((p) => !p.endDate || new Date(p.endDate) >= new Date());
-      }
-    } catch (error) {
-      console.error('[Promotion] Redis cache error:', error);
-    }
-
     const promotions = await prisma.promotion.findMany({
       where: {
         active: true,
@@ -178,7 +166,7 @@ export class PromotionService {
     });
 
     const now = new Date();
-    const result: PromotionData[] = promotions
+    return promotions
       .filter((p) => {
         if (p.startDate && new Date(p.startDate) > now) return false;
         if (p.endDate && new Date(p.endDate) < now) return false;
@@ -199,14 +187,6 @@ export class PromotionService {
         minLength: p.minLength,
         maxLength: p.maxLength,
       }));
-
-    try {
-      await redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL.REFERENCE_DATA);
-    } catch (error) {
-      console.error('[Promotion] Redis cache set error:', error);
-    }
-
-    return result;
   }
 
   async invalidateCache(fenceTypeId?: string): Promise<void> {

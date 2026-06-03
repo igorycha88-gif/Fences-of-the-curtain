@@ -1,5 +1,29 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { PromotionService } from '@/services/calculator/promotionService';
+
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    promotion: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      create: jest.fn(),
+    },
+  },
+}));
+
+jest.mock('@/lib/redis', () => ({
+  redis: {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  },
+}));
+
+import { prisma } from '@/lib/prisma';
+
+const mockPrisma = prisma as any;
 
 describe('PromotionService.isLengthInRange', () => {
   const service = new PromotionService();
@@ -151,5 +175,102 @@ describe('PromotionService.applyPromotionDiscount', () => {
     const promo = { ...basePromotion, discountPercent: 7 };
     const result = service.applyPromotionDiscount(items, promo);
     expect(result.discountTotal).toBe(Math.round(99.99 * 0.07 * 100) / 100);
+  });
+});
+
+describe('PromotionService.getActivePromotionsForBanner', () => {
+  const service = new PromotionService();
+
+  const makeDbPromo = (overrides: Record<string, any> = {}) => ({
+    id: 'promo-1',
+    fenceTypeId: 'ft-1',
+    name: 'Test Promo',
+    discountType: 'BOTH',
+    discountPercent: 10,
+    bannerTitle: 'Скидка 10%',
+    bannerText: null,
+    active: true,
+    startDate: null,
+    endDate: null,
+    minLength: null,
+    maxLength: null,
+    fenceType: { name: 'Профнастил' },
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns all active promotions with bannerTitle', async () => {
+    mockPrisma.promotion.findMany.mockResolvedValue([
+      makeDbPromo({ id: 'p1', fenceTypeId: 'ft-1', bannerTitle: 'Акция 1', fenceType: { name: 'Профнастил' } }),
+      makeDbPromo({ id: 'p2', fenceTypeId: 'ft-2', bannerTitle: 'Акция 2', discountPercent: 15, fenceType: { name: 'Евроштакетник' } }),
+    ]);
+
+    const result = await service.getActivePromotionsForBanner();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].bannerTitle).toBe('Акция 1');
+    expect(result[1].bannerTitle).toBe('Акция 2');
+    expect(result[1].fenceTypeName).toBe('Евроштакетник');
+  });
+
+  it('returns empty array when no active promotions', async () => {
+    mockPrisma.promotion.findMany.mockResolvedValue([]);
+
+    const result = await service.getActivePromotionsForBanner();
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('filters out promotions with future startDate', async () => {
+    const futureDate = new Date();
+    futureDate.setFullYear(futureDate.getFullYear() + 1);
+
+    mockPrisma.promotion.findMany.mockResolvedValue([
+      makeDbPromo({ id: 'p1', startDate: futureDate.toISOString() }),
+    ]);
+
+    const result = await service.getActivePromotionsForBanner();
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('filters out promotions with past endDate', async () => {
+    const pastDate = new Date();
+    pastDate.setFullYear(pastDate.getFullYear() - 1);
+
+    mockPrisma.promotion.findMany.mockResolvedValue([
+      makeDbPromo({ id: 'p1', endDate: pastDate.toISOString() }),
+    ]);
+
+    const result = await service.getActivePromotionsForBanner();
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('includes promotion with no date restrictions', async () => {
+    mockPrisma.promotion.findMany.mockResolvedValue([
+      makeDbPromo({ id: 'p1', startDate: null, endDate: null }),
+    ]);
+
+    const result = await service.getActivePromotionsForBanner();
+
+    expect(result).toHaveLength(1);
+  });
+
+  it('queries database directly without Redis cache', async () => {
+    mockPrisma.promotion.findMany.mockResolvedValue([]);
+
+    await service.getActivePromotionsForBanner();
+
+    expect(mockPrisma.promotion.findMany).toHaveBeenCalledWith({
+      where: {
+        active: true,
+        bannerTitle: { not: null },
+      },
+      include: { fenceType: { select: { name: true } } },
+    });
   });
 });

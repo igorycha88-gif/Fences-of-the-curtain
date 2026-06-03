@@ -118,7 +118,7 @@ export function PromotionSection({ fenceTypeId }: PromotionSectionProps) {
         discountPercent: form.discountPercent,
         bannerTitle: form.bannerTitle || null,
         bannerText: form.bannerText || null,
-        active: false,
+        active: promotion ? promotion.active : false,
         minLength: minLen,
         maxLength: maxLen,
       };

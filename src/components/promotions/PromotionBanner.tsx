@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Percent, ArrowRight, Sparkles, Clock } from 'lucide-react';
 
@@ -20,6 +20,7 @@ export function PromotionBanner() {
   const [promotions, setPromotions] = useState<ActivePromotion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     fetch('/api/promotions/active')
@@ -33,15 +34,23 @@ export function PromotionBanner() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  const goToIndex = useCallback((idx: number) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentIndex(idx);
+      setIsTransitioning(false);
+    }, 300);
+  }, []);
+
   useEffect(() => {
     if (promotions.length <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % promotions.length);
+      goToIndex((currentIndex + 1) % promotions.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [promotions.length]);
+  }, [promotions.length, currentIndex, goToIndex]);
 
   if (isLoading || promotions.length === 0) {
     return null;
@@ -62,7 +71,11 @@ export function PromotionBanner() {
       <div className="container mx-auto">
         <div className="max-w-4xl mx-auto">
           <div className="glass rounded-2xl p-8 md:p-10 bg-white/95 backdrop-blur-sm shadow-2xl">
-            <div className="flex flex-col md:flex-row items-center gap-6">
+            <div
+              className={`flex flex-col md:flex-row items-center gap-6 transition-opacity duration-300 ${
+                isTransitioning ? 'opacity-0' : 'opacity-100'
+              }`}
+            >
               <div className="flex-shrink-0">
                 <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg animate-pulse-soft">
                   <div className="text-center">
@@ -120,8 +133,8 @@ export function PromotionBanner() {
                 {promotions.map((_, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    onClick={() => goToIndex(idx)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                       idx === currentIndex
                         ? 'bg-orange-500 w-6'
                         : 'bg-gray-300 hover:bg-gray-400'
