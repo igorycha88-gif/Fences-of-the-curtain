@@ -24,13 +24,13 @@ export interface FenceCalculatorResult {
 }
 
 export interface CanopyCalculatorInput {
-  canopyType: 'single-slope' | 'double-slope' | 'arch';
+  canopyType: 'SINGLE_SLOPE' | 'DOUBLE_SLOPE' | 'ARCH' | 'SINGLE_SLOPE_CURVED';
   purpose: 'car-1' | 'car-2' | 'car-3' | 'gazebo' | 'terrace' | 'storage';
+  postTypeId: string;
   length: number;
   width: number;
   height: number;
-  frameMaterial: string;
-  roofMaterial: string;
+  roofCoveringId: string;
   installationType: 'ground' | 'wall' | 'base';
   hasWaterSystem: boolean;
 }

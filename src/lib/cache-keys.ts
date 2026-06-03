@@ -17,6 +17,8 @@ export const CACHE_KEYS = {
     `calculator:hardware:${postTypeId}:${lagTypeId}:${profnastilTypeId}`,
   PROMOTION_ACTIVE: (fenceTypeId: string) => `calculator:promotion:${fenceTypeId}`,
   PROMOTIONS_ALL_ACTIVE: 'calculator:promotions:active',
+  CANOPY_POSTS_ACTIVE: 'calculator:canopy:posts:active',
+  CANOPY_ROOF_COVERINGS_ACTIVE: 'calculator:canopy:roof-coverings:active',
 } as const;
 
 export const CACHE_TTL = {

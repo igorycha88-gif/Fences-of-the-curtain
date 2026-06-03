@@ -8,13 +8,15 @@ interface CanopyParameters {
   canopyTypeLabel: string;
   purpose: string;
   purposeLabel: string;
+  postTypeId: string;
+  postTypeName: string;
   length: number;
   width: number;
   height: number;
+  roofCoveringId: string;
+  roofCoveringName: string;
   installationType: string;
   installationTypeLabel: string;
-  roofMaterial: string;
-  roofMaterialLabel: string;
   hasWaterSystem: boolean;
 }
 
@@ -194,9 +196,8 @@ export default function CanopyNomenclatureNotFoundModal({
 
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
           <p className="text-sm text-muted-foreground">
-            Для выбранных вами параметров пока нет готовых материалов в нашем каталоге. 
-            Но это не проблема! Мы подберём оптимальное решение индивидуально под ваш проект. 
-            Оставьте контакты — менеджер свяжется с вами, уточнит детали и подготовит персональный расчёт.
+            Для выбранных вами параметров подготовлен расчёт. 
+            Оставьте контакты — менеджер свяжется с вами, уточнит детали и подготовит персональное предложение.
           </p>
         </div>
 
@@ -301,6 +302,10 @@ export default function CanopyNomenclatureNotFoundModal({
                 <span className="font-medium">{canopyParameters.purposeLabel}</span>
               </div>
               <div>
+                <span className="text-muted-foreground">Столбы:</span>{' '}
+                <span className="font-medium">{canopyParameters.postTypeName}</span>
+              </div>
+              <div>
                 <span className="text-muted-foreground">Длина:</span>{' '}
                 <span className="font-medium">{canopyParameters.length} м</span>
               </div>
@@ -313,12 +318,12 @@ export default function CanopyNomenclatureNotFoundModal({
                 <span className="font-medium">{canopyParameters.height} м</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Установка:</span>{' '}
-                <span className="font-medium">{canopyParameters.installationTypeLabel}</span>
+                <span className="text-muted-foreground">Кровля:</span>{' '}
+                <span className="font-medium">{canopyParameters.roofCoveringName}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Кровля:</span>{' '}
-                <span className="font-medium">{canopyParameters.roofMaterialLabel}</span>
+                <span className="text-muted-foreground">Установка:</span>{' '}
+                <span className="font-medium">{canopyParameters.installationTypeLabel}</span>
               </div>
               {canopyParameters.hasWaterSystem && (
                 <div>

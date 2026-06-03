@@ -1,3 +1,6 @@
+import { prisma } from '@/lib/prisma';
+import logger from '@/lib/logger';
+
 export interface MaterialItem {
   name: string;
   quantity: number;
@@ -14,14 +17,16 @@ export interface WorkItem {
   total: number;
 }
 
+export type CanopyRoofType = 'SINGLE_SLOPE' | 'DOUBLE_SLOPE' | 'ARCH' | 'SINGLE_SLOPE_CURVED';
+
 export interface CanopyCalculatorInput {
-  canopyType: 'single-slope' | 'double-slope' | 'arch';
-  purpose: 'car-1' | 'car-2' | 'car-3' | 'gazebo' | 'terrace' | 'storage';
+  canopyType: CanopyRoofType;
+  purpose: string;
+  postTypeId: string;
   length: number;
   width: number;
   height: number;
-  frameMaterial: string;
-  roofMaterial: string;
+  roofCoveringId: string;
   installationType: 'ground' | 'wall' | 'base';
   hasWaterSystem: boolean;
 }
@@ -37,7 +42,23 @@ export interface CanopyCalculatorResult {
 export async function calculateCanopy(
   input: CanopyCalculatorInput
 ): Promise<CanopyCalculatorResult> {
-  const { length, width, height, canopyType, hasWaterSystem } = input;
+  logger.info('Starting canopy calculation', { input });
+
+  const { length, width, height, canopyType, hasWaterSystem, postTypeId, roofCoveringId } = input;
+
+  const [postProfile, roofCovering] = await Promise.all([
+    prisma.trussProfileType.findUnique({ where: { id: postTypeId } }),
+    prisma.trussRoofCovering.findUnique({ where: { id: roofCoveringId } }),
+  ]);
+
+  if (!postProfile) {
+    logger.error('Post profile not found', { postTypeId });
+    throw new Error(`Профиль столба не найден: ${postTypeId}`);
+  }
+  if (!roofCovering) {
+    logger.error('Roof covering not found', { roofCoveringId });
+    throw new Error(`Покрытие крыши не найдено: ${roofCoveringId}`);
+  }
 
   const areaCoef = getAreaCoef(canopyType);
   const roofArea = length * width * areaCoef;
@@ -47,88 +68,95 @@ export async function calculateCanopy(
   const works: WorkItem[] = [];
 
   materials.push({
-    name: 'Поликарбонат сотовый 8мм',
-    quantity: roofArea,
+    name: roofCovering.name,
+    quantity: Math.ceil(roofArea * 100) / 100,
     unit: 'м²',
-    pricePerUnit: 800,
-    total: roofArea * 800,
+    pricePerUnit: roofCovering.retailPricePerSqm,
+    total: Math.ceil(roofArea * 100) / 100 * roofCovering.retailPricePerSqm,
   });
 
+  const profilePerimeter = perimeter;
   materials.push({
     name: 'Профиль 60x60 для каркаса',
-    quantity: perimeter,
+    quantity: Math.ceil(profilePerimeter * 100) / 100,
     unit: 'м.п.',
     pricePerUnit: 450,
-    total: perimeter * 450,
+    total: Math.ceil(profilePerimeter * 100) / 100 * 450,
   });
 
   materials.push({
     name: 'Профиль 40x20 для стропил',
-    quantity: length * 3,
+    quantity: Math.ceil(length * 3 * 100) / 100,
     unit: 'м.п.',
     pricePerUnit: 280,
-    total: length * 3 * 280,
+    total: Math.ceil(length * 3 * 100) / 100 * 280,
   });
 
+  const postCount = Math.max(4, Math.ceil(perimeter / 3));
   materials.push({
-    name: 'Стойки 80x80',
-    quantity: Math.max(4, Math.ceil(perimeter / 3)),
+    name: postProfile.name,
+    quantity: postCount,
     unit: 'шт',
-    pricePerUnit: 1800,
-    total: Math.max(4, Math.ceil(perimeter / 3)) * 1800,
+    pricePerUnit: postProfile.retailPricePerUnit || postProfile.retailPricePerMeter * height,
+    total: postCount * (postProfile.retailPricePerUnit || postProfile.retailPricePerMeter * height),
   });
 
   if (hasWaterSystem) {
     materials.push({
       name: 'Водосточная система',
-      quantity: perimeter,
+      quantity: Math.ceil(perimeter * 100) / 100,
       unit: 'м.п.',
       pricePerUnit: 350,
-      total: perimeter * 350,
+      total: Math.ceil(perimeter * 100) / 100 * 350,
     });
   }
 
   materials.push({
     name: 'Крепеж',
-    quantity: roofArea * 15,
+    quantity: Math.ceil(roofArea * 15),
     unit: 'шт',
     pricePerUnit: 8,
-    total: roofArea * 15 * 8,
+    total: Math.ceil(roofArea * 15) * 8,
   });
 
   works.push({
     name: 'Монтаж навеса',
-    quantity: roofArea,
+    quantity: Math.ceil(roofArea * 100) / 100,
     unit: 'м²',
     pricePerUnit: 1500,
-    total: roofArea * 1500,
+    total: Math.ceil(roofArea * 100) / 100 * 1500,
   });
 
   works.push({
     name: 'Установка стоек',
-    quantity: Math.max(4, Math.ceil(perimeter / 3)),
+    quantity: postCount,
     unit: 'шт',
     pricePerUnit: 1000,
-    total: Math.max(4, Math.ceil(perimeter / 3)) * 1000,
+    total: postCount * 1000,
   });
 
   const materialsTotal = materials.reduce((sum, m) => sum + m.total, 0);
   const worksTotal = works.reduce((sum, w) => sum + w.total, 0);
 
-  return {
+  const result: CanopyCalculatorResult = {
     materials,
     works,
     materialsTotal,
     worksTotal,
     grandTotal: materialsTotal + worksTotal,
   };
+
+  logger.info('Canopy calculation completed', { grandTotal: result.grandTotal });
+
+  return result;
 }
 
 function getAreaCoef(type: string): number {
   const coefficients: Record<string, number> = {
-    'single-slope': 1.0,
-    'double-slope': 1.1,
-    'arch': 1.15,
+    'SINGLE_SLOPE': 1.0,
+    'DOUBLE_SLOPE': 1.1,
+    'ARCH': 1.15,
+    'SINGLE_SLOPE_CURVED': 1.1,
   };
 
   return coefficients[type] || 1.0;

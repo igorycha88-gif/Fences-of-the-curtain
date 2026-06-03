@@ -35,13 +35,13 @@ export const fenceCalculatorSchema = z.object({
 });
 
 export const canopyCalculatorSchema = z.object({
-  canopyType: z.enum(['single-slope', 'double-slope', 'arch']),
+  canopyType: z.enum(['SINGLE_SLOPE', 'DOUBLE_SLOPE', 'ARCH', 'SINGLE_SLOPE_CURVED']),
   purpose: z.enum(['car-1', 'car-2', 'car-3', 'gazebo', 'terrace', 'storage']),
+  postTypeId: z.string().min(1),
   length: z.number().min(3).max(50),
   width: z.number().min(2).max(20),
   height: z.number().min(2).max(6),
-  frameMaterial: z.string().min(1),
-  roofMaterial: z.string().min(1),
+  roofCoveringId: z.string().min(1),
   installationType: z.enum(['ground', 'wall', 'base']),
   hasWaterSystem: z.boolean(),
 });

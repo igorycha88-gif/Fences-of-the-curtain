@@ -9,9 +9,10 @@ import { trackEvent } from '@/lib/analytics';
 import { EVENT_NAMES } from '@/types/analytics';
 
 const canopyTypeLabels: Record<string, string> = {
-  'single-slope': 'Односкатный',
-  'double-slope': 'Двускатный',
-  'arch': 'Арочный',
+  'SINGLE_SLOPE': 'Односкатная',
+  'DOUBLE_SLOPE': 'Двускатная',
+  'ARCH': 'Арочная',
+  'SINGLE_SLOPE_CURVED': 'Односкатная в дуге',
 };
 
 const purposeLabels: Record<string, string> = {
@@ -29,21 +30,28 @@ const installationTypeLabels: Record<string, string> = {
   'base': 'На основание',
 };
 
-const roofMaterialLabels: Record<string, string> = {
-  'polycarbonate-8': 'Поликарбонат 8мм',
-  'polycarbonate-10': 'Поликарбонат 10мм',
-  'profnastil': 'Профнастил',
-  'metal-tile': 'Металлочерепица',
-};
+interface CatalogPost {
+  id: string;
+  name: string;
+  retailPricePerMeter: number;
+  retailPricePerUnit: number;
+}
+
+interface CatalogRoofCovering {
+  id: string;
+  name: string;
+  retailPricePerSqm: number;
+  thickness: number | null;
+}
 
 interface CanopyCalculatorForm {
-  canopyType: 'single-slope' | 'double-slope' | 'arch';
+  canopyType: 'SINGLE_SLOPE' | 'DOUBLE_SLOPE' | 'ARCH' | 'SINGLE_SLOPE_CURVED';
   purpose: string;
+  postTypeId: string;
   length: number;
   width: number;
   height: number;
-  frameMaterial: string;
-  roofMaterial: string;
+  roofCoveringId: string;
   installationType: 'ground' | 'wall' | 'base';
   hasWaterSystem: boolean;
 }
@@ -70,27 +78,55 @@ interface CalculatorResult {
 
 export default function CanopyCalculatorPage() {
   const [formData, setFormData] = useState<CanopyCalculatorForm>({
-    canopyType: 'single-slope',
+    canopyType: 'SINGLE_SLOPE',
     purpose: 'car-2',
+    postTypeId: '',
     length: 6,
     width: 4,
     height: 2.5,
-    frameMaterial: 'profile-60x60',
-    roofMaterial: 'polycarbonate-8',
+    roofCoveringId: '',
     installationType: 'ground',
     hasWaterSystem: false,
   });
 
+  const [posts, setPosts] = useState<CatalogPost[]>([]);
+  const [roofCoverings, setRoofCoverings] = useState<CatalogRoofCovering[]>([]);
+  const [catalogsLoaded, setCatalogsLoaded] = useState(false);
+
   const [result, setResult] = useState<CalculatorResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [calcError, setCalcError] = useState<string | null>(null);
   const [showIndividualRequestModal, setShowIndividualRequestModal] = useState(false);
 
   useEffect(() => {
     trackEvent(EVENT_NAMES.CALCULATOR_OPEN, { calculator: 'canopy' });
+
+    Promise.all([
+      fetch('/api/calculator/canopy-profiles?category=POST')
+        .then(res => res.json())
+        .then((data: CatalogPost[]) => {
+          setPosts(data);
+          if (data.length > 0 && !formData.postTypeId) {
+            setFormData(prev => ({ ...prev, postTypeId: data[0].id }));
+          }
+        })
+        .catch(() => {}),
+      fetch('/api/calculator/canopy-roof-coverings')
+        .then(res => res.json())
+        .then((data: CatalogRoofCovering[]) => {
+          setRoofCoverings(data);
+          if (data.length > 0 && !formData.roofCoveringId) {
+            setFormData(prev => ({ ...prev, roofCoveringId: data[0].id }));
+          }
+        })
+        .catch(() => {}),
+    ]).finally(() => setCatalogsLoaded(true));
   }, []);
 
   const calculate = async () => {
+    if (!formData.postTypeId || !formData.roofCoveringId) return;
     setLoading(true);
+    setCalcError(null);
     try {
       const response = await fetch('/api/calculator/canopy', {
         method: 'POST',
@@ -104,40 +140,53 @@ export default function CanopyCalculatorPage() {
         setShowIndividualRequestModal(true);
         metrikaEvents.calculatorComplete('canopy', data.totalCost || data.grandTotal || 0);
         trackEvent(EVENT_NAMES.CALCULATOR_CALCULATE, { canopyType: formData.canopyType, calculator: 'canopy' });
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setCalcError(data.error || 'Ошибка расчёта. Попробуйте позже.');
       }
     } catch (error) {
-      console.error('Calculation error:', error);
+      setCalcError('Ошибка соединения. Попробуйте позже.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'RUB',
-      maximumFractionDigits: 0,
-    }).format(value);
   };
 
   const handleModalSuccess = () => {
     setShowIndividualRequestModal(false);
   };
 
+  const selectedPostName = posts.find(p => p.id === formData.postTypeId)?.name || '';
+  const selectedRoofCoveringName = roofCoverings.find(r => r.id === formData.roofCoveringId)?.name || '';
+
   const canopyParameters = {
     canopyType: formData.canopyType,
     canopyTypeLabel: canopyTypeLabels[formData.canopyType] || formData.canopyType,
     purpose: formData.purpose,
     purposeLabel: purposeLabels[formData.purpose] || formData.purpose,
+    postTypeId: formData.postTypeId,
+    postTypeName: selectedPostName,
     length: formData.length,
     width: formData.width,
     height: formData.height,
+    roofCoveringId: formData.roofCoveringId,
+    roofCoveringName: selectedRoofCoveringName,
     installationType: formData.installationType,
     installationTypeLabel: installationTypeLabels[formData.installationType] || formData.installationType,
-    roofMaterial: formData.roofMaterial,
-    roofMaterialLabel: roofMaterialLabels[formData.roofMaterial] || formData.roofMaterial,
     hasWaterSystem: formData.hasWaterSystem,
   };
+
+  if (!catalogsLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <Header />
+        <main className="container mx-auto px-4 py-10">
+          <div className="max-w-4xl mx-auto text-center py-20">
+            <div className="animate-pulse text-lg text-gray-500">Загрузка справочников...</div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -159,12 +208,12 @@ export default function CanopyCalculatorPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Тип навеса</label>
                   <select
                     value={formData.canopyType}
-                    onChange={(e) => setFormData({ ...formData, canopyType: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, canopyType: e.target.value as CanopyCalculatorForm['canopyType'] })}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
-                    <option value="single-slope">Односкатный</option>
-                    <option value="double-slope">Двускатный</option>
-                    <option value="arch">Арочный</option>
+                    {Object.entries(canopyTypeLabels).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -175,16 +224,43 @@ export default function CanopyCalculatorPage() {
                     onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
-                    <option value="car-1">Автомобиль (1)</option>
-                    <option value="car-2">Автомобиль (2)</option>
-                    <option value="car-3">Автомобиль (3)</option>
-                    <option value="gazebo">Беседка</option>
-                    <option value="terrace">Терраса</option>
-                    <option value="storage">Хозблок</option>
+                    {Object.entries(purposeLabels).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Столбы</label>
+                  <select
+                    value={formData.postTypeId}
+                    onChange={(e) => setFormData({ ...formData, postTypeId: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={posts.length === 0}
+                  >
+                    {posts.length === 0 && (
+                      <option value="">Нет доступных столбов</option>
+                    )}
+                    {posts.map((post) => (
+                      <option key={post.id} value={post.id}>{post.name}</option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Высота (м)</label>
+                    <input
+                      type="number"
+                      value={formData.height}
+                      onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
+                      min="2"
+                      max="6"
+                      step="0.1"
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Длина (м)</label>
                     <input
@@ -208,45 +284,35 @@ export default function CanopyCalculatorPage() {
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Высота (м)</label>
-                    <input
-                      type="number"
-                      value={formData.height}
-                      onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
-                      min="2"
-                      max="6"
-                      step="0.1"
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Материал кровли</label>
+                  <select
+                    value={formData.roofCoveringId}
+                    onChange={(e) => setFormData({ ...formData, roofCoveringId: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={roofCoverings.length === 0}
+                  >
+                    {roofCoverings.length === 0 && (
+                      <option value="">Нет доступных покрытий</option>
+                    )}
+                    {roofCoverings.map((covering) => (
+                      <option key={covering.id} value={covering.id}>{covering.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Тип установки</label>
                   <select
                     value={formData.installationType}
-                    onChange={(e) => setFormData({ ...formData, installationType: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, installationType: e.target.value as CanopyCalculatorForm['installationType'] })}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
-                    <option value="ground">На землю (сваи)</option>
-                    <option value="wall">К стене</option>
-                    <option value="base">На основание</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Материал кровли</label>
-                  <select
-                    value={formData.roofMaterial}
-                    onChange={(e) => setFormData({ ...formData, roofMaterial: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    <option value="polycarbonate-8">Поликарбонат 8мм</option>
-                    <option value="polycarbonate-10">Поликарбонат 10мм</option>
-                    <option value="profnastil">Профнастил</option>
-                    <option value="metal-tile">Металлочерепица</option>
+                    {Object.entries(installationTypeLabels).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -264,7 +330,7 @@ export default function CanopyCalculatorPage() {
 
                 <button
                   onClick={calculate}
-                  disabled={loading}
+                  disabled={loading || !formData.postTypeId || !formData.roofCoveringId}
                   className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Calculator className="w-5 h-5" />
@@ -303,6 +369,10 @@ export default function CanopyCalculatorPage() {
                         <span className="font-medium">{canopyParameters.purposeLabel}</span>
                       </div>
                       <div>
+                        <span className="text-muted-foreground">Столбы:</span>{' '}
+                        <span className="font-medium">{canopyParameters.postTypeName}</span>
+                      </div>
+                      <div>
                         <span className="text-muted-foreground">Длина:</span>{' '}
                         <span className="font-medium">{canopyParameters.length} м</span>
                       </div>
@@ -315,13 +385,29 @@ export default function CanopyCalculatorPage() {
                         <span className="font-medium">{canopyParameters.height} м</span>
                       </div>
                       <div>
+                        <span className="text-muted-foreground">Кровля:</span>{' '}
+                        <span className="font-medium">{canopyParameters.roofCoveringName}</span>
+                      </div>
+                      <div>
                         <span className="text-muted-foreground">Установка:</span>{' '}
                         <span className="font-medium">{canopyParameters.installationTypeLabel}</span>
                       </div>
+                      {canopyParameters.hasWaterSystem && (
+                        <div>
+                          <span className="text-muted-foreground">Водосток:</span>{' '}
+                          <span className="font-medium">Да</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <button
+                {calcError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                    {calcError}
+                  </div>
+                )}
+
+                <button
                     onClick={() => setShowIndividualRequestModal(true)}
                     className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                   >

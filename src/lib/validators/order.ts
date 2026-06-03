@@ -48,13 +48,15 @@ export const canopyParametersSchema = z.object({
   canopyTypeLabel: z.string(),
   purpose: z.string(),
   purposeLabel: z.string(),
+  postTypeId: z.string(),
+  postTypeName: z.string(),
   length: z.number().min(1),
   width: z.number().min(1),
   height: z.number().min(1),
+  roofCoveringId: z.string(),
+  roofCoveringName: z.string(),
   installationType: z.string(),
   installationTypeLabel: z.string(),
-  roofMaterial: z.string(),
-  roofMaterialLabel: z.string(),
   hasWaterSystem: z.boolean(),
 });
 
