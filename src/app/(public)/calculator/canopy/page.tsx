@@ -382,9 +382,6 @@ export default function CanopyCalculatorPage() {
                     <div className="text-xs text-muted-foreground">
                       Площадь: {(canopyParameters.length * canopyParameters.width).toLocaleString('ru-RU')} м² × {CANOPY_PRICE_PER_SQM.toLocaleString('ru-RU')} руб./м²
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      * Окончательная стоимость определяется после консультации с менеджером
-                    </div>
                   </div>
 
                   <div className="bg-secondary/30 border border-border/50 rounded-xl p-4">

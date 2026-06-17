@@ -225,9 +225,6 @@ export default function CanopyNomenclatureNotFoundModal({
                 Площадь: {(canopyParameters.length * canopyParameters.width).toLocaleString('ru-RU')} м² × {pricePerSqm.toLocaleString('ru-RU')} руб./м²
               </div>
             )}
-            <div className="text-xs text-muted-foreground mt-1">
-              * Окончательная стоимость определяется после консультации с менеджером
-            </div>
           </div>
         )}
 
