@@ -182,4 +182,28 @@ describe('CanopyNomenclatureNotFoundModal', () => {
       expect(screen.getByText(/Ошибка отправки заявки/)).toBeInTheDocument();
     });
   });
+
+  describe('totalCost display', () => {
+    it('displays totalCost and area×price breakdown when provided', () => {
+      render(
+        <CanopyNomenclatureNotFoundModal
+          {...defaultProps}
+          totalCost={153000}
+          pricePerSqm={8500}
+        />
+      );
+
+      expect(screen.getByText('Предварительная стоимость:')).toBeInTheDocument();
+      expect(screen.getByText('153 000 руб.')).toBeInTheDocument();
+      // area = length(6) * width(3) = 18 м²
+      expect(screen.getByText(/Площадь: 18 м²/)).toBeInTheDocument();
+      expect(screen.getByText(/× 8 500 руб\.\/м²/)).toBeInTheDocument();
+    });
+
+    it('does not render cost block when totalCost is not provided', () => {
+      render(<CanopyNomenclatureNotFoundModal {...defaultProps} />);
+
+      expect(screen.queryByText('Предварительная стоимость:')).not.toBeInTheDocument();
+    });
+  });
 });

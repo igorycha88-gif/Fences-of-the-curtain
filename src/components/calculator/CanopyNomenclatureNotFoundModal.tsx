@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Send, Loader2, CheckCircle, AlertCircle, Ruler } from 'lucide-react';
 
+function formatPrice(value: number): string {
+  return Math.round(value).toLocaleString('ru-RU') + ' руб.';
+}
+
 interface CanopyParameters {
   canopyType: string;
   canopyTypeLabel: string;
@@ -26,6 +30,8 @@ interface CanopyNomenclatureNotFoundModalProps {
   onClose: () => void;
   onSuccess: () => void;
   canopyParameters: CanopyParameters;
+  totalCost?: number;
+  pricePerSqm?: number;
 }
 
 interface FormData {
@@ -58,6 +64,8 @@ export default function CanopyNomenclatureNotFoundModal({
   onClose,
   onSuccess,
   canopyParameters,
+  totalCost,
+  pricePerSqm,
 }: CanopyNomenclatureNotFoundModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [loading, setLoading] = useState(false);
@@ -134,6 +142,8 @@ export default function CanopyNomenclatureNotFoundModal({
           ...formData,
           isIndividualRequest: true,
           canopyParameters,
+          totalCost,
+          pricePerSqm,
         }),
       });
 
@@ -201,6 +211,25 @@ export default function CanopyNomenclatureNotFoundModal({
             Оставьте контакты — менеджер свяжется с вами, уточнит детали и подготовит персональное предложение.
           </p>
         </div>
+
+        {typeof totalCost === 'number' && (
+          <div className="bg-primary/10 border-2 border-primary/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-muted-foreground">Предварительная стоимость:</span>
+            </div>
+            <div className="text-2xl font-bold text-primary mb-1">
+              {formatPrice(totalCost)}
+            </div>
+            {typeof pricePerSqm === 'number' && (
+              <div className="text-xs text-muted-foreground">
+                Площадь: {(canopyParameters.length * canopyParameters.width).toLocaleString('ru-RU')} м² × {pricePerSqm.toLocaleString('ru-RU')} руб./м²
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground mt-1">
+              * Окончательная стоимость определяется после консультации с менеджером
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4 flex items-start gap-3">

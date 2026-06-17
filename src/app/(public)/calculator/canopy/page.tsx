@@ -30,6 +30,13 @@ const installationTypeLabels: Record<string, string> = {
   'base': 'На основание',
 };
 
+// Временная упрощённая стоимость: руб. за м²
+const CANOPY_PRICE_PER_SQM = 8500;
+
+function formatPrice(value: number): string {
+  return Math.round(value).toLocaleString('ru-RU') + ' руб.';
+}
+
 interface CatalogPost {
   id: string;
   name: string;
@@ -125,32 +132,24 @@ export default function CanopyCalculatorPage() {
     ]).finally(() => setCatalogsLoaded(true));
   }, []);
 
-  const calculate = async () => {
-    if (!formData.postTypeId || !formData.roofCoveringId) return;
-    setLoading(true);
-    setCalcError(null);
-    try {
-      const response = await fetch('/api/calculator/canopy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setResult(data);
-        setShowIndividualRequestModal(true);
-        metrikaEvents.calculatorComplete('canopy', data.totalCost || data.grandTotal || 0);
-        trackEvent(EVENT_NAMES.CALCULATOR_CALCULATE, { canopyType: formData.canopyType, calculator: 'canopy' });
-      } else {
-        const data = await response.json().catch(() => ({}));
-        setCalcError(data.error || 'Ошибка расчёта. Попробуйте позже.');
-      }
-    } catch (error) {
-      setCalcError('Ошибка соединения. Попробуйте позже.');
-    } finally {
-      setLoading(false);
+  const calculate = () => {
+    if (formData.length <= 0 || formData.width <= 0) {
+      setCalcError('Длина и ширина должны быть положительными числами');
+      return;
     }
+    setCalcError(null);
+    const area = formData.length * formData.width;
+    const totalCost = area * CANOPY_PRICE_PER_SQM;
+    const calcResult: CalculatorResult = {
+      materials: [],
+      works: [],
+      materialsTotal: 0,
+      worksTotal: 0,
+      grandTotal: totalCost,
+    };
+    setResult(calcResult);
+    metrikaEvents.calculatorComplete('canopy', totalCost);
+    trackEvent(EVENT_NAMES.CALCULATOR_CALCULATE, { canopyType: formData.canopyType, calculator: 'canopy', area, totalCost });
   };
 
   const handleModalSuccess = () => {
@@ -372,6 +371,22 @@ export default function CanopyCalculatorPage() {
                     </p>
                   </div>
 
+                  <div className="bg-primary/10 border-2 border-primary/30 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calculator className="w-5 h-5 text-primary" />
+                      <span className="text-sm font-medium text-muted-foreground">Предварительная стоимость:</span>
+                    </div>
+                    <div className="text-3xl font-bold text-primary mb-2">
+                      {formatPrice(result.grandTotal)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Площадь: {(canopyParameters.length * canopyParameters.width).toLocaleString('ru-RU')} м² × {CANOPY_PRICE_PER_SQM.toLocaleString('ru-RU')} руб./м²
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      * Окончательная стоимость определяется после консультации с менеджером
+                    </div>
+                  </div>
+
                   <div className="bg-secondary/30 border border-border/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Calculator className="w-4 h-4 text-primary" />
@@ -448,6 +463,8 @@ export default function CanopyCalculatorPage() {
         onClose={() => setShowIndividualRequestModal(false)}
         onSuccess={handleModalSuccess}
         canopyParameters={canopyParameters}
+        totalCost={result?.grandTotal}
+        pricePerSqm={CANOPY_PRICE_PER_SQM}
       />
     </div>
   );
