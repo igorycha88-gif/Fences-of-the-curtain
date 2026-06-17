@@ -207,3 +207,50 @@ describe('CanopyCalculatorPage — numeric input fields', () => {
     });
   });
 });
+
+describe('CanopyCalculatorPage — layout offset for fixed header', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (global.fetch as any) = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => roofCoverings,
+    }) as any;
+  });
+
+  it('main content has top padding to avoid fixed-header overlap', async () => {
+    await act(async () => {
+      renderPage();
+    });
+    await loadCatalogs();
+
+    const heading = screen.getByRole('heading', { level: 1, name: 'Калькулятор навеса' });
+    const main = heading.closest('main');
+
+    expect(main).not.toBeNull();
+    expect(main?.className).toContain('pt-24');
+    expect(main?.className).not.toContain('py-10');
+  });
+
+  it('loading state main has top padding to avoid fixed-header overlap', async () => {
+    let resolveFetch: (value: unknown) => void = () => {};
+    (global.fetch as any) = jest.fn(
+      () => new Promise((resolve) => { resolveFetch = resolve; }),
+    ) as any;
+
+    await act(async () => {
+      renderPage();
+    });
+
+    const loadingText = screen.getByText('Загрузка справочников...');
+    const main = loadingText.closest('main');
+
+    expect(main).not.toBeNull();
+    expect(main?.className).toContain('pt-24');
+    expect(main?.className).not.toContain('py-10');
+
+    await act(async () => {
+      resolveFetch({ ok: true, json: async () => roofCoverings });
+      await new Promise((r) => setTimeout(r, 0));
+    });
+  });
+});

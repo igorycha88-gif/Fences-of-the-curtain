@@ -178,7 +178,7 @@ export default function CanopyCalculatorPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Header />
-        <main className="container mx-auto px-4 py-10">
+        <main className="container mx-auto px-4 pt-24 pb-16">
           <div className="max-w-4xl mx-auto text-center py-20">
             <div className="animate-pulse text-lg text-gray-500">Загрузка справочников...</div>
           </div>
@@ -191,7 +191,7 @@ export default function CanopyCalculatorPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Header />
 
-      <main className="container mx-auto px-4 py-10">
+      <main className="container mx-auto px-4 pt-24 pb-16">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Калькулятор навеса</h1>
 
