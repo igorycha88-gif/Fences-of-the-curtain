@@ -71,20 +71,17 @@ describe('CanopyNomenclatureNotFoundModal', () => {
     expect(screen.getByText('6 м')).toBeInTheDocument();
     expect(screen.getByText('3 м')).toBeInTheDocument();
     expect(screen.getByText('2.5 м')).toBeInTheDocument();
-    expect(screen.getByText('Бетонирование')).toBeInTheDocument();
     expect(screen.getByText('Поликарбонат')).toBeInTheDocument();
-    expect(screen.getByText('Да')).toBeInTheDocument();
   });
 
-  it('does not render water system when hasWaterSystem is false', () => {
-    render(
-      <CanopyNomenclatureNotFoundModal
-        {...defaultProps}
-        canopyParameters={{ ...canopyParameters, hasWaterSystem: false }}
-      />
-    );
+  it('does not render hidden parameters (ridge height, installation type, water system)', () => {
+    render(<CanopyNomenclatureNotFoundModal {...defaultProps} />);
 
+    expect(screen.queryByText('Высота конька:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Установка:')).not.toBeInTheDocument();
     expect(screen.queryByText('Водосток:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Бетонирование')).not.toBeInTheDocument();
+    expect(screen.queryByText('Да')).not.toBeInTheDocument();
   });
 
   it('shows validation errors on empty submit', async () => {

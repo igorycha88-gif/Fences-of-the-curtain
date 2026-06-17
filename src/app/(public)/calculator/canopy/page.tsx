@@ -97,6 +97,26 @@ export default function CanopyCalculatorPage() {
   const [calcError, setCalcError] = useState<string | null>(null);
   const [showIndividualRequestModal, setShowIndividualRequestModal] = useState(false);
 
+  type NumericField = 'height' | 'length' | 'width';
+
+  const [inputValues, setInputValues] = useState<Record<NumericField, string>>({
+    height: String(formData.height),
+    length: String(formData.length),
+    width: String(formData.width),
+  });
+
+  const handleNumericChange = (field: NumericField, raw: string) => {
+    setInputValues(prev => ({ ...prev, [field]: raw }));
+    if (raw === '') {
+      setFormData(prev => ({ ...prev, [field]: 0 }));
+      return;
+    }
+    const parsed = Number(raw);
+    if (!Number.isNaN(parsed)) {
+      setFormData(prev => ({ ...prev, [field]: parsed }));
+    }
+  };
+
   useEffect(() => {
     trackEvent(EVENT_NAMES.CALCULATOR_OPEN, { calculator: 'canopy' });
 
@@ -209,32 +229,17 @@ export default function CanopyCalculatorPage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Высота (м)</label>
-                    <input
-                      type="number"
-                      value={formData.height}
-                      onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
-                      min="2"
-                      max="6"
-                      step="0.1"
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Высота конька (м)</label>
-                    <input
-                      type="number"
-                      value={formData.ridgeHeight}
-                      onChange={(e) => setFormData({ ...formData, ridgeHeight: Number(e.target.value) })}
-                      min="0.5"
-                      max="2"
-                      step="0.1"
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Высота (м)</label>
+                  <input
+                    type="number"
+                    value={inputValues.height}
+                    onChange={(e) => handleNumericChange('height', e.target.value)}
+                    min="2"
+                    max="6"
+                    step="0.1"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -242,8 +247,8 @@ export default function CanopyCalculatorPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Длина (м)</label>
                     <input
                       type="number"
-                      value={formData.length}
-                      onChange={(e) => setFormData({ ...formData, length: Number(e.target.value) })}
+                      value={inputValues.length}
+                      onChange={(e) => handleNumericChange('length', e.target.value)}
                       min="3"
                       max="50"
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -254,8 +259,8 @@ export default function CanopyCalculatorPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ширина (м)</label>
                     <input
                       type="number"
-                      value={formData.width}
-                      onChange={(e) => setFormData({ ...formData, width: Number(e.target.value) })}
+                      value={inputValues.width}
+                      onChange={(e) => handleNumericChange('width', e.target.value)}
                       min="2"
                       max="20"
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -280,31 +285,6 @@ export default function CanopyCalculatorPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Тип установки</label>
-                  <select
-                    value={formData.installationType}
-                    onChange={(e) => setFormData({ ...formData, installationType: e.target.value as CanopyCalculatorForm['installationType'] })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    {Object.entries(installationTypeLabels).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.hasWaterSystem}
-                    onChange={(e) => setFormData({ ...formData, hasWaterSystem: e.target.checked })}
-                    className="w-5 h-5 rounded text-primary focus:ring-primary"
-                  />
-                  <label className="text-sm font-medium text-gray-700 cursor-pointer">
-                    Водосточная система
-                  </label>
-                </div>
-
                 <button
                   onClick={calculate}
                   disabled={loading || !formData.roofCoveringId}
@@ -313,6 +293,12 @@ export default function CanopyCalculatorPage() {
                   <Calculator className="w-5 h-5" />
                   {loading ? 'Расчет...' : 'Рассчитать стоимость'}
                 </button>
+
+                {calcError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                    {calcError}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -371,31 +357,11 @@ export default function CanopyCalculatorPage() {
                         <span className="font-medium">{canopyParameters.height} м</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Высота конька:</span>{' '}
-                        <span className="font-medium">{canopyParameters.ridgeHeight} м</span>
-                      </div>
-                      <div>
                         <span className="text-muted-foreground">Кровля:</span>{' '}
                         <span className="font-medium">{canopyParameters.roofCoveringName}</span>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Установка:</span>{' '}
-                        <span className="font-medium">{canopyParameters.installationTypeLabel}</span>
-                      </div>
-                      {canopyParameters.hasWaterSystem && (
-                        <div>
-                          <span className="text-muted-foreground">Водосток:</span>{' '}
-                          <span className="font-medium">Да</span>
-                        </div>
-                      )}
                     </div>
                   </div>
-
-                {calcError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                    {calcError}
-                  </div>
-                )}
 
                 <button
                     onClick={() => setShowIndividualRequestModal(true)}

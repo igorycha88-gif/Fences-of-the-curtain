@@ -341,23 +341,9 @@ export default function CanopyNomenclatureNotFoundModal({
                 <span className="font-medium">{canopyParameters.height} м</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Высота конька:</span>{' '}
-                <span className="font-medium">{canopyParameters.ridgeHeight} м</span>
-              </div>
-              <div>
                 <span className="text-muted-foreground">Кровля:</span>{' '}
                 <span className="font-medium">{canopyParameters.roofCoveringName}</span>
               </div>
-              <div>
-                <span className="text-muted-foreground">Установка:</span>{' '}
-                <span className="font-medium">{canopyParameters.installationTypeLabel}</span>
-              </div>
-              {canopyParameters.hasWaterSystem && (
-                <div>
-                  <span className="text-muted-foreground">Водосток:</span>{' '}
-                  <span className="font-medium">Да</span>
-                </div>
-              )}
             </div>
           </div>
 
