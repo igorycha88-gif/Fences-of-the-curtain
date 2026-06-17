@@ -63,4 +63,42 @@ describe('telegram-proxy getTelegramDispatcher', () => {
     const second = getTelegramDispatcher();
     expect(first).toBe(second);
   });
+
+  it('direct-IP lookup returns array form [{address, family}] for api.telegram.org', async () => {
+    process.env.TELEGRAM_API_IP = '149.154.167.220, 149.154.167.99';
+    const captured: any[] = [];
+    jest.doMock('undici', () => ({
+      Agent: class FakeAgent {
+        constructor(opts: any) {
+          captured.push(opts);
+        }
+        dispatch() {}
+      },
+      ProxyAgent: class FakeProxyAgent {
+        dispatch() {}
+      },
+    }));
+
+    const { getTelegramDispatcher, __resetTelegramDispatcherForTests } = await import('@/lib/telegram-proxy');
+    __resetTelegramDispatcherForTests();
+    getTelegramDispatcher();
+
+    expect(captured[0]).toBeDefined();
+    const lookup = captured[0].connect.lookup;
+
+    await new Promise<void>((resolve) => {
+      lookup('api.telegram.org', {}, (err: unknown, result: unknown) => {
+        expect(err).toBeNull();
+        expect(result).toEqual([{ address: '149.154.167.220', family: 4 }]);
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      lookup('api.telegram.org', {}, (err: unknown, result: unknown) => {
+        expect(result).toEqual([{ address: '149.154.167.99', family: 4 }]);
+        resolve();
+      });
+    });
+  });
 });

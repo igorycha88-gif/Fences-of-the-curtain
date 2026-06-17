@@ -35,7 +35,7 @@ function createDirectIpDispatcher(ips: string[]): Dispatcher {
         if (hostname === 'api.telegram.org') {
           const ip = ips[cursor % ips.length];
           cursor += 1;
-          return cb(null, ip, 4);
+          return cb(null, [{ address: ip, family: 4 }]);
         }
         return dnsLookup(hostname, opts, cb);
       },
