@@ -47,6 +47,20 @@ describe('POST /api/telegram/webhook', () => {
     delete process.env.TELEGRAM_WEBHOOK_SECRET;
   });
 
+  it('should return 403 when TELEGRAM_WEBHOOK_SECRET env is unset (fail closed)', async () => {
+    delete process.env.TELEGRAM_WEBHOOK_SECRET;
+    const { POST } = await import('@/app/api/telegram/webhook/route');
+
+    const req = mockNextRequest(
+      { message: { text: '/stats', chat: { id: 123 } } },
+      'my-secret'
+    );
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    expect(mockHandleCommand).not.toHaveBeenCalled();
+  });
+
   it('should return 403 when secret is wrong', async () => {
     process.env.TELEGRAM_WEBHOOK_SECRET = 'my-secret';
     const { POST } = await import('@/app/api/telegram/webhook/route');
