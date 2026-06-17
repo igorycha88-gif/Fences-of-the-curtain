@@ -218,6 +218,12 @@ describe('TrussCalculator Validators', () => {
         expect(result.success).toBe(true);
       }
     });
+
+    it('should allow nullable purchasePricePerMeter and purchasePricePerUnit', () => {
+      const data = { ...validInput, purchasePricePerMeter: null, purchasePricePerUnit: null };
+      const result = trussProfileCreateSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
   });
 
   describe('trussRoofCoveringCreateSchema', () => {
@@ -275,6 +281,12 @@ describe('TrussCalculator Validators', () => {
         purchasePricePerSqm: 250,
         image: '/img.png',
       };
+      const result = trussRoofCoveringCreateSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should allow nullable purchasePricePerSqm', () => {
+      const data = { ...validInput, purchasePricePerSqm: null };
       const result = trussRoofCoveringCreateSchema.safeParse(data);
       expect(result.success).toBe(true);
     });

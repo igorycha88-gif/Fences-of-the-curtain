@@ -37,13 +37,6 @@ function formatPrice(value: number): string {
   return Math.round(value).toLocaleString('ru-RU') + ' руб.';
 }
 
-interface CatalogPost {
-  id: string;
-  name: string;
-  retailPricePerMeter: number;
-  retailPricePerUnit: number;
-}
-
 interface CatalogRoofCovering {
   id: string;
   name: string;
@@ -54,7 +47,6 @@ interface CatalogRoofCovering {
 interface CanopyCalculatorForm {
   canopyType: 'SINGLE_SLOPE' | 'DOUBLE_SLOPE' | 'ARCH' | 'SINGLE_SLOPE_CURVED';
   purpose: string;
-  postTypeId: string;
   length: number;
   width: number;
   height: number;
@@ -88,7 +80,6 @@ export default function CanopyCalculatorPage() {
   const [formData, setFormData] = useState<CanopyCalculatorForm>({
     canopyType: 'SINGLE_SLOPE',
     purpose: 'car-2',
-    postTypeId: '',
     length: 6,
     width: 4,
     height: 2.5,
@@ -98,7 +89,6 @@ export default function CanopyCalculatorPage() {
     hasWaterSystem: false,
   });
 
-  const [posts, setPosts] = useState<CatalogPost[]>([]);
   const [roofCoverings, setRoofCoverings] = useState<CatalogRoofCovering[]>([]);
   const [catalogsLoaded, setCatalogsLoaded] = useState(false);
 
@@ -110,26 +100,16 @@ export default function CanopyCalculatorPage() {
   useEffect(() => {
     trackEvent(EVENT_NAMES.CALCULATOR_OPEN, { calculator: 'canopy' });
 
-    Promise.all([
-      fetch('/api/calculator/canopy-profiles?category=POST')
-        .then(res => res.json())
-        .then((data: CatalogPost[]) => {
-          setPosts(data);
-          if (data.length > 0 && !formData.postTypeId) {
-            setFormData(prev => ({ ...prev, postTypeId: data[0].id }));
-          }
-        })
-        .catch(() => {}),
-      fetch('/api/calculator/canopy-roof-coverings')
-        .then(res => res.json())
-        .then((data: CatalogRoofCovering[]) => {
-          setRoofCoverings(data);
-          if (data.length > 0 && !formData.roofCoveringId) {
-            setFormData(prev => ({ ...prev, roofCoveringId: data[0].id }));
-          }
-        })
-        .catch(() => {}),
-    ]).finally(() => setCatalogsLoaded(true));
+    fetch('/api/calculator/canopy-roof-coverings')
+      .then(res => res.json())
+      .then((data: CatalogRoofCovering[]) => {
+        setRoofCoverings(data);
+        if (data.length > 0 && !formData.roofCoveringId) {
+          setFormData(prev => ({ ...prev, roofCoveringId: data[0].id }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCatalogsLoaded(true));
   }, []);
 
   const calculate = () => {
@@ -156,7 +136,6 @@ export default function CanopyCalculatorPage() {
     setShowIndividualRequestModal(false);
   };
 
-  const selectedPostName = posts.find(p => p.id === formData.postTypeId)?.name || '';
   const selectedRoofCoveringName = roofCoverings.find(r => r.id === formData.roofCoveringId)?.name || '';
 
   const canopyParameters = {
@@ -164,8 +143,6 @@ export default function CanopyCalculatorPage() {
     canopyTypeLabel: canopyTypeLabels[formData.canopyType] || formData.canopyType,
     purpose: formData.purpose,
     purposeLabel: purposeLabels[formData.purpose] || formData.purpose,
-    postTypeId: formData.postTypeId,
-    postTypeName: selectedPostName,
     length: formData.length,
     width: formData.width,
     height: formData.height,
@@ -228,23 +205,6 @@ export default function CanopyCalculatorPage() {
                   >
                     {Object.entries(purposeLabels).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Столбы</label>
-                  <select
-                    value={formData.postTypeId}
-                    onChange={(e) => setFormData({ ...formData, postTypeId: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    disabled={posts.length === 0}
-                  >
-                    {posts.length === 0 && (
-                      <option value="">Нет доступных столбов</option>
-                    )}
-                    {posts.map((post) => (
-                      <option key={post.id} value={post.id}>{post.name}</option>
                     ))}
                   </select>
                 </div>
@@ -347,7 +307,7 @@ export default function CanopyCalculatorPage() {
 
                 <button
                   onClick={calculate}
-                  disabled={loading || !formData.postTypeId || !formData.roofCoveringId}
+                  disabled={loading || !formData.roofCoveringId}
                   className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Calculator className="w-5 h-5" />
@@ -397,10 +357,6 @@ export default function CanopyCalculatorPage() {
                       <div>
                         <span className="text-muted-foreground">Назначение:</span>{' '}
                         <span className="font-medium">{canopyParameters.purposeLabel}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Столбы:</span>{' '}
-                        <span className="font-medium">{canopyParameters.postTypeName}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Длина:</span>{' '}

@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ id: covering.id }, { status: 201 });
   } catch (error: any) {
     if (error instanceof ZodError) {
+      console.error('[TRUSS-ROOF-COVERINGS POST] Validation failed:', JSON.stringify(error.errors));
       return NextResponse.json({ error: error.errors.map((e: any) => ({
         path: e.path,
         message: e.message,

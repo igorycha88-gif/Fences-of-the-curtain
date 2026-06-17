@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.14.1] - 2026-06-17
+
+### Исправлено
+- fix: валидатор truss-профилей/покрытий — закупочные цены `.nullable()` (POST /api/admin/truss-profiles и truss-roof-coverings перестали возвращать 400 при null)
+- fix: скрыто поле «Столбы» из калькулятора навеса (не используется в текущем расчёте L×W×8500)
+- fix: canopyParameters в заявке — postTypeId/postTypeName опциональны
+- fix: логирование ZodError в POST truss-profiles/truss-roof-coverings (раньше «немые» 400)
+
+### Добавлено
+- feat: seed-данные навесов (покрытия крыши) для работы калькулятора
+
 ## [1.14.0] - 2026-06-17
 
 ### Добавлено

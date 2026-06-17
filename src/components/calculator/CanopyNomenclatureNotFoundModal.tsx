@@ -12,8 +12,8 @@ interface CanopyParameters {
   canopyTypeLabel: string;
   purpose: string;
   purposeLabel: string;
-  postTypeId: string;
-  postTypeName: string;
+  postTypeId?: string;
+  postTypeName?: string;
   length: number;
   width: number;
   height: number;
@@ -327,10 +327,6 @@ export default function CanopyNomenclatureNotFoundModal({
               <div>
                 <span className="text-muted-foreground">Назначение:</span>{' '}
                 <span className="font-medium">{canopyParameters.purposeLabel}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Столбы:</span>{' '}
-                <span className="font-medium">{canopyParameters.postTypeName}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Длина:</span>{' '}
