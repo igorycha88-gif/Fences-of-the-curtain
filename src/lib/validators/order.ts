@@ -96,6 +96,8 @@ export const individualOrderSchema = z.object({
   canopyParameters: canopyParametersSchema.optional(),
   garageParameters: garageParametersSchema.optional(),
   gateParameters: gateParametersSchema.optional(),
+  totalCost: z.number().nonnegative('Стоимость должна быть неотрицательной').optional(),
+  pricePerSqm: z.number().nonnegative('Цена за м² должна быть неотрицательной').optional(),
 }).refine((data) => data.fenceParameters || data.canopyParameters || data.garageParameters || data.gateParameters, {
   message: 'Необходимы параметры забора, навеса, гаража или ворот',
 });

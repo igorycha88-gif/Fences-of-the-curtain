@@ -550,4 +550,63 @@ describe('Individual Order Schema', () => {
       expect(() => individualOrderSchema.parse(data)).not.toThrow();
     });
   });
+
+  describe('individualOrderSchema with totalCost/pricePerSqm (canopy cost)', () => {
+    const baseCanopy = {
+      canopyType: 'single-slope',
+      canopyTypeLabel: 'Односкатный',
+      purpose: 'car-2',
+      purposeLabel: 'Автомобиль (2)',
+      postTypeId: 'post-1',
+      postTypeName: 'Профиль 80x80',
+      length: 6,
+      width: 4,
+      height: 2.5,
+      ridgeHeight: 1.0,
+      roofCoveringId: 'covering-1',
+      roofCoveringName: 'Поликарбонат 8мм',
+      installationType: 'ground',
+      installationTypeLabel: 'На землю (сваи)',
+      hasWaterSystem: false,
+    };
+
+    const baseRequest = {
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      canopyParameters: baseCanopy,
+    };
+
+    it('should accept totalCost and pricePerSqm', () => {
+      const data = { ...baseRequest, totalCost: 204000, pricePerSqm: 8500 };
+      const parsed = individualOrderSchema.parse(data);
+      expect(parsed.totalCost).toBe(204000);
+      expect(parsed.pricePerSqm).toBe(8500);
+    });
+
+    it('should accept totalCost = 0', () => {
+      const data = { ...baseRequest, totalCost: 0 };
+      expect(() => individualOrderSchema.parse(data)).not.toThrow();
+    });
+
+    it('should work without totalCost (optional)', () => {
+      const parsed = individualOrderSchema.parse(baseRequest);
+      expect(parsed.totalCost).toBeUndefined();
+    });
+
+    it('should reject negative totalCost', () => {
+      const data = { ...baseRequest, totalCost: -100 };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should reject negative pricePerSqm', () => {
+      const data = { ...baseRequest, pricePerSqm: -1 };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+
+    it('should reject non-number totalCost', () => {
+      const data = { ...baseRequest, totalCost: '127500' };
+      expect(() => individualOrderSchema.parse(data)).toThrow();
+    });
+  });
 });

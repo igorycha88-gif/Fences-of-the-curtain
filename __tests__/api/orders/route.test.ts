@@ -401,3 +401,144 @@ describe('POST /api/orders - Individual Orders', () => {
     expect(response.status).toBe(201);
   });
 });
+
+describe('POST /api/orders - Canopy cost in individual order', () => {
+  let mockRedis: any;
+  let mockPrisma: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRedis = require('@/lib/redis').redis;
+    mockPrisma = require('@/lib/prisma').prisma;
+
+    mockRedis.incr.mockResolvedValue(1);
+    mockRedis.expire.mockResolvedValue(1);
+    mockRedis.ttl.mockResolvedValue(3600);
+
+    mockPrisma.order.create.mockImplementation(async (args: any) => ({
+      id: 'canopy-order-1',
+      status: 'NEW',
+      createdAt: new Date(),
+      serviceType: 'INDIVIDUAL_CALCULATION',
+      calculatedCost: args.data.calculatedCost,
+      parameters: args.data.parameters,
+      estimateId: null,
+    }));
+  });
+
+  const createCanopyRequest = (body: any, ip: string = '192.168.1.100') => {
+    return new Request('http://localhost:3000/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': ip,
+      },
+      body: JSON.stringify(body),
+    }) as any;
+  };
+
+  const canopyParameters = {
+    canopyType: 'single-slope',
+    canopyTypeLabel: 'Односкатный',
+    purpose: 'car-2',
+    purposeLabel: 'Автомобиль (2)',
+    postTypeId: 'post-1',
+    postTypeName: 'Профиль 80x80',
+    length: 6,
+    width: 4,
+    height: 2.5,
+    ridgeHeight: 1.0,
+    roofCoveringId: 'covering-1',
+    roofCoveringName: 'Поликарбонат 8мм',
+    installationType: 'ground',
+    installationTypeLabel: 'На землю (сваи)',
+    hasWaterSystem: false,
+  };
+
+  it('should save totalCost as calculatedCost for canopy order', async () => {
+    const request = createCanopyRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      canopyParameters,
+      totalCost: 204000,
+      pricePerSqm: 8500,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.calculatedCost).toBe(204000);
+    expect(body.isIndividualRequest).toBe(true);
+
+    expect(mockPrisma.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          calculatedCost: 204000,
+          serviceType: 'INDIVIDUAL_CALCULATION',
+        }),
+      })
+    );
+  });
+
+  it('should store pricePerSqm in parameters', async () => {
+    const request = createCanopyRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      canopyParameters,
+      totalCost: 127500,
+      pricePerSqm: 8500,
+    });
+
+    await POST(request);
+
+    const createCall = mockPrisma.order.create.mock.calls[0][0];
+    expect(createCall.data.parameters).toMatchObject({
+      pricePerSqm: 8500,
+      canopyTypeLabel: 'Односкатный',
+      roofCoveringName: 'Поликарбонат 8мм',
+    });
+  });
+
+  it('should default calculatedCost to 0 when totalCost is absent (regression for garage/individual)', async () => {
+    const request = createCanopyRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      garageParameters: { serviceType: 'garage', title: 'Гараж' },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.calculatedCost).toBe(0);
+
+    expect(mockPrisma.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          calculatedCost: 0,
+        }),
+      })
+    );
+  });
+
+  it('should reject negative totalCost', async () => {
+    const request = createCanopyRequest({
+      clientName: 'Иван Петров',
+      phone: '+7 (900) 123-45-67',
+      isIndividualRequest: true,
+      canopyParameters,
+      totalCost: -500,
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('VALIDATION_ERROR');
+    expect(mockPrisma.order.create).not.toHaveBeenCalled();
+  });
+});

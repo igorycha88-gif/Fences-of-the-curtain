@@ -329,7 +329,7 @@ export default function OrdersPage() {
                       <td className="py-3 px-4 font-medium">{order.clientName}</td>
                       <td className="py-3 px-4">{order.phone}</td>
                       <td className="py-3 px-4 font-semibold">
-                        {order.calculatedCost === 0 && !order.estimateId
+                        {order.calculatedCost === 0
                           ? (order.parameters as Record<string, unknown>)?.serviceType === 'garage'
                             ? 'Гараж (инд. расчёт)'
                             : 'Индивидуальный расчёт (0 ₽)'
@@ -451,7 +451,7 @@ export default function OrdersPage() {
                         })}
                       </span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {order.calculatedCost === 0 && !order.estimateId
+                        {order.calculatedCost === 0
                           ? '0 ₽'
                           : formatCurrency(order.calculatedCost)
                         }

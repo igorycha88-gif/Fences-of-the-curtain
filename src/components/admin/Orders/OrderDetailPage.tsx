@@ -318,6 +318,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
   const { order, estimate, adminEstimate, multiEstimates, gateEstimate, adminGateEstimate, showPurchasePrices } = data;
   const isGateOrder = order.serviceType === 'gates';
   const isIndividualRequest = !isGateOrder && (order.serviceType === 'INDIVIDUAL_CALCULATION' || (!estimate && !adminEstimate && !multiEstimates));
+  const isIndividualRequestWithoutCost = isIndividualRequest && (order.calculatedCost ?? 0) === 0;
   const isMultiEstimate = !!multiEstimates && multiEstimates.length > 0;
   const availableTransitions = VALID_STATUS_TRANSITIONS[order.status] || [];
   const isAdmin = showPurchasePrices;
@@ -418,7 +419,7 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
         <div className="flex items-center gap-3 w-full md:w-auto md:ml-auto">
           <div className="text-left md:text-right flex-1">
             <p className="text-xs md:text-sm text-gray-500">Стоимость</p>
-            {isIndividualRequest ? (
+            {isIndividualRequestWithoutCost ? (
               <p className="text-base md:text-lg font-bold text-amber-600">Индивидуальный расчёт</p>
             ) : (
               <p className="text-lg md:text-2xl font-bold text-primary">{formatCurrency(effectiveGrandTotal)}</p>
@@ -988,10 +989,10 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                             <p className="font-medium">{(order.parameters as any).installationTypeLabel}</p>
                           </div>
                         )}
-                        {(order.parameters as any).roofMaterialLabel && (
+                        {((order.parameters as any).roofMaterialLabel || (order.parameters as any).roofCoveringName) && (
                           <div>
                             <label className="text-sm text-gray-500 block">Кровля</label>
-                            <p className="font-medium">{(order.parameters as any).roofMaterialLabel}</p>
+                            <p className="font-medium">{(order.parameters as any).roofMaterialLabel || (order.parameters as any).roofCoveringName}</p>
                           </div>
                         )}
                         {(order.parameters as any).hasWaterSystem && (

@@ -8,6 +8,7 @@ import { applyRateLimitByEndpoint } from '@/lib/rate-limit';
 import { sendOrderNotification, sendClientConfirmation } from '@/services/email/sender';
 import { sendOrderNotification as sendTelegramNotification } from '@/services/telegram';
 import { safeErrorResponse } from '@/lib/api-error';
+import logger from '@/lib/logger';
 
 function getClientIp(request: NextRequest): string {
   const xForwardedFor = request.headers.get('x-forwarded-for');
@@ -385,6 +386,9 @@ async function createGateEstimateOrder(body: unknown, rlHeaders: Record<string, 
 async function createIndividualOrder(body: unknown, rlHeaders: Record<string, string>) {
   const validatedData = individualOrderSchema.parse(body);
 
+  const calculatedCost = validatedData.totalCost ?? 0;
+  const isCanopyOrder = !!validatedData.canopyParameters;
+
   const parameters: Record<string, unknown> = {
     message: validatedData.message || null,
   };
@@ -405,6 +409,18 @@ async function createIndividualOrder(body: unknown, rlHeaders: Record<string, st
     Object.assign(parameters, validatedData.gateParameters);
   }
 
+  if (validatedData.pricePerSqm !== undefined) {
+    parameters.pricePerSqm = validatedData.pricePerSqm;
+  }
+
+  logger.info('Creating individual order', {
+    operation: 'createIndividualOrder',
+    serviceType: 'INDIVIDUAL_CALCULATION',
+    isCanopyOrder,
+    calculatedCost,
+    hasPricePerSqm: validatedData.pricePerSqm !== undefined,
+  });
+
   const order = await prisma.order.create({
     data: {
       clientName: validatedData.clientName,
@@ -412,7 +428,7 @@ async function createIndividualOrder(body: unknown, rlHeaders: Record<string, st
       email: validatedData.email || null,
       serviceType: 'INDIVIDUAL_CALCULATION',
       parameters: parameters as Prisma.InputJsonValue,
-      calculatedCost: 0,
+      calculatedCost,
       status: 'NEW',
       statusHistory: [
         {
@@ -424,6 +440,12 @@ async function createIndividualOrder(body: unknown, rlHeaders: Record<string, st
         },
       ],
     },
+  });
+
+  logger.info('Individual order created', {
+    operation: 'createIndividualOrder',
+    orderId: order.id,
+    calculatedCost,
   });
 
   getSystemUserId().then((systemUserId) => {
@@ -439,21 +461,21 @@ async function createIndividualOrder(body: unknown, rlHeaders: Record<string, st
         email: validatedData.email,
         serviceType: 'INDIVIDUAL_CALCULATION',
         parameters: order.parameters,
-        calculatedCost: 0,
+        calculatedCost,
       },
     });
   });
 
-  sendOrderNotification(order).catch((err) =>
-    console.error('Failed to send order notification emails:', err)
-  );
-  sendTelegramNotification(order).catch((err) =>
-    console.error('Failed to send Telegram notification:', err)
-  );
+  sendOrderNotification(order).catch((err) => {
+    logger.error('Failed to send order notification emails', { error: err, operation: 'createIndividualOrder', orderId: order.id });
+  });
+  sendTelegramNotification(order).catch((err) => {
+    logger.error('Failed to send Telegram notification', { error: err, operation: 'createIndividualOrder', orderId: order.id });
+  });
   if (validatedData.email) {
-    sendClientConfirmation(order).catch((err) =>
-      console.error('Failed to send client confirmation email:', err)
-    );
+    sendClientConfirmation(order).catch((err) => {
+      logger.error('Failed to send client confirmation email', { error: err, operation: 'createIndividualOrder', orderId: order.id });
+    });
   }
 
   return NextResponse.json(
@@ -462,7 +484,7 @@ async function createIndividualOrder(body: unknown, rlHeaders: Record<string, st
       status: order.status,
       statusLabel: STATUS_LABELS[order.status],
       estimateId: null,
-      calculatedCost: 0,
+      calculatedCost,
       isIndividualRequest: true,
       createdAt: order.createdAt,
     },
