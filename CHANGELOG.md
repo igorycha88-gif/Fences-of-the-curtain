@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.15.0] - 2026-07-07
+
+### Добавлено
+- feat(telegram): прямой IP-резолв api.telegram.org (TELEGRAM_API_IP) (0bcf2b3)
+
+### Исправлено
+- fix: убрать стоимость из блока гаража на главной — «Индивидуальный расчёт» (320892e)
+- fix(telegram-proxy): undici lookup — массив-форма [{address,family}] (e4164ea)
+- fix(telegram): проброс TELEGRAM_WEBHOOK_SECRET в прод-контейнер (e937b3d)
+
 ## [1.14.2] - 2026-06-17
 
 ### Исправлено
