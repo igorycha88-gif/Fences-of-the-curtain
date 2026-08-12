@@ -64,9 +64,11 @@ fatal() { err "$1"; exit 1; }
 # ------------------------------------------------------------------
 find_https_site_conf() {
     local candidate=""
+    # sites-enabled: имена обычно без расширения (например 'fences', 'default')
+    # conf.d: обычно '*.conf'
     for d in /etc/nginx/sites-enabled /etc/nginx/conf.d; do
         [ -d "$d" ] || continue
-        for f in "$d"/*.conf; do
+        for f in "$d"/*; do
             [ -f "$f" ] || continue
             case "$f" in *fences-upstream.conf) continue ;; esac
             if grep -qE 'listen[[:space:]]+443' "$f"; then
