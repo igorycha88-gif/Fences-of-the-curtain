@@ -95,7 +95,8 @@ inject_include() {
     # даже *.bak — это вызовет conflicting server_name).
     local bak_dir="/root/backups/grafana-proxy"
     mkdir -p "$bak_dir"
-    local bak="${bak_dir}/$(basename "$site_conf").bak.$(date +%Y%m%d%H%M%S)"
+    local bak
+    bak="${bak_dir}/$(basename "$site_conf").bak.$(date +%Y%m%d%H%M%S)"
     cp -a "$site_conf" "$bak"
     log "  Backup: $bak"
 
