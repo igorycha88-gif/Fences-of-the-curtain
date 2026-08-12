@@ -15,7 +15,7 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
-      - '--web.listen-address=0.0.0.0:9090'
+      - '--web.listen-address=127.0.0.1:9090'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
       interval: 30s
@@ -34,9 +34,10 @@ services:
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=
-      - GF_SERVER_ROOT_URL=http://37.143.13.196:3002
-      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_SERVER_ROOT_URL=https://zabor-i-naves.ru/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_HTTP_PORT=3002
+      - GF_SERVER_HTTP_ADDR=127.0.0.1
       - GF_AUTH_DISABLE_LOGIN_FORM=false
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_LOG_LEVEL=info
@@ -68,7 +69,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-      - '--web.listen-address=0.0.0.0:9100'
+      - '--web.listen-address=127.0.0.1:9100'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9100/metrics"]
       interval: 30s
@@ -84,7 +85,7 @@ services:
     environment:
       - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD:-password}@127.0.0.1:5432/fences?sslmode=disable
     command:
-      - '--web.listen-address=0.0.0.0:9187'
+      - '--web.listen-address=127.0.0.1:9187'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9187/metrics"]
       interval: 30s
@@ -101,7 +102,7 @@ services:
       - REDIS_ADDR=redis://127.0.0.1:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     command:
-      - '--web.listen-address=0.0.0.0:9121'
+      - '--web.listen-address=127.0.0.1:9121'
       - '--skip-tls-verification=true'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9121/metrics"]
@@ -118,7 +119,7 @@ services:
     environment:
        - SCRAPE_URI=http://127.0.0.1:8099/nginx_status
     command:
-      - '--web.listen-address=0.0.0.0:9113'
+      - '--web.listen-address=127.0.0.1:9113'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9113/metrics"]
       interval: 30s
