@@ -37,7 +37,7 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
     openingHoursSpecification: [
       {
         '@type': 'OpeningHoursSpecification',
-        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        dayOfWeek: [...BUSINESS_INFO.openingHours.days],
         opens: BUSINESS_INFO.openingHours.opens,
         closes: BUSINESS_INFO.openingHours.closes,
       },
@@ -46,8 +46,11 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
     areaServed: [
       { '@type': 'City', name: 'Москва' },
       { '@type': 'AdministrativeArea', name: 'Московская область' },
+      ...BUSINESS_INFO.areaServedCities
+        .filter((c) => c !== 'Москва')
+        .map((c) => ({ '@type': 'City' as const, name: c })),
     ],
-    sameAs: BUSINESS_INFO.sameAs,
+    sameAs: [...BUSINESS_INFO.sameAs],
   };
 }
 

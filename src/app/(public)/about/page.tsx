@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
+import JsonLdScript from '@/components/seo/JsonLdScript';
+import { generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
 import { AnimatedSection } from '@/hooks/useScrollReveal';
 import ImageWithFallback from '@/components/ui/ImageWithFallback';
 import AboutCTA from '@/components/about/AboutCTA';
@@ -12,6 +14,10 @@ import {
   Shield,
   BadgePercent,
   CheckCircle2,
+  Award,
+  Users,
+  Home,
+  CalendarClock,
 } from 'lucide-react';
 
 interface Advantage {
@@ -113,8 +119,21 @@ export default async function AboutPage() {
   const heroImage = data.about_hero_image || '/images/about/production.jpg';
   const paragraphs = (data.about_text || '').split('\n').filter(Boolean);
 
+  const breadcrumbJsonLd = generateBreadcrumbJsonLd([
+    { name: 'Главная', url: '/' },
+    { name: 'О компании', url: '/about' },
+  ]);
+
+  const stats = [
+    { icon: Home, value: '500+', label: 'Установленных объектов' },
+    { icon: CalendarClock, value: '8 лет', label: 'На рынке заборов и навесов' },
+    { icon: Users, value: '15+', label: 'Опытных монтажников' },
+    { icon: Award, value: '4.9★', label: 'Средняя оценка клиентов' },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
+      <JsonLdScript data={[breadcrumbJsonLd]} />
       <Header />
 
       <main className="pt-24">
@@ -143,6 +162,24 @@ export default async function AboutPage() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
+              </div>
+            </AnimatedSection>
+          </div>
+        </section>
+
+        <section className="py-12 px-4 bg-primary text-primary-foreground">
+          <div className="container mx-auto">
+            <AnimatedSection animation="fade-in-up">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+                {stats.map((stat, index) => (
+                  <div key={index} className="text-center">
+                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <stat.icon className="w-6 h-6" />
+                    </div>
+                    <p className="text-3xl font-bold">{stat.value}</p>
+                    <p className="text-sm opacity-80 mt-1">{stat.label}</p>
+                  </div>
+                ))}
               </div>
             </AnimatedSection>
           </div>

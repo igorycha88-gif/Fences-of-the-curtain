@@ -1,4 +1,6 @@
 import { Metadata } from 'next';
+import JsonLdScript from '@/components/seo/JsonLdScript';
+import { generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
 import { PAGE_METADATA } from '@/lib/seo/constants';
 import { generateStaticPageMetadata } from '@/lib/seo/metadata';
 
@@ -11,5 +13,15 @@ export const metadata: Metadata = generateStaticPageMetadata(
 );
 
 export default function CalculatorLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  const breadcrumbJsonLd = generateBreadcrumbJsonLd([
+    { name: 'Главная', url: '/' },
+    { name: 'Калькулятор', url: '/calculator' },
+  ]);
+
+  return (
+    <>
+      <JsonLdScript data={breadcrumbJsonLd} />
+      {children}
+    </>
+  );
 }

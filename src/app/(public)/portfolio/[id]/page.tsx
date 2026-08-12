@@ -9,7 +9,7 @@ import { getThumbnailUrl, normalizeImageUrl } from '@/lib/utils/imageUrl';
 import PortfolioGalleryClient from './PortfolioGalleryClient';
 import PhoneLinkButton from './PhoneLinkButton';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export default async function PortfolioDetailPage({
   params,

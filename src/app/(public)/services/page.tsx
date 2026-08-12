@@ -13,6 +13,7 @@ import {
   Zap,
 } from 'lucide-react';
 import HomeFooter from '@/components/layout/HomeFooter';
+import CommercialFactors from '@/components/seo/CommercialFactors';
 
 const fenceServices = [
   {
@@ -69,7 +70,7 @@ const advantages = [
   { icon: 'Award', title: 'Опыт работы', description: 'Большой опыт на рынке' },
 ];
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export default async function ServicesPage() {
   let servicePages: { slug: string }[] = [];
@@ -97,6 +98,8 @@ export default async function ServicesPage() {
             </AnimatedSection>
           </div>
         </section>
+
+        <CommercialFactors />
 
         <section className="py-16 px-4">
           <div className="container mx-auto">
