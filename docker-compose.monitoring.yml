@@ -99,7 +99,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - REDIS_ADDR=redis://127.0.0.1:6379
+      - REDIS_ADDR=redis://:${REDIS_PASSWORD}@127.0.0.1:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     command:
       - '--web.listen-address=127.0.0.1:9121'

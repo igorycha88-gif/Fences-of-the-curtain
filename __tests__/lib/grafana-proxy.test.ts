@@ -92,6 +92,17 @@ describe('TASK-GRP-BCK-001b: все monitoring-сервисы слушают т�
   });
 });
 
+describe('BUG-002 regression: redis_exporter должен использовать пароль в REDIS_ADDR', () => {
+  const compose = read('docker-compose.monitoring.yml');
+
+  it('REDIS_ADDR содержит пароль (redis://:PASS@host) — метрики ходят', () => {
+    // Было: REDIS_ADDR=redis://127.0.0.1:6379  (без пароля → NOAUTH, unhealthy)
+    // Стало: REDIS_ADDR=redis://:${REDIS_PASSWORD}@127.0.0.1:6379
+    expect(compose).not.toMatch(/REDIS_ADDR=redis:\/\/127\.0\.0\.1/);
+    expect(compose).toMatch(/REDIS_ADDR=redis:\/\/:\$\{REDIS_PASSWORD\}@127\.0\.0\.1:6379/);
+  });
+});
+
 describe('TASK-GRP-BCK-002: docker/nginx.conf содержит location /grafana/ в обоих server-блоках', () => {
   const conf = read('docker/nginx.conf');
 
