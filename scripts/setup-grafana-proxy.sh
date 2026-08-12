@@ -91,8 +91,13 @@ inject_include() {
         return 0
     fi
 
-    cp -a "$site_conf" "${site_conf}.bak.$(date +%Y%m%d%H%M%S)"
-    log "  Backup: ${site_conf}.bak.*"
+    # Бэкап кладём ВНЕ sites-enabled (nginx читает все файлы там как активные конфиги,
+    # даже *.bak — это вызовет conflicting server_name).
+    local bak_dir="/root/backups/grafana-proxy"
+    mkdir -p "$bak_dir"
+    local bak="${bak_dir}/$(basename "$site_conf").bak.$(date +%Y%m%d%H%M%S)"
+    cp -a "$site_conf" "$bak"
+    log "  Backup: $bak"
 
     if sed -n '/server[[:space:]]*{/,/^}/p' "$site_conf" | grep -qE 'listen[[:space:]]+443'; then
         local tmp="${site_conf}.tmp.$$"
