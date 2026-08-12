@@ -176,16 +176,25 @@ describe('TASK-GRP-BCK-002 (snippet): docker/nginx/snippets/grafana.conf', () =>
 });
 
 describe('Безопасность: docker/.htpasswd содержит только хэш (не plaintext)', () => {
-  it('файл существует и содержит хэш admin', () => {
-    expect(exists('docker/.htpasswd')).toBe(true);
+  // ВАЖНО: .htpasswd в .gitignore (секрет), поэтому в CI файла может не быть.
+  // На проде он создаётся скриптом setup-grafana-proxy.sh.
+  // Тестируем формат ТОЛЬКО если файл присутствует (локально/на проде).
+  const htpasswdExists = exists('docker/.htpasswd');
+
+  (htpasswdExists ? it : it.skip)('файл существует и содержит хэш admin', () => {
     const content = read('docker/.htpasswd').trim();
     // apr1 или bcrypt или $2y$ хэш
     expect(content).toMatch(/^admin:\$(apr1|2y\$|\$2y\$)/);
   });
 
-  it('нет пробелов между admin и хэшем (валидный формат htpasswd)', () => {
+  (htpasswdExists ? it : it.skip)('нет пробелов между admin и хэшем (валидный формат htpasswd)', () => {
     const line = read('docker/.htpasswd').trim().split('\n')[0];
     expect(line).toMatch(/^admin:\S+$/);
+  });
+
+  it('в .gitignore присутствует (секрет не в репо)', () => {
+    const gitignore = read('.gitignore');
+    expect(gitignore).toContain('docker/.htpasswd');
   });
 });
 

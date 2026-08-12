@@ -189,7 +189,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           severity: warning
-          additional_paths: scripts/setup-grafana-proxy.sh scripts/validate-nginx.sh
+          additional_files: scripts/setup-grafana-proxy.sh scripts/validate-nginx.sh
 
       - name: Validate nginx configs
         run: bash scripts/validate-nginx.sh
