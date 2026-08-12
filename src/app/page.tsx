@@ -23,7 +23,7 @@ import {
   Warehouse,
 } from 'lucide-react';
 import { YandexReviews } from '@/components/reviews/YandexReviews';
-import { generateAggregateRatingJsonLd, generateReviewJsonLd, generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
+import { generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG, BUSINESS_INFO } from '@/lib/seo/constants';
 import { prisma } from '@/lib/prisma';
 import JsonLdScript from '@/components/seo/JsonLdScript';
@@ -49,29 +49,43 @@ export default async function HomePage() {
     generateBreadcrumbJsonLd([{ name: 'Главная', url: '/' }]),
   ];
 
-  if (reviewCount >= 5 && avgRating > 0) {
-    const aggregateRating = generateAggregateRatingJsonLd(
-      Math.round(avgRating * 10) / 10,
-      reviewCount
-    );
-    const reviewsJsonLd = dbReviews.map((r) =>
-      generateReviewJsonLd(r.name, r.text, r.rating)
-    );
-    jsonLdData.push({
-      '@context': 'https://schema.org',
-      '@type': 'LocalBusiness',
+  if (reviewCount >= 5 && avgRating > 0 && dbReviews.length > 0) {
+    // Reviews как отдельные JSON-LD блоки со ссылкой на Organization через @id.
+    // ВАЖНО: НЕ создаём второй LocalBusiness с тем же @id — это вызывало
+    // "@context expansion error: invalid base IRI" в Яндекс.Валидаторе микроразметки.
+    // Organization уже рендерится в layout.tsx через generateOrganizationJsonLd().
+    const organizationRef = {
+      '@type': 'LocalBusiness' as const,
       '@id': `${SEO_CONFIG.BASE_URL}/#organization`,
       name: BUSINESS_INFO.name,
-      url: SEO_CONFIG.BASE_URL,
-      telephone: BUSINESS_INFO.telephone,
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: BUSINESS_INFO.address.locality,
-        addressRegion: BUSINESS_INFO.address.region,
-        addressCountry: BUSINESS_INFO.address.country,
-      },
-      aggregateRating,
-      review: reviewsJsonLd,
+    };
+    for (const r of dbReviews) {
+      jsonLdData.push({
+        '@context': 'https://schema.org',
+        '@type': 'Review',
+        itemReviewed: organizationRef,
+        author: { '@type': 'Person', name: r.name },
+        reviewBody: r.text,
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: r.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
+      });
+    }
+    // aggregateRating — отдельный блок через тот же @id reference.
+    // Это валидный JSON-LD 1.1: aggregateRating прикрепляется к Organization
+    // через node reference, без дублирования блока LocalBusiness.
+    jsonLdData.push({
+      '@context': 'https://schema.org',
+      '@type': 'AggregateRating',
+      itemReviewed: organizationRef,
+      ratingValue: Math.round(avgRating * 10) / 10,
+      bestRating: 5,
+      worstRating: 1,
+      ratingCount: reviewCount,
+      reviewCount: reviewCount,
     });
   }
 
