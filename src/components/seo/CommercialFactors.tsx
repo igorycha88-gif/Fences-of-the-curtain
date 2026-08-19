@@ -8,7 +8,7 @@ interface CommercialFactorsProps {
 const factors = [
   {
     icon: Banknote,
-    value: 'от 2 800 ₽/м',
+    value: 'от 2 600 ₽/м',
     label: 'Цена за метр',
   },
   {
@@ -18,13 +18,13 @@ const factors = [
   },
   {
     icon: ShieldCheck,
-    value: '3 года',
+    value: '1 год',
     label: 'Гарантия по договору',
   },
   {
     icon: Truck,
     value: 'Бесплатно',
-    label: 'Выезд по Москве и МО',
+    label: 'Замер при заказе услуги',
   },
   {
     icon: CreditCard,
