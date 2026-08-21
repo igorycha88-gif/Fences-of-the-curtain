@@ -11,5 +11,12 @@
       }
     }
   },
-  "model": "zai-coding-plan/glm-5"
+  "model": "zai-coding-plan/glm-5",
+  "instructions": [
+    "AGENTS.md",
+    ".opencode/skills/zabor-naves/SKILL.md"
+  ],
+  "skills": {
+    "paths": [".opencode/skills"]
+  }
 }
