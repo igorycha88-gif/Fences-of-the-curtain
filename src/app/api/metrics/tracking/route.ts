@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMetricsString } from '@/lib/prometheus';
+import { getTrackingMetricsString } from '@/lib/tracking-metrics';
 import { isAuthorizedMonitoringRequest, getClientIp } from '@/lib/monitoring-auth';
 import logger from '@/lib/logger';
 
@@ -12,18 +12,19 @@ export async function GET(req: NextRequest) {
 
   try {
     if (!isAuthorizedMonitoringRequest(req)) {
-      logger.warn('App metrics access denied', {
-        module: 'api/metrics',
+      logger.warn('Tracking metrics access denied', {
+        module: 'api/metrics/tracking',
         operation: 'GET',
         ip: clientIp,
+        path: req.nextUrl?.pathname || '/api/metrics/tracking',
       });
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    const metrics = await getMetricsString();
+    const metrics = await getTrackingMetricsString();
 
-    logger.info('App metrics served', {
-      module: 'api/metrics',
+    logger.info('Tracking metrics served', {
+      module: 'api/metrics/tracking',
       operation: 'GET',
       status: 200,
       ip: clientIp,
@@ -31,25 +32,23 @@ export async function GET(req: NextRequest) {
     });
 
     return new NextResponse(metrics, {
+      status: 200,
       headers: {
         'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     });
   } catch (error) {
-    logger.error('Metrics error', {
-      module: 'api/metrics',
+    logger.error('Tracking metrics endpoint failed', {
+      module: 'api/metrics/tracking',
       operation: 'GET',
-      status: 500,
       ip: clientIp,
+      status: 500,
       durationMs: Date.now() - startedAt,
       error,
     });
-    return NextResponse.json(
-      { error: 'Failed to generate metrics' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to generate tracking metrics' }, { status: 500 });
   }
 }

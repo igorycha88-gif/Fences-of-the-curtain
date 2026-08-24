@@ -1,0 +1,14 @@
+# /etc/nginx/conf.d/monitoring-key.conf
+# chmod 600, owner root. http-level context (conf.d auto-included).
+# Replace <MONITORING_KEY> with the 64-hex per-site key issued by the monitoring service.
+# Generate: openssl rand -hex 32
+
+map $http_x_monitoring_key $metrics_auth {
+    default 0;
+    "<MONITORING_KEY>" 1;
+}
+
+limit_req_zone $binary_remote_addr zone=metrics_limit:10m rate=10r/s;
+
+log_format metrics_minimal '$remote_addr [$time_local] "$request" $status '
+                           'rt=$request_time upstream=$upstream_addr';

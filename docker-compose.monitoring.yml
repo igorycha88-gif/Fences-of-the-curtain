@@ -83,7 +83,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD:-password}@127.0.0.1:5432/fences?sslmode=disable
+      - DATA_SOURCE_NAME=${MONITORING_PG_DSN:?MONITORING_PG_DSN is required in .env (readonly pg_monitor user, see deploy/monitoring/postgres/monitoring-user.sql)}
     command:
       - '--web.listen-address=127.0.0.1:9187'
     healthcheck:

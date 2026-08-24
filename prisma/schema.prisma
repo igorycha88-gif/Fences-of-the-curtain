@@ -247,6 +247,7 @@ model Order {
   adminGateEstimate   GateEstimate?       @relation("OrderAdminGateEstimate", fields: [adminGateEstimateId], references: [id])
 
   @@index([status])
+  @@index([createdAt])
   @@index([estimateId])
   @@index([multiEstimateId])
   @@index([measurementDate])

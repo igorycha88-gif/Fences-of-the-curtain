@@ -87,7 +87,7 @@ jobs:
             DATABASE_URL=postgresql://postgres:dummy@localhost:5432/fences
             NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL || 'https://zabor-i-naves.ru' }}
             NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '' }}
-            NEXT_PUBLIC_YANDEX_METRIKA_ID=${{ secrets.NEXT_PUBLIC_YANDEX_METRIKA_ID || '' }}
+            NEXT_PUBLIC_YANDEX_METRIKA_ID=${{ secrets.NEXT_PUBLIC_YANDEX_METRIKA_ID || '108488683' }}
             NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || '' }}
             NEXT_PUBLIC_YANDEX_MAPS_API_KEY=${{ secrets.NEXT_PUBLIC_YANDEX_MAPS_API_KEY || '' }}
             NEXT_PUBLIC_YANDEX_ORG_ID=${{ secrets.NEXT_PUBLIC_YANDEX_ORG_ID || '' }}

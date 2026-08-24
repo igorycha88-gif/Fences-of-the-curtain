@@ -3,6 +3,8 @@ import { redis } from '@/lib/redis';
 import { requireAuth } from '@/lib/admin-auth';
 import { isNotifiableEvent, sendAnalyticsNotification } from '@/services/telegram/analytics-notifier';
 import { getMoscowDate } from '@/lib/timezone';
+import { buildTrackingWrites, extractExternalHost, extractServiceLabel, ACTIVE_WINDOW_SEC } from '@/lib/tracking-metrics';
+import logger from '@/lib/logger';
 
 const ANALYTICS_KEY_PREFIX = 'analytics:';
 const ANALYTICS_TTL = 86400 * 30;
@@ -10,6 +12,7 @@ const SESSION_TTL = 86400 * 1;
 
 const ANALYTICS_RATE_LIMIT = { max: 100, windowSec: 60 };
 const SAFE_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/;
+const MAX_TIMESTAMP_SKEW_MS = 5 * 60 * 1000;
 
 function getClientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -18,10 +21,25 @@ function getClientIp(req: NextRequest): string {
 }
 
 function logMetricError(context: string, err: unknown) {
-  console.error(`Analytics metric error (${context}):`, err);
+  logger.error('Analytics metric error', {
+    module: 'api/analytics/events',
+    operation: 'logMetricError',
+    context,
+    error: err,
+  });
+}
+
+function resolveTimestampMs(raw: unknown): number {
+  const now = Date.now();
+  if (typeof raw !== 'string' && typeof raw !== 'number') return now;
+  const parsed = new Date(raw as string | number).getTime();
+  if (!Number.isFinite(parsed)) return now;
+  if (Math.abs(parsed - now) > MAX_TIMESTAMP_SKEW_MS) return now;
+  return parsed;
 }
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
   try {
     const ip = getClientIp(req);
     const rlKey = `rate_limit:analytics:${ip}`;
@@ -61,6 +79,41 @@ export async function POST(req: NextRequest) {
     }
 
     const metricsPage = (page || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const timestampMs = resolveTimestampMs(timestamp);
+    const isoTimestamp = new Date(timestampMs).toISOString();
+
+    const sessionKey = `${ANALYTICS_KEY_PREFIX}sessions:${sessionId}`;
+
+    let prevLastActive: string | null = null;
+    try {
+      prevLastActive = await redis.hget(sessionKey, 'lastActive');
+    } catch (err) {
+      logMetricError('hget_last_active', err);
+    }
+
+    let totalEventsAfter = 0;
+    let pageViewsAfter = 0;
+    try {
+      totalEventsAfter = await redis.hincrby(sessionKey, 'totalEvents', 1);
+      if (eventName === 'page_view') {
+        pageViewsAfter = await redis.hincrby(sessionKey, 'pageViews', 1);
+      }
+    } catch (err) {
+      logMetricError('session_counters', err);
+    }
+
+    const gapMs = prevLastActive ? timestampMs - new Date(prevLastActive).getTime() : Number.NaN;
+    const sessionJustStarted =
+      totalEventsAfter <= 1 || !Number.isFinite(gapMs) || gapMs > ACTIVE_WINDOW_SEC * 1000;
+    const isEngagement = totalEventsAfter === 2;
+    const isFirstPageView = pageViewsAfter === 1;
+
+    const properties =
+      typeof body.properties === 'object' && body.properties !== null
+        ? (body.properties as Record<string, unknown>)
+        : {};
+    const service = extractServiceLabel(String(eventName), String(page || ''), properties);
+    const referralHost = extractExternalHost(referrer);
 
     const pipeline = redis.pipeline();
 
@@ -76,20 +129,36 @@ export async function POST(req: NextRequest) {
     pipeline.hincrby(eventsKey, 'count', 1);
     pipeline.expire(eventsKey, ANALYTICS_TTL);
 
-    const sessionKey = `${ANALYTICS_KEY_PREFIX}sessions:${sessionId}`;
-    pipeline.hincrby(sessionKey, 'totalEvents', 1);
-    pipeline.hset(sessionKey, 'lastActive', timestamp || new Date().toISOString());
-    pipeline.hsetnx(sessionKey, 'startTime', timestamp || new Date().toISOString());
+    pipeline.hset(sessionKey, 'lastActive', isoTimestamp);
+    pipeline.hsetnx(sessionKey, 'startTime', isoTimestamp);
     pipeline.expire(sessionKey, SESSION_TTL);
 
+    buildTrackingWrites(pipeline, {
+      eventName: String(eventName),
+      sessionId: String(sessionId),
+      timestampMs,
+      sessionJustStarted,
+      isEngagement,
+      isFirstPageView,
+      service,
+      referralHost,
+    });
+
     await pipeline.exec();
+
+    logger.info('Analytics event recorded', {
+      module: 'api/analytics/events',
+      operation: 'POST',
+      eventName: String(eventName),
+      durationMs: Date.now() - startedAt,
+    });
 
     if (isNotifiableEvent(eventName)) {
       sendAnalyticsNotification({
         eventName,
         page: metricsPage,
         sessionId,
-        timestamp: timestamp || new Date().toISOString(),
+        timestamp: isoTimestamp,
         ip,
       }).catch(err => logMetricError('telegram_notification', err));
     }
@@ -125,8 +194,7 @@ export async function POST(req: NextRequest) {
 
     redis.hget(sessionKey, 'startTime').then(startTime => {
       if (!startTime) return;
-      const lastActive = timestamp || new Date().toISOString();
-      const durationSec = (new Date(lastActive).getTime() - new Date(startTime).getTime()) / 1000;
+      const durationSec = (timestampMs - new Date(startTime).getTime()) / 1000;
       if (durationSec > 0 && durationSec < 86400) {
         const durPipeline = redis.pipeline();
         durPipeline.lpush('analytics:metrics:recent_session_durations', String(durationSec));
@@ -145,7 +213,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error('Analytics error:', error);
+    logger.error('Analytics error', {
+      module: 'api/analytics/events',
+      operation: 'POST',
+      status: 500,
+      durationMs: Date.now() - startedAt,
+      error,
+    });
     return NextResponse.json(
       { error: 'Failed to record analytics event' },
       { status: 500 }
@@ -179,7 +253,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ data: results, period });
   } catch (error) {
-    console.error('Analytics fetch error:', error);
+    logger.error('Analytics fetch error', {
+      module: 'api/analytics/events',
+      operation: 'GET',
+      status: 500,
+      error,
+    });
     return NextResponse.json(
       { error: 'Failed to fetch analytics data' },
       { status: 500 }
