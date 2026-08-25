@@ -28,6 +28,7 @@ import { SEO_CONFIG, BUSINESS_INFO } from '@/lib/seo/constants';
 import { prisma } from '@/lib/prisma';
 import JsonLdScript from '@/components/seo/JsonLdScript';
 import CommercialFactors from '@/components/seo/CommercialFactors';
+import { GEO_CITIES } from '@/lib/geo/cities';
 
 export const revalidate = 3600;
 
@@ -290,6 +291,39 @@ export default async function HomePage() {
                   </Link>
                 </AnimatedSection>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-24 px-4 bg-secondary/30">
+          <div className="container mx-auto">
+            <AnimatedSection animation="fade-in-up" className="text-center mb-16">
+              <h2 className="section-title mb-4">Работаем в городах Подмосковья</h2>
+              <p className="section-subtitle">
+                Восток, юго-восток и юг Московской области — заборы и навесы под ключ
+              </p>
+            </AnimatedSection>
+
+            <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {GEO_CITIES.filter((city) => city.wave === 1).map((city) => (
+                <Link
+                  key={city.slug}
+                  href={`/zabory-navesy/${city.slug}`}
+                  className="card-modern px-4 py-3 text-center font-medium hover-lift group"
+                >
+                  <span className="group-hover:text-primary transition-colors">{city.name}</span>
+                </Link>
+              ))}
+            </div>
+
+            <div className="text-center mt-8">
+              <Link
+                href="/zabory-navesy"
+                className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+              >
+                Все города Подмосковья
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </section>

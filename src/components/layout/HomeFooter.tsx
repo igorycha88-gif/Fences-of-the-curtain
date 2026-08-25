@@ -10,7 +10,7 @@ export default function HomeFooter() {
   return (
     <footer className="bg-foreground text-background py-16">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-6 gap-8 mb-12">
+        <div className="grid md:grid-cols-4 lg:grid-cols-7 gap-8 mb-12">
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
@@ -61,6 +61,19 @@ export default function HomeFooter() {
               <li>{contactInfo.workHours?.monFri ? `Пн-Пт: ${contactInfo.workHours.monFri}` : 'Пн-Пт: не указано'}</li>
               {contactInfo.workHours?.sat && <li>Сб: {contactInfo.workHours.sat}</li>}
               {contactInfo.workHours?.sun && <li>Вс: {contactInfo.workHours.sun}</li>}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-4">Города</h4>
+            <ul className="space-y-2 text-muted-foreground text-sm">
+              <li><Link href="/zabory-navesy/balashiha" className="hover:text-primary transition-colors">Балашиха</Link></li>
+              <li><Link href="/zabory-navesy/lyubercy" className="hover:text-primary transition-colors">Люберцы</Link></li>
+              <li><Link href="/zabory-navesy/podolsk" className="hover:text-primary transition-colors">Подольск</Link></li>
+              <li><Link href="/zabory-navesy/ramenskoe" className="hover:text-primary transition-colors">Раменское</Link></li>
+              <li><Link href="/zabory-navesy/elektrostal" className="hover:text-primary transition-colors">Электросталь</Link></li>
+              <li><Link href="/zabory-navesy/kolomna" className="hover:text-primary transition-colors">Коломна</Link></li>
+              <li><Link href="/zabory-navesy" className="hover:text-primary transition-colors">Все города →</Link></li>
             </ul>
           </div>
 

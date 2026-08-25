@@ -68,4 +68,29 @@ describe('sitemap', () => {
       expect(item.lastModified).toMatch(isoDateRegex);
     });
   });
+
+  it('should include geo index, hubs and all 32 city pages', async () => {
+    const sitemapModule = await import('../src/app/sitemap');
+    const result = await sitemapModule.default();
+    const paths = result.map((item: any) => item.url.replace('https://zabor-i-naves.ru', ''));
+
+    expect(paths).toContain('/zabory-navesy');
+    expect(paths).toContain('/zabory-navesy/vostok-podmoskovya');
+    expect(paths).toContain('/zabory-navesy/yugo-vostok-podmoskovya');
+    expect(paths).toContain('/zabory-navesy/yug-podmoskovya');
+
+    const cityPages = paths.filter((p: string) => /^\/zabory-navesy\/[a-z-]+$/.test(p));
+    expect(cityPages).toHaveLength(35);
+    expect(paths).toContain('/zabory-navesy/balashiha');
+    expect(paths).toContain('/zabory-navesy/klimovsk');
+  });
+
+  it('should include /navesy-pod-klyuch with priority 0.8', async () => {
+    const sitemapModule = await import('../src/app/sitemap');
+    const result = await sitemapModule.default();
+    const navesyPage = result.find((item: any) => item.url === 'https://zabor-i-naves.ru/navesy-pod-klyuch');
+
+    expect(navesyPage).toBeDefined();
+    expect(navesyPage?.priority).toBe(0.8);
+  });
 });

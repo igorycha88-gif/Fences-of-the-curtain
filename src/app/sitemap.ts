@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next';
 import { SEO_CONFIG, SITEMAP_CONFIG } from '@/lib/seo/constants';
 import { prisma } from '@/lib/prisma';
+import logger from '@/lib/logger';
+import { GEO_CITIES, GEO_HUBS } from '@/lib/geo/cities';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +16,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: page.changefreq,
     priority: page.priority,
   }));
+
+  const geoPages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/zabory-navesy`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    },
+    ...GEO_HUBS.map((hub) => ({
+      url: `${baseUrl}/zabory-navesy/${hub.slug}`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    })),
+    ...GEO_CITIES.map((city) => ({
+      url: `${baseUrl}/zabory-navesy/${city.slug}`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: city.wave === 1 ? 0.8 : 0.7,
+    })),
+  ];
+
+  const navesyPodKlyuchPage: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/navesy-pod-klyuch`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+  ];
 
   let blogPages: MetadataRoute.Sitemap = [];
   let portfolioPages: MetadataRoute.Sitemap = [];
@@ -55,7 +87,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     }));
-  } catch {}
+  } catch (error) {
+    logger.error('Sitemap: failed to load dynamic pages from database', {
+      module: 'sitemap',
+      operation: 'loadDynamicPages',
+      error,
+    });
+  }
 
-  return [...staticPages, ...blogPages, ...portfolioPages, ...servicePagesSitemap];
+  return [
+    ...staticPages,
+    ...geoPages,
+    ...navesyPodKlyuchPage,
+    ...blogPages,
+    ...portfolioPages,
+    ...servicePagesSitemap,
+  ];
 }

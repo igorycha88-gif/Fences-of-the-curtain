@@ -79,4 +79,35 @@ describe('HomeFooter', () => {
     expect(screen.getByText('Авито')).toBeInTheDocument();
     expect(screen.getByText('Юла')).toBeInTheDocument();
   });
+
+  it('renders popular city links pointing to geo pages', () => {
+    render(<HomeFooter />);
+
+    const cityLinks: Record<string, string> = {
+      'Балашиха': '/zabory-navesy/balashiha',
+      'Люберцы': '/zabory-navesy/lyubercy',
+      'Подольск': '/zabory-navesy/podolsk',
+      'Раменское': '/zabory-navesy/ramenskoe',
+      'Электросталь': '/zabory-navesy/elektrostal',
+      'Коломна': '/zabory-navesy/kolomna',
+    };
+
+    for (const [name, href] of Object.entries(cityLinks)) {
+      const link = screen.getByText(name).closest('a');
+      expect(link).toHaveAttribute('href', href);
+    }
+  });
+
+  it('links to the geo index page from cities column', () => {
+    render(<HomeFooter />);
+
+    const allCities = screen.getByText('Все города →').closest('a');
+    expect(allCities).toHaveAttribute('href', '/zabory-navesy');
+  });
+
+  it('does not contain Mytishchi in cities column (out of target zone)', () => {
+    render(<HomeFooter />);
+
+    expect(screen.queryByText('Мытищи')).not.toBeInTheDocument();
+  });
 });

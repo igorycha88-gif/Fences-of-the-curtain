@@ -10,6 +10,30 @@ import {
   JsonLdFaqPage,
   JsonLdSiteNavigation,
 } from './types';
+import type { GeoCity } from '../geo/cities';
+
+export function generateGeoServiceJsonLd(city: GeoCity): JsonLdService {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: `Заборы и навесы ${city.nameIn} под ключ`,
+    description: `Установка заборов из профнастила, евроштакетника, 3D-панелей и навесов для автомобилей ${city.nameIn}. Замер бесплатно, монтаж от 1 дня, гарантия по договору.`,
+    provider: {
+      '@type': 'LocalBusiness',
+      '@id': `${SEO_CONFIG.BASE_URL}/#organization`,
+      name: BUSINESS_INFO.name,
+    },
+    areaServed: [
+      { '@type': 'City', name: city.name },
+    ],
+    offers: {
+      '@type': 'Offer',
+      priceRange: 'от 2600 RUB за погонный метр под ключ',
+      price: '2600',
+      priceCurrency: 'RUB',
+    },
+  };
+}
 
 export function generateOrganizationJsonLd(): JsonLdOrganization {
   return {
