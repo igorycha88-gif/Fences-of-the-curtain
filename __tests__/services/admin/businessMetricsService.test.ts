@@ -21,7 +21,21 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/lib/redis', () => {
+  const pipeline = {
+    hget: jest.fn(),
+    hgetall: jest.fn(),
+    exec: jest.fn(),
+  };
+  return {
+    redis: {
+      pipeline: jest.fn(() => pipeline),
+    },
+  };
+});
+
 import logger from '@/lib/logger';
+import { redis } from '@/lib/redis';
 
 const dateFrom = new Date('2026-08-01T00:00:00.000Z');
 const dateTo = new Date('2026-08-31T00:00:00.000Z');
@@ -314,6 +328,83 @@ describe('BusinessMetricsService', () => {
       expect(logger.error).toHaveBeenCalledWith('BusinessMetrics calculation failed', expect.objectContaining({
         operation: 'getBusinessMetrics',
         error: 'DB down',
+      }));
+    });
+  });
+
+  describe('redis blocks: phoneClicks and visitorGeo', () => {
+    const pipeline = redis.pipeline() as unknown as {
+      hget: jest.Mock;
+      hgetall: jest.Mock;
+      exec: jest.Mock;
+    };
+
+    function setupRedisExec(
+      phoneResult: (key: string) => string | null,
+      geoResult: (key: string) => Record<string, string> | null
+    ) {
+      pipeline.hget.mockImplementation(() => undefined);
+      pipeline.hgetall.mockImplementation(() => undefined);
+      pipeline.exec.mockImplementation(async () => {
+        if (pipeline.hgetall.mock.calls.length > 0) {
+          return (pipeline.hgetall.mock.calls as unknown[][]).map(([key]) => [null, geoResult(String(key))]);
+        }
+        return (pipeline.hget.mock.calls as unknown[][]).map(([key]) => [null, phoneResult(String(key))]);
+      });
+    }
+
+    it('aggregates phone clicks with trend and geo top cities', async () => {
+      setupPrisma();
+      setupRedisExec(
+        (key) => (key === 'analytics:daily:2026-08-05' ? '3' : key.includes('2026-07') ? '1' : '0'),
+        (key) => (key === 'analytics:geo:daily:2026-08-05' ? { 'Москва, Московская область': '3', 'Не определён': '1' } : {})
+      );
+
+      const result = await businessMetricsService.getBusinessMetrics({ period: 'month', dateFrom, dateTo });
+
+      expect(result.phoneClicks.total).toBe(3);
+      expect(result.phoneClicks.previousTotal).toBe(30);
+      expect(result.phoneClicks.trend).toBe(-90);
+      expect(result.phoneClicks.trendDirection).toBe('down');
+      expect(result.phoneClicks.byDay).toHaveLength(31);
+      expect(result.phoneClicks.byDay.find((d) => d.date === '2026-08-05')).toEqual({ date: '2026-08-05', count: 3 });
+
+      expect(result.visitorGeo).toEqual([
+        { city: 'Москва, Московская область', count: 3, percentage: 75 },
+        { city: 'Не определён', count: 1, percentage: 25 },
+      ]);
+    });
+
+    it('returns zero blocks when redis has no data', async () => {
+      setupPrisma();
+      setupRedisExec(() => null, () => ({}));
+
+      const result = await businessMetricsService.getBusinessMetrics({ period: 'month', dateFrom, dateTo });
+
+      expect(result.phoneClicks.total).toBe(0);
+      expect(result.phoneClicks.trend).toBeNull();
+      expect(result.phoneClicks.trendDirection).toBe('neutral');
+      expect(result.phoneClicks.byDay.every((d) => d.count === 0)).toBe(true);
+      expect(result.visitorGeo).toEqual([]);
+    });
+
+    it('does not fail the whole response when redis is down', async () => {
+      setupPrisma();
+      pipeline.exec.mockRejectedValue(new Error('redis down'));
+
+      const result = await businessMetricsService.getBusinessMetrics({ period: 'month', dateFrom, dateTo });
+
+      expect(result.kpi.totalOrders.value).toBe(4);
+      expect(result.phoneClicks.total).toBe(0);
+      expect(result.phoneClicks.byDay).toEqual([]);
+      expect(result.visitorGeo).toEqual([]);
+      expect(logger.error).toHaveBeenCalledWith('PhoneClicks collection failed', expect.objectContaining({
+        operation: 'buildPhoneClicks',
+        error: 'redis down',
+      }));
+      expect(logger.error).toHaveBeenCalledWith('VisitorGeo collection failed', expect.objectContaining({
+        operation: 'buildVisitorGeo',
+        error: 'redis down',
       }));
     });
   });

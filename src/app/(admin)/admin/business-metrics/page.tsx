@@ -114,6 +114,15 @@ function BusinessMetricsPageContent() {
             <KPICard label="Конверсия, %" kpi={metrics.kpi.conversion} />
             <KPICard label="Средний чек" kpi={metrics.kpi.avgCheck} formatValue={formatCurrency} />
             <KPICard label="Выручка" kpi={metrics.kpi.revenue} formatValue={formatCurrency} />
+            <KPICard
+              label="Клики по телефону"
+              kpi={{
+                value: metrics.phoneClicks.total,
+                previousValue: metrics.phoneClicks.previousTotal,
+                trend: metrics.phoneClicks.trend,
+                trendDirection: metrics.phoneClicks.trendDirection,
+              }}
+            />
             <div className="bg-white rounded-lg md:rounded-xl p-3 md:p-5 shadow-md border">
               <h3 className="text-xs md:text-sm font-medium text-gray-500 mb-1 md:mb-2">Доля отмен</h3>
               <p className="text-xl md:text-3xl font-bold text-gray-900">{metrics.kpi.cancelledPercentage}%</p>
@@ -136,6 +145,34 @@ function BusinessMetricsPageContent() {
                 count: t.count,
                 percentage: t.percentage,
                 display: `${formatNumber(t.count)} · ${formatCurrency(t.revenue)}`,
+              }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <BarList
+              title="Клики по телефону по дням"
+              testId="phone-clicks"
+              items={(() => {
+                const days = metrics.phoneClicks.byDay.filter((d) => d.count > 0);
+                const maxClicks = Math.max(...days.map((d) => d.count), 1);
+                return days.map((d) => ({
+                  label: d.date,
+                  count: d.count,
+                  percentage: Math.round((d.count / maxClicks) * 1000) / 10,
+                  display: `${formatNumber(d.count)} шт`,
+                }));
+              })()}
+            />
+            <BarList
+              title="Гео посетителей"
+              testId="visitor-geo"
+              color="bg-cyan-500"
+              items={metrics.visitorGeo.map((g) => ({
+                label: g.city,
+                count: g.count,
+                percentage: g.percentage,
+                display: `${formatNumber(g.count)} посетителей`,
               }))}
             />
           </div>

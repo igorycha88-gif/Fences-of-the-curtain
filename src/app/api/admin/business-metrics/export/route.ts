@@ -87,6 +87,26 @@ function buildWorkbook(metrics: BusinessMetrics): XLSX.WorkBook {
     'Время по статусам'
   );
 
+  const phoneClicksRows = metrics.phoneClicks.byDay.map((d) => ({
+    Дата: d.date,
+    'Клики по телефону': d.count,
+  }));
+  phoneClicksRows.push({
+    Дата: 'Итого',
+    'Клики по телефону': metrics.phoneClicks.total,
+  } as { Дата: string; 'Клики по телефону': number });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(phoneClicksRows), 'Клики по телефону');
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(metrics.visitorGeo.map((g) => ({
+      Город: g.city,
+      Посетители: g.count,
+      '%': g.percentage,
+    }))),
+    'Гео посетителей'
+  );
+
   return wb;
 }
 

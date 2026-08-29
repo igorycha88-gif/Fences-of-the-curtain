@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/admin-auth';
 import { isNotifiableEvent, sendAnalyticsNotification } from '@/services/telegram/analytics-notifier';
 import { getMoscowDate } from '@/lib/timezone';
 import { buildTrackingWrites, extractExternalHost, extractServiceLabel, ACTIVE_WINDOW_SEC } from '@/lib/tracking-metrics';
+import { getCityByIP } from '@/services/admin/ipLookupService';
 import logger from '@/lib/logger';
 
 const ANALYTICS_KEY_PREFIX = 'analytics:';
@@ -145,6 +146,19 @@ export async function POST(req: NextRequest) {
     });
 
     await pipeline.exec();
+
+    if (sessionJustStarted) {
+      Promise.resolve()
+        .then(() => getCityByIP(ip))
+        .then((city) => {
+          const geoKey = `analytics:geo:daily:${getMoscowDate()}`;
+          return redis
+            .hincrby(geoKey, city || 'Не определён', 1)
+            .then(() => redis.expire(geoKey, ANALYTICS_TTL))
+            .catch((err) => logMetricError('geo_increment', err));
+        })
+        .catch((err) => logMetricError('geo_lookup', err));
+    }
 
     logger.info('Analytics event recorded', {
       module: 'api/analytics/events',

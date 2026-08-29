@@ -54,6 +54,14 @@ const mockMetrics = {
   serviceTypes: [{ serviceType: 'fence', label: 'Заборы', count: 1, percentage: 100, revenue: 100000 }],
   managers: [{ id: null, name: 'Не назначен', total: 1, inProgress: 0, completed: 1, cancelled: 0, conversion: 100, avgCheck: 100000, revenue: 100000 }],
   avgTimeByStatus: [{ status: 'NEW', label: 'Новая', avgDays: 2, ordersCount: 1 }],
+  phoneClicks: {
+    total: 5,
+    previousTotal: 2,
+    trend: 150,
+    trendDirection: 'up' as const,
+    byDay: [{ date: '2026-08-15', count: 5 }],
+  },
+  visitorGeo: [{ city: 'Москва, Московская область', count: 4, percentage: 80 }],
 };
 
 function makeRequest(query: string): NextRequest {

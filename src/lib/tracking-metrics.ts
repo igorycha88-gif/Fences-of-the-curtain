@@ -8,6 +8,7 @@ export const ACTIVE_WINDOW_SEC = 30 * 60;
 export const MAX_EVENT_TYPES = 20;
 export const MAX_SERVICES = 20;
 export const MAX_REFERRALS = 10;
+export const MAX_GEO_LABELS = 10;
 
 const MOSCOW_TZ = 'Europe/Moscow';
 const BUCKET_PREFIX = 'analytics:tracking:b:';
@@ -15,6 +16,7 @@ const HLL_SESSIONS_PREFIX = 'analytics:tracking:hlls:';
 const HLL_VISITORS_PREFIX = 'analytics:tracking:hllv:';
 const ACTIVE_KEY = 'analytics:tracking:active';
 const AVG_SESSION_KEY = 'analytics:metrics:avg_session_duration';
+const GEO_DAILY_PREFIX = 'analytics:geo:daily:';
 
 const SITE_HOSTS = new Set(['zabor-i-naves.ru', 'www.zabor-i-naves.ru', 'localhost']);
 
@@ -45,6 +47,7 @@ export interface TrackingRawData {
   avgSessionDuration: number | null;
   leads24h: number;
   leads1h: number;
+  geo24h: Record<string, string>;
 }
 
 export interface LabelledSeries {
@@ -66,6 +69,7 @@ export interface TrackingMetrics {
   events24h: LabelledSeries[];
   serviceClicks24h: LabelledSeries[];
   referralSources24h: LabelledSeries[];
+  visitorGeo24h: LabelledSeries[];
 }
 
 export function getMoscowBucketKey(date: Date = new Date()): string {
@@ -74,6 +78,10 @@ export function getMoscowBucketKey(date: Date = new Date()): string {
   const minute = parseInt(digits.slice(10, 12), 10) || 0;
   const bucketMinute = minute - (minute % BUCKET_MINUTES);
   return `${digits.slice(0, 10)}${String(bucketMinute).padStart(2, '0')}`;
+}
+
+export function moscowDateString(date: Date = new Date()): string {
+  return date.toLocaleDateString('sv-SE', { timeZone: MOSCOW_TZ });
 }
 
 export function bucketKeysForWindow(hours: number, date: Date = new Date()): string[] {
@@ -205,6 +213,25 @@ function aggregateLabelled(
   return top.map(([label, count]) => ({ label, count }));
 }
 
+function aggregateGeo(geo: Record<string, string>, maxLabels: number): LabelledSeries[] {
+  const totals = new Map<string, number>();
+  for (const [city, rawValue] of Object.entries(geo)) {
+    if (!city) continue;
+    const value = parseInt(rawValue, 10);
+    if (!Number.isFinite(value) || value <= 0) continue;
+    totals.set(city, (totals.get(city) || 0) + value);
+  }
+  if (totals.size === 0) return [];
+
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const top = sorted.slice(0, maxLabels);
+  const rest = sorted.slice(maxLabels).reduce((sum, [, count]) => sum + count, 0);
+  if (rest > 0) {
+    top.push(['other', rest]);
+  }
+  return top.map(([label, count]) => ({ label, count }));
+}
+
 export function computeTrackingMetrics(raw: TrackingRawData, now: Date = new Date()): TrackingMetrics {
   const keys24 = bucketKeysForWindow(24, now);
   const keys1 = bucketKeysForWindow(1, now);
@@ -235,6 +262,7 @@ export function computeTrackingMetrics(raw: TrackingRawData, now: Date = new Dat
     events24h: aggregateLabelled(raw.buckets, keys24, 'ev:', MAX_EVENT_TYPES),
     serviceClicks24h: aggregateLabelled(raw.buckets, keys24, 'svc:', MAX_SERVICES),
     referralSources24h: aggregateLabelled(raw.buckets, keys24, 'ref:', MAX_REFERRALS),
+    visitorGeo24h: aggregateGeo(raw.geo24h || {}, MAX_GEO_LABELS),
   };
 }
 
@@ -297,6 +325,14 @@ export function formatTrackingMetrics(metrics: TrackingMetrics): string {
     }
   }
 
+  if (metrics.visitorGeo24h.length > 0) {
+    lines.push('# HELP business_visitor_geo_24h Unique visitors by city over the last 24 hours');
+    lines.push('# TYPE business_visitor_geo_24h gauge');
+    for (const entry of metrics.visitorGeo24h) {
+      lines.push(`business_visitor_geo_24h{city="${escapeLabelValue(entry.label)}"} ${formatValue(entry.count)}`);
+    }
+  }
+
   return lines.join('\n') + '\n';
 }
 
@@ -312,6 +348,8 @@ export async function collectTrackingRawData(now: Date = new Date()): Promise<Tr
   pipeline.get(AVG_SESSION_KEY);
   pipeline.pfcount(...keys24.map((key) => HLL_SESSIONS_PREFIX + key));
   pipeline.pfcount(...keys24.map((key) => HLL_VISITORS_PREFIX + key));
+  pipeline.hgetall(GEO_DAILY_PREFIX + moscowDateString(now));
+  pipeline.hgetall(GEO_DAILY_PREFIX + moscowDateString(new Date(now.getTime() - 24 * 3600 * 1000)));
 
   const results = await pipeline.exec();
 
@@ -320,6 +358,7 @@ export async function collectTrackingRawData(now: Date = new Date()): Promise<Tr
   let avgSessionDuration: number | null = null;
   let sessions24h = 0;
   let visitors24h = 0;
+  let bucketsGeo: Record<string, string> = {};
 
   if (results) {
     keys24.forEach((key, index) => {
@@ -346,6 +385,19 @@ export async function collectTrackingRawData(now: Date = new Date()): Promise<Tr
     if (visitorsResult && !visitorsResult[0] && typeof visitorsResult[1] === 'number') {
       visitors24h = visitorsResult[1];
     }
+    const geo24h: Record<string, string> = {};
+    for (const idx of [keys24.length + 4, keys24.length + 5]) {
+      const geoResult = results[idx];
+      const data = geoResult && !geoResult[0] ? (geoResult[1] as Record<string, string> | null) : null;
+      if (!data) continue;
+      for (const [city, rawValue] of Object.entries(data)) {
+        const value = parseInt(rawValue, 10);
+        if (!Number.isFinite(value) || value <= 0 || !city) continue;
+        const current = parseInt(geo24h[city] || '0', 10) || 0;
+        geo24h[city] = String(current + value);
+      }
+    }
+    bucketsGeo = geo24h;
   }
 
   const since24h = new Date(now.getTime() - 24 * 3600 * 1000);
@@ -364,6 +416,7 @@ export async function collectTrackingRawData(now: Date = new Date()): Promise<Tr
     avgSessionDuration,
     leads24h,
     leads1h,
+    geo24h: bucketsGeo,
   };
 }
 

@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
 import JsonLdScript from '@/components/seo/JsonLdScript';
+import TrackedPhoneLink from '@/components/seo/TrackedPhoneLink';
 import FaqAccordion from '@/components/geo/FaqAccordion';
 import {
   generateBreadcrumbJsonLd,
@@ -265,13 +266,13 @@ export default async function NavesyPodKlyuchPage() {
                 <Calculator className="w-5 h-5" />
                 Калькулятор навеса
               </Link>
-              <a
+              <TrackedPhoneLink
                 href={`tel:${BUSINESS_INFO.telephone}`}
                 className="inline-flex items-center gap-2 border border-white/40 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition-colors"
               >
                 <Phone className="w-5 h-5" />
                 Позвонить
-              </a>
+              </TrackedPhoneLink>
             </div>
           </div>
         </section>

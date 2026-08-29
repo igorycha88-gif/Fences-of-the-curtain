@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { Calculator, ArrowRight, Phone } from 'lucide-react';
 import { useContactInfo } from '@/components/providers/ContactInfoProvider';
+import { metrikaEvents } from '@/lib/seo/metrika';
+import { trackEvent } from '@/lib/analytics';
+import { EVENT_NAMES } from '@/types/analytics';
 
 export default function AboutCTA() {
   const contactInfo = useContactInfo();
@@ -32,6 +35,7 @@ export default function AboutCTA() {
             <a
               href={`tel:${phoneForLink}`}
               className="inline-flex items-center justify-center gap-2 bg-white/20 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/30 transition-colors border border-white/30"
+              onClick={() => { metrikaEvents.phoneClick(); trackEvent(EVENT_NAMES.PHONE_CLICK); }}
             >
               <Phone className="w-5 h-5" />
               Позвонить нам

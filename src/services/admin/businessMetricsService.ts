@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 import logger from '@/lib/logger';
 import { STATUS_LABELS, CANCELLATION_REASON_LABELS } from '@/lib/validators/order';
 
@@ -98,6 +99,20 @@ export interface StatusTimeStat {
   ordersCount: number;
 }
 
+export interface PhoneClicksData {
+  total: number;
+  previousTotal: number;
+  trend: number | null;
+  trendDirection: 'up' | 'down' | 'neutral';
+  byDay: { date: string; count: number }[];
+}
+
+export interface VisitorGeoStat {
+  city: string;
+  count: number;
+  percentage: number;
+}
+
 export interface BusinessMetrics {
   period: MetricsPeriod;
   range: { from: string; to: string };
@@ -108,6 +123,8 @@ export interface BusinessMetrics {
   serviceTypes: ServiceTypeStat[];
   managers: ManagerStat[];
   avgTimeByStatus: StatusTimeStat[];
+  phoneClicks: PhoneClicksData;
+  visitorGeo: VisitorGeoStat[];
 }
 
 interface StatusHistoryEntry {
@@ -181,12 +198,30 @@ export class BusinessMetricsService {
       const serviceTypes = this.buildServiceTypes(orders as MetricsOrder[]);
       const managers = await this.buildManagers(orders as MetricsOrder[]);
       const avgTimeByStatus = this.buildAvgTimeByStatus(orders as MetricsOrder[], end);
+      const phoneClicks = await this.buildPhoneClicks(start, end, prevStart, prevEnd).catch((error) => {
+        logger.error('PhoneClicks collection failed', {
+          module: 'businessMetricsService',
+          operation: 'buildPhoneClicks',
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return { total: 0, previousTotal: 0, trend: null, trendDirection: 'neutral' as const, byDay: [] };
+      });
+      const visitorGeo = await this.buildVisitorGeo(start, end).catch((error) => {
+        logger.error('VisitorGeo collection failed', {
+          module: 'businessMetricsService',
+          operation: 'buildVisitorGeo',
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return [] as VisitorGeoStat[];
+      });
 
       logger.info('BusinessMetrics calculation completed', {
         module: 'businessMetricsService',
         operation: 'getBusinessMetrics',
         period,
         ordersCount: orders.length,
+        phoneClicksTotal: phoneClicks.total,
+        visitorGeoCities: visitorGeo.length,
       });
 
       return {
@@ -199,6 +234,8 @@ export class BusinessMetricsService {
         serviceTypes,
         managers,
         avgTimeByStatus,
+        phoneClicks,
+        visitorGeo,
       };
     } catch (error) {
       logger.error('BusinessMetrics calculation failed', {
@@ -478,6 +515,82 @@ export class BusinessMetricsService {
         avgDays: counts[status] ? this.round(sums[status] / counts[status] / MS_PER_DAY, 1) : 0,
         ordersCount: counts[status] || 0,
       }));
+  }
+
+  private listMoscowDates(start: Date, end: Date): string[] {
+    if (end.getTime() < start.getTime()) return [];
+    const dates: string[] = [];
+    const cursor = new Date(start.getTime());
+    while (cursor.getTime() <= end.getTime()) {
+      dates.push(cursor.toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' }));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return Array.from(new Set(dates));
+  }
+
+  private async buildPhoneClicks(start: Date, end: Date, prevStart: Date, prevEnd: Date): Promise<PhoneClicksData> {
+    const currentDates = this.listMoscowDates(start, end);
+    const previousDates = this.listMoscowDates(prevStart, prevEnd);
+    const dates = Array.from(new Set([...currentDates, ...previousDates]));
+
+    const pipeline = redis.pipeline();
+    for (const date of dates) {
+      pipeline.hget(`analytics:daily:${date}`, 'phone_click');
+    }
+    const results = await pipeline.exec();
+
+    const countByDate = new Map<string, number>();
+    dates.forEach((date, index) => {
+      const result = results?.[index];
+      const raw = result && !result[0] ? result[1] : null;
+      const value = typeof raw === 'string' ? parseInt(raw, 10) : 0;
+      countByDate.set(date, Number.isFinite(value) && value > 0 ? value : 0);
+    });
+
+    const total = currentDates.reduce((sum, date) => sum + (countByDate.get(date) || 0), 0);
+    const previousTotal = previousDates.reduce((sum, date) => sum + (countByDate.get(date) || 0), 0);
+    const kpi = this.makeKpi(total, previousTotal);
+
+    return {
+      total,
+      previousTotal,
+      trend: kpi.trend,
+      trendDirection: kpi.trendDirection,
+      byDay: currentDates.map((date) => ({ date, count: countByDate.get(date) || 0 })),
+    };
+  }
+
+  private async buildVisitorGeo(start: Date, end: Date): Promise<VisitorGeoStat[]> {
+    const dates = this.listMoscowDates(start, end);
+    if (dates.length === 0) return [];
+
+    const pipeline = redis.pipeline();
+    for (const date of dates) {
+      pipeline.hgetall(`analytics:geo:daily:${date}`);
+    }
+    const results = await pipeline.exec();
+
+    const totals = new Map<string, number>();
+    dates.forEach((_, index) => {
+      const result = results?.[index];
+      const data = result && !result[0] ? (result[1] as Record<string, string> | null) : null;
+      if (!data) return;
+      for (const [city, rawValue] of Object.entries(data)) {
+        const value = parseInt(rawValue, 10);
+        if (!Number.isFinite(value) || value <= 0 || !city) continue;
+        totals.set(city, (totals.get(city) || 0) + value);
+      }
+    });
+
+    const sum = [...totals.values()].reduce((acc, value) => acc + value, 0);
+    return [...totals.entries()]
+      .map(([city, count]) => ({
+        city,
+        count,
+        percentage: sum > 0 ? this.round((count / sum) * 100, 1) : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
   }
 
   private round(value: number, digits: number): number {

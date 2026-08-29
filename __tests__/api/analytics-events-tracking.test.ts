@@ -14,6 +14,10 @@ jest.mock('@/services/telegram/analytics-notifier', () => ({
   sendAnalyticsNotification: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@/services/admin/ipLookupService', () => ({
+  getCityByIP: jest.fn(),
+}));
+
 jest.mock('@/lib/redis', () => {
   const pipelines: Array<Record<string, jest.Mock>> = [];
   const makePipeline = () => {
@@ -44,6 +48,8 @@ jest.mock('@/lib/redis', () => {
 import { POST } from '@/app/api/analytics/events/route';
 import { redis } from '@/lib/redis';
 import { getMoscowBucketKey } from '@/lib/tracking-metrics';
+import { getMoscowDate } from '@/lib/timezone';
+import { getCityByIP } from '@/services/admin/ipLookupService';
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -210,5 +216,80 @@ describe('POST /api/analytics/events tracking writes', () => {
     const res = await POST(makeRequest({ eventName: 'bad event!', sessionId: 's' }));
     expect(res.status).toBe(400);
     await flush();
+  });
+
+  it('increments visitor geo for a new session (unique visitor)', async () => {
+    (getCityByIP as jest.Mock).mockResolvedValue('Москва, Московская область');
+
+    const res = await POST(
+      makeRequest({ eventName: 'page_view', sessionId: 'sess-geo-1', page: '/' })
+    );
+    expect(res.status).toBe(200);
+    await flush();
+
+    expect(getCityByIP).toHaveBeenCalledWith('203.0.113.7');
+    expect(redis.hincrby).toHaveBeenCalledWith(
+      `analytics:geo:daily:${getMoscowDate()}`,
+      'Москва, Московская область',
+      1
+    );
+    expect(redis.expire).toHaveBeenCalledWith(`analytics:geo:daily:${getMoscowDate()}`, 86400 * 30);
+  });
+
+  it('counts unknown city as "Не определён" when lookup fails', async () => {
+    (getCityByIP as jest.Mock).mockResolvedValue(null);
+
+    const res = await POST(
+      makeRequest({ eventName: 'page_view', sessionId: 'sess-geo-2', page: '/' })
+    );
+    expect(res.status).toBe(200);
+    await flush();
+
+    expect(redis.hincrby).toHaveBeenCalledWith(
+      `analytics:geo:daily:${getMoscowDate()}`,
+      'Не определён',
+      1
+    );
+  });
+
+  it('does not increment geo for continuing session', async () => {
+    (getCityByIP as jest.Mock).mockResolvedValue('Москва, Московская область');
+
+    (redis.hget as jest.Mock).mockResolvedValueOnce(new Date().toISOString());
+    (redis.hincrby as jest.Mock).mockResolvedValue(2);
+
+    const res = await POST(
+      makeRequest({ eventName: 'calculator_open', sessionId: 'sess-geo-3', page: '/calculator/fence' })
+    );
+    expect(res.status).toBe(200);
+    await flush();
+
+    expect(redis.hincrby).not.toHaveBeenCalledWith(
+      `analytics:geo:daily:${getMoscowDate()}`,
+      expect.any(String),
+      1
+    );
+  });
+
+  it('logs geo lookup errors instead of failing the request', async () => {
+    (getCityByIP as jest.Mock).mockRejectedValue(new Error('ip-api down'));
+
+    const res = await POST(
+      makeRequest({ eventName: 'page_view', sessionId: 'sess-geo-4', page: '/' })
+    );
+    expect(res.status).toBe(200);
+    await flush();
+
+    expect(redis.hincrby).not.toHaveBeenCalledWith(
+      `analytics:geo:daily:${getMoscowDate()}`,
+      expect.any(String),
+      1
+    );
+
+    const { default: logger } = await import('@/lib/logger');
+    expect(logger.error).toHaveBeenCalledWith(
+      'Analytics metric error',
+      expect.objectContaining({ context: 'geo_lookup' })
+    );
   });
 });
