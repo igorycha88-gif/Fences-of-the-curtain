@@ -383,16 +383,16 @@ describe('formatTrackingMetrics', () => {
     expect(output).toContain('business_events_24h{event_type="page_view"} 10');
     expect(output).toContain('business_service_clicks_24h{service="Профнастил"} 2');
     expect(output).toContain('business_referral_sources_24h{source="yandex.ru"} 3');
-    expect(output).not.toContain('business_visitor_geo_24h');
+    expect(output).not.toContain('business_geo_visitors_24h');
   });
 
   it('renders visitor geo series with escaped city labels', () => {
     const raw = emptyRaw();
     raw.geo24h = { 'Москва, Московская область': '7', 'Санкт-Петербург, "СПб"': '2' };
     const output = formatTrackingMetrics(computeTrackingMetrics(raw, now));
-    expect(output).toContain('# TYPE business_visitor_geo_24h gauge');
-    expect(output).toContain('business_visitor_geo_24h{city="Москва, Московская область"} 7');
-    expect(output).toContain('business_visitor_geo_24h{city="Санкт-Петербург, \\"СПб\\""} 2');
+    expect(output).toContain('# TYPE business_geo_visitors_24h gauge');
+    expect(output).toContain('business_geo_visitors_24h{city="Москва, Московская область"} 7');
+    expect(output).toContain('business_geo_visitors_24h{city="Санкт-Петербург, \\"СПб\\""} 2');
   });
 
   it('omits labelled metrics when there is no data', () => {
@@ -450,7 +450,7 @@ describe('getTrackingMetricsString', () => {
     expect(first).toContain('business_leads_1h 1');
     expect(first).toContain('business_sessions_active 4');
     expect(first).toContain('business_avg_session_duration_seconds_24h 120.5');
-    expect(first).toContain('business_visitor_geo_24h{city="Москва, Московская область"} 8');
+    expect(first).toContain('business_geo_visitors_24h{city="Москва, Московская область"} 8');
 
     await getTrackingMetricsString();
     expect(redis.pipeline).toHaveBeenCalledTimes(1);

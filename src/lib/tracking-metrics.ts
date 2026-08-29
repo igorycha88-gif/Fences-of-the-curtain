@@ -326,10 +326,10 @@ export function formatTrackingMetrics(metrics: TrackingMetrics): string {
   }
 
   if (metrics.visitorGeo24h.length > 0) {
-    lines.push('# HELP business_visitor_geo_24h Unique visitors by city over the last 24 hours');
-    lines.push('# TYPE business_visitor_geo_24h gauge');
+    lines.push('# HELP business_geo_visitors_24h Unique visitors by city over the last 24 hours');
+    lines.push('# TYPE business_geo_visitors_24h gauge');
     for (const entry of metrics.visitorGeo24h) {
-      lines.push(`business_visitor_geo_24h{city="${escapeLabelValue(entry.label)}"} ${formatValue(entry.count)}`);
+      lines.push(`business_geo_visitors_24h{city="${escapeLabelValue(entry.label)}"} ${formatValue(entry.count)}`);
     }
   }
 
