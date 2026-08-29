@@ -127,8 +127,8 @@ export default function AdminLayout({
               </a>
             </li>
             <li>
-              <a 
-                href="/admin/estimates" 
+              <a
+                href="/admin/estimates"
                 className={`block px-3 py-3 rounded-lg transition-colors ${
                   isActive('/admin/estimates')
                     ? 'bg-primary text-white font-semibold'
@@ -136,6 +136,18 @@ export default function AdminLayout({
                 }`}
               >
                 Расчеты
+              </a>
+            </li>
+            <li>
+              <a
+                href="/admin/business-metrics"
+                className={`block px-3 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/business-metrics')
+                    ? 'bg-primary text-white font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Бизнес-метрики
               </a>
             </li>
             <li>
