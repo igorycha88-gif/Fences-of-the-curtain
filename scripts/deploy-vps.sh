@@ -22,7 +22,7 @@ BLUE_PORT=3001
 GREEN_PORT=3003
 NGINX_UPSTREAM_FILE="/etc/nginx/conf.d/fences-upstream.conf"
 LOG_DIR="/var/log/fences-deploy"
-HEALTH_TIMEOUT=120
+HEALTH_TIMEOUT=180
 HEALTH_INTERVAL=5
 SMOKE_TIMEOUT=30
 IMAGE_TAG="${1:-latest}"
@@ -273,7 +273,10 @@ deploy_blue_green() {
         "$GHCR_IMAGE"
 
     # 5g. Wait for new container to be healthy (GREEN still serving)
-    if ! wait_for_health "$BLUE_PORT" "fences-app" 90; then
+    # Note: app needs ~90s on this VPS for Prisma client init + Redis connect,
+    # so we use 180s (HEALTH_TIMEOUT) instead of the previous 90s which caused
+    # false-negative healthcheck failures (incident 2026-08-29 v1.18.1 deploy).
+    if ! wait_for_health "$BLUE_PORT" "fences-app"; then
         log "  WARN: New container on ${BLUE_PORT} failed, nginx stays on GREEN (port ${GREEN_PORT})"
         docker rm -f fences-app 2>/dev/null || true
         # Leave nginx pointing to GREEN which is still running
@@ -343,7 +346,7 @@ if [ "$SMOKE_FAIL" -gt 0 ]; then
             -v /var/www/uploads:/app/public/uploads \
             "$PREVIOUS_IMAGE"
 
-        if wait_for_health "$BLUE_PORT" "fences-app" 90; then
+        if wait_for_health "$BLUE_PORT" "fences-app"; then
             switch_nginx "$BLUE_PORT"
             log "  Rollback successful — previous version is serving"
         else
