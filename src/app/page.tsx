@@ -28,6 +28,7 @@ import { SEO_CONFIG, BUSINESS_INFO } from '@/lib/seo/constants';
 import { prisma } from '@/lib/prisma';
 import JsonLdScript from '@/components/seo/JsonLdScript';
 import CommercialFactors from '@/components/seo/CommercialFactors';
+import MontageInDayBanner from '@/components/seo/MontageInDayBanner';
 import { GEO_CITIES } from '@/lib/geo/cities';
 
 export const revalidate = 3600;
@@ -105,9 +106,13 @@ export default async function HomePage() {
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               <AnimatedSection animation="fade-in-down" delay={0}>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
                   <Zap className="w-4 h-4" />
                   Онлайн расчёт за 30 секунд
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 ml-2">
+                  <Clock className="w-4 h-4" />
+                  Монтаж забора за 1 день
                 </div>
               </AnimatedSection>
 
@@ -120,8 +125,8 @@ export default async function HomePage() {
 
               <AnimatedSection animation="fade-in-up" delay={200}>
                 <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-                  Рассчитайте стоимость онлайн, получите честную цену без скрытых платежей
-                  и закажите установку у проверенных специалистов
+                  Рассчитайте стоимость онлайн, получите честную цену без скрытых платежей —
+                  типовой забор монтируем за 1 день
                 </p>
               </AnimatedSection>
 
@@ -273,6 +278,7 @@ export default async function HomePage() {
                 { icon: Car, title: 'Навес под машину', desc: 'Защита от осадков', href: '/services/naves-pod-mashinu' },
                 { icon: TreePine, title: 'Евроштакетник', desc: 'Стиль и эстетика', href: '/services/zabor-iz-evroshtaketnika' },
                 { icon: Award, title: 'Навесы из поликарбоната', desc: 'Свет и защита', href: '/services/naves-iz-polikarbonata' },
+                { icon: Warehouse, title: 'Навесы под ключ — цены', desc: 'От 2 600 ₽/м² с монтажом', href: '/navesy-pod-klyuch' },
               ].map((service, index) => (
                 <AnimatedSection key={index} animation="scale-in" delay={index * 100}>
                   <Link
@@ -295,6 +301,8 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <MontageInDayBanner mode="fence" />
+
         <section className="py-24 px-4 bg-secondary/30">
           <div className="container mx-auto">
             <AnimatedSection animation="fade-in-up" className="text-center mb-16">
@@ -305,7 +313,7 @@ export default async function HomePage() {
             </AnimatedSection>
 
             <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {GEO_CITIES.filter((city) => city.wave === 1).map((city) => (
+              {GEO_CITIES.filter((city) => city.wave === 1 || city.featured).map((city) => (
                 <Link
                   key={city.slug}
                   href={`/zabory-navesy/${city.slug}`}

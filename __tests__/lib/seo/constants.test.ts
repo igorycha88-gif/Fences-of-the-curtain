@@ -21,4 +21,14 @@ describe('SEO constants (главная страница)', () => {
     expect(SEO_CONFIG.DEFAULT_DESCRIPTION).not.toContain('Гарантия 3 года');
     expect(PAGE_METADATA.home.description).not.toContain('Гарантия 3 года');
   });
+
+  it('title главной содержит гео «в Москве и МО» (ЧТЗ v3 TASK-10)', () => {
+    expect(SEO_CONFIG.DEFAULT_TITLE).toContain('в Москве и МО');
+    expect(PAGE_METADATA.home.title).toContain('в Москве и МО');
+  });
+
+  it('title главной содержит тезис «Монтаж за 1 день» (ЧТЗ v3 TASK-08)', () => {
+    expect(SEO_CONFIG.DEFAULT_TITLE).toContain('Монтаж за 1 день');
+    expect(PAGE_METADATA.home.title).toContain('Монтаж за 1 день');
+  });
 });

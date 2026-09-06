@@ -2,7 +2,12 @@ FROM node:20-bullseye-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Workaround (06.09.2026): bullseye LTS завершён 31.08.2026 — из пула
+# bullseye-security (arm64) удалены libexpat1/libgbm1/libavahi-*, но индекс
+# всё ещё ссылается на них → 404 и падение apt. Все зависимости сборки
+# доступны в bullseye main, поэтому отключаем security-репозиторий.
+RUN sed -i '/bullseye-security/d' /etc/apt/sources.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     fontconfig \

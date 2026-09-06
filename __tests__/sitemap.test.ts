@@ -93,4 +93,27 @@ describe('sitemap', () => {
     expect(navesyPage).toBeDefined();
     expect(navesyPage?.priority).toBe(0.8);
   });
+
+  it('should include 4 navesy size landing pages (ЧТЗ v3 TASK-07)', async () => {
+    const sitemapModule = await import('../src/app/sitemap');
+    const result = await sitemapModule.default();
+    const paths = result.map((item: any) => item.url.replace('https://zabor-i-naves.ru', ''));
+
+    expect(paths).toContain('/navesy/6-na-4');
+    expect(paths).toContain('/navesy/6-na-3');
+    expect(paths).toContain('/navesy/5-na-3');
+    expect(paths).toContain('/navesy/na-2-mashiny');
+
+    const sizePage = result.find((item: any) => item.url === 'https://zabor-i-naves.ru/navesy/6-na-4');
+    expect(sizePage?.priority).toBe(0.8);
+  });
+
+  it('should include /calc/zabor-na-sotki hub (ЧТЗ v3 TASK-06)', async () => {
+    const sitemapModule = await import('../src/app/sitemap');
+    const result = await sitemapModule.default();
+    const sotkiPage = result.find((item: any) => item.url === 'https://zabor-i-naves.ru/calc/zabor-na-sotki');
+
+    expect(sotkiPage).toBeDefined();
+    expect(sotkiPage?.priority).toBe(0.8);
+  });
 });

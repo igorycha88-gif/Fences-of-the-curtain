@@ -140,4 +140,15 @@ describe('geo directory helpers', () => {
       expect(names).not.toContain(outOfZone);
     }
   });
+
+  it('Shatura is featured with v3 spec districts (ЧТЗ v3 TASK-01)', () => {
+    const shatura = getCityBySlug('shatura')!;
+
+    expect(shatura.featured).toBe(true);
+    expect(shatura.districts.join(' ')).toContain('Кривандино');
+    expect(shatura.districts.join(' ')).toContain('Мишеронский');
+    expect(shatura.districts.join(' ')).toContain('Черусти');
+    expect(shatura.districts.join(' ')).toContain('Рошаль');
+    expect(shatura.faqExtra.length).toBeGreaterThanOrEqual(2);
+  });
 });

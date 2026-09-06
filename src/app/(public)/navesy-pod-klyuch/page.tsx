@@ -17,6 +17,8 @@ import { generatePageMetadata } from '@/lib/seo/metadata';
 import { PAGE_METADATA, BUSINESS_INFO } from '@/lib/seo/constants';
 import { NAVESY_POD_KLYUCH_FAQ } from '@/lib/geo/content';
 import { getWave1Cities } from '@/lib/geo/cities';
+import { NAVESY_SIZES, formatRub } from '@/lib/navesy/sizes';
+import MontageInDayBanner from '@/components/seo/MontageInDayBanner';
 import { Calculator, ArrowRight, Car, Phone } from 'lucide-react';
 
 export const revalidate = 86400;
@@ -52,6 +54,27 @@ const includedItems = [
   'Монтаж с бетонированием опор',
   'Уборка территории после работ',
   'Гарантия по договору',
+];
+
+const canopyPriceRows = [
+  {
+    type: 'Односкатный',
+    profnastil: 'от 2 600 ₽/м²',
+    polikarbonat: 'от 2 900 ₽/м²',
+    note: 'самый доступный вариант, идеально для пристройки к дому',
+  },
+  {
+    type: 'Двускатный',
+    profnastil: 'от 2 850 ₽/м²',
+    polikarbonat: 'от 3 150 ₽/м²',
+    note: 'максимальная жёсткость на пролётах до 6 м, снег сходит сам',
+  },
+  {
+    type: 'Арочный',
+    profnastil: 'по расчёту',
+    polikarbonat: 'от 3 250 ₽/м²',
+    note: 'готовые гнутые фермы, эстетика и обтекаемость',
+  },
 ];
 
 export default async function NavesyPodKlyuchPage() {
@@ -182,6 +205,68 @@ export default async function NavesyPodKlyuchPage() {
             </p>
           </div>
         </section>
+
+        <section className="py-12 px-4">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold mb-6">Цены по типам конструкций</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border rounded-xl overflow-hidden bg-background" data-testid="canopy-price-table">
+                <thead>
+                  <tr className="bg-secondary text-left">
+                    <th className="px-4 py-3 font-semibold">Конструкция</th>
+                    <th className="px-4 py-3 font-semibold">Профлист</th>
+                    <th className="px-4 py-3 font-semibold">Поликарбонат</th>
+                    <th className="px-4 py-3 font-semibold">Примечание</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {canopyPriceRows.map((row) => (
+                    <tr key={row.type} className="border-t">
+                      <td className="px-4 py-3 font-medium">{row.type}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-primary font-semibold">{row.profnastil}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-primary font-semibold">{row.polikarbonat}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{row.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Цены «под ключ»: каркас с антикоррозийной обработкой, покрытие, крепёж, доставка и
+              монтаж с бетонированием опор. Пример: односкатный навес 6×4 (24 м²) из профлиста —
+              от {formatRub(62000)}; навес на две машины 6×6 (36 м²) — от {formatRub(94000)}.
+              Точную цену покажет{' '}
+              <Link href="/calculator/canopy" className="text-primary hover:underline">
+                калькулятор навеса
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
+
+        <section className="py-12 px-4 bg-secondary/30">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold mb-6">Популярные размеры навесов</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {NAVESY_SIZES.map((size) => (
+                <Link
+                  key={size.slug}
+                  href={`/navesy/${size.slug}`}
+                  className="card-modern p-5 hover-lift group"
+                >
+                  <h3 className="font-semibold group-hover:text-primary transition-colors">
+                    {size.h1}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {size.areaM2} м² · от {formatRub(size.priceFromRub)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <MontageInDayBanner mode="canopy" />
 
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-4xl">

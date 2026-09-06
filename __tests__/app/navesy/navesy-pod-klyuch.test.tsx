@@ -59,12 +59,28 @@ describe('/navesy-pod-klyuch page (US-4)', () => {
     );
     expect(screen.getByRole('heading', { name: 'Типы навесов' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Что влияет на цену' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Цены по типам конструкций/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Популярные размеры навесов/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Что входит в цену «под ключ»/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Частые вопросы про навесы/ })).toBeInTheDocument();
 
     expect(screen.getByText('Односкатный навес')).toBeInTheDocument();
     expect(screen.getByText('Двускатный навес')).toBeInTheDocument();
     expect(screen.getByText('Арочный навес')).toBeInTheDocument();
+
+    const priceTable = screen.getByTestId('canopy-price-table');
+    expect(priceTable).toHaveTextContent('от 2 600 ₽/м²');
+    expect(priceTable).toHaveTextContent('от 2 900 ₽/м²');
+  });
+
+  it('links to size landing pages (ЧТЗ v3 TASK-07 interlinking)', async () => {
+    portfolioFindMany.mockResolvedValue([]);
+
+    render(await NavesyPodKlyuchPage());
+
+    const links = screen.getAllByRole('link').map((l) => l.getAttribute('href'));
+    expect(links).toContain('/navesy/6-na-4');
+    expect(links).toContain('/navesy/na-2-mashiny');
   });
 
   it('queries only canopy portfolio items', async () => {

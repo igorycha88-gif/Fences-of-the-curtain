@@ -3,6 +3,7 @@ import { SEO_CONFIG, SITEMAP_CONFIG } from '@/lib/seo/constants';
 import { prisma } from '@/lib/prisma';
 import logger from '@/lib/logger';
 import { GEO_CITIES, GEO_HUBS } from '@/lib/geo/cities';
+import { NAVESY_SIZES } from '@/lib/navesy/sizes';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/navesy-pod-klyuch`,
       lastModified: currentDate,
       changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+  ];
+
+  const navesySizePages: MetadataRoute.Sitemap = NAVESY_SIZES.map((size) => ({
+    url: `${baseUrl}/navesy/${size.slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }));
+
+  const zaborNaSotkiPage: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/calc/zabor-na-sotki`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
   ];
@@ -99,6 +116,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...geoPages,
     ...navesyPodKlyuchPage,
+    ...navesySizePages,
+    ...zaborNaSotkiPage,
     ...blogPages,
     ...portfolioPages,
     ...servicePagesSitemap,
