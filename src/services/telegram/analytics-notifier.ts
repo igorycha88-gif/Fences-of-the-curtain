@@ -1,6 +1,7 @@
 import { redis } from '@/lib/redis';
 import { getTelegramDispatcher } from '@/lib/telegram-proxy';
 import { getCityByIP } from '@/services/admin/ipLookupService';
+import logger from '@/lib/logger';
 
 const NOTIFIABLE_EVENTS = [
   'contact_form_submit',
@@ -25,6 +26,18 @@ const EVENT_LABELS: Record<NotifiableEvent, { emoji: string; label: string }> = 
 };
 
 const DEDUP_TTL_SECONDS = 10;
+
+const TELEGRAM_MAX_ATTEMPTS = 3;
+const TELEGRAM_REQUEST_TIMEOUT_MS = 8000;
+const TELEGRAM_RETRY_BASE_DELAY_MS = 1000;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRetryableTelegramFailure(attempt: { networkError: boolean; status?: number }): boolean {
+  if (attempt.networkError) return true;
+  const status = attempt.status;
+  return status === 429 || (typeof status === 'number' && status >= 500);
+}
 
 export function isNotifiableEvent(eventName: string): eventName is NotifiableEvent {
   return (NOTIFIABLE_EVENTS as readonly string[]).includes(eventName);
@@ -100,10 +113,38 @@ export async function sendAnalyticsNotification(params: {
 
   const message = formatNotificationMessage(eventName, page, timestamp, location);
 
-  try {
+  await sendTelegramMessageWithRetry({
+    botToken,
+    chatId,
+    message,
+    context: { eventName, sessionId },
+  });
+}
+
+export async function sendTelegramMessageWithRetry(params: {
+  botToken: string;
+  chatId: string;
+  message: string;
+  context: { eventName: string; sessionId: string };
+  maxAttempts?: number;
+  retryBaseDelayMs?: number;
+}): Promise<void> {
+  const {
+    botToken,
+    chatId,
+    message,
+    context,
+    maxAttempts = TELEGRAM_MAX_ATTEMPTS,
+    retryBaseDelayMs = TELEGRAM_RETRY_BASE_DELAY_MS,
+  } = params;
+
+  const dispatcher = getTelegramDispatcher();
+  let lastError: unknown = null;
+  let lastStatus: number | undefined;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const dispatcher = getTelegramDispatcher();
+    const timeout = setTimeout(() => controller.abort(), TELEGRAM_REQUEST_TIMEOUT_MS);
 
     try {
       const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -118,13 +159,64 @@ export async function sendAnalyticsNotification(params: {
         ...(dispatcher ? { dispatcher } : {}),
       });
 
-      if (!response.ok) {
-        console.error('Telegram analytics notification API error:', await response.text());
+      if (response.ok) {
+        if (attempt > 1) {
+          logger.warn('Telegram analytics notification sent after retry', {
+            module: 'telegram/analytics-notifier',
+            operation: 'sendAnalyticsNotification',
+            eventName: context.eventName,
+            sessionId: context.sessionId,
+            attempt,
+          });
+        }
+        return;
       }
+
+      const responseText = await response.text();
+      lastStatus = response.status;
+      lastError = new Error(`Telegram API responded with status ${response.status}`);
+
+      logger.error('Telegram analytics notification API error', {
+        module: 'telegram/analytics-notifier',
+        operation: 'sendAnalyticsNotification',
+        eventName: context.eventName,
+        sessionId: context.sessionId,
+        attempt,
+        status: response.status,
+        response: responseText.slice(0, 500),
+      });
+
+      if (!isRetryableTelegramFailure({ networkError: false, status: response.status })) {
+        return;
+      }
+    } catch (error) {
+      lastError = error;
+
+      logger.error('Telegram analytics notification attempt failed', {
+        module: 'telegram/analytics-notifier',
+        operation: 'sendAnalyticsNotification',
+        eventName: context.eventName,
+        sessionId: context.sessionId,
+        attempt,
+        maxAttempts,
+        error,
+      });
     } finally {
       clearTimeout(timeout);
     }
-  } catch (error) {
-    console.error('Telegram analytics notification error:', error);
+
+    if (attempt < maxAttempts) {
+      await sleep(retryBaseDelayMs * (attempt === 1 ? 1 : 3));
+    }
   }
+
+  logger.error('Telegram analytics notification failed after all attempts', {
+    module: 'telegram/analytics-notifier',
+    operation: 'sendAnalyticsNotification',
+    eventName: context.eventName,
+    sessionId: context.sessionId,
+    attempts: maxAttempts,
+    lastStatus,
+    error: lastError,
+  });
 }

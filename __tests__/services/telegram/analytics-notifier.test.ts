@@ -1,5 +1,18 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
+const mockLoggerError = jest.fn() as any;
+const mockLoggerWarn = jest.fn() as any;
+
+jest.mock('@/lib/logger', () => ({
+  __esModule: true,
+  default: {
+    error: mockLoggerError,
+    warn: mockLoggerWarn,
+    info: jest.fn() as any,
+    debug: jest.fn() as any,
+  },
+}));
+
 const mockRedisSet = jest.fn() as any;
 const mockRedisGet = jest.fn() as any;
 
@@ -208,12 +221,12 @@ describe('telegram/analytics-notifier', () => {
       delete process.env.TELEGRAM_CHAT_ID;
     });
 
-    it('should handle fetch error gracefully', async () => {
+    it('should handle non-retryable 4xx error gracefully (single attempt)', async () => {
       process.env.TELEGRAM_BOT_TOKEN = 'test-token';
       process.env.TELEGRAM_CHAT_ID = 'test-chat';
 
       mockRedisSet.mockResolvedValue('OK');
-      mockFetch.mockRejectedValue(new Error('Network error'));
+      mockFetch.mockResolvedValue({ ok: false, status: 400, text: () => Promise.resolve('Bad Request') } as any);
 
       const { sendAnalyticsNotification } = await import('@/services/telegram/analytics-notifier');
 
@@ -226,8 +239,120 @@ describe('telegram/analytics-notifier', () => {
         })
       ).resolves.toBeUndefined();
 
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'Telegram analytics notification API error',
+        expect.objectContaining({ status: 400, attempt: 1 })
+      );
+
       delete process.env.TELEGRAM_BOT_TOKEN;
       delete process.env.TELEGRAM_CHAT_ID;
+    });
+  });
+
+  describe('sendTelegramMessageWithRetry', () => {
+    const baseParams = () => ({
+      botToken: 'test-token',
+      chatId: 'test-chat',
+      message: 'test message',
+      context: { eventName: 'calculator_calculate', sessionId: 'session-1' } as { eventName: string; sessionId: string },
+      maxAttempts: 3,
+      retryBaseDelayMs: 0,
+    });
+
+    it('should succeed on first attempt without retry logs (happy path)', async () => {
+      mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('OK') } as any);
+
+      const { sendTelegramMessageWithRetry } = await import('@/services/telegram/analytics-notifier');
+
+      await sendTelegramMessageWithRetry(baseParams());
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockLoggerWarn).not.toHaveBeenCalled();
+      expect(mockLoggerError).not.toHaveBeenCalled();
+    });
+
+    it('should retry network error and succeed on second attempt with warn log', async () => {
+      const abortError = new DOMException('This operation was aborted', 'AbortError');
+      mockFetch
+        .mockRejectedValueOnce(abortError)
+        .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('OK') } as any);
+
+      const { sendTelegramMessageWithRetry } = await import('@/services/telegram/analytics-notifier');
+
+      await sendTelegramMessageWithRetry(baseParams());
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        'Telegram analytics notification sent after retry',
+        expect.objectContaining({ attempt: 2, eventName: 'calculator_calculate', sessionId: 'session-1' })
+      );
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'Telegram analytics notification attempt failed',
+        expect.objectContaining({ attempt: 1, maxAttempts: 3 })
+      );
+    });
+
+    it('should exhaust attempts on persistent network errors and log final error', async () => {
+      mockFetch.mockRejectedValue(new Error('Network error'));
+
+      const { sendTelegramMessageWithRetry } = await import('@/services/telegram/analytics-notifier');
+
+      await sendTelegramMessageWithRetry(baseParams());
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'Telegram analytics notification failed after all attempts',
+        expect.objectContaining({ attempts: 3, eventName: 'calculator_calculate', sessionId: 'session-1' })
+      );
+    });
+
+    it('should retry on HTTP 429 and 5xx', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: false, status: 429, text: () => Promise.resolve('Too Many Requests') } as any)
+        .mockResolvedValueOnce({ ok: false, status: 502, text: () => Promise.resolve('Bad Gateway') } as any)
+        .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('OK') } as any);
+
+      const { sendTelegramMessageWithRetry } = await import('@/services/telegram/analytics-notifier');
+
+      await sendTelegramMessageWithRetry(baseParams());
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        'Telegram analytics notification sent after retry',
+        expect.objectContaining({ attempt: 3 })
+      );
+    });
+
+    it('should NOT retry on HTTP 4xx (except 429)', async () => {
+      mockFetch.mockResolvedValue({ ok: false, status: 403, text: () => Promise.resolve('Forbidden') } as any);
+
+      const { sendTelegramMessageWithRetry } = await import('@/services/telegram/analytics-notifier');
+
+      await sendTelegramMessageWithRetry(baseParams());
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'Telegram analytics notification API error',
+        expect.objectContaining({ status: 403, attempt: 1 })
+      );
+      expect(mockLoggerError).not.toHaveBeenCalledWith(
+        'Telegram analytics notification failed after all attempts',
+        expect.anything()
+      );
+    });
+
+    it('should pass message body with chat_id and parse_mode', async () => {
+      mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('OK') } as any);
+
+      const { sendTelegramMessageWithRetry } = await import('@/services/telegram/analytics-notifier');
+
+      await sendTelegramMessageWithRetry(baseParams());
+
+      const [, options] = mockFetch.mock.calls[0];
+      const body = JSON.parse(options.body);
+      expect(body).toEqual({ chat_id: 'test-chat', text: 'test message', parse_mode: 'HTML' });
+      expect(mockFetch.mock.calls[0][0]).toBe('https://api.telegram.org/bottest-token/sendMessage');
     });
   });
 });
