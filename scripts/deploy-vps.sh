@@ -378,6 +378,19 @@ log "Port: ${BLUE_PORT}"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep fences || true
 curl -s "http://127.0.0.1:${BLUE_PORT}/api/health" | head -1
 
+# ── 8.5 Remove obsolete crontab entries (SEO-positions cron removed from app) ─
+if crontab -l 2>/dev/null | grep -q "seo-positions"; then
+    NEW_CRON=$(crontab -l 2>/dev/null | grep -v "seo-positions" || true)
+    if [ -n "$NEW_CRON" ]; then
+        printf '%s\n' "$NEW_CRON" | crontab -
+    else
+        crontab -r 2>/dev/null || true
+    fi
+    log "  Removed obsolete crontab entries for seo-positions"
+else
+    log "  No seo-positions crontab entries (OK)"
+fi
+
 # Cleanup old backups
 find "$APP_DIR/backups" -name "*.sql.gz" -mtime +7 -delete 2>/dev/null || true
 find "$LOG_DIR" -name "*.log" -mtime +30 -delete 2>/dev/null || true

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-09-07
+
+### Изменено
+- refactor(seo): полное удаление подсистемы SEO-мониторинга позиций — сервисы (positionCollector, serpParser, torManager, seoChangeNotifier), API (admin/seo-monitoring, cron/seo-positions), админ-страница, модели SeoKeyword/SeoPosition, tor-сервис, SEO-env; контентный SEO не тронут (bda8fdd)
+
+### Инфраструктура
+- chore(deploy): deploy-vps.sh — автоудаление устаревшей crontab-записи POST /api/cron/seo-positions на VPS (эндпоинт удалён вместе с SEO-мониторингом)
+
 ## [1.19.0] - 2026-09-06
 
 ### Добавлено
