@@ -42,9 +42,6 @@ COPY prisma.config.ts ./
 
 RUN npx prisma@5.22.0 generate
 
-ENV CLOAKBROWSER_CACHE_DIR=/app/.cloakbrowser-cache
-RUN node -e "import('cloakbrowser').then(m => m.ensureBinary()).then(() => console.log('CloakBrowser binary downloaded')).catch(e => { console.error('Binary download failed:', e.message); process.exit(1); })"
-
 FROM base AS builder
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -91,7 +88,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_OPTIONS="--max-old-space-size=512"
-ENV CLOAKBROWSER_CACHE_DIR=/home/nextjs/.cloakbrowser
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs && \
@@ -103,16 +99,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
-
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/cloakbrowser ./node_modules/cloakbrowser
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/tar ./node_modules/tar
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@isaacs ./node_modules/@isaacs
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/chownr ./node_modules/chownr
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/minipass ./node_modules/minipass
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/minizlib ./node_modules/minizlib
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/yallist ./node_modules/yallist
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/playwright-core ./node_modules/playwright-core
-COPY --from=deps --chown=nextjs:nodejs /app/.cloakbrowser-cache /home/nextjs/.cloakbrowser
 
 COPY --chmod=755 docker/entrypoint.sh /app/entrypoint.sh
 

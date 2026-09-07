@@ -1,8 +1,6 @@
 import { redis } from '@/lib/redis';
 import { sendTelegramMessage } from '@/services/telegram/bot';
 import { getMoscowDate } from '@/lib/timezone';
-import { positionCollector } from '@/services/seo/positionCollector';
-import { seoChangeNotifier } from '@/services/seo/seoChangeNotifier';
 
 const KEY_EVENTS = [
   { key: 'calculator_calculate', emoji: '🧮', label: 'Расчёты калькулятора' },
@@ -59,47 +57,8 @@ ${keyEventsLines}
 }
 
 const LAST_SENT_KEY = 'cron:daily_summary:last_sent_date';
-const LAST_SEO_KEY_PREFIX = 'cron:seo_positions:last_sent_date:';
-const SEO_RUNNING_KEY = 'cron:seo_positions:running';
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
-
-async function runSeoCollection(timeSlot: string): Promise<void> {
-  const runningFlag = await redis.get(SEO_RUNNING_KEY);
-  if (runningFlag) {
-    console.log(`[Cron] SEO collection already running, skipping ${timeSlot}`);
-    return;
-  }
-
-  const lastSeoKey = `${LAST_SEO_KEY_PREFIX}${timeSlot}`;
-  const today = getMoscowDate();
-  const lastSeoDate = await redis.get(lastSeoKey);
-  if (lastSeoDate === today) {
-    console.log(`[Cron] SEO positions already collected for ${timeSlot} today`);
-    return;
-  }
-
-  console.log(`[Cron] Starting SEO position collection (${timeSlot})...`);
-  await redis.set(SEO_RUNNING_KEY, today, 'EX', 12 * 60 * 60);
-  await redis.set(lastSeoKey, today, 'EX', 86400);
-
-  try {
-    const result = await positionCollector.startBatchSession();
-    console.log(
-      `[Cron] SEO positions collected: checked=${result.checked}, errors=${result.errors}, batches=${result.completedBatches}/${result.totalBatches}`
-    );
-
-    if (result.completedBatches === result.totalBatches) {
-      await seoChangeNotifier.sendReport(result);
-      console.log('[Cron] SEO change report sent to Telegram');
-    }
-  } catch (err) {
-    console.error('[Cron] SEO position collection error:', err);
-    await redis.del(lastSeoKey);
-  } finally {
-    await redis.del(SEO_RUNNING_KEY);
-  }
-}
 
 export async function checkAndSend(): Promise<void> {
   startScheduler();
@@ -136,26 +95,12 @@ export async function checkAndSend(): Promise<void> {
       }
     }
   }
-
-  if (hour === 0 && minute === 0) {
-    const dayOfWeek = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/Moscow',
-      weekday: 'short',
-    }).format(now);
-
-    if (dayOfWeek === 'Mon') {
-      const timeSlot = `${hour}:00-${dayOfWeek}`;
-      await runSeoCollection(timeSlot);
-    } else {
-      console.log(`[Cron] Today is ${dayOfWeek}, SEO collection runs only on Monday`);
-    }
-  }
 }
 
 export function startScheduler(): void {
   if (schedulerInterval) return;
 
-  console.log('[Cron] Starting scheduler: SEO every Monday 00:00, Daily summary 20:00 (Europe/Moscow)');
+  console.log('[Cron] Starting scheduler: Daily summary 20:00 (Europe/Moscow)');
   schedulerInterval = setInterval(checkAndSend, 60_000);
 }
 
