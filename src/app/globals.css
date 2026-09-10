@@ -107,6 +107,22 @@
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
   }
 
+  .glass-header {
+    background: hsl(25 100% 98% / 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid hsl(25 80% 88% / 0.8);
+    box-shadow: 0 4px 20px 0 hsl(25 95% 53% / 0.06);
+  }
+
+  .dark .glass-header {
+    background: hsl(222 25% 10% / 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid hsl(25 40% 30% / 0.5);
+    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
+  }
+
   .bento-grid {
     display: grid;
     gap: 1rem;

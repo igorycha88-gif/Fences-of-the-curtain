@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { describe, it, expect, jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Header from '@/components/layout/Header';
 
@@ -95,5 +95,44 @@ describe('Header', () => {
     render(<Header />);
     const homeLinks = screen.getAllByText('Главная');
     expect(homeLinks.some(el => el.closest('a')?.getAttribute('href') === '/')).toBe(true);
+  });
+
+  describe('scrolled state background', () => {
+    const setScrollY = (scrollY: number) => {
+      Object.defineProperty(window, 'scrollY', {
+        writable: true,
+        configurable: true,
+        value: scrollY,
+      });
+      act(() => {
+        fireEvent.scroll(window);
+      });
+    };
+
+    it('has no glass-header class before scrolling (transparent header)', () => {
+      const { container } = render(<Header />);
+      const header = container.querySelector('header') as HTMLElement;
+      expect(header).not.toHaveClass('glass-header');
+      expect(header).not.toHaveClass('glass');
+      expect(header).toHaveClass('bg-transparent');
+    });
+
+    it('applies glass-header class after scrolling past 20px', () => {
+      const { container } = render(<Header />);
+      const header = container.querySelector('header') as HTMLElement;
+      setScrollY(120);
+      expect(header).toHaveClass('glass-header');
+      expect(header).not.toHaveClass('glass');
+    });
+
+    it('removes glass-header class when scrolled back to top', () => {
+      const { container } = render(<Header />);
+      const header = container.querySelector('header') as HTMLElement;
+      setScrollY(120);
+      expect(header).toHaveClass('glass-header');
+      setScrollY(0);
+      expect(header).not.toHaveClass('glass-header');
+      expect(header).toHaveClass('bg-transparent');
+    });
   });
 });
