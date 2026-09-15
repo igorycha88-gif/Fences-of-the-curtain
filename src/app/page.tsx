@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import HomeFooter from '@/components/layout/HomeFooter';
+import HeroCallButton from '@/components/layout/HeroCallButton';
 import GarageBanner from '@/components/garage/GarageBanner';
 import { PromotionBanner } from '@/components/promotions/PromotionBanner';
 import {
@@ -132,6 +133,7 @@ export default async function HomePage() {
 
               <AnimatedSection animation="scale-in" delay={300}>
                 <div className="flex flex-col items-center gap-4">
+                  <HeroCallButton />
                   <Link
                     href="/calculator/fence"
                     className="btn-primary inline-flex items-center justify-center gap-2 text-lg px-10 py-4"
