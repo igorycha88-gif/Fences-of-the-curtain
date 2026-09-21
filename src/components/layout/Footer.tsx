@@ -1,9 +1,11 @@
 'use client';
 
 import { useContext } from 'react';
+import Link from 'next/link';
 import { CookieConsentContext } from '@/components/cookie-consent/CookieConsentProvider';
 import { useContactInfo } from '@/components/providers/ContactInfoProvider';
 import { ExternalLink } from 'lucide-react';
+import { LEGAL_REQUISITES } from '@/lib/seo/constants';
 
 const PLATFORMS = [
   { name: 'Авито', slug: 'avito', url: 'https://avito.ru', color: '#00AAFF' },
@@ -21,6 +23,12 @@ export default function Footer() {
           <p className="mb-2">© 2026 Заборы и Навесы. Все права защищены.</p>
           <p className="text-gray-400">
             {contactInfo.phone || '+74993901595'} {contactInfo.email ? `| ${contactInfo.email}` : ''}
+          </p>
+          <p className="mt-2 text-xs text-gray-500">
+            {LEGAL_REQUISITES.shortName} · ИНН {LEGAL_REQUISITES.inn} ·{' '}
+            <Link href="/rekvizity" className="underline hover:text-gray-300 transition-colors">
+              Реквизиты
+            </Link>
           </p>
 
           <div className="mt-6 mb-4">

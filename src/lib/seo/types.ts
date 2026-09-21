@@ -32,6 +32,8 @@ export interface JsonLdOrganization {
   };
   telephone?: string;
   email?: string;
+  legalName?: string;
+  taxID?: string;
   geo?: {
     '@type': 'GeoCoordinates';
     latitude: number;

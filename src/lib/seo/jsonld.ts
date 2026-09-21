@@ -1,4 +1,4 @@
-import { SEO_CONFIG, BUSINESS_INFO } from './constants';
+import { SEO_CONFIG, BUSINESS_INFO, LEGAL_REQUISITES } from './constants';
 import {
   JsonLdOrganization,
   JsonLdWebSite,
@@ -47,6 +47,8 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
     description: SEO_CONFIG.DEFAULT_DESCRIPTION,
     telephone: BUSINESS_INFO.telephone,
     email: BUSINESS_INFO.email,
+    legalName: LEGAL_REQUISITES.fullName,
+    taxID: LEGAL_REQUISITES.inn,
     address: {
       '@type': 'PostalAddress',
       addressLocality: BUSINESS_INFO.address.locality,

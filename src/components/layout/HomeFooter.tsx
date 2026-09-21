@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Home, ExternalLink } from 'lucide-react';
 import { useContactInfo } from '@/components/providers/ContactInfoProvider';
+import { LEGAL_REQUISITES } from '@/lib/seo/constants';
 
 export default function HomeFooter() {
   const contactInfo = useContactInfo();
@@ -50,6 +51,7 @@ export default function HomeFooter() {
               <li><Link href="/blog" className="hover:text-primary transition-colors">Блог</Link></li>
               <li><Link href="/faq" className="hover:text-primary transition-colors">Вопросы и ответы</Link></li>
               <li><Link href="/contacts" className="hover:text-primary transition-colors">Контакты</Link></li>
+              <li><Link href="/rekvizity" className="hover:text-primary transition-colors">Реквизиты</Link></li>
             </ul>
           </div>
 
@@ -96,6 +98,12 @@ export default function HomeFooter() {
 
         <div className="border-t border-muted/20 pt-8 text-center text-muted-foreground text-sm">
           <p>&copy; 2026 Заборы и Навесы. Все права защищены.</p>
+          <p className="mt-1 text-xs">
+            {LEGAL_REQUISITES.shortName} · ИНН {LEGAL_REQUISITES.inn} ·{' '}
+            <Link href="/rekvizity" className="underline hover:text-primary transition-colors">
+              Реквизиты
+            </Link>
+          </p>
         </div>
       </div>
     </footer>
