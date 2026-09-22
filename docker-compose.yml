@@ -10,6 +10,12 @@ services:
     container_name: fences-app
     restart: unless-stopped
     network_mode: host
+    # Явный DNS провайдера: Google DNS (fallback Docker) заблокирован с VPS,
+    # из-за чего DNS-резолв внутри контейнера занимал 10+ сек и ломал
+    # геолокацию города по IP (ipLookupService, см. ЧТЗ_Фикс_Геолокация)
+    dns:
+      - 46.254.23.138
+      - 46.254.22.138
     environment:
       - NODE_ENV=production
       - PORT=3001

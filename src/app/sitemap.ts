@@ -64,6 +64,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // ЧТЗ v5 (SEO для владельца, P0): сезонные и расчётные SEO-посадочные
+  const seoLandingPagesV5: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/navesy/na-zimu-ot-snega`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/navesy/pod-klyuch-ceny`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/skolko-pogonnyh-metrov-v-sotkah`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/skolko-stoit-zabor-sravnenie`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/blog/zabor-na-6-sotkah`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    },
+  ];
+
   let blogPages: MetadataRoute.Sitemap = [];
   let portfolioPages: MetadataRoute.Sitemap = [];
   let servicePagesSitemap: MetadataRoute.Sitemap = [];
@@ -118,6 +152,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...navesyPodKlyuchPage,
     ...navesySizePages,
     ...zaborNaSotkiPage,
+    ...seoLandingPagesV5,
     ...blogPages,
     ...portfolioPages,
     ...servicePagesSitemap,

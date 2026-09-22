@@ -29,6 +29,12 @@ IMAGE_TAG="${1:-latest}"
 COMMIT_SHA="${2:-unknown}"
 DEPLOY_REASON="${3:-Automated deploy}"
 
+# Явный DNS провайдера: Docker подставляет fallback 8.8.8.8/8.8.4.4 (хост на
+# systemd-resolved), а Google DNS заблокирован с VPS — DNS-резолв в контейнере
+# занимает 10+ сек, из-за чего ломается геолокация города (ipLookupService).
+# Проверено: с DNS провайдера fetch ip-api.com из контейнера = ~200мс.
+DNS_ARGS="--dns 46.254.23.138 --dns 46.254.22.138"
+
 mkdir -p "$LOG_DIR" "$APP_DIR/backups"
 DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
 
@@ -211,6 +217,7 @@ deploy_direct() {
     docker run -d \
         --name fences-app \
         --network host \
+        $DNS_ARGS \
         --restart unless-stopped \
         --env-file "$APP_DIR/.env" \
         -e PORT=${BLUE_PORT} \
@@ -233,6 +240,7 @@ deploy_blue_green() {
     docker run -d \
         --name fences-app-green \
         --network host \
+        $DNS_ARGS \
         --restart no \
         --env-file "$APP_DIR/.env" \
         -e PORT=${GREEN_PORT} \
@@ -265,6 +273,7 @@ deploy_blue_green() {
     docker run -d \
         --name fences-app \
         --network host \
+        $DNS_ARGS \
         --restart unless-stopped \
         --env-file "$APP_DIR/.env" \
         -e PORT=${BLUE_PORT} \
@@ -339,6 +348,7 @@ if [ "$SMOKE_FAIL" -gt 0 ]; then
         docker run -d \
             --name fences-app \
             --network host \
+            $DNS_ARGS \
             --restart unless-stopped \
             --env-file "$APP_DIR/.env" \
             -e PORT=${BLUE_PORT} \

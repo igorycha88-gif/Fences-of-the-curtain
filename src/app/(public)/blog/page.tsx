@@ -44,6 +44,27 @@ export default async function BlogListPage() {
 
         <section className="py-16 px-4">
           <div className="container mx-auto">
+            {/* Статичная статья-хаб (ЧТЗ v5 TASK-ZN-05) — карточка выше DB-постов */}
+            <div className="mb-8" data-testid="featured-hub-card">
+              <Link
+                href="/blog/zabor-na-6-sotkah"
+                className="group block rounded-2xl border-2 border-primary/30 bg-card overflow-hidden hover:shadow-lg hover:border-primary/60 transition-all duration-300"
+              >
+                <div className="p-6">
+                  <span className="inline-block text-xs font-semibold text-primary mb-2">
+                    Полный гид · 6 соток
+                  </span>
+                  <h2 className="text-xl md:text-2xl font-semibold mb-2 group-hover:text-primary transition-colors">
+                    Забор на 6 сотках: сколько метров, сколько стоит, материалы — полный гид 2026
+                  </h2>
+                  <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
+                    Периметр при разных пропорциях участка, цены под ключ по материалам,
+                    поэтапный монтаж за 1 день и частые вопросы дачников.
+                  </p>
+                  <time className="text-xs text-muted-foreground">15 сентября 2026</time>
+                </div>
+              </Link>
+            </div>
             {posts.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
                 Статей пока нет

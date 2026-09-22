@@ -116,4 +116,22 @@ describe('sitemap', () => {
     expect(sotkiPage).toBeDefined();
     expect(sotkiPage?.priority).toBe(0.8);
   });
+
+  it('should include 5 SEO-landing pages of ЧТЗ v5 (ZN-01L, ZN-05, ZN-06, ZN-07, ZN-08)', async () => {
+    const sitemapModule = await import('../src/app/sitemap');
+    const result = await sitemapModule.default();
+    const paths = result.map((item: any) => item.url.replace('https://zabor-i-naves.ru', ''));
+
+    expect(paths).toContain('/skolko-pogonnyh-metrov-v-sotkah');
+    expect(paths).toContain('/skolko-stoit-zabor-sravnenie');
+    expect(paths).toContain('/navesy/na-zimu-ot-snega');
+    expect(paths).toContain('/navesy/pod-klyuch-ceny');
+    expect(paths).toContain('/blog/zabor-na-6-sotkah');
+
+    const pogMetry = result.find((item: any) => item.url === 'https://zabor-i-naves.ru/skolko-pogonnyh-metrov-v-sotkah');
+    expect(pogMetry?.priority).toBe(0.8);
+
+    const hub = result.find((item: any) => item.url === 'https://zabor-i-naves.ru/blog/zabor-na-6-sotkah');
+    expect(hub?.priority).toBe(0.7);
+  });
 });
