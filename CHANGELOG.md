@@ -16,6 +16,7 @@
 
 ### Инфраструктура
 - fix(infra): явный DNS провайдера в docker-compose.yml и deploy-vps.sh — фикс медленного резолва и геолокации по IP на VPS (2372483)
+- fix(docker): базовый образ node:20-bullseye-slim → node:20-bookworm-slim — Debian 11 EOL, пакеты deb11* дают 404 на deb.debian.org, сборка образа падала
 
 ## [1.19.1] - 2026-09-07
 
