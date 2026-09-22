@@ -451,7 +451,7 @@ export default function FenceCalculatorPage() {
         coating: formData.coating,
       };
 
-      if (!isPanel3D) {
+      if (!isPanel3D && !isMesh) {
         requestBody.lagRows = parseInt(formData.lagRows) as 2 | 3;
       }
 
@@ -589,7 +589,7 @@ export default function FenceCalculatorPage() {
           coating: calc.formData.coating,
         };
 
-        if (!isPanel3D) {
+        if (!isPanel3D && !isMesh) {
           estimate.lagRows = parseInt(calc.formData.lagRows) as 2 | 3;
         }
 
@@ -843,7 +843,7 @@ export default function FenceCalculatorPage() {
               </div>
             </div>
 
-            {!isPanel3D && (
+            {!isPanel3D && !isMesh && (
               <div>
                 <label className="block text-sm font-medium mb-2">Количество лаг</label>
                 <select

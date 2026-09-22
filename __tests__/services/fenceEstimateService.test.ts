@@ -335,6 +335,7 @@ describe('fenceEstimateService', () => {
     await prisma.gateType.delete({ where: { id: testSlidingGateTypeId } });
     await prisma.wicketType.delete({ where: { id: testWicketTypeId } });
     await prisma.profnastilType.delete({ where: { id: testProfnastilTypeId } });
+    await prisma.profnastilType.deleteMany({ where: { id: { startsWith: 'test-profnastil-' } } });
     await prisma.lagType.delete({ where: { id: testLagTypeId } });
     await prisma.postType.delete({ where: { id: testPostTypeId } });
     await prisma.fenceType.delete({ where: { id: testFenceTypeId } });
@@ -1035,5 +1036,276 @@ describe('fenceEstimateService', () => {
       await prisma.workRelation.deleteMany({ where: { workId: inactiveWork.id } });
       await prisma.work.delete({ where: { id: inactiveWork.id } });
     });
+  });
+});
+
+describe('fenceEstimateService — Сетка-рабица (без лаг)', () => {
+  let meshFenceTypeId: string;
+  let meshPostTypeId: string;
+  let meshTypeId: string;
+  let meshHardwareId: string;
+
+  beforeAll(async () => {
+    await prisma.fenceEstimate.deleteMany({ where: { fenceTypeId: { startsWith: 'test-fence-type-mesh' } } });
+    await prisma.meshType.deleteMany({ where: { id: { startsWith: 'test-mesh-' } } });
+    await prisma.mountingHardwareRelation.deleteMany({ where: { mountingHardwareId: { startsWith: 'test-mounting-hardware-mesh-' } } });
+    await prisma.mountingHardware.deleteMany({ where: { id: { startsWith: 'test-mounting-hardware-mesh-' } } });
+    await prisma.postType.deleteMany({ where: { id: { startsWith: 'test-post-mesh-' } } });
+    await prisma.fenceType.deleteMany({ where: { id: { startsWith: 'test-fence-type-mesh' } } });
+
+    const meshFenceType = await prisma.fenceType.create({
+      data: {
+        id: 'test-fence-type-mesh-1',
+        name: 'Сетка-рабица',
+        postSpacing: 2500,
+        active: true,
+        priority: 5,
+        updatedAt: new Date(),
+      },
+    });
+    meshFenceTypeId = meshFenceType.id;
+
+    const meshPostType = await prisma.postType.create({
+      data: {
+        id: 'test-post-mesh-1',
+        name: 'Тестовый сеточный столб 60x60x2.5',
+        sectionWidth: 60,
+        sectionHeight: 60,
+        wallThickness: 2.5,
+        pricePerMeter: 200,
+        length: 3.5,
+        retailPricePerUnit: 700,
+        active: true,
+        priority: 1,
+        forMesh: true,
+        updatedAt: new Date(),
+      },
+    });
+    meshPostTypeId = meshPostType.id;
+
+    const meshType = await prisma.meshType.create({
+      data: {
+        id: 'test-mesh-1',
+        name: 'Тестовая рабица 50x2.0 оцинк. h2000',
+        height: 2000,
+        cellSize: 50,
+        wireThickness: 2.0,
+        coating: 'Оцинковка',
+        retailPricePerUnit: 300,
+        active: true,
+        priority: 0,
+        updatedAt: new Date(),
+      },
+    });
+    meshTypeId = meshType.id;
+
+    const meshHardware = await prisma.mountingHardware.create({
+      data: {
+        id: 'test-mounting-hardware-mesh-1',
+        name: 'Тестовые крюки для сетки',
+        retailPrice: 10,
+        calculationMethod: 'BY_QUANTITY',
+        active: true,
+        useInCalculator: true,
+        updatedAt: new Date(),
+      },
+    });
+    meshHardwareId = meshHardware.id;
+
+    await prisma.mountingHardwareRelation.createMany({
+      data: [
+        {
+          mountingHardwareId: meshHardwareId,
+          referenceType: 'POST',
+          referenceId: meshPostTypeId,
+        },
+        {
+          mountingHardwareId: meshHardwareId,
+          referenceType: 'MESH',
+          referenceId: meshTypeId,
+        },
+      ],
+    });
+
+    const { cache } = await import('@/lib/cache');
+    const { CACHE_KEYS } = await import('@/lib/cache-keys');
+    await cache.del(CACHE_KEYS.POSTS_ACTIVE);
+    await cache.del(CACHE_KEYS.MESH_ACTIVE);
+    await cache.delPattern('calculator:hardware:');
+    await cache.delPattern('calculator:works:');
+  });
+
+  afterAll(async () => {
+    await prisma.fenceEstimate.deleteMany({ where: { fenceTypeId: { startsWith: 'test-fence-type' } } });
+    await prisma.mountingHardwareRelation.deleteMany({ where: { mountingHardwareId: meshHardwareId } });
+    await prisma.mountingHardware.deleteMany({ where: { id: meshHardwareId } });
+    await prisma.meshType.deleteMany({ where: { id: { startsWith: 'test-mesh-' } } });
+    await prisma.postType.deleteMany({ where: { id: { startsWith: 'test-post-mesh-' } } });
+    await prisma.fenceType.deleteMany({ where: { id: { startsWith: 'test-fence-type-mesh' } } });
+
+    // фикстуры регрессионного теста (профнастил, upsert)
+    await prisma.profnastilType.deleteMany({ where: { id: 'test-profnastil-type-1' } });
+    await prisma.lagType.deleteMany({ where: { id: 'test-lag-type-1' } });
+    await prisma.postType.deleteMany({ where: { id: 'test-post-type-1' } });
+    await prisma.fenceType.deleteMany({ where: { id: 'test-fence-type-1' } });
+
+    const { cache } = await import('@/lib/cache');
+    const { CACHE_KEYS } = await import('@/lib/cache-keys');
+    await cache.del(CACHE_KEYS.POSTS_ACTIVE);
+    await cache.del(CACHE_KEYS.MESH_ACTIVE);
+    await cache.delPattern('calculator:hardware:');
+
+    await prisma.$disconnect();
+  });
+
+  it('Сетка-рабица: лаги не попадают в смету (даже если lagRows передан)', async () => {
+    const input = {
+      fenceTypeId: meshFenceTypeId,
+      length: 50,
+      height: 2.0,
+      lagRows: 2 as const,
+      coating: 'GALVANIZED' as const,
+      meshCellSize: 50,
+      meshWireThickness: 2.0,
+      meshCoating: 'GALVANIZED' as const,
+      hasGate: false,
+      hasWicket: false,
+      hasAutomation: false,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    expect(result).toBeDefined();
+
+    const lagsItem = result.items.find(item => item.category === 'lags');
+    expect(lagsItem).toBeUndefined();
+
+    const meshItem = result.items.find(item => item.category === 'mesh');
+    expect(meshItem).toBeDefined();
+    expect(meshItem!.quantity).toBe(50);
+
+    const postsItem = result.items.find(item => item.category === 'posts');
+    expect(postsItem).toBeDefined();
+    expect(postsItem!.nomenclatureId).toBe(meshPostTypeId);
+
+    const meshHardwareItem = result.items.find(item => item.nomenclatureId === meshHardwareId);
+    expect(meshHardwareItem).toBeDefined();
+
+    const dbEstimate = await prisma.fenceEstimate.findFirst({
+      where: { fenceTypeId: meshFenceTypeId },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(dbEstimate).toBeDefined();
+    expect(dbEstimate!.lagsTotal).toBe(0);
+  });
+
+  it('Сетка-рабица: расчёт без lagRows не падает с MISSING_LAG_ROWS', async () => {
+    const input = {
+      fenceTypeId: meshFenceTypeId,
+      length: 30,
+      height: 2.0,
+      coating: 'GALVANIZED' as const,
+      meshCellSize: 50,
+      meshWireThickness: 2.0,
+      meshCoating: 'GALVANIZED' as const,
+      hasGate: false,
+      hasWicket: false,
+      hasAutomation: false,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    expect(result).toBeDefined();
+    expect(result.items.find(item => item.category === 'lags')).toBeUndefined();
+    expect(result.items.find(item => item.category === 'mesh')).toBeDefined();
+  });
+
+  it('Регрессия: Профнастил — лаги по-прежнему считаются', async () => {
+    const { cache } = await import('@/lib/cache');
+    const { CACHE_KEYS } = await import('@/lib/cache-keys');
+    await cache.del(CACHE_KEYS.POSTS_ACTIVE);
+
+    const profnastilFenceType = await prisma.fenceType.upsert({
+      where: { id: 'test-fence-type-1' },
+      update: {},
+      create: {
+        id: 'test-fence-type-1',
+        name: 'Профнастил',
+        postSpacing: 2500,
+        active: true,
+        priority: 1,
+        updatedAt: new Date(),
+      },
+    });
+
+    await prisma.postType.upsert({
+      where: { id: 'test-post-type-1' },
+      update: {},
+      create: {
+        id: 'test-post-type-1',
+        name: 'Тестовый столб 60x60x2.5',
+        sectionWidth: 60,
+        sectionHeight: 60,
+        wallThickness: 2.5,
+        pricePerMeter: 200,
+        length: 3.5,
+        retailPricePerUnit: 700,
+        active: true,
+        priority: 1,
+        updatedAt: new Date(),
+      },
+    });
+
+    await prisma.lagType.upsert({
+      where: { id: 'test-lag-type-1' },
+      update: {},
+      create: {
+        id: 'test-lag-type-1',
+        name: 'Тестовая лага 40x20x2.0',
+        width: 40,
+        height: 20,
+        metalThickness: 2.0,
+        retailPricePerUnit: 125,
+        length: 3000,
+        active: true,
+        priority: 0,
+        updatedAt: new Date(),
+      },
+    });
+
+    await prisma.profnastilType.upsert({
+      where: { id: 'test-profnastil-type-1' },
+      update: {},
+      create: {
+        id: 'test-profnastil-type-1',
+        name: 'Тестовый профнастил С8 0.5мм 2000мм',
+        metalThickness: 0.5,
+        fullWidth: 1200,
+        usefulWidth: 1150,
+        length: 2000,
+        coating: 'Полимерное (одностороннее)',
+        retailPricePerUnit: 550,
+        active: true,
+        priority: 0,
+        updatedAt: new Date(),
+      },
+    });
+
+    const input = {
+      fenceTypeId: profnastilFenceType.id,
+      length: 50,
+      height: 2.0,
+      lagRows: 2 as const,
+      coating: 'POLYMER_SINGLE' as const,
+      hasGate: false,
+      hasWicket: false,
+      hasAutomation: false,
+    };
+
+    const result = await calculateFenceEstimate(input);
+
+    const lagsItem = result.items.find(item => item.category === 'lags');
+    expect(lagsItem).toBeDefined();
+    expect(lagsItem!.quantity).toBeGreaterThan(0);
   });
 });

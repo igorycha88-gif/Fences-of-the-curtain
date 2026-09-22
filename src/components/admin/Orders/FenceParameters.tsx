@@ -67,13 +67,15 @@ export function FenceParameters({
           </div>
         </div>
 
-        <div className="flex items-start gap-3">
-          <Layers className="w-4 h-4 text-gray-400 mt-0.5" />
-          <div className="flex-1">
-            <label className="text-sm text-gray-500 block">Лаги</label>
-            <p className="font-medium text-gray-900">{lagRows} ряда</p>
+        {fenceType.name !== 'Сетка-рабица' && (
+          <div className="flex items-start gap-3">
+            <Layers className="w-4 h-4 text-gray-400 mt-0.5" />
+            <div className="flex-1">
+              <label className="text-sm text-gray-500 block">Лаги</label>
+              <p className="font-medium text-gray-900">{lagRows} ряда</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {fenceTypeName !== 'Сетка-рабица' && (
           <div className="flex items-start gap-3">

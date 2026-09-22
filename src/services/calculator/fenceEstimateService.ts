@@ -172,7 +172,9 @@ export async function calculateFenceEstimateCore(
     } as CalculationError;
   }
 
-  if (fenceType.name !== '3D-панели' && !lagRows) {
+  const isLagsRequired = fenceType.name !== '3D-панели' && fenceType.name !== 'Сетка-рабица';
+
+  if (isLagsRequired && !lagRows) {
     throw {
       error: 'MISSING_LAG_ROWS',
       message: 'Количество лаг обязательно для этого типа забора',
@@ -377,9 +379,15 @@ export async function calculateFenceEstimateCore(
         : calculatePostsForPanel3D(correctedLength, height, postSpacingM)
   );
 
-  const lagsResult = fenceType.name === '3D-панели'
-    ? null
-    : await calculateLags(correctedLength, lagRows!);
+  const isLagsNeeded = fenceType.name !== '3D-панели' && fenceType.name !== 'Сетка-рабица';
+
+  const lagsResult = isLagsNeeded
+    ? await calculateLags(correctedLength, lagRows!)
+    : null;
+
+  if (fenceType.name === 'Сетка-рабица') {
+    console.log('[fenceEstimate] Сетка-рабица: лаги не рассчитываются (не нужны для данного типа забора)');
+  }
 
   const baseHardwareParams = {
     fenceLengthM: correctedLength,
@@ -411,7 +419,7 @@ export async function calculateFenceEstimateCore(
     mountingHardwareResult = await calculateMountingHardware({
       ...baseHardwareParams,
       postTypeId: postsResult.nomenclatureId,
-      lagTypeId: lagsResult!.nomenclatureId,
+      ...(lagsResult ? { lagTypeId: lagsResult.nomenclatureId } : {}),
       meshId: meshResult.nomenclatureId,
       meshCount: meshResult.quantity,
     });
