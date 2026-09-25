@@ -36,7 +36,6 @@ export default function HeroCallButton({ className = '' }: HeroCallButtonProps) 
       className={`md:hidden inline-flex items-center justify-center gap-2 text-lg px-10 py-4 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20 text-foreground font-medium hover:bg-primary hover:text-white hover:border-primary hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ${className}`}
     >
       <Phone className="w-5 h-5 flex-shrink-0" />
-      <span>Позвонить</span>
       <span className="font-normal opacity-90">{displayPhone}</span>
     </a>
   );

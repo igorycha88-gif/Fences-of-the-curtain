@@ -36,10 +36,10 @@ describe('HeroCallButton', () => {
     mockTrackEvent.mockClear();
   });
 
-  it('renders call button with phone number', () => {
+  it('renders call button with phone number and no "Позвонить" text', () => {
     render(<HeroCallButton />);
-    expect(screen.getByText('Позвонить')).toBeInTheDocument();
     expect(screen.getByText('+7 (499) 390-15-95')).toBeInTheDocument();
+    expect(screen.queryByText('Позвонить')).not.toBeInTheDocument();
   });
 
   it('renders phone icon', () => {
