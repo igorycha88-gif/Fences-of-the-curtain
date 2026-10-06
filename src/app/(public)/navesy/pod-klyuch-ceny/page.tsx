@@ -233,6 +233,25 @@ export default function NavesyPodKlyuchCenyPage() {
           </div>
         </section>
 
+        <section className="py-12 px-4 bg-secondary/30">
+          <div className="container mx-auto max-w-4xl card-modern p-6 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+            <div>
+              <h2 className="text-xl font-bold mb-1">Нужен не навес, а тёплый гараж?</h2>
+              <p className="text-sm text-muted-foreground">
+                Гараж из сэндвич-панелей под ключ — от 35 000 ₽/м², монтаж за 2–4 дня даже
+                зимой: размеры 3х6–6х6, ворота, фундамент.
+              </p>
+            </div>
+            <Link
+              href="/garazhi-iz-sendvich-panelej"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors whitespace-nowrap w-fit"
+            >
+              Цены на гаражи
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
+
         <section className="py-16 px-4 bg-primary text-primary-foreground">
           <div className="container mx-auto max-w-3xl text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">

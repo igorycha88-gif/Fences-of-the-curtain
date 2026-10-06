@@ -280,6 +280,16 @@ export default async function NavesyNaZimuPage() {
               Навесы под ключ: цены и сравнение
               <ArrowRight className="w-4 h-4" />
             </Link>
+            <p className="text-muted-foreground leading-relaxed mt-6 mb-4">
+              А если машине зимой нужно полноценное тепло — смотрите{' '}
+              <Link
+                href="/garazhi-iz-sendvich-panelej"
+                className="text-primary font-semibold hover:underline"
+              >
+                тёплые гаражи из сэндвич-панелей
+              </Link>
+              : от 35 000 ₽/м² под ключ, монтаж за 2–4 дня в любой мороз.
+            </p>
           </div>
         </section>
 

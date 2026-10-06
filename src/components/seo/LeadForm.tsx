@@ -15,6 +15,10 @@ interface LeadFormProps {
   defaultPlotValue?: string;
   title?: string;
   submitLabel?: string;
+  /** Переопределение подписи под заголовком (по умолчанию — текст про замер периметра забора). */
+  subtitle?: string;
+  /** Название селектора (по умолчанию «Размер участка»). */
+  selectLabel?: string;
 }
 
 function formatPhoneNumber(value: string): string {
@@ -34,6 +38,8 @@ export default function LeadForm({
   defaultPlotValue,
   title = 'Точный расчёт с выездом — бесплатно',
   submitLabel = 'Получить точную смету',
+  subtitle = 'Замерщик приедет с рулеткой и образцами, зафиксирует точный периметр до сантиметра — смета бесплатная и ни к чему не обязывает.',
+  selectLabel = 'Размер участка',
 }: LeadFormProps) {
   const [clientName, setClientName] = useState('');
   const [phone, setPhone] = useState('');
@@ -128,10 +134,7 @@ export default function LeadForm({
   return (
     <form onSubmit={handleSubmit} className="card-modern p-6" data-testid="lead-form" noValidate>
       <h3 className="text-lg font-bold mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        Замерщик приедет с рулеткой и образцами, зафиксирует точный периметр до сантиметра —
-        смета бесплатная и ни к чему не обязывает.
-      </p>
+      <p className="text-sm text-muted-foreground mb-4">{subtitle}</p>
 
       <div className="space-y-3">
         <div>
@@ -177,7 +180,7 @@ export default function LeadForm({
         {plotOptions.length > 0 && (
           <div>
             <label htmlFor={`lead-plot-${source}`} className="text-sm font-medium">
-              Размер участка
+              {selectLabel}
             </label>
             <select
               id={`lead-plot-${source}`}

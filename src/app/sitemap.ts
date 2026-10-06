@@ -98,6 +98,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // ЧТЗ_SEO_Гаражи_Сэндвич_Панели: посадочная «Гаражи из сэндвич-панелей»
+  const garazhiSendvichPage: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/garazhi-iz-sendvich-panelej`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+  ];
+
   let blogPages: MetadataRoute.Sitemap = [];
   let portfolioPages: MetadataRoute.Sitemap = [];
   let servicePagesSitemap: MetadataRoute.Sitemap = [];
@@ -153,6 +163,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...navesySizePages,
     ...zaborNaSotkiPage,
     ...seoLandingPagesV5,
+    ...garazhiSendvichPage,
     ...blogPages,
     ...portfolioPages,
     ...servicePagesSitemap,

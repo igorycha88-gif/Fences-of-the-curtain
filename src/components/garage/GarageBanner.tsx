@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Sparkles, ArrowRight, Warehouse, Shield, Thermometer, Truck } from 'lucide-react';
 import GarageOrderModal from './GarageOrderModal';
 
@@ -69,13 +70,22 @@ export default function GarageBanner() {
                   ))}
                 </div>
 
-                <button
-                  onClick={() => setModalOpen(true)}
-                  className="btn-primary inline-flex items-center justify-center gap-2 text-base px-6 py-3.5 w-fit"
-                >
-                  Оставить заявку
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setModalOpen(true)}
+                    className="btn-primary inline-flex items-center justify-center gap-2 text-base px-6 py-3.5 w-fit"
+                  >
+                    Оставить заявку
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <Link
+                    href="/garazhi-iz-sendvich-panelej"
+                    className="inline-flex items-center justify-center gap-2 border border-primary/30 text-primary px-6 py-3.5 rounded-xl font-semibold hover:bg-primary/5 transition-colors text-base w-fit"
+                  >
+                    Цены и размеры
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
