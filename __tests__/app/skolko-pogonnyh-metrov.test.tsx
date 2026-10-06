@@ -28,9 +28,15 @@ import {
   SOTKI_PERIMETER_TABLE,
   MATERIALS_TABLE,
   POG_METRY_FAQ,
+  SELF_CALC_STEPS,
+  COST_BY_SOTKI,
+  RATE_PROFNASTIL,
+  RATE_EVROSHTAKETNIK,
+  RATE_RABICA,
+  GEO_MINI_SOTKI_TABLE,
 } from '@/lib/zabor/pogMetry';
 
-describe('/skolko-pogonnyh-metrov-v-sotkah — сотки → погонные метры (ЧТЗ v5 TASK-ZN-01L)', () => {
+describe('/skolko-pogonnyh-metrov-v-sotkah — сотки → погонные метры (ЧТЗ v5 ZN-01L + v6 ZN-1)', () => {
   it('metadata: Title и canonical по ЧТЗ', () => {
     const title = (metadata.title as { absolute?: string })?.absolute ?? String(metadata.title);
     expect(title).toBe('Сколько погонных метров забора в сотках — таблица 4–50 соток + смета');
@@ -49,14 +55,14 @@ describe('/skolko-pogonnyh-metrov-v-sotkah — сотки → погонные �
     expect(screen.getByRole('heading', { name: /Частые вопросы: сотки и погонные метры/ })).toBeInTheDocument();
   });
 
-  it('СТАТИЧЕСКАЯ таблица 4–50 соток: 14 строк, кликабельные размеры из данных Вебмастера', () => {
+  it('СТАТИЧЕСКАЯ таблица 4–50 соток: 15 строк, включая новые якоря v6 «21 сотка» и «5 гектар»', () => {
     render(<SkolkoPogonnyhMetrovPage />);
 
     const table = screen.getByTestId('sotki-perimeter-table');
     const rows = table.querySelectorAll('tbody tr');
-    expect(rows.length).toBe(14);
+    expect(rows.length).toBe(15);
 
-    ['4 сотки', '6 соток', '8 соток', '10 соток', '11 соток', '12 соток', '15 соток', '18 соток', '20 соток', '24 сотки', '25 соток', '30 соток', '40 соток', '50 соток'].forEach((label) => {
+    ['4 сотки', '6 соток', '8 соток', '10 соток', '11 соток', '12 соток', '15 соток', '18 соток', '20 соток', '21 сотка', '24 сотки', '25 соток', '30 соток', '40 соток', '50 соток (5 гектар)'].forEach((label) => {
       expect(table).toHaveTextContent(label);
     });
 
@@ -65,6 +71,79 @@ describe('/skolko-pogonnyh-metrov-v-sotkah — сотки → погонные �
     expect(row18?.perimeterM).toBe(180);
     const row25 = SOTKI_PERIMETER_TABLE.find((r) => r.sotki === '25 соток');
     expect(row25?.perimeterM).toBe(200);
+  });
+
+  it('ЧТЗ v6 ZN-1: строка «21 сотка» — пропорции 30 × 70, периметр 200 м, квадрат 183 м', () => {
+    const row21 = SOTKI_PERIMETER_TABLE.find((r) => r.sotki === '21 сотка');
+    expect(row21).toBeDefined();
+    expect(row21?.plotSize).toBe('30 × 70 м');
+    expect(row21?.perimeterM).toBe(200);
+    expect(row21?.perimeterSquareM).toBe(183);
+    // 30 × 70 = 2100 м² = 21 сотка; 4 × √2100 ≈ 183,3
+    expect(30 * 70).toBe(2100);
+  });
+
+  it('ЧТЗ v6 ZN-1: строка «5 гектар (=50 соток)» — 300 м периметра', () => {
+    const row5ga = SOTKI_PERIMETER_TABLE.find((r) => r.sotki === '50 соток (5 гектар)');
+    expect(row5ga).toBeDefined();
+    expect(row5ga?.perimeterM).toBe(300);
+    expect(row5ga?.plotSize).toBe('50 × 100 м');
+  });
+
+  it('ЧТЗ v6 ZN-1: H2 «Как рассчитать периметр забора самому» — 4 шага, пример 14 соток, CTA', () => {
+    render(<SkolkoPogonnyhMetrovPage />);
+
+    expect(screen.getByRole('heading', { name: /Как рассчитать периметр забора самому/ })).toBeInTheDocument();
+
+    const steps = screen.getAllByTestId('self-calc-step');
+    expect(steps.length).toBe(4);
+    expect(SELF_CALC_STEPS[0].title).toContain('сотки в квадратные метры');
+    expect(SELF_CALC_STEPS[1].title).toContain('пропорции');
+    expect(SELF_CALC_STEPS[2].title).toContain('периметр');
+    expect(SELF_CALC_STEPS[3].title).toContain('погонные метры');
+
+    // разбор на примере 14 соток: 35 × 40 → 150 м; 20 × 70 → 180 м
+    const summary = screen.getByTestId('self-calc-summary');
+    expect(summary).toHaveTextContent('14 соток');
+    expect(summary).toHaveTextContent('150 м');
+    expect(summary).toHaveTextContent('180 м');
+    // CTA по ЧТЗ: «проверьте себя нашей таблицей / закажите точный расчёт»
+    expect(summary.textContent).toMatch(/проверьте себя нашей таблицей выше/i);
+    expect(summary.textContent).toMatch(/закажите точный расчёт/i);
+  });
+
+  it('ЧТЗ v6 ZN-1: H2 «Сколько будет стоить забор на N соток» — деньги-таблица 7 размеров × 3 материала', () => {
+    render(<SkolkoPogonnyhMetrovPage />);
+
+    expect(screen.getByRole('heading', { name: /Сколько будет стоить забор на N соток/ })).toBeInTheDocument();
+
+    const table = screen.getByTestId('cost-by-sotki-table');
+    const rows = table.querySelectorAll('tbody tr');
+    expect(rows.length).toBe(7);
+
+    expect(table).toHaveTextContent('14 соток');
+    expect(table).toHaveTextContent('21 сотка');
+    expect(table).toHaveTextContent('50 соток (5 гектар)');
+    expect(screen.getByText(/Во сколько обойдётся забор/i)).toBeInTheDocument();
+
+    // контрольные суммы: 21 сотка (200 м) × 2600 = 520 000 ₽; 5 гектар (300 м) × 3100 = 930 000 ₽
+    const row21 = COST_BY_SOTKI.find((r) => r.sotki === '21 сотка');
+    expect(row21?.perimeterM * RATE_PROFNASTIL).toBe(520000);
+    const row5ga = COST_BY_SOTKI.find((r) => r.sotki === '50 соток (5 гектар)');
+    expect(row5ga?.perimeterM * RATE_EVROSHTAKETNIK).toBe(930000);
+    const row14 = COST_BY_SOTKI.find((r) => r.sotki === '14 соток');
+    expect(row14?.perimeterM * RATE_RABICA).toBe(82500);
+  });
+
+  it('ЧТЗ v6 ZN-5: экспорт GEO_MINI_SOTKI_TABLE — 5 строк для гео-страниц', () => {
+    expect(GEO_MINI_SOTKI_TABLE.length).toBe(5);
+    expect(GEO_MINI_SOTKI_TABLE.map((r) => r.sotki)).toEqual([
+      '6 соток',
+      '10 соток',
+      '15 соток',
+      '20 соток',
+      '50 соток (5 гектар)',
+    ]);
   });
 
   it('квадрат 10 соток = 126 м (контрольная формула 4×√1000 из ЧТЗ v4)', () => {
@@ -103,7 +182,8 @@ describe('/skolko-pogonnyh-metrov-v-sotkah — сотки → погонные �
   it('блок нестандартной формы: формулы и разбор «15 соток по периметру»', () => {
     render(<SkolkoPogonnyhMetrovPage />);
 
-    expect(screen.getByText(/P = 2 × \(длина \+ ширина\)/)).toBeInTheDocument();
+    // формула встречается в блоке нестандартной формы и в методике ZN-1
+    expect(screen.getAllByText(/P = 2 × \(длина \+ ширина\)/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/30 × 60 м \(18 соток\)/)).toBeInTheDocument();
     expect(screen.getAllByText(/15 соток — это сколько метров по периметру/i).length).toBeGreaterThan(0);
   });

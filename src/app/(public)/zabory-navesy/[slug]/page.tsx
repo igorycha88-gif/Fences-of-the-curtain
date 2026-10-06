@@ -39,7 +39,8 @@ import {
   generateDistrictsText,
   generateDachaBlock,
 } from '@/lib/geo/content';
-import { Calculator, ArrowRight, MapPin, Car, Phone } from 'lucide-react';
+import { GEO_MINI_SOTKI_TABLE, RATE_PROFNASTIL } from '@/lib/zabor/pogMetry';
+import { Calculator, ArrowRight, MapPin, Car, Phone, Ruler } from 'lucide-react';
 
 export const revalidate = 86400;
 
@@ -229,6 +230,57 @@ function CityPage({
 
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Ruler className="w-6 h-6 text-primary" />
+              Сотки → погонные метры забора {city.nameIn}
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              Участки {city.nameIn} чаще всего имеют типовые дачные и коттеджные
+              пропорции, поэтому длину забора можно прикинуть заранее — ещё до
+              вызова замерщика. Быстрая сводка для частых размеров: периметр под
+              типовые пропорции и цена забора из профнастила под ключ (доезжаем
+              по трассе «{city.highway}», при заказе от 20 метров доставка
+              входит в цену):
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border rounded-xl overflow-hidden bg-background" data-testid="geo-mini-sotki-table">
+                <thead>
+                  <tr className="bg-secondary text-left">
+                    <th className="px-4 py-3 font-semibold">Участок</th>
+                    <th className="px-4 py-3 font-semibold">Типовые размеры</th>
+                    <th className="px-4 py-3 font-semibold">Забор, пог. м</th>
+                    <th className="px-4 py-3 font-semibold">Профнастил от</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {GEO_MINI_SOTKI_TABLE.map((row) => (
+                    <tr key={row.sotki} className="border-t">
+                      <td className="px-4 py-3 font-medium whitespace-nowrap">{row.sotki}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.plotSize}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-semibold">{row.perimeterM} м</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-primary font-semibold">
+                        от {(row.perimeterM * RATE_PROFNASTIL).toLocaleString('ru-RU')} ₽
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-sm mt-3">
+              <Link
+                href="/skolko-pogonnyh-metrov-v-sotkah"
+                className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                data-testid="geo-link-full-table"
+              >
+                Полная таблица и смета: все размеры от 4 до 50 соток
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </p>
+          </div>
+        </section>
+
+        <section className="py-12 px-4 bg-secondary/30">
+          <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl font-bold mb-4">Евроштакетник и 3D-заборы</h2>
             <p className="text-muted-foreground leading-relaxed mb-6">
               Для лицевой линии участка {city.nameIn} рекомендуем двусторонний
@@ -260,7 +312,7 @@ function CityPage({
           </div>
         </section>
 
-        <section className="py-12 px-4 bg-secondary/30">
+        <section className="py-12 px-4">
           <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl font-bold mb-4">
               Навесы для автомобилей {city.nameIn}

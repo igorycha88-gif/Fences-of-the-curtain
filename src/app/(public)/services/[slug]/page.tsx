@@ -9,6 +9,7 @@ import JsonLdScript from '@/components/seo/JsonLdScript';
 import { generateBreadcrumbJsonLd, generateServiceJsonLd } from '@/lib/seo/jsonld';
 import { generatePageMetadata } from '@/lib/seo/metadata';
 import { SEO_CONFIG } from '@/lib/seo/constants';
+import EvroshtaketnikPhotos from '@/components/seo/EvroshtaketnikPhotos';
 import { Calculator, ArrowRight } from 'lucide-react';
 
 export const revalidate = 3600;
@@ -154,6 +155,8 @@ export default async function ServicePage({ params }: ServicePageProps) {
             )}
           </div>
         </section>
+
+        {slug === 'zabor-iz-evroshtaketnika' && <EvroshtaketnikPhotos />}
 
         {displayServices.length > 0 && (
           <section className="py-16 px-4 bg-secondary/30">

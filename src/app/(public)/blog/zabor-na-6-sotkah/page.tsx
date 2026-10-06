@@ -128,8 +128,15 @@ export default function ZaborNa6SotkahArticle() {
               </table>
             </div>
             <p className="text-xs text-muted-foreground mt-3">
-              Дальше по тексту считаем для классических 100 метров (20 × 30 м). Другие размеры —
-              в общей таблице «сотки → погонные метры».
+              Дальше по тексту считаем для классических 100 метров (20 × 30 м). Точные цифры
+              для своего надела смотрите в полной таблице —{' '}
+              <Link
+                href="/skolko-pogonnyh-metrov-v-sotkah"
+                className="text-primary hover:underline font-medium"
+              >
+                сколько погонных метров в 6 сотках
+              </Link>{' '}
+              и любом другом размере, со сметой по материалам.
             </p>
           </div>
         </section>
@@ -165,8 +172,15 @@ export default function ZaborNa6SotkahArticle() {
             <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
               Рабочая схема экономии для дачи: лицевую сторону (20–30 м) закрыть профнастилом
               или евроштакетником, межи с соседями — сеткой-рабицей. Такой комбинированный
-              забор на 6 сотках стоит 90 000–130 000 ₽ под ключ. Сравнить наши цены с другими
-              подрядчиками МО — на странице «Сколько стоит забор: сравнение цен».
+              забор на 6 сотках стоит 90 000–130 000 ₽ под ключ. Разобраться,{' '}
+              <Link
+                href="/skolko-stoit-zabor-sravnenie"
+                className="text-primary hover:underline font-medium"
+              >
+                сколько стоит забор на 6 соток
+              </Link>{' '}
+              у разных подрядчиков МО и где подвох в дешёвых объявлениях — на странице
+              сравнения цен.
             </p>
           </div>
         </section>

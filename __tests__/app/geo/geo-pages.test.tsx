@@ -189,6 +189,43 @@ describe('geo city page rendering', () => {
     expect(links).toContain('/calculator/canopy');
     expect(links).toContain('/services/zabor-iz-profnastila');
   });
+
+  it('ЧТЗ v6 ZN-5: городская страница рендерит мини-таблицу «сотки → погонные метры»', async () => {
+    portfolioFindMany.mockResolvedValue([]);
+
+    const element = await GeoPage(makeParams('domodedovo'));
+    render(element);
+
+    expect(
+      screen.getByRole('heading', { name: /Сотки → погонные метры забора в Домодедове/ })
+    ).toBeInTheDocument();
+
+    const table = screen.getByTestId('geo-mini-sotki-table');
+    const rows = table.querySelectorAll('tbody tr');
+    expect(rows.length).toBe(5);
+    expect(table).toHaveTextContent('6 соток');
+    expect(table).toHaveTextContent('10 соток');
+    expect(table).toHaveTextContent('50 соток (5 гектар)');
+    expect(table).toHaveTextContent('260 000');
+  });
+
+  it('ЧТЗ v6 ZN-5: под мини-таблицей ссылка «полная таблица и смета» на ZN-01L', async () => {
+    portfolioFindMany.mockResolvedValue([]);
+
+    const element = await GeoPage(makeParams('domodedovo'));
+    render(element);
+
+    const link = screen.getByTestId('geo-link-full-table');
+    expect(link.getAttribute('href')).toBe('/skolko-pogonnyh-metrov-v-sotkah');
+    expect(link).toHaveTextContent(/Полная таблица и смета/);
+  });
+
+  it('ЧТЗ v6 ZN-5: мини-таблица НЕ рендерится на странице хаба направления', async () => {
+    const element = await GeoPage(makeParams('yug-podmoskovya'));
+    render(element);
+
+    expect(screen.queryByTestId('geo-mini-sotki-table')).not.toBeInTheDocument();
+  });
 });
 
 describe('geo index page', () => {

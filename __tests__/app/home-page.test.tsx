@@ -121,6 +121,13 @@ describe('Home page (ЧТЗ v3 TASK-01/05/08/10)', () => {
     expect(links).toContain('/navesy-pod-klyuch');
   });
 
+  it('links to ZN-05 hub «Забор на 6 сотках» from services block (ЧТЗ v6 TASK-ZN-4)', async () => {
+    render(await HomePage());
+
+    const hubLink = screen.getByRole('link', { name: /Забор на 6 сотках/ });
+    expect(hubLink.getAttribute('href')).toBe('/blog/zabor-na-6-sotkah');
+  });
+
   it('renders review JSON-LD blocks when 5+ reviews exist', async () => {
     reviewFindMany.mockResolvedValue([
       { name: 'Иван', text: 'Отличный забор', rating: 5 },

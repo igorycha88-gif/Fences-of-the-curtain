@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   DoorOpen,
   Warehouse,
+  Ruler,
 } from 'lucide-react';
 import { YandexReviews } from '@/components/reviews/YandexReviews';
 import { generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
@@ -281,6 +282,7 @@ export default async function HomePage() {
                 { icon: TreePine, title: 'Евроштакетник', desc: 'Стиль и эстетика', href: '/services/zabor-iz-evroshtaketnika' },
                 { icon: Award, title: 'Навесы из поликарбоната', desc: 'Свет и защита', href: '/services/naves-iz-polikarbonata' },
                 { icon: Warehouse, title: 'Навесы под ключ — цены', desc: 'От 2 600 ₽/м² с монтажом', href: '/navesy-pod-klyuch' },
+                { icon: Ruler, title: 'Забор на 6 сотках', desc: 'Сколько метров и стоит — гид 2026', href: '/blog/zabor-na-6-sotkah' },
               ].map((service, index) => (
                 <AnimatedSection key={index} animation="scale-in" delay={index * 100}>
                   <Link

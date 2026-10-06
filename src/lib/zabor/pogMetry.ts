@@ -1,7 +1,8 @@
 /**
  * Данные страницы «Сотки → погонные метры забора: таблица» (ЧТЗ v5 TASK-ZN-01L,
- * поглощает ZN-02/ZN-03 из v4). Вынесены из page.tsx: Next.js запрещает
- * нестандартные экспорты из Page.
+ * поглощает ZN-02/ZN-03 из v4; расширение по ЧТЗ v6 TASK-ZN-1: строки
+ * «21 сотка» и «5 гектар», методика самостоятельного расчёта, деньги-таблица).
+ * Вынесены из page.tsx: Next.js запрещает нестандартные экспорты из Page.
  */
 
 export const RATE_PROFNASTIL = 2600;
@@ -26,11 +27,12 @@ export const SOTKI_PERIMETER_TABLE: SotkiRow[] = [
   { sotki: '15 соток', plotSize: '30 × 50 м', perimeterM: 160, perimeterSquareM: 155 },
   { sotki: '18 соток', plotSize: '30 × 60 м', perimeterM: 180, perimeterSquareM: 170 },
   { sotki: '20 соток', plotSize: '40 × 50 м', perimeterM: 180, perimeterSquareM: 179 },
+  { sotki: '21 сотка', plotSize: '30 × 70 м', perimeterM: 200, perimeterSquareM: 183 },
   { sotki: '24 сотки', plotSize: '40 × 60 м', perimeterM: 200, perimeterSquareM: 196 },
   { sotki: '25 соток', plotSize: '50 × 50 м', perimeterM: 200, perimeterSquareM: 200 },
   { sotki: '30 соток', plotSize: '50 × 60 м', perimeterM: 220, perimeterSquareM: 219 },
   { sotki: '40 соток', plotSize: '50 × 80 м', perimeterM: 260, perimeterSquareM: 253 },
-  { sotki: '50 соток', plotSize: '50 × 100 м', perimeterM: 300, perimeterSquareM: 283 },
+  { sotki: '50 соток (5 гектар)', plotSize: '50 × 100 м', perimeterM: 300, perimeterSquareM: 283 },
 ];
 
 interface MaterialsRow {
@@ -118,3 +120,68 @@ export const LEAD_PLOT_OPTIONS = [
   { value: '30', label: '30 соток (≈220 м)', perimeterM: 220 },
   { value: '50', label: '50 соток (≈300 м)', perimeterM: 300 },
 ];
+
+/**
+ * Методика «Как рассчитать периметр забора самому» (ЧТЗ v6 TASK-ZN-1):
+ * площадь → пропорции → периметр → погонные метры, разбор на примере 14 соток.
+ */
+export interface SelfCalcStep {
+  step: string;
+  title: string;
+  text: string;
+}
+
+export const SELF_CALC_STEPS: SelfCalcStep[] = [
+  {
+    step: 'Шаг 1',
+    title: 'Переведите сотки в квадратные метры',
+    text: 'Одна сотка — это 100 м² (квадрат 10 × 10 м). Умножьте количество соток на 100: например, 14 соток — это 1 400 м². Это же число есть в межевом плане или выписке ЕГРН.',
+  },
+  {
+    step: 'Шаг 2',
+    title: 'Определите пропорции участка',
+    text: 'Разделите площадь на длину и ширину. Стандартные дачные пропорции — от 1:1,25 до 1:2. Для 1 400 м² это либо 35 × 40 м (близко к квадрату), либо 20 × 70 м (вытянутый надел). Точные стороны видны на публичной кадастровой карте или по колышкам межи.',
+  },
+  {
+    step: 'Шаг 3',
+    title: 'Посчитайте периметр',
+    text: 'Для прямоугольника P = 2 × (длина + ширина). Пример на 14 сотках: 2 × (35 + 40) = 150 м для компактного участка и 2 × (20 + 70) = 180 м для вытянутого. Квадрат той же площади (~37 × 37 м) даёт минимум — около 150 м.',
+  },
+  {
+    step: 'Шаг 4',
+    title: 'Переведите периметр в погонные метры забора',
+    text: 'Периметр и есть длина забора в погонных метрах. Минусуйте только ширину ворот и калитки (обычно 4–5 м): 150 м периметра — это ~145 м забора плюс ворота с калиткой. Дальше умножайте на цену за метр из сметы ниже.',
+  },
+];
+
+/**
+ * Денежная таблица «Сколько будет стоить забор на N соток» (ЧТЗ v6 TASK-ZN-1):
+ * деньги-формулировки «во сколько обойдётся», новые якоря 14/21 соток и 5 гектар.
+ */
+export interface CostBySotkiRow {
+  sotki: string;
+  perimeterM: number;
+}
+
+export const COST_BY_SOTKI: CostBySotkiRow[] = [
+  { sotki: '6 соток', perimeterM: 100 },
+  { sotki: '10 соток', perimeterM: 130 },
+  { sotki: '14 соток', perimeterM: 150 },
+  { sotki: '15 соток', perimeterM: 160 },
+  { sotki: '20 соток', perimeterM: 180 },
+  { sotki: '21 сотка', perimeterM: 200 },
+  { sotki: '50 соток (5 гектар)', perimeterM: 300 },
+];
+
+/**
+ * Компактная таблица для гео-страниц (ЧТЗ v6 TASK-ZN-5): 3–5 строк
+ * «сотки → погонные метры» со ссылкой на полную таблицу ZN-01L.
+ */
+export const GEO_MINI_SOTKI_TABLE: SotkiRow[] = SOTKI_PERIMETER_TABLE.filter(
+  (row) =>
+    row.sotki === '6 соток' ||
+    row.sotki === '10 соток' ||
+    row.sotki === '15 соток' ||
+    row.sotki === '20 соток' ||
+    row.sotki === '50 соток (5 гектар)'
+);

@@ -116,6 +116,20 @@ describe('/blog/zabor-na-6-sotkah — статья-хаб «Забор на 6 с
     expect(links).toContain('/calculator/fence');
   });
 
+  it('ЧТЗ v6 ZN-4: точные анкоры в тексте — «сколько погонных метров в 6 сотках» → ZN-01L', () => {
+    render(<ZaborNa6SotkahArticle />);
+
+    const anchor = screen.getByRole('link', { name: /сколько погонных метров в 6 сотках/i });
+    expect(anchor.getAttribute('href')).toBe('/skolko-pogonnyh-metrov-v-sotkah');
+  });
+
+  it('ЧТЗ v6 ZN-4: точный анкор «сколько стоит забор на 6 сотках» → ZN-08 (сравнение цен)', () => {
+    render(<ZaborNa6SotkahArticle />);
+
+    const anchor = screen.getByRole('link', { name: 'сколько стоит забор на 6 соток' });
+    expect(anchor.getAttribute('href')).toBe('/skolko-stoit-zabor-sravnenie');
+  });
+
   it('хаб отображается в списке блога featured-карточкой', async () => {
     blogFindMany.mockResolvedValue([]);
 

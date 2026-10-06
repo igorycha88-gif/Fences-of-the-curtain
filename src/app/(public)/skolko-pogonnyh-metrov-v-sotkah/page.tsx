@@ -16,11 +16,15 @@ import { generatePageMetadata } from '@/lib/seo/metadata';
 import { PAGE_METADATA } from '@/lib/seo/constants';
 import {
   RATE_PROFNASTIL,
+  RATE_EVROSHTAKETNIK,
+  RATE_RABICA,
   SOTKI_PERIMETER_TABLE,
   MATERIALS_TABLE,
   ESTIMATE_RATES,
   POG_METRY_FAQ,
   LEAD_PLOT_OPTIONS,
+  SELF_CALC_STEPS,
+  COST_BY_SOTKI,
 } from '@/lib/zabor/pogMetry';
 import { Calculator, ArrowRight, Phone, Ruler, Fence, Sigma } from 'lucide-react';
 
@@ -281,6 +285,83 @@ export default function SkolkoPogonnyhMetrovPage() {
               190 м и больше для вытянутого надела 25 × 60 м. Поэтому по телефону мы называем
               вилку, а точную цифру фиксирует бесплатный выезд замерщика — с точностью до
               сантиметра по фактическим границам, а не по документам.
+            </p>
+          </div>
+        </section>
+
+        <section className="py-12 px-4">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold mb-4">
+              Как рассчитать периметр забора самому
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              Готовой цифры в таблице не хватило или участок нестандартный? Вот
+              методика из четырёх шагов: площадь → пропорции → периметр → погонные
+              метры. Разберём на примере 14 соток.
+            </p>
+            <div className="space-y-4 mb-6">
+              {SELF_CALC_STEPS.map((item) => (
+                <div key={item.step} className="card-modern p-5" data-testid="self-calc-step">
+                  <h3 className="font-semibold mb-1">
+                    {item.step}. {item.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed" data-testid="self-calc-summary">
+              Итого для 14 соток: от 150 м (квадрат ~37 × 37 м или пропорции 35 × 40 м)
+              до 180 м (вытянутый надел 20 × 70 м). Проверьте себя нашей таблицей выше —
+              строка «15 соток» близка к компактному варианту, «18 соток» — к вытянутому.
+              А точный периметр по фактическим границам зафиксирует бесплатный выезд
+              замерщика — закажите точный расчёт, это ни к чему не обязывает.
+            </p>
+          </div>
+        </section>
+
+        <section className="py-12 px-4 bg-secondary/30">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold mb-4">
+              Сколько будет стоить забор на N соток
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              Во сколько обойдётся забор на 6, 10, 14, 20, 21 сотке или 5 гектарах
+              под ключ: периметр из таблицы × цена за погонный метр по материалу.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border rounded-xl overflow-hidden bg-background" data-testid="cost-by-sotki-table">
+                <thead>
+                  <tr className="bg-secondary text-left">
+                    <th className="px-4 py-3 font-semibold">Участок</th>
+                    <th className="px-4 py-3 font-semibold">Забор, пог. м</th>
+                    <th className="px-4 py-3 font-semibold">Профнастил от</th>
+                    <th className="px-4 py-3 font-semibold">Евроштакетник от</th>
+                    <th className="px-4 py-3 font-semibold">Сетка-рабица от</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COST_BY_SOTKI.map((row) => (
+                    <tr key={row.sotki} className="border-t">
+                      <td className="px-4 py-3 font-medium whitespace-nowrap">{row.sotki}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{row.perimeterM} м</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-primary font-semibold">
+                        от {formatRub(row.perimeterM * RATE_PROFNASTIL)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        от {formatRub(row.perimeterM * RATE_EVROSHTAKETNIK)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        от {formatRub(row.perimeterM * RATE_RABICA)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Ориентир «под ключ» на 10.2026: высота 2 м, ровный рельеф, без ворот и
+              калитки. Строка «21 сотка» посчитана по пропорциям 30 × 70 м, «5 гектар» —
+              это 50 соток (50 × 100 м). Ворота и калитка добавляются в калькуляторе.
             </p>
           </div>
         </section>
