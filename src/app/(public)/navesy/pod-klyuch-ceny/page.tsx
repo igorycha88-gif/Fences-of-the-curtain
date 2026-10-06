@@ -238,7 +238,7 @@ export default function NavesyPodKlyuchCenyPage() {
             <div>
               <h2 className="text-xl font-bold mb-1">Нужен не навес, а тёплый гараж?</h2>
               <p className="text-sm text-muted-foreground">
-                Гараж из сэндвич-панелей под ключ — от 35 000 ₽/м², монтаж за 2–4 дня даже
+                Гараж из сэндвич-панелей под ключ — от 40 000 ₽/м², монтаж за 2–4 дня даже
                 зимой: размеры 3х6–6х6, ворота, фундамент.
               </p>
             </div>

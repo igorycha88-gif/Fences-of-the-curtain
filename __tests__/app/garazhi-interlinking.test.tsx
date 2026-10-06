@@ -68,7 +68,7 @@ describe('Инфраструктура посадочной гаражей: site
     expect(screen.getByRole('heading', { name: /Нужен не навес, а тёплый гараж\?/ })).toBeInTheDocument();
     const link = screen.getByRole('link', { name: /Цены на гаражи/ });
     expect(link.getAttribute('href')).toBe('/garazhi-iz-sendvich-panelej');
-    expect(screen.getAllByText(/35 000 ₽/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/40 000 ₽/).length).toBeGreaterThan(0);
   });
 
   it('«Навес на зиму от снега»: ссылка «тёплые гаражи из сэндвич-панелей»', async () => {

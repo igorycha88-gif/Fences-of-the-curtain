@@ -45,7 +45,7 @@ import {
 describe('/garazhi-iz-sendvich-panelej — посадочная «Гаражи из сэндвич-панелей» (ЧТЗ_SEO_Гаражи_Сэндвич_Панели)', () => {
   it('metadata: Title с ценой и размерами, canonical, robots index', () => {
     const title = (metadata.title as { absolute?: string })?.absolute ?? String(metadata.title);
-    expect(title).toBe('Гараж из сэндвич-панелей под ключ — цена от 35 000 ₽/м², размеры 3х6–6х6 | Москва и МО');
+    expect(title).toBe('Гараж из сэндвич-панелей под ключ — цена от 40 000 ₽/м², размеры 3х6–6х6 | Москва и МО');
     expect(metadata.alternates?.canonical).toBe('https://zabor-i-naves.ru/garazhi-iz-sendvich-panelej');
     expect((metadata as { robots?: { index: boolean } }).robots?.index).toBe(true);
   });
@@ -62,14 +62,14 @@ describe('/garazhi-iz-sendvich-panelej — посадочная «Гаражи �
     expect(screen.getByRole('heading', { name: /Частые вопросы про гаражи/ })).toBeInTheDocument();
   });
 
-  it('hero: цена от 35 000 ₽/м² + фото гаража с alt', () => {
+  it('hero: цена от 40 000 ₽/м² + фото гаража с alt', () => {
     render(<GarazhiSendvichPage />);
 
-    expect(screen.getByTestId('garage-rate')).toHaveTextContent('35 000');
+    expect(screen.getByTestId('garage-rate')).toHaveTextContent('40 000');
     expect(screen.getByAltText(/Гараж из сэндвич-панелей под ключ/)).toBeInTheDocument();
   });
 
-  it('таблица размеров: 5 строк, контрольные цены (3×6 = 630 000, 6×6 = 1 260 000)', () => {
+  it('таблица размеров: 5 строк, контрольные цены (3×6 = 720 000, 6×6 = 1 440 000)', () => {
     render(<GarazhiSendvichPage />);
 
     const table = screen.getByTestId('garage-sizes-table');
@@ -83,16 +83,18 @@ describe('/garazhi-iz-sendvich-panelej — посадочная «Гаражи �
     expect(table).toHaveTextContent('6 × 6 м');
     expect(table).toHaveTextContent('2 автомобиля');
 
-    expect(table).toHaveTextContent('630 000');
-    expect(table).toHaveTextContent('840 000');
-    expect(table).toHaveTextContent('1 260 000');
+    expect(table).toHaveTextContent('480 000');
+    expect(table).toHaveTextContent('720 000');
+    expect(table).toHaveTextContent('640 000');
+    expect(table).toHaveTextContent('960 000');
+    expect(table).toHaveTextContent('1 440 000');
   });
 
-  it('цены считаются от согласованной ставки 35 000 ₽/м²', () => {
-    expect(GARAGE_RATE_PER_SQM).toBe(35000);
-    expect(garagePriceFrom(18)).toBe(630000);
-    expect(garagePriceFrom(36)).toBe(1260000);
-    expect(garagePriceFrom(24)).toBe(840000);
+  it('цены считаются от согласованной ставки 40 000 ₽/м²', () => {
+    expect(GARAGE_RATE_PER_SQM).toBe(40000);
+    expect(garagePriceFrom(18)).toBe(720000);
+    expect(garagePriceFrom(36)).toBe(1440000);
+    expect(garagePriceFrom(24)).toBe(960000);
     GARAGE_SIZES.forEach((row) => {
       expect(row.sqm * GARAGE_RATE_PER_SQM).toBe(garagePriceFrom(row.sqm));
     });
@@ -123,7 +125,7 @@ describe('/garazhi-iz-sendvich-panelej — посадочная «Гаражи �
     const rows = table.querySelectorAll('tbody tr');
     expect(rows.length).toBe(GARAGE_COMPARE.length);
     expect(GARAGE_COMPARE.length).toBe(5);
-    expect(table).toHaveTextContent('от 35 000 ₽/м²');
+    expect(table).toHaveTextContent('от 40 000 ₽/м²');
     expect(table).toHaveTextContent('от 20 000 ₽/м²');
     expect(table).toHaveTextContent('от 60 000 ₽/м²');
   });
