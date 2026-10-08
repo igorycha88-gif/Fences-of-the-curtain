@@ -268,6 +268,31 @@ export default async function NavesyPodKlyuchPage() {
 
         <MontageInDayBanner mode="canopy" />
 
+        {/* ЧТЗ_SEO_расширение_Wordstat (TASK-FRT-005): кластер «навес из металлочерепицы» (1 109) */}
+        <section className="py-12 px-4" data-testid="metallocherepitsa-section">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold mb-6">Навес из металлочерепицы</h2>
+            <p className="text-muted-foreground leading-relaxed mb-4">
+              Металлочерепица — кровля «как у дома»: навес получается в стиле основного строения,
+              тише поликарбоната во время дождя и полностью затеняет. Дороже поликарбоната и
+              профлиста (от ~3 300 ₽/м² под ключ), монтируется на те же фермы — односкатные,
+              двускатные или арочные.
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              Чаще всего металлочерепицу берут на{' '}
+              <Link href="/navesy/dvuskatnye" className="text-primary font-medium hover:underline">
+                двускатные навесы
+              </Link>{' '}
+              — «домик» с черепицей рядом с домом выглядит единым ансамблем. Рассчитайте свой
+              вариант в{' '}
+              <Link href="/calculator/canopy" className="text-primary font-medium hover:underline">
+                калькуляторе навеса
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
+
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl font-bold mb-6">Что входит в цену «под ключ»</h2>

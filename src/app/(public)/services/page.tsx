@@ -40,6 +40,27 @@ const fenceServices = [
     description: 'Современный дизайн и высокая прочность. Идеальное решение для частных домов и коммерческих объектов.',
     features: ['Прочность', 'Дизайн', 'Надёжность'],
   },
+  {
+    title: 'Забор жалюзи',
+    slug: 'zabor-zhalyuzi',
+    description: 'Горизонтальные стальные ламели под углом: не парусит при ветре, приватный, двусторонний вид. От 4 500 ₽/м под ключ.',
+    features: ['Не парусит', 'Приватность', 'Премиум-вид'],
+  },
+  {
+    title: 'Забор под ключ',
+    slug: 'zabory-pod-klyuch',
+    description: 'Весь цикл одним подрядчиком: материалы, бетонирование столбов, монтаж за 1–3 дня и гарантия 1 год. От 2 600 ₽/м.',
+    features: ['Фикс-смета', 'Монтаж 1–3 дня', 'Гарантия 1 год'],
+  },
+];
+
+const gateServices = [
+  {
+    title: 'Откатные ворота',
+    slug: 'otkatnye-vorota',
+    description: 'Консольные ворота от 32 000 ₽ под ключ: каркас, балка с роликами, фундамент и монтаж за 1 день. С калиткой и автоматикой.',
+    features: ['Под ключ от 32 000 ₽', 'Монтаж 1 день', 'Автоматика'],
+  },
 ];
 
 const canopyServices = [
@@ -71,6 +92,14 @@ const advantages = [
 ];
 
 export const revalidate = 3600;
+
+/** Корневые посадочные (не в /services/*) — из ЧТЗ_SEO_расширение_Wordstat. */
+function serviceHref(slug: string): string {
+  if (slug === 'zabor-zhalyuzi' || slug === 'zabory-pod-klyuch' || slug === 'otkatnye-vorota') {
+    return `/${slug}`;
+  }
+  return `/services/${slug}`;
+}
 
 export default async function ServicesPage() {
   let servicePages: { slug: string }[] = [];
@@ -120,7 +149,7 @@ export default async function ServicesPage() {
                 <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
                   <div className="card-modern p-6 h-full hover-lift group">
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
-                      <Link href={`/services/${service.slug}`}>{service.title}</Link>
+                      <Link href={serviceHref(service.slug)}>{service.title}</Link>
                     </h3>
                     <p className="text-muted-foreground mb-4">{service.description}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
@@ -139,7 +168,56 @@ export default async function ServicesPage() {
                         Рассчитать стоимость
                       </Link>
                       <Link
-                        href={`/services/${service.slug}`}
+                        href={serviceHref(service.slug)}
+                        className="text-sm px-4 py-2 inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        Подробнее
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </AnimatedSection>
+              ))}
+            </div>
+
+            {/* ЧТЗ_SEO_расширение_Wordstat: блок «Ворота и калитки» (кластер 426 030 показов/мес) */}
+            <AnimatedSection animation="fade-in-up" className="mb-12">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-primary" />
+                </div>
+                <h2 className="text-3xl font-bold">Ворота и калитки</h2>
+              </div>
+              <p className="text-muted-foreground max-w-2xl">
+                Откатные и распашные ворота, калитки — изготовление и монтаж
+              </p>
+            </AnimatedSection>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-20">
+              {gateServices.map((service, index) => (
+                <AnimatedSection key={index} animation="fade-in-up" delay={index * 100}>
+                  <div className="card-modern p-6 h-full hover-lift group">
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                      <Link href={`/${service.slug}`}>{service.title}</Link>
+                    </h3>
+                    <p className="text-muted-foreground mb-4">{service.description}</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {service.features.map((feature, i) => (
+                        <span key={i} className="text-xs bg-secondary px-3 py-1 rounded-full">
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="pt-4 border-t border-border/50 flex gap-3">
+                      <Link
+                        href="/calculator/gates"
+                        className="btn-primary text-sm px-4 py-2 inline-flex items-center gap-2"
+                      >
+                        <Calculator className="w-4 h-4" />
+                        Рассчитать стоимость
+                      </Link>
+                      <Link
+                        href={`/${service.slug}`}
                         className="text-sm px-4 py-2 inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
                       >
                         Подробнее

@@ -325,6 +325,18 @@ function CityPage({
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
+                href="/zabory-pod-klyuch"
+                className="inline-flex items-center gap-2 text-primary hover:underline"
+              >
+                Забор под ключ — цены <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/otkatnye-vorota"
+                className="inline-flex items-center gap-2 text-primary hover:underline"
+              >
+                Откатные ворота под ключ <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
                 href="/navesy-pod-klyuch"
                 className="inline-flex items-center gap-2 text-primary hover:underline"
               >

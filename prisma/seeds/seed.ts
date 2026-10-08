@@ -710,6 +710,13 @@ async function main() {
   });
   console.log('[SEED] MeshType seeded successfully');
 
+  // ЧТЗ_SEO_расширение_Wordstat: статьи блога по кластерам Wordstat
+  const { seedSeoBlogPosts } = await import('./seoBlogPosts');
+  const blogStats = await seedSeoBlogPosts();
+  console.log(
+    `[SEED] SEO blog posts: created=${blogStats.created}, updated=${blogStats.updated}`
+  );
+
   console.log('Database seeded successfully!');
 }
 

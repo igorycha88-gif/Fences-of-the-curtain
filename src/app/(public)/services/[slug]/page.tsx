@@ -10,6 +10,14 @@ import { generateBreadcrumbJsonLd, generateServiceJsonLd } from '@/lib/seo/jsonl
 import { generatePageMetadata } from '@/lib/seo/metadata';
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import EvroshtaketnikPhotos from '@/components/seo/EvroshtaketnikPhotos';
+import {
+  SHAHMATKA_NOTE,
+  SHAHMATKA_VARIANTS,
+  SHTAKETNIK_NOTE,
+  SHTAKETNIK_PER_PIECE_PRICES,
+  PROFLIST_2000x1150_PRICES,
+  PROFLIST_SHEET_NOTE,
+} from '@/lib/landing/servicesSections';
 import { Calculator, ArrowRight } from 'lucide-react';
 
 export const revalidate = 3600;
@@ -157,6 +165,96 @@ export default async function ServicePage({ params }: ServicePageProps) {
         </section>
 
         {slug === 'zabor-iz-evroshtaketnika' && <EvroshtaketnikPhotos />}
+
+        {/* ЧТЗ_SEO_расширение_Wordstat (TASK-FRT-005): подкластер «шахматка» (4 937 показов/мес) */}
+        {slug === 'zabor-iz-evroshtaketnika' && (
+          <section className="py-12 px-4" data-testid="shahmatka-section">
+            <div className="container mx-auto max-w-4xl">
+              <h2 className="text-2xl font-bold mb-4">Забор шахматка из евроштакетника</h2>
+              <p className="text-muted-foreground leading-relaxed mb-6">{SHAHMATKA_NOTE}</p>
+              <div className="overflow-x-auto rounded-xl border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-semibold">Вариант монтажа</th>
+                      <th className="text-left p-4 font-semibold">Особенности</th>
+                      <th className="text-left p-4 font-semibold">Цена под ключ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SHAHMATKA_VARIANTS.map((row) => (
+                      <tr key={row.variant} className="border-t">
+                        <td className="p-4 font-medium">{row.variant}</td>
+                        <td className="p-4 text-muted-foreground">{row.detail}</td>
+                        <td className="p-4 font-bold text-primary">{row.price}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ЧТЗ_SEO_расширение_Wordstat (TASK-FRT-005): подкластер «штакетник цена за штуку» (3 686) */}
+        {slug === 'zabor-iz-evroshtaketnika' && (
+          <section className="py-12 px-4 bg-muted/30" data-testid="shtaketnik-price-section">
+            <div className="container mx-auto max-w-4xl">
+              <h2 className="text-2xl font-bold mb-4">Цена евроштакетника за штуку</h2>
+              <div className="overflow-x-auto rounded-xl border bg-background">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-semibold">Планка</th>
+                      <th className="text-left p-4 font-semibold">Цена</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SHTAKETNIK_PER_PIECE_PRICES.map((row) => (
+                      <tr key={row.size} className="border-t">
+                        <td className="p-4 font-medium">{row.size}</td>
+                        <td className="p-4 font-bold text-primary">{row.price}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-sm text-muted-foreground mt-4">{SHTAKETNIK_NOTE}</p>
+            </div>
+          </section>
+        )}
+
+        {/* ЧТЗ_SEO_расширение_Wordstat (TASK-FRT-005): подкластер «профлист 2000х1150 цена» (10 261) */}
+        {slug === 'zabor-iz-profnastila' && (
+          <section className="py-12 px-4" data-testid="proflist-price-section">
+            <div className="container mx-auto max-w-4xl">
+              <h2 className="text-2xl font-bold mb-4">Цена профлиста для забора за лист 2000×1150</h2>
+              <div className="overflow-x-auto rounded-xl border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-semibold">Марка и толщина</th>
+                      <th className="text-left p-4 font-semibold">Покрытие</th>
+                      <th className="text-left p-4 font-semibold">Цена за лист</th>
+                      <th className="text-left p-4 font-semibold">Цена за м²</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PROFLIST_2000x1150_PRICES.map((row) => (
+                      <tr key={`${row.mark}-${row.coating}`} className="border-t">
+                        <td className="p-4 font-medium">{row.mark}</td>
+                        <td className="p-4 text-muted-foreground">{row.coating}</td>
+                        <td className="p-4 font-bold text-primary">{row.pricePerSheet}</td>
+                        <td className="p-4 text-muted-foreground">{row.pricePerSqm}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-sm text-muted-foreground mt-4">{PROFLIST_SHEET_NOTE}</p>
+            </div>
+          </section>
+        )}
 
         {displayServices.length > 0 && (
           <section className="py-16 px-4 bg-secondary/30">

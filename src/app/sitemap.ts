@@ -108,6 +108,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // ЧТЗ_SEO_расширение_Wordstat: посадочные по кластерам Wordstat
+  const seoLandingPagesWordstat: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/otkatnye-vorota`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/zabor-zhalyuzi`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/zabory-pod-klyuch`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/navesy/arochnye`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/navesy/dvuskatnye`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+  ];
+
   let blogPages: MetadataRoute.Sitemap = [];
   let portfolioPages: MetadataRoute.Sitemap = [];
   let servicePagesSitemap: MetadataRoute.Sitemap = [];
@@ -164,6 +198,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...zaborNaSotkiPage,
     ...seoLandingPagesV5,
     ...garazhiSendvichPage,
+    ...seoLandingPagesWordstat,
     ...blogPages,
     ...portfolioPages,
     ...servicePagesSitemap,

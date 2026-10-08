@@ -31,6 +31,9 @@ export default function HomeFooter() {
               <li><Link href="/services/zabor-iz-evroshtaketnika" className="hover:text-primary transition-colors">Забор из евроштакетника</Link></li>
               <li><Link href="/services/zabor-iz-3d-panelej" className="hover:text-primary transition-colors">Забор из 3D-панелей</Link></li>
               <li><Link href="/services/zabor-iz-setki-rabitsy" className="hover:text-primary transition-colors">Забор из сетки-рабицы</Link></li>
+              <li><Link href="/zabor-zhalyuzi" className="hover:text-primary transition-colors">Забор жалюзи</Link></li>
+              <li><Link href="/zabory-pod-klyuch" className="hover:text-primary transition-colors">Забор под ключ</Link></li>
+              <li><Link href="/otkatnye-vorota" className="hover:text-primary transition-colors">Откатные ворота</Link></li>
             </ul>
           </div>
 
@@ -39,6 +42,8 @@ export default function HomeFooter() {
             <ul className="space-y-2 text-muted-foreground text-sm">
               <li><Link href="/services/naves-pod-mashinu" className="hover:text-primary transition-colors">Навес под машину</Link></li>
               <li><Link href="/services/naves-iz-polikarbonata" className="hover:text-primary transition-colors">Навес из поликарбоната</Link></li>
+              <li><Link href="/navesy/arochnye" className="hover:text-primary transition-colors">Арочный навес</Link></li>
+              <li><Link href="/navesy/dvuskatnye" className="hover:text-primary transition-colors">Двускатный навес</Link></li>
               <li><Link href="/calculator/fence" className="hover:text-primary transition-colors">Калькулятор забора</Link></li>
               <li><Link href="/calculator/canopy" className="hover:text-primary transition-colors">Калькулятор навеса</Link></li>
             </ul>
