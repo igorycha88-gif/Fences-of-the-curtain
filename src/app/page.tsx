@@ -23,6 +23,7 @@ import {
   DoorOpen,
   Warehouse,
   Ruler,
+  Building2,
 } from 'lucide-react';
 import { YandexReviews } from '@/components/reviews/YandexReviews';
 import { generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
@@ -115,6 +116,10 @@ export default async function HomePage() {
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 ml-2">
                   <Clock className="w-4 h-4" />
                   Монтаж забора за 1 день
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 ml-2">
+                  <Building2 className="w-4 h-4" />
+                  Работаем с юрлицами
                 </div>
               </AnimatedSection>
 
