@@ -45,7 +45,7 @@ import {
 describe('/garazhi-iz-sendvich-panelej — посадочная «Гаражи из сэндвич-панелей» (ЧТЗ_SEO_Гаражи_Сэндвич_Панели)', () => {
   it('metadata: Title с ценой и размерами, canonical, robots index', () => {
     const title = (metadata.title as { absolute?: string })?.absolute ?? String(metadata.title);
-    expect(title).toBe('Гараж из сэндвич-панелей под ключ — цена от 40 000 ₽/м², размеры 3х6–6х6 | Москва и МО');
+    expect(title).toBe('Гараж из сэндвич-панелей под ключ — от 40 000 ₽/м² | Москва и МО');
     expect(metadata.alternates?.canonical).toBe('https://zabor-i-naves.ru/garazhi-iz-sendvich-panelej');
     expect((metadata as { robots?: { index: boolean } }).robots?.index).toBe(true);
   });

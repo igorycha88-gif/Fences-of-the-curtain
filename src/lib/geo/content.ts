@@ -6,28 +6,86 @@ export interface FaqItem {
   answer: string;
 }
 
+/**
+ * Детерминированный индекс варианта по slug (ISR-safe: без Math.random()).
+ * Один и тот же город всегда получает один и тот же вариант текста.
+ */
+function cityVariantIndex(slug: string, variantCount: number): number {
+  let hash = 0;
+  for (let i = 0; i < slug.length; i++) {
+    hash = (hash * 31 + slug.charCodeAt(i)) >>> 0;
+  }
+  return hash % variantCount;
+}
+
+/** Первое шоссе из строки вида «Горьковское шоссе / шоссе Энтузиастов» */
+function firstHighway(highway: string): string {
+  return highway.split(' / ')[0];
+}
+
+/** Условия доставки по удалённости города от МКАД */
+function deliveryByDistance(distanceKm: number): { price: string; note: string } {
+  if (distanceKm <= 15) {
+    return {
+      price: 'включена',
+      note: `ближняя зона: ${distanceKm} км от МКАД`,
+    };
+  }
+  if (distanceKm <= 40) {
+    return {
+      price: 'от 1 500 ₽',
+      note: `${distanceKm} км от МКАД; при заказе от 20 м — бесплатно`,
+    };
+  }
+  return {
+    price: 'от 3 000 ₽',
+    note: `${distanceKm} км от МКАД; точную сумму назовёт замерщик`,
+  };
+}
+
 export function generateCityFaq(city: GeoCity): FaqItem[] {
+  // Вариативные формулировки (SEO-фикс по книгам: снижение схожести гео-страниц)
+  const priceVariant = cityVariantIndex(city.slug, 2);
   const base: FaqItem[] = [
-    {
-      question: `Сколько стоит забор из профнастила ${city.nameIn} за метр под ключ?`,
-      answer: `Забор из профнастила С8 высотой 2 метра «под ключ» (материал, столбы с бетонированием, лаги, монтаж) — от 2 600 ₽ за погонный метр. Точная цена зависит от высоты, толщины металла, количества ворот и калиток — рассчитайте её в калькуляторе забора за 30 секунд.`,
-    },
+    priceVariant === 0
+      ? {
+          question: `Сколько стоит забор из профнастила ${city.nameIn} за метр под ключ?`,
+          answer:
+            'Забор из профнастила С8 высотой 2 метра «под ключ» (материал, столбы с бетонированием, лаги, монтаж) — от 2 600 ₽ за погонный метр. Точная цена зависит от высоты, толщины металла, количества ворот и калиток — рассчитайте её в калькуляторе забора за 30 секунд.',
+        }
+      : {
+          question: `Какая цена забора под ключ ${city.nameIn} за погонный метр?`,
+          answer: `Профнастил С8 (h=2 м) со столбами, лагами и монтажом — от 2 600 ₽ за погонный метр. Считаем для всех районов${city.districts[0] ? `, включая ${city.districts[0]}` : ''}; точную смету под ваш участок покажет калькулятор за 30 секунд.`,
+        },
     {
       question: `Выезжаете ли вы в посёлки и СНТ вокруг ${city.nameIn.replace(/^в /, '')}?`,
       answer: `Да, мы работаем по всему городу и окрестным посёлкам: ${city.districts.slice(0, 5).join(', ')} и другим населённым пунктам района. Замер при заказе — бесплатно.`,
     },
-    {
-      question: `За сколько дней установите забор ${city.nameIn}?`,
-      answer: `Стандартный монтаж забора занимает от 1 дня (до 50 погонных метров). ${city.driveTime} — дорога бригады до объекта. Точный график фиксируем после бесплатного замера.`,
-    },
+    city.isDacha
+      ? {
+          question: `За сколько дней установите дачный забор для СНТ-участка ${city.nameIn}?`,
+          answer: `Монтаж забора для дачного или СНТ-участка — от 1 дня (до 50 погонных метров). ${city.driveTime} — дорога бригады до массива (${city.distanceKm} км от МКАД). График фиксируем после бесплатного замера.`,
+        }
+      : {
+          question: `За сколько дней установите забор ${city.nameIn}?`,
+          answer: `Стандартный монтаж забора занимает от 1 дня (до 50 погонных метров). ${city.driveTime} — дорога бригады до объекта (${city.distanceKm} км от МКАД по трассе «${firstHighway(city.highway)}»). Точный график фиксируем после бесплатного замера.`,
+        },
     {
       question: 'Работаете ли вы зимой?',
-      answer: 'Да, монтируем круглый год. Зимой действуют сезонные скидки на заборы и навесы, а сроки монтажа даже короче из-за меньшей загруженности. Бетонирование выполняется с противоморозными добавками по технологии.',
+      answer:
+        'Да, монтируем круглый год. Зимой действуют сезонные скидки на заборы и навесы, а сроки монтажа даже короче из-за меньшей загруженности. Бетонирование выполняется с противоморозными добавками по технологии.',
     },
-    {
-      question: `Сколько стоит навес для автомобиля ${city.nameIn}?`,
-      answer: `Стоимость навеса зависит от размеров, типа конструкции (односкатный, двускатный, арочный) и материала покрытия — поликарбонат или профлист. Рассчитайте точную цену под ваше авто в калькуляторе навеса: с монтажом, крепежом и доставкой.`,
-    },
+    cityVariantIndex(`${city.slug}-naves`, 2) === 0
+      ? {
+          question: `Сколько стоит навес для автомобиля ${city.nameIn}?`,
+          answer:
+            'Стоимость навеса зависит от размеров, типа конструкции (односкатный, двускатный, арочный) и материала покрытия — поликарбонат или профлист. Рассчитайте точную цену под ваше авто в калькуляторе навеса: с монтажом, крепежом и доставкой.',
+        }
+      : {
+          question: `Сколько стоит навес на машину ${city.nameIn} и сколько ждать монтаж?`,
+          answer:
+            'Цена зависит от площади и материала: типовая конструкция на одну машину из поликарбоната считается в калькуляторе навеса за минуту. Монтаж после замера — 1–2 дня, включая бетонирование опор и уборку после работ.',
+        },
   ];
 
   const extra: FaqItem[] = city.faqExtra.map((item) => ({
@@ -45,6 +103,7 @@ export interface PriceRow {
 }
 
 export function generateCityPriceTable(city: GeoCity): PriceRow[] {
+  const delivery = deliveryByDistance(city.distanceKm);
   return [
     {
       material: 'Забор из профнастила С8 (h=2 м)',
@@ -54,7 +113,9 @@ export function generateCityPriceTable(city: GeoCity): PriceRow[] {
     {
       material: 'Забор из евроштакетника',
       price: 'по расчёту',
-      note: `односторонний и «шахматка» — рассчитайте в калькуляторе с учётом вашего участка ${city.nameIn}`,
+      note: city.isDacha
+        ? `для дачных участков ${city.nameIn.replace(/^в /, '')}: односторонний и «шахматка»`
+        : `для городских участков и коттеджных посёлков ${city.nameIn.replace(/^в /, '')}: односторонний и «шахматка»`,
     },
     {
       material: 'Забор из 3D-панелей',
@@ -72,6 +133,11 @@ export function generateCityPriceTable(city: GeoCity): PriceRow[] {
       note: 'поликарбонат или профлист, расчёт в калькуляторе навеса',
     },
     {
+      material: 'Доставка материалов',
+      price: delivery.price,
+      note: delivery.note,
+    },
+    {
       material: 'Замер и консультация',
       price: 'бесплатно',
       note: 'при заказе услуги, выезд в удобное время',
@@ -79,13 +145,27 @@ export function generateCityPriceTable(city: GeoCity): PriceRow[] {
   ];
 }
 
+const CITY_TITLE_TAILS = [
+  ' — от 2 600 ₽/м под ключ',
+  ' — монтаж от 1 дня, замер бесплатно',
+  ' — цена метра под ключ, гарантия',
+] as const;
+
 export function generateCityTitle(city: GeoCity): string {
-  return `Заборы и навесы ${city.nameIn} — от 2 600 ₽/м под ключ`;
+  const tail = CITY_TITLE_TAILS[cityVariantIndex(city.slug, CITY_TITLE_TAILS.length)];
+  return `Заборы и навесы ${city.nameIn}${tail}`;
 }
 
 export function generateCityDescription(city: GeoCity): string {
-  const regionWord = city.direction === 'south' ? 'юга' : city.direction === 'east' ? 'востока' : 'юго-востока';
-  return `Заборы из профнастила и евроштакетника, навесы для авто ${city.nameIn} и районе (${regionWord} Подмосковья). Замер бесплатно, монтаж от 1 дня, гарантия по договору. Тел: ${BUSINESS_INFO.telephoneDisplay}`;
+  const variant = cityVariantIndex(`${city.slug}-desc`, 3);
+  if (variant === 1) {
+    return `Заборы и навесы для авто ${city.nameIn} (${firstHighway(city.highway)}): профнастил, евроштакетник. Замер бесплатно, монтаж от 1 дня. Тел: ${BUSINESS_INFO.telephoneDisplay}`;
+  }
+  if (variant === 2) {
+    return `Установка заборов и навесов ${city.nameIn} — ${city.driveTime}. Цена от 2 600 ₽/м под ключ, монтаж от 1 дня, гарантия 1 год. Тел: ${BUSINESS_INFO.telephoneDisplay}`;
+  }
+  const region = city.direction === 'south' ? 'юг' : city.direction === 'east' ? 'восток' : 'юго-восток';
+  return `Заборы и навесы для авто ${city.nameIn} (${region} Подмосковья): профнастил, евроштакетник. Замер бесплатно, монтаж от 1 дня, гарантия. Тел: ${BUSINESS_INFO.telephoneDisplay}`;
 }
 
 export function generateCityKeywords(city: GeoCity): string[] {
@@ -110,7 +190,8 @@ export function generateHubTitle(hub: GeoHub): string {
 }
 
 export function generateHubDescription(hub: GeoHub): string {
-  return `Установка заборов из профнастила, евроштакетника и навесов для авто ${hub.nameIn}: ${hub.highways.join(', ')}. Под ключ от 2 600 ₽/м, монтаж от 1 дня, гарантия. Тел: ${BUSINESS_INFO.telephoneDisplay}`;
+  const highways = hub.highways.slice(0, 2).join(', ');
+  return `Заборы и навесы ${hub.nameIn}: ${highways} и другие трассы. От 2 600 ₽/м, монтаж от 1 дня, гарантия. Тел: ${BUSINESS_INFO.telephoneDisplay}`;
 }
 
 export function generateNearbyCitiesLinks(city: GeoCity): GeoCity[] {

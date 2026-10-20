@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import logger from '@/lib/logger';
 import { normalizeImageUrl } from '@/lib/utils/imageUrl';
@@ -123,14 +124,16 @@ export default async function EvroshtaketnikPhotos() {
           {photos.map((photo, index) => (
             <figure key={photo.id} className="card-modern overflow-hidden hover-lift">
               <Link href={`/portfolio/${photo.id}`} className="block group">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.url}
-                  alt={`${SEO_ALT_PREFIX}: ${PHOTO_CAPTIONS[index % PHOTO_CAPTIONS.length].toLowerCase()} — ${photo.title}`}
-                  loading="lazy"
-                  className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-300"
-                  data-testid="evroshtaketnik-photo"
-                />
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <Image
+                    src={photo.url}
+                    alt={`${SEO_ALT_PREFIX}: ${PHOTO_CAPTIONS[index % PHOTO_CAPTIONS.length].toLowerCase()} — ${photo.title}`}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    data-testid="evroshtaketnik-photo"
+                  />
+                </div>
                 <figcaption className="p-4">
                   <span className="font-semibold group-hover:text-primary transition-colors">
                     {PHOTO_CAPTIONS[index % PHOTO_CAPTIONS.length]}

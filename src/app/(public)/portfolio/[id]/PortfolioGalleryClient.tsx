@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { ImageOff, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getThumbnailUrl, normalizeImageUrl } from '@/lib/utils/imageUrl';
 
@@ -15,6 +16,7 @@ export default function PortfolioGalleryClient({
 }: PortfolioGalleryClientProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [thumbErrors, setThumbErrors] = useState<Set<number>>(new Set());
 
   if (images.length === 0) {
     return (
@@ -37,7 +39,7 @@ export default function PortfolioGalleryClient({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="portfolio-gallery">
       <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gradient-to-br from-slate-200 to-slate-300">
         {imageErrors.has(currentUrl) ? (
           <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
@@ -45,10 +47,13 @@ export default function PortfolioGalleryClient({
             <span className="text-sm">Фото не загружено</span>
           </div>
         ) : (
-          <img
+          <Image
             src={currentUrl}
-            alt={`${title} — фото ${currentIndex + 1}`}
-            className="w-full h-full object-cover"
+            alt={`${title} — выполненный объект, фото ${currentIndex + 1} из ${images.length}`}
+            fill
+            priority={currentIndex === 0}
+            sizes="(max-width: 768px) 100vw, 800px"
+            className="object-cover"
             onError={() =>
               setImageErrors((prev) => new Set(prev).add(currentUrl))
             }
@@ -59,19 +64,19 @@ export default function PortfolioGalleryClient({
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors z-10"
               aria-label="Предыдущее фото"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors z-10"
               aria-label="Следующее фото"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10">
               {currentIndex + 1} / {images.length}
             </div>
           </>
@@ -81,25 +86,28 @@ export default function PortfolioGalleryClient({
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {images.map((img, idx) => {
-            const thumbUrl = getThumbnailUrl(img);
+            const thumbUrl = thumbErrors.has(idx)
+              ? normalizeImageUrl(img)
+              : getThumbnailUrl(img) || normalizeImageUrl(img);
             return (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors relative ${
                   idx === currentIndex
                     ? 'border-primary'
                     : 'border-transparent hover:border-gray-300'
                 }`}
               >
-                <img
-                  src={thumbUrl || normalizeImageUrl(img)}
-                  alt={`${title} — миниатюра ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = normalizeImageUrl(img);
-                  }}
+                <Image
+                  src={thumbUrl}
+                  alt={`${title} — открыть фото объекта ${idx + 1}`}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                  onError={() =>
+                    setThumbErrors((prev) => new Set(prev).add(idx))
+                  }
                 />
               </button>
             );

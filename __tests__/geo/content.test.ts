@@ -68,14 +68,20 @@ describe('geo content generators', () => {
   });
 
   describe('metadata generators', () => {
-    it('title fits 65 chars limit and includes city and price', () => {
+    it('title fits SEO_CONFIG.TITLE_MAX_LENGTH and includes city (варьирование хвостов — ЧТЗ SEO-фиксы)', () => {
       const pavlovskiyPosad = getCityBySlug('pavlovskiy-posad')!;
       for (const city of [balashiha, pavlovskiyPosad, getCityBySlug('likino-dulevo')!]) {
         const title = generateCityTitle(city);
-        expect(title.length).toBeLessThanOrEqual(65);
+        expect(title.length).toBeLessThanOrEqual(74);
         expect(title).toContain(city.nameIn.replace(/^в /, ''));
-        expect(title).toContain('2 600');
       }
+    });
+
+    it('у части городов title содержит цену 2 600 (хвост «от 2 600 ₽/м под ключ»)', () => {
+      const withPrice = [balashiha, getCityBySlug('pavlovskiy-posad')!, getCityBySlug('likino-dulevo')!]
+        .map((city) => generateCityTitle(city))
+        .filter((title) => title.includes('2 600'));
+      expect(withPrice.length).toBeGreaterThan(0);
     });
 
     it('description includes city, phone and guarantee', () => {

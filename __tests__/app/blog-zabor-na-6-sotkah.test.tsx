@@ -41,7 +41,7 @@ import BlogListPage from '@/app/(public)/blog/page';
 describe('/blog/zabor-na-6-sotkah — статья-хаб «Забор на 6 сотках» (ЧТЗ v5 TASK-ZN-05)', () => {
   it('metadata: Title из ЧТЗ (absolute), canonical', () => {
     const title = (metadata.title as { absolute?: string })?.absolute ?? String(metadata.title);
-    expect(title).toBe('Забор на 6 сотках: сколько метров, сколько стоит, материалы — полный гид 2026');
+    expect(title).toBe('Забор на 6 сотках: сколько метров и стоит — гид 2026');
     expect(metadata.alternates?.canonical).toBe('https://zabor-i-naves.ru/blog/zabor-na-6-sotkah');
     expect((metadata.robots as any)?.index).toBe(true);
   });

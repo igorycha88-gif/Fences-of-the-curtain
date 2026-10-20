@@ -9,11 +9,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SEO_CONFIG.BASE_URL;
-  const currentDate = new Date().toISOString().split('T')[0];
+  // Честный lastmod: фиксированная дата последнего контентного релиза.
+  // Фиктивная «сегодняшняя» дата обесценивает lastmod для поисковиков (SEO-фикс по книгам).
+  const contentLastModified = SEO_CONFIG.CONTENT_LAST_UPDATED;
 
   const staticPages: MetadataRoute.Sitemap = SITEMAP_CONFIG.pages.map((page) => ({
     url: `${baseUrl}${page.path}`,
-    lastModified: currentDate,
+    lastModified: contentLastModified,
     changeFrequency: page.changefreq,
     priority: page.priority,
   }));
@@ -21,19 +23,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const geoPages: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/zabory-navesy`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     },
     ...GEO_HUBS.map((hub) => ({
       url: `${baseUrl}/zabory-navesy/${hub.slug}`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     })),
     ...GEO_CITIES.map((city) => ({
       url: `${baseUrl}/zabory-navesy/${city.slug}`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: city.wave === 1 ? 0.8 : 0.7,
     })),
@@ -42,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const navesyPodKlyuchPage: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/navesy-pod-klyuch`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
@@ -50,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const navesySizePages: MetadataRoute.Sitemap = NAVESY_SIZES.map((size) => ({
     url: `${baseUrl}/navesy/${size.slug}`,
-    lastModified: currentDate,
+    lastModified: contentLastModified,
     changeFrequency: 'monthly' as const,
     priority: 0.8,
   }));
@@ -58,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const zaborNaSotkiPage: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/calc/zabor-na-sotki`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
@@ -68,31 +70,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const seoLandingPagesV5: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/navesy/na-zimu-ot-snega`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/navesy/pod-klyuch-ceny`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/skolko-pogonnyh-metrov-v-sotkah`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/skolko-stoit-zabor-sravnenie`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/blog/zabor-na-6-sotkah`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     },
@@ -102,7 +104,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const garazhiSendvichPage: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/garazhi-iz-sendvich-panelej`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
@@ -112,31 +114,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const seoLandingPagesWordstat: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/otkatnye-vorota`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/zabor-zhalyuzi`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/zabory-pod-klyuch`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/navesy/arochnye`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/navesy/dvuskatnye`,
-      lastModified: currentDate,
+      lastModified: contentLastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },

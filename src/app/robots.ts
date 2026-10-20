@@ -8,12 +8,13 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: 'Yandex',
         allow: '/',
-        disallow: ['/admin', '/api/auth', '/api/admin', '/api/analytics'],
+        // /api целиком: API-эндпоинты не должны индексироваться (SEO-фикс по книгам)
+        disallow: ['/admin', '/api'],
       },
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api/auth', '/api/admin', '/api/analytics'],
+        disallow: ['/admin', '/api'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

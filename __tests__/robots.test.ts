@@ -19,15 +19,13 @@ describe('robots', () => {
     expect(agents).toContain('*');
   });
 
-  it('should disallow admin and private API paths', async () => {
+  it('should disallow admin and the whole /api (SEO-фикс по книгам: API не индексируется)', async () => {
     const robotsModule = await import('../src/app/robots');
     const result = await robotsModule.default();
 
     result.rules.forEach((rule: any) => {
       expect(rule.disallow).toContain('/admin');
-      expect(rule.disallow).toContain('/api/auth');
-      expect(rule.disallow).toContain('/api/admin');
-      expect(rule.disallow).toContain('/api/analytics');
+      expect(rule.disallow).toContain('/api');
       expect(rule.allow).toContain('/');
     });
   });
