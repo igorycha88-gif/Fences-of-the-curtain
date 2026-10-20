@@ -11,14 +11,14 @@ export default function GarageBanner() {
 
   return (
     <>
-      <section className="py-20 px-4 bg-secondary/30 relative overflow-hidden">
+      <section id="garage" className="py-12 md:py-20 px-4 bg-secondary/30 relative overflow-hidden scroll-mt-24">
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
         <div className="container mx-auto relative z-10">
           <div className="glass card-modern rounded-2xl overflow-hidden max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-0">
-              <div className="relative h-64 md:h-auto md:min-h-[420px]">
+              <div className="relative h-56 sm:h-64 md:h-auto md:min-h-[420px]">
                 <Image
                   src="/images/garage-sandwich.jpg"
                   alt="Гараж из сендвич-панелей под ключ"
@@ -36,7 +36,7 @@ export default function GarageBanner() {
                 </div>
               </div>
 
-              <div className="p-8 md:p-10 flex flex-col justify-center">
+              <div className="p-5 sm:p-8 md:p-10 flex flex-col justify-center">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                     <Warehouse className="w-5 h-5 text-primary" />
@@ -44,43 +44,43 @@ export default function GarageBanner() {
                   <span className="text-sm font-medium text-muted-foreground">Гаражи под ключ</span>
                 </div>
 
-                <h2 className="text-3xl md:text-4xl font-bold mb-3">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
                   Гараж из сендвич-панелей
                 </h2>
 
-                <p className="text-muted-foreground mb-6 leading-relaxed">
+                <p className="text-muted-foreground text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed">
                   Надёжный утеплённый гараж из сендвич-панелей с воротами и фундаментом. 
                   Быстрое возведение, энергоэффективность и долговечность.
                 </p>
 
-                <div className="mb-6">
-                  <span className="text-3xl md:text-4xl font-bold text-primary">Индивидуальный расчёт</span>
+                <div className="mb-5 sm:mb-6">
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">Индивидуальный расчёт</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6 sm:mb-8">
                   {[
                     { icon: Shield, label: 'Гарантия' },
                     { icon: Thermometer, label: 'Утепление' },
                     { icon: Truck, label: 'Под ключ' },
                   ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Icon className="w-4 h-4 text-primary" />
+                    <div key={label} className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                      <Icon className="w-4 h-4 flex-shrink-0 text-primary" />
                       <span>{label}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
                   <button
                     onClick={() => setModalOpen(true)}
-                    className="btn-primary inline-flex items-center justify-center gap-2 text-base px-6 py-3.5 w-fit"
+                    className="btn-primary inline-flex items-center justify-center gap-2 text-base px-6 py-3.5 w-full sm:w-fit"
                   >
                     Оставить заявку
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <Link
                     href="/garazhi-iz-sendvich-panelej"
-                    className="inline-flex items-center justify-center gap-2 border border-primary/30 text-primary px-6 py-3.5 rounded-xl font-semibold hover:bg-primary/5 transition-colors text-base w-fit"
+                    className="inline-flex items-center justify-center gap-2 border border-primary/30 text-primary px-6 py-3.5 rounded-xl font-semibold hover:bg-primary/5 transition-colors text-base w-full sm:w-fit"
                   >
                     Цены и размеры
                     <ArrowRight className="w-4 h-4" />

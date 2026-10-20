@@ -4,6 +4,7 @@ import HomeFooter from '@/components/layout/HomeFooter';
 import HeroCallButton from '@/components/layout/HeroCallButton';
 import GarageBanner from '@/components/garage/GarageBanner';
 import { PromotionBanner } from '@/components/promotions/PromotionBanner';
+import CalcTypesGrid from '@/components/home/CalcTypesGrid';
 import {
   AnimatedSection,
 } from '@/hooks/useScrollReveal';
@@ -20,7 +21,6 @@ import {
   Award,
   Users,
   CheckCircle2,
-  DoorOpen,
   Warehouse,
   Ruler,
   Building2,
@@ -136,41 +136,21 @@ export default async function HomePage() {
                   типовой забор монтируем за 1 день
                 </p>
               </AnimatedSection>
+            </div>
 
-              <AnimatedSection animation="scale-in" delay={300}>
-                <div className="flex flex-col items-center gap-4">
-                  <HeroCallButton />
-                  <Link
-                    href="/calculator/fence"
-                    className="btn-primary inline-flex items-center justify-center gap-2 text-lg px-10 py-4"
-                  >
-                    <Calculator className="w-5 h-5" />
-                    Рассчитать забор
-                    <ArrowRight className="w-5 h-5" />
-                  </Link>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Link
-                      href="/calculator/gates"
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20 text-foreground font-medium hover:bg-primary hover:text-white hover:border-primary hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                    >
-                      <DoorOpen className="w-4 h-4" />
-                      Ворота и калитка
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      href="/calculator/canopy"
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/60 backdrop-blur-sm border border-primary/20 text-foreground font-medium hover:bg-primary hover:text-white hover:border-primary hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                    >
-                      <Warehouse className="w-4 h-4" />
-                      Навес
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </div>
-              </AnimatedSection>
+            <AnimatedSection animation="fade-in-up" delay={300} className="max-w-5xl mx-auto mt-4 w-full">
+              <div className="flex justify-center mb-4">
+                <HeroCallButton />
+              </div>
+              <div className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Рассчитать онлайн
+              </div>
+              <CalcTypesGrid />
+            </AnimatedSection>
 
+            <div className="max-w-4xl mx-auto text-center">
               <AnimatedSection animation="fade-in" delay={500}>
-                <div className="flex items-center justify-center mt-12 text-muted-foreground">
+                <div className="flex items-center justify-center mt-10 text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-primary" />
                     <span>Гарантия качества</span>

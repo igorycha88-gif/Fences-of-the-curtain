@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Редизайн кнопок расчёта на главной — 5 макетов · Заборы и Навесы</title>
+<style>
+  :root{
+    --primary:#F97316; --primary-600:#EA580C; --primary-100:#FFEDD5; --primary-50:#FFF7ED;
+    --bg:#F5F7FA; --fg:#181B1F; --muted:#6B7280; --border:#E2E6EC; --card:#fff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#E9EDF2;color:var(--fg);-webkit-font-smoothing:antialiased;padding:40px 24px 60px}
+  .wrap{max-width:1180px;margin:0 auto}
+  .kicker{color:var(--primary-600);font-weight:700;font-size:13px;letter-spacing:.8px;text-transform:uppercase}
+  h1{font-size:32px;font-weight:800;margin:8px 0 10px;letter-spacing:-.01em}
+  .lead{color:var(--muted);line-height:1.6;max-width:820px}
+  .lead b{color:var(--fg)}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:28px}
+  .m-card{background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px;transition:transform .2s,border-color .2s,box-shadow .2s}
+  .m-card:hover{transform:translateY(-4px);border-color:var(--primary);box-shadow:0 16px 32px -18px rgba(249,115,22,.35)}
+  .m-num{display:flex;align-items:center;gap:10px}
+  .m-num .n{width:34px;height:34px;border-radius:10px;background:var(--primary-100);color:var(--primary-600);font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;flex:none}
+  .m-num h2{font-size:17.5px;font-weight:800;line-height:1.25}
+  .m-num .tag{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--primary-600);background:var(--primary-50);border:1px solid #FED7AA;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .m-card p{font-size:13px;color:var(--muted);line-height:1.55}
+  .m-desc-d,.m-desc-m{font-size:12.5px;line-height:1.5;display:flex;gap:8px;align-items:flex-start}
+  .m-desc-d b,.m-desc-m b{flex:none;font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px;margin-top:1px}
+  .m-desc-d b{background:#E3E9F0;color:#3F4B59}
+  .m-desc-m b{background:var(--primary-100);color:var(--primary-600)}
+  .open{margin-top:auto;display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;padding:11px 18px;border-radius:11px;text-decoration:none;align-self:flex-start;transition:background .2s}
+  .open:hover{background:var(--primary-600)}
+  .open::after{content:"→"}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;margin-top:36px;background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;font-size:13px}
+  th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);line-height:1.45}
+  th{background:var(--bg);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:#57606D}
+  tr:last-child td{border-bottom:none}
+  td .plus{color:#16a34a;font-weight:700}td .minus{color:#dc2626;font-weight:700}
+
+  .rec{margin-top:28px;background:linear-gradient(140deg,#FFF7ED,#FFEDD5);border:1.5px solid #FED7AA;border-radius:16px;padding:22px 24px}
+  .rec h3{font-size:16px;font-weight:800;margin-bottom:8px;color:#9A3412}
+  .rec ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .rec li{font-size:13.5px;line-height:1.55;color:#7C2D12;padding-left:20px;position:relative}
+  .rec li::before{content:"✓";position:absolute;left:0;font-weight:800;color:var(--primary-600)}
+  .note{margin-top:20px;font-size:12px;color:#8A94A2;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Макеты · октябрь 2026</div>
+  <h1>Редизайн блока «Рассчитать» на главной — 5 концептов</h1>
+  <p class="lead">
+    Задача: заменить разрозненные кнопки в hero на единый блок из <b>5 типов расчёта — забор, навес, ворота, калитка + новый «Гараж»</b>.
+    В каждом макете — <b>отдельно десктопная (1280px) и отдельно мобильная (390px)</b> версии.
+    Цены в макетах — плейсхолдеры «от …», перед реализацией сверить с актуальным прайсом.
+  </p>
+
+  <div class="cards">
+    <a class="m-card" href="maket-1-kartochki-v-ryad.html">
+      <div class="m-num"><span class="n">1</span><h2>Карточки в один ряд</h2><span class="tag">идея заказчика</span></div>
+      <p>5 равных карточек с иконкой, ценой и CTA. Ровный ряд на десктопе, список строк на мобильном.</p>
+      <div class="m-desc-d"><b>DESK</b>5 карточек в ряд, hover-подъём, бейдж «Новый» у гаража</div>
+      <div class="m-desc-m"><b>MOB</b>вертикальный список, тап-зоны 66px, иконки слева</div>
+      <span class="open">Открыть макет 1</span>
+    </a>
+
+    <a class="m-card" href="maket-2-bento-garazh.html">
+      <div class="m-num"><span class="n">2</span><h2>Bento-сетка: гараж-герой</h2><span class="tag">акцент на новое</span></div>
+      <p>Большая градиентная карточка «Гараж» + сетка 2×2 остальных. Продвигает новую услугу.</p>
+      <div class="m-desc-d"><b>DESK</b>гараж слева на 2 строки, 4 карточки справа 2×2</div>
+      <div class="m-desc-m"><b>MOB</b>гараж-баннер сверху, ниже компактная сетка 2×2</div>
+      <span class="open">Открыть макет 2</span>
+    </a>
+
+    <a class="m-card" href="maket-3-taby.html">
+      <div class="m-num"><span class="n">3</span><h2>Табы-переключатель</h2><span class="tag">компакт</span></div>
+      <p>Все 5 калькуляторов в одной панели с вкладками и мини-формой расчёта прямо в hero.</p>
+      <div class="m-desc-d"><b>DESK</b>сегментированные вкладки + форма + превью цены</div>
+      <div class="m-desc-m"><b>MOB</b>чипы с горизонтальным скроллом (scroll-snap)</div>
+      <span class="open">Открыть макет 3</span>
+    </a>
+
+    <a class="m-card" href="maket-4-pilyuli.html">
+      <div class="m-num"><span class="n">4</span><h2>Компактные пилюли</h2><span class="tag">минимализм</span></div>
+      <p>Главная CTA «Рассчитать забор» сохраняется, остальные 4 типа — пилюли с иконками. Минимум изменений текущей вёрстки.</p>
+      <div class="m-desc-d"><b>DESK</b>большая кнопка + звонок, под ними ряд из 4 пилюль</div>
+      <div class="m-desc-m"><b>MOB</b>2 большие кнопки + сетка пилюль 2×2, гараж — акцент</div>
+      <span class="open">Открыть макет 4</span>
+    </a>
+
+    <a class="m-card" href="maket-5-vizualnye-kartochki.html">
+      <div class="m-num"><span class="n">5</span><h2>Каталог-карточки с визуалом</h2><span class="tag">макс. продающий</span></div>
+      <p>Витрина услуг: визуальная шапка, бейдж цены, CTA. На моб — свайп-карусель. Позже SVG → фото работ.</p>
+      <div class="m-desc-d"><b>DESK</b>5 карточек в ряд с шапками-визуалами и ценами</div>
+      <div class="m-desc-m"><b>MOB</b>горизонтальная карусель scroll-snap + точки</div>
+      <span class="open">Открыть макет 5</span>
+    </a>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Концепт</th><th>Десктоп</th><th>Мобильная</th><th>Плюсы</th><th>Минусы</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><b>1. Карточки в ряд</b></td><td>5 равных карточек</td><td>Список строк</td><td><span class="plus">+</span> всё видно сразу; масштабируемо; в стиле сайта</td><td><span class="minus">−</span> забор теряет акцент главной CTA</td></tr>
+      <tr><td><b>2. Bento</b></td><td>Гараж 2×1 + 2×2</td><td>Баннер + сетка 2×2</td><td><span class="plus">+</span> продвигает гараж; иерархия</td><td><span class="minus">−</span> акцент уходит с забора</td></tr>
+      <tr><td><b>3. Табы</b></td><td>Панель с вкладками</td><td>Чипы-скролл + форма</td><td><span class="plus">+</span> компактно; форма сразу в hero</td><td><span class="minus">−</span> 4 типа «спрятаны»; нужен JS</td></tr>
+      <tr><td><b>4. Пилюли</b></td><td>CTA + 4 пилюли</td><td>CTA + сетка 2×2</td><td><span class="plus">+</span> минимум изменений; лёгкий hero</td><td><span class="minus">−</span> слабая заметность вторых типов</td></tr>
+      <tr><td><b>5. Каталог</b></td><td>5 карточек с визуалом</td><td>Свайп-карусель</td><td><span class="plus">+</span> самый продающий; цены на виду</td><td><span class="minus">−</span> тяжёлый блок (LCP); часть скрыта на моб</td></tr>
+    </tbody>
+  </table>
+
+  <div class="rec">
+    <h3>Рекомендация аналитика</h3>
+    <ul>
+      <li><b>Базовый выбор — Концепт 1</b>: прямое попадание в запрос, все 5 расчётов на виду, единый паттерн «карточка», лёгкое расширение до 6-го типа.</li>
+      <li>Если цель квартала — продажи гаражей, берите <b>Концепт 2</b> (гараж-герой); после раскрутки услуги можно вернуться к Концепту 1.</li>
+      <li><b>Комбинированный вариант</b> (Концепт 1 + 4): над сеткой карточек сохранить большую кнопку «Рассчитать забор» — акцент на главном продукте сохраняется, а карточки дают доступ ко всем расчётам.</li>
+      <li>«Калитка» ведёт в существующий калькулятор <code>/calculator/gates</code> (ворота и калитки общий) — либо отдельным якорем, либо в будущем отдельный калькулятор.</li>
+      <li>Кнопка «Гараж» до создания калькулятора ведёт на страницу <code>/garazhi-iz-sendvich-panelej</code> с формой «Рассчитать гараж».</li>
+    </ul>
+  </div>
+
+  <p class="note">Макеты статические, без внешних зависимостей — открываются в любом браузере офлайн. Реализация на Next.js — отдельной задачей по выбранному концепту.</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Макет 5 — Каталог-карточки с визуалом · Редизайн кнопок расчёта</title>
+<style>
+  :root{
+    --primary:#F97316; --primary-600:#EA580C; --primary-100:#FFEDD5; --primary-50:#FFF7ED;
+    --bg:#F5F7FA; --fg:#181B1F; --muted:#6B7280; --border:#E2E6EC; --card:#fff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#E9EDF2;color:var(--fg);-webkit-font-smoothing:antialiased}
+  .ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+  .doc-head{max-width:1340px;margin:0 auto;padding:40px 24px 8px}
+  .doc-kicker{color:var(--primary-600);font-weight:700;font-size:13px;letter-spacing:.8px;text-transform:uppercase}
+  .doc-head h1{font-size:30px;font-weight:800;margin:6px 0 10px}
+  .doc-head p{color:var(--muted);max-width:880px;line-height:1.55}
+  .doc-pros{display:flex;gap:24px;flex-wrap:wrap;margin-top:14px;font-size:13.5px}
+  .doc-pros div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 16px;max-width:420px}
+  .doc-pros b.plus{color:#16a34a}.doc-pros b.minus{color:#dc2626}
+  .doc-section{max-width:1340px;margin:28px auto;padding:0 24px}
+  .doc-section h2{font-size:15px;font-weight:700;color:#475467;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+
+  .artboard{background:var(--bg);border:1px solid #D3DAE3;border-radius:18px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(24,27,31,.35)}
+  .artboard-desktop{width:1280px;max-width:100%;margin:0 auto}
+  .artboard-mobile{width:390px;margin:0 auto}
+
+  .site-head{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;background:rgba(255,255,255,.85);border-bottom:1px solid var(--border)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}
+  .logo-mark{width:34px;height:34px;border-radius:10px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center}
+  .logo-mark .ic{width:19px;height:19px}
+  .site-nav{display:flex;gap:22px;font-size:13.5px;color:#3D4650}
+  .site-phone{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}
+  .site-phone .ic{width:16px;height:16px;color:var(--primary)}
+
+  .hero{position:relative;padding:56px 40px 30px;text-align:center;overflow:hidden;
+    background:radial-gradient(600px 300px at 15% 0%,rgba(249,115,22,.07),transparent 60%),
+               radial-gradient(700px 350px at 85% 100%,rgba(249,115,22,.05),transparent 60%)}
+  .badges{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;background:rgba(249,115,22,.1);color:var(--primary-600);font-size:12.5px;font-weight:600}
+  .badge .ic{width:13px;height:13px}
+  .hero h1{font-size:38px;line-height:1.12;font-weight:800;letter-spacing:-.02em}
+  .hero h1 span{display:block;background:linear-gradient(135deg,#F97316,#FB923C);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:4px}
+  .hero .sub{color:var(--muted);font-size:15.5px;max-width:580px;margin:12px auto 0;line-height:1.5}
+
+  .cat-head{display:flex;align-items:flex-end;justify-content:space-between;max-width:1140px;margin:34px auto 14px;text-align:left}
+  .cat-head h2{font-size:21px;font-weight:800}
+  .cat-head .hint{font-size:12.5px;color:var(--muted)}
+
+  /* ── КОНЦЕПТ: каталог-карточки (десктоп) ── */
+  .cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;max-width:1140px;margin:0 auto}
+  .cat-card{display:flex;flex-direction:column;background:var(--card);border:1.5px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:transform .25s,box-shadow .25s,border-color .25s;text-align:left}
+  .cat-card:hover{transform:translateY(-6px);border-color:var(--primary);box-shadow:0 18px 36px -16px rgba(249,115,22,.35)}
+  .cat-vis{position:relative;height:104px;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,#F1F4F8,#E7EBF1);overflow:hidden}
+  .cat-vis .ic{width:56px;height:56px;color:#8B98A8;stroke-width:1.2}
+  .cat-vis::after{content:"";position:absolute;inset:0;background:radial-gradient(120px 70px at 50% 110%,rgba(249,115,22,.14),transparent 70%)}
+  .cat-card.garage .cat-vis{background:linear-gradient(150deg,#FDBA74,#F97316 70%)}
+  .cat-card.garage .cat-vis .ic{color:rgba(255,255,255,.9)}
+  .cat-price{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.92);border:1px solid var(--border);font-size:10.5px;font-weight:700;color:var(--fg);padding:4px 9px;border-radius:999px;z-index:1}
+  .cat-card.garage .cat-price{background:rgba(255,255,255,.95)}
+  .cat-new{position:absolute;top:10px;right:10px;background:var(--fg);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.4px;padding:4px 9px;border-radius:999px;z-index:1}
+  .cat-body{padding:15px 15px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+  .cat-title{font-size:16.5px;font-weight:800}
+  .cat-desc{font-size:11.5px;color:var(--muted);line-height:1.45}
+  .cat-cta{margin-top:auto;padding-top:12px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--primary-600)}
+  .cat-cta .ic{width:14px;height:14px;transition:transform .25s}
+  .cat-card:hover .cat-cta .ic{transform:translateX(4px)}
+
+  .rest{padding:26px 40px 30px;text-align:center;color:#A6AFBB;font-size:12.5px;letter-spacing:.6px}
+  .rest::before{content:"···";display:block;font-size:22px;letter-spacing:8px;margin-bottom:4px;color:#C3CAD4}
+
+  /* ── мобильная ── */
+  .m-site-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,255,255,.9);border-bottom:1px solid var(--border)}
+  .m-site-head .logo{font-size:14.5px}
+  .m-site-head .logo-mark{width:30px;height:30px}
+  .m-head-ico{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:#475467}
+  .m-head-ico .ic{width:18px;height:18px}
+  .m-hero{padding:32px 0 34px;background:radial-gradient(420px 210px at 50% 0%,rgba(249,115,22,.08),transparent 70%)}
+  .m-hero .m-pad{padding:0 18px}
+  .m-hero .badges{margin-bottom:12px;gap:6px}
+  .m-hero .badge{font-size:11px;padding:6px 11px}
+  .m-hero h1{font-size:24px;line-height:1.18;font-weight:800;text-align:center}
+  .m-hero h1 span{display:block;background:linear-gradient(135deg,#F97316,#FB923C);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:3px}
+  .m-hero .sub{color:var(--muted);font-size:13px;margin:10px auto 0;line-height:1.5;text-align:center;max-width:300px}
+
+  .m-cat-head{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px}
+  .m-cat-head .t{font-size:16px;font-weight:800;padding-left:18px}
+  .m-swipe{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--primary-600);padding-right:18px}
+  .m-swipe .ic{width:13px;height:13px}
+
+  /* карусель */
+  .carousel{display:flex;gap:12px;overflow-x:auto;padding:4px 18px 6px;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .carousel::-webkit-scrollbar{display:none}
+  .m-cat-card{flex:0 0 228px;scroll-snap-align:start;display:flex;flex-direction:column;background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer}
+  .m-cat-card .cat-vis{height:96px}
+  .m-cat-card .cat-vis .ic{width:52px;height:52px}
+  .m-cat-card.garage .cat-vis{background:linear-gradient(150deg,#FDBA74,#F97316 70%)}
+  .m-cat-card.garage .cat-vis .ic{color:rgba(255,255,255,.9)}
+  .m-cat-body{padding:12px 13px 13px;display:flex;flex-direction:column;gap:3px;flex:1}
+  .m-cat-t{font-size:15px;font-weight:800;display:flex;align-items:center;gap:7px}
+  .m-cat-t .cat-new{position:static}
+  .m-cat-d{font-size:11px;color:var(--muted);line-height:1.45}
+  .m-cat-cta{margin-top:auto;padding-top:9px;display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--primary-600)}
+  .m-cat-cta .ic{width:13px;height:13px}
+
+  .dots{display:flex;justify-content:center;gap:6px;margin-top:14px}
+  .dot{width:7px;height:7px;border-radius:999px;background:#C9D1DB}
+  .dot.on{background:var(--primary);width:20px}
+
+  .m-rest{padding:18px 18px 26px;text-align:center;color:#B4BCC7;font-size:11.5px;letter-spacing:.5px}
+  .m-rest::before{content:"···";display:block;font-size:20px;letter-spacing:7px;margin-bottom:3px;color:#CBD2DB}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-fence" viewBox="0 0 24 24"><path d="M5 21V8l2.5-3L10 8v13"/><path d="M14 21V8l2.5-3L19 8v13"/><path d="M3 12h18"/><path d="M3 16.5h18"/></symbol>
+  <symbol id="i-canopy" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7"/><path d="M6 10v9"/><path d="M18 10v9"/><path d="M3 19h18"/></symbol>
+  <symbol id="i-gate" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M21 5v14"/><path d="M5 6h6v12H5z"/><path d="M13 6h6v12h-6z"/><path d="M8 9.5v5"/><path d="M16 9.5v5"/></symbol>
+  <symbol id="i-wicket" viewBox="0 0 24 24"><path d="M7.5 21V9L12 5.5 16.5 9v12"/><path d="M7.5 13h9"/><path d="M7.5 17h9"/><circle cx="14" cy="15" r=".8"/></symbol>
+  <symbol id="i-garage" viewBox="0 0 24 24"><path d="M3 21V9.5L12 4l9 5.5V21"/><path d="M3 21h18"/><path d="M7 21v-7.5h10V21"/><path d="M7 16h10"/><path d="M7 18.5h10"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></symbol>
+</svg>
+
+<header class="doc-head">
+  <div class="doc-kicker">Концепт 5</div>
+  <h1>«Каталог-карточки с визуалом» — витрина услуг с ценами, на мобильном — карусель</h1>
+  <p>Каждый тип расчёта — карточка-витрина с визуальной шапкой, бейджем цены «от …», названием и CTA. Гараж выделен оранжевым градиентом и тёмным бейджем «Новый». На десктопе — 5 карточек в ряд (ваша идея, но с более «продающим» видом), на мобильном — нативная горизонтальная карусель со scroll-snap, точками-индикаторами и подсказкой «листайте». В дальнейшем визуал-заглушки заменяются реальными фото работ.</p>
+  <div class="doc-pros">
+    <div><b class="plus">+</b> самый «продающий» вид: цена и картинка сразу</div>
+    <div><b class="plus">+</b> легко заменить SVG-заглушки на фото реальных работ</div>
+    <div><b class="plus">+</b> на моб — карусель экономит экран, свайп привычен</div>
+    <div><b class="minus">−</b> самый «тяжёлый» блок (фото/градиенты) — выше LCP</div>
+    <div><b class="minus">−</b> часть карточек на моб скрыта за прокруткой (лечится точками и подсказкой)</div>
+  </div>
+</header>
+
+<main>
+  <section class="doc-section">
+    <h2>🖥 Десктоп · 1280px</h2>
+    <div class="artboard artboard-desktop">
+      <header class="site-head">
+        <div class="logo"><span class="logo-mark"><svg class="ic"><use href="#i-fence"/></svg></span>Заборы и Навесы</div>
+        <nav class="site-nav"><span>Главная</span><span>Заборы</span><span>Навесы</span><span>Ворота</span><span>Калькулятор</span><span>Портфолио</span><span>О нас</span></nav>
+        <a class="site-phone"><svg class="ic"><use href="#i-phone"/></svg>+7 (499) 390-15-95</a>
+      </header>
+
+      <section class="hero">
+        <div class="badges">
+          <span class="badge"><svg class="ic"><use href="#i-zap"/></svg>Онлайн расчёт за 30 секунд</span>
+          <span class="badge"><svg class="ic"><use href="#i-clock"/></svg>Монтаж за 1 день</span>
+        </div>
+        <h1>Забор из профнастила<span>и навесы под ключ</span></h1>
+        <p class="sub">Рассчитайте стоимость онлайн — честная цена без скрытых платежей</p>
+
+        <div class="cat-head">
+          <h2>Что рассчитать?</h2>
+          <span class="hint">Цены — «от», точную смету даст калькулятор</span>
+        </div>
+        <div class="cat-grid">
+          <div class="cat-card">
+            <div class="cat-vis"><span class="cat-price">от 1 890 ₽/м.п.</span><svg class="ic"><use href="#i-fence"/></svg></div>
+            <div class="cat-body">
+              <div class="cat-title">Забор</div>
+              <div class="cat-desc">Профнастил, евроштакетник, рабица, 3D-панели</div>
+              <div class="cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-vis"><span class="cat-price">от 2 600 ₽/м²</span><svg class="ic"><use href="#i-canopy"/></svg></div>
+            <div class="cat-body">
+              <div class="cat-title">Навес</div>
+              <div class="cat-desc">Для авто, террасы, из поликарбоната и черепицы</div>
+              <div class="cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-vis"><span class="cat-price">от 45 000 ₽</span><svg class="ic"><use href="#i-gate"/></svg></div>
+            <div class="cat-body">
+              <div class="cat-title">Ворота</div>
+              <div class="cat-desc">Откатные и распашные, с автоматикой</div>
+              <div class="cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-vis"><span class="cat-price">от 18 000 ₽</span><svg class="ic"><use href="#i-wicket"/></svg></div>
+            <div class="cat-body">
+              <div class="cat-title">Калитка</div>
+              <div class="cat-desc">Взаборная или отдельная, с замком и домофоном</div>
+              <div class="cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="cat-card garage">
+            <div class="cat-vis"><span class="cat-price">от 295 000 ₽</span><span class="cat-new">Новый</span><svg class="ic"><use href="#i-garage"/></svg></div>
+            <div class="cat-body">
+              <div class="cat-title">Гараж</div>
+              <div class="cat-desc">Из сендвич-панелей, с воротами и фундаментом</div>
+              <div class="cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="rest">остальной контент главной страницы</div>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>📱 Мобильная · 390px · горизонтальная карусель (scroll-snap)</h2>
+    <div class="artboard artboard-mobile">
+      <header class="m-site-head">
+        <div class="m-head-ico"><svg class="ic"><use href="#i-menu"/></svg></div>
+        <div class="logo"><span class="logo-mark"><svg class="ic"><use href="#i-fence"/></svg></span>Заборы и Навесы</div>
+        <div class="m-head-ico"><svg class="ic"><use href="#i-phone"/></svg></div>
+      </header>
+
+      <section class="m-hero">
+        <div class="m-pad">
+          <div class="badges">
+            <span class="badge"><svg class="ic"><use href="#i-zap"/></svg>Расчёт за 30 сек</span>
+            <span class="badge"><svg class="ic"><use href="#i-clock"/></svg>Монтаж за 1 день</span>
+          </div>
+          <h1>Забор из профнастила<span>и навесы под ключ</span></h1>
+          <p class="sub">Честная цена без скрытых платежей — расчёт онлайн</p>
+        </div>
+
+        <div class="m-cat-head">
+          <span class="t">Что рассчитать?</span>
+          <span class="m-swipe">листайте<svg class="ic"><use href="#i-arrow"/></svg></span>
+        </div>
+
+        <div class="carousel">
+          <div class="m-cat-card">
+            <div class="cat-vis"><span class="cat-price">от 1 890 ₽/м.п.</span><svg class="ic"><use href="#i-fence"/></svg></div>
+            <div class="m-cat-body">
+              <div class="m-cat-t">Забор</div>
+              <div class="m-cat-d">Профнастил, штакетник, рабица</div>
+              <div class="m-cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="m-cat-card">
+            <div class="cat-vis"><span class="cat-price">от 2 600 ₽/м²</span><svg class="ic"><use href="#i-canopy"/></svg></div>
+            <div class="m-cat-body">
+              <div class="m-cat-t">Навес</div>
+              <div class="m-cat-d">Для авто и террасы</div>
+              <div class="m-cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="m-cat-card">
+            <div class="cat-vis"><span class="cat-price">от 45 000 ₽</span><svg class="ic"><use href="#i-gate"/></svg></div>
+            <div class="m-cat-body">
+              <div class="m-cat-t">Ворота</div>
+              <div class="m-cat-d">Откатные и распашные</div>
+              <div class="m-cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="m-cat-card">
+            <div class="cat-vis"><span class="cat-price">от 18 000 ₽</span><svg class="ic"><use href="#i-wicket"/></svg></div>
+            <div class="m-cat-body">
+              <div class="m-cat-t">Калитка</div>
+              <div class="m-cat-d">С замком и домофоном</div>
+              <div class="m-cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="m-cat-card garage">
+            <div class="cat-vis"><span class="cat-price">от 295 000 ₽</span><svg class="ic"><use href="#i-garage"/></svg></div>
+            <div class="m-cat-body">
+              <div class="m-cat-t">Гараж<span class="cat-new">Новый</span></div>
+              <div class="m-cat-d">Сендвич-панели под ключ</div>
+              <div class="m-cat-cta">Рассчитать<svg class="ic"><use href="#i-arrow"/></svg></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      </section>
+
+      <div class="m-rest">остальной контент главной</div>
+    </div>
+  </section>
+</main>
+
+</body>
+</html>
