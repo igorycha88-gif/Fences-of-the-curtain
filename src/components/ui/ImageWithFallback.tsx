@@ -12,6 +12,7 @@ interface ImageWithFallbackProps {
   height?: number;
   className?: string;
   priority?: boolean;
+  sizes?: string;
 }
 
 export default function ImageWithFallback({
@@ -22,6 +23,7 @@ export default function ImageWithFallback({
   height,
   className = '',
   priority = false,
+  sizes,
 }: ImageWithFallbackProps) {
   const [error, setError] = useState(false);
 
@@ -42,6 +44,7 @@ export default function ImageWithFallback({
         fill
         className={className}
         priority={priority}
+        sizes={sizes}
         onError={() => setError(true)}
       />
     );
@@ -55,6 +58,7 @@ export default function ImageWithFallback({
       height={height || 600}
       className={className}
       priority={priority}
+      sizes={sizes}
       onError={() => setError(true)}
     />
   );
