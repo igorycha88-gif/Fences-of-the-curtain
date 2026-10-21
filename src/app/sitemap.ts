@@ -166,7 +166,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }),
       prisma.portfolioItem.findMany({
         where: { active: true },
-        select: { id: true, updatedAt: true },
+        select: { id: true, slug: true, updatedAt: true },
       }),
       prisma.pageContent.findMany({
         where: { isActive: true },
@@ -182,7 +182,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     portfolioPages = portfolioItems.map((item) => ({
-      url: `${baseUrl}/portfolio/${item.id}`,
+      // ЧТЗ SEO P1 2.5: slug-URL вместо UUID (фолбэк на id до бэкфилла)
+      url: `${baseUrl}/portfolio/${item.slug || item.id}`,
       lastModified: item.updatedAt.toISOString().split('T')[0],
       changeFrequency: 'monthly' as const,
       priority: 0.5,

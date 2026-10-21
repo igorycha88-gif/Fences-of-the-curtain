@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
+import { portfolioHref } from '@/lib/seo/portfolioUrl';
 import logger from '@/lib/logger';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -60,12 +61,12 @@ export default async function NavesySizePage({ params }: NavesySizePageProps) {
     notFound();
   }
 
-  let canopyPortfolio: { id: string; title: string }[] = [];
+  let canopyPortfolio: { id: string; slug: string | null; title: string }[] = [];
 
   try {
     canopyPortfolio = await prisma.portfolioItem.findMany({
       where: { active: true, category: 'canopy' },
-      select: { id: true, title: true },
+      select: { id: true, slug: true, title: true },
       orderBy: { updatedAt: 'desc' },
       take: 6,
     });
@@ -276,7 +277,7 @@ function SizePage({
                 {canopyPortfolio.map((item) => (
                   <Link
                     key={item.id}
-                    href={`/portfolio/${item.id}`}
+                    href={portfolioHref(item)}
                     className="card-modern p-4 hover-lift group"
                   >
                     <h3 className="font-semibold group-hover:text-primary transition-colors">

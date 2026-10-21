@@ -4,19 +4,30 @@ import { SEO_CONFIG } from '@/lib/seo/constants';
 import { generateBreadcrumbJsonLd } from '@/lib/seo/jsonld';
 import JsonLdScript from '@/components/seo/JsonLdScript';
 
+const PORTFOLIO_SELECT = {
+  title: true,
+  images: true,
+} as const;
+
 export default async function PortfolioDetailLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
 
-  const item = await prisma.portfolioItem.findUnique({
-    where: { id },
-    select: { title: true, images: true },
-  });
+  // ЧТЗ SEO P1 2.5: двойной lookup — slug-URL и legacy cuid-URL
+  const item =
+    (await prisma.portfolioItem.findUnique({
+      where: { slug },
+      select: PORTFOLIO_SELECT,
+    })) ??
+    (await prisma.portfolioItem.findUnique({
+      where: { id: slug },
+      select: PORTFOLIO_SELECT,
+    }));
 
   const breadcrumbJsonLd = generateBreadcrumbJsonLd([
     { name: 'Главная', url: '/' },

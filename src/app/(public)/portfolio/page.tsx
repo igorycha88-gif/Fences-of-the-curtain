@@ -8,9 +8,12 @@ export const revalidate = 300;
 
 interface PortfolioItem {
   id: string;
+  slug?: string;
   title: string;
   category: string;
   type?: string;
+  fenceType?: string;
+  city?: string;
   description?: string;
   images: string[];
 }
@@ -21,9 +24,12 @@ async function getPortfolioItems(): Promise<PortfolioItem[]> {
       where: { active: true },
       select: {
         id: true,
+        slug: true,
         title: true,
         category: true,
         type: true,
+        fenceType: true,
+        city: true,
         description: true,
         images: true,
       },
@@ -31,7 +37,10 @@ async function getPortfolioItems(): Promise<PortfolioItem[]> {
     });
     return items.map((item) => ({
       ...item,
+      slug: item.slug ?? undefined,
       type: item.type ?? undefined,
+      fenceType: item.fenceType ?? undefined,
+      city: item.city ?? undefined,
       description: item.description ?? undefined,
       images: item.images as string[],
     }));

@@ -7,12 +7,13 @@ import { getThumbnailUrl, normalizeImageUrl } from '@/lib/utils/imageUrl';
 
 interface PortfolioGalleryClientProps {
   images: string[];
-  title: string;
+  /** ЧТЗ SEO P2 3.1: база alt-текста по шаблону «{title} — {тип} в {город} | Заборы и Навесы» */
+  altBase: string;
 }
 
 export default function PortfolioGalleryClient({
   images,
-  title,
+  altBase,
 }: PortfolioGalleryClientProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
@@ -49,7 +50,7 @@ export default function PortfolioGalleryClient({
         ) : (
           <Image
             src={currentUrl}
-            alt={`${title} — выполненный объект, фото ${currentIndex + 1} из ${images.length}`}
+            alt={`${altBase} — выполненный объект, фото ${currentIndex + 1} из ${images.length}`}
             fill
             priority={currentIndex === 0}
             sizes="(max-width: 768px) 100vw, 800px"
@@ -101,7 +102,7 @@ export default function PortfolioGalleryClient({
               >
                 <Image
                   src={thumbUrl}
-                  alt={`${title} — открыть фото объекта ${idx + 1}`}
+                  alt={`${altBase}, фото объекта ${idx + 1}`}
                   fill
                   sizes="80px"
                   className="object-cover"

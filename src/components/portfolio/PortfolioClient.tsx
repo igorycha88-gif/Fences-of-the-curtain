@@ -5,15 +5,19 @@ import Link from 'next/link';
 import { Filter, ImageOff } from 'lucide-react';
 import ImageWithFallback from '@/components/ui/ImageWithFallback';
 import { getThumbnailUrl } from '@/lib/utils/imageUrl';
+import { portfolioHref, buildPortfolioImageAlt } from '@/lib/seo/portfolioUrl';
 import { useAnalytics } from '@/lib/hooks/useAnalytics';
 import { EVENT_NAMES } from '@/types/analytics';
 import { metrikaEvents } from '@/lib/seo/metrika';
 
 interface PortfolioItem {
   id: string;
+  slug?: string;
   title: string;
   category: string;
   type?: string;
+  fenceType?: string;
+  city?: string;
   description?: string;
   images: string[];
 }
@@ -67,7 +71,7 @@ export default function PortfolioClient({ items }: PortfolioClientProps) {
           return (
             <Link
               key={item.id}
-              href={`/portfolio/${item.id}`}
+              href={portfolioHref(item)}
               className="block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border"
               onClick={() => {
                 trackEvent(EVENT_NAMES.PORTFOLIO_ITEM_CLICK, {
@@ -82,7 +86,7 @@ export default function PortfolioClient({ items }: PortfolioClientProps) {
                 {thumbnailUrl ? (
                   <ImageWithFallback
                     src={thumbnailUrl}
-                    alt={item.title}
+                    alt={buildPortfolioImageAlt(item)}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="object-cover"

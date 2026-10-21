@@ -93,7 +93,8 @@ export default function ZaborNaSotkiPage() {
     'Таблица цен под ключ по соткам: периметр участка, профнастил, евроштакетник, рабица. Формула расчёта периметра и калькулятор.',
     '/calc/zabor-na-sotki',
     undefined,
-    undefined,
+    // ЧТЗ SEO P1 2.4: дата первой публикации страницы (git: 2026-09-06), не дата рендера
+    '2026-09-06',
     SEO_CONFIG.CONTENT_LAST_UPDATED
   );
 

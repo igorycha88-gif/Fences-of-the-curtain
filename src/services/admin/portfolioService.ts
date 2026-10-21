@@ -7,8 +7,38 @@ import {
   ReorderRequest 
 } from '@/lib/validators/portfolio';
 import { deleteImage } from '@/lib/utils/fileUpload';
+import { slugify } from '@/lib/utils/slugify';
+import logger from '@/lib/logger';
 
 export class PortfolioService {
+  /**
+   * ЧТЗ SEO P1 2.5: уникальный slug из названия (с суффиксом -2, -3 при коллизиях).
+   * Существующий slug не меняется — стабильность URL для SEO.
+   * Cap 100 итераций — защита от бесконечного цикла.
+   */
+  private async generateUniqueSlug(title: string, base?: string): Promise<string> {
+    const baseSlug = base || slugify(title);
+    let candidate = baseSlug;
+
+    for (let suffix = 2; suffix < 100; suffix++) {
+      const existing = await prisma.portfolioItem.findUnique({
+        where: { slug: candidate },
+        select: { id: true },
+      });
+      if (!existing) {
+        return candidate;
+      }
+      candidate = `${baseSlug}-${suffix}`;
+    }
+
+    logger.warn('Portfolio slug collision cap reached, using timestamp fallback', {
+      module: 'portfolio-service',
+      operation: 'generateUniqueSlug',
+      baseSlug,
+    });
+    return `${baseSlug}-${Date.now()}`;
+  }
+
   async getAll(params: PortfolioListParams) {
     const { page = 1, pageSize = 20, search, category, active } = params;
     const skip = (page - 1) * pageSize;
@@ -60,11 +90,21 @@ export class PortfolioService {
       _max: { sortOrder: true },
     });
 
+    const slug = await this.generateUniqueSlug(data.title, data.slug);
+
     const item = await prisma.portfolioItem.create({
       data: {
         ...data,
+        slug,
         sortOrder: (maxSortOrder._max.sortOrder || 0) + 1,
       },
+    });
+
+    logger.info('Portfolio item created with slug', {
+      module: 'portfolio-service',
+      operation: 'create',
+      itemId: item.id,
+      slug: item.slug,
     });
 
     await this.logAction(item.id, 'CREATE', null, item, userId);
@@ -89,9 +129,18 @@ export class PortfolioService {
       }
     }
 
+    // ЧТЗ SEO P1 2.5: slug меняется только при явной передаче (стабильность URL)
+    let slugUpdate: string | undefined;
+    if (data.slug && data.slug !== oldItem.slug) {
+      slugUpdate = await this.generateUniqueSlug(data.title ?? oldItem.title, data.slug);
+    }
+
     const item = await prisma.portfolioItem.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        ...(slugUpdate ? { slug: slugUpdate } : { slug: undefined }),
+      },
     });
 
     await this.logAction(id, 'UPDATE', oldItem, item, userId);
@@ -204,9 +253,12 @@ export class PortfolioService {
       where,
       select: {
         id: true,
+        slug: true,
         title: true,
         category: true,
         type: true,
+        fenceType: true,
+        city: true,
         description: true,
         images: true,
         active: true,

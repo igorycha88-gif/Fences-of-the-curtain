@@ -13,9 +13,29 @@ describe('sitemap', () => {
     expect(paths).toContain('/calculator');
     expect(paths).toContain('/calculator/fence');
     expect(paths).toContain('/calculator/canopy');
+    expect(paths).toContain('/calculator/gates');
     expect(paths).toContain('/portfolio');
     expect(paths).toContain('/contacts');
     expect(paths).toContain('/faq');
+  });
+
+  it('should include /calculator/gates (ЧТЗ SEO P0 1.2)', async () => {
+    const sitemapModule = await import('../src/app/sitemap');
+    const result = await sitemapModule.default();
+    const gatesPage = result.find((item: any) => item.url === 'https://zabor-i-naves.ru/calculator/gates');
+
+    expect(gatesPage).toBeDefined();
+    expect(gatesPage?.priority).toBe(0.9);
+    expect(gatesPage?.changeFrequency).toBe('weekly');
+  });
+
+  it('should have /about priority 0.7 (ЧТЗ SEO P2 3.3, E-E-A-T)', async () => {
+    const sitemapModule = await import('../src/app/sitemap');
+    const result = await sitemapModule.default();
+    const aboutPage = result.find((item: any) => item.url === 'https://zabor-i-naves.ru/about');
+
+    expect(aboutPage).toBeDefined();
+    expect(aboutPage?.priority).toBe(0.7);
   });
 
   it('should have correct sitemap structure', async () => {

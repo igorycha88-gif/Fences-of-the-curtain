@@ -23,6 +23,9 @@ export const BUSINESS_INFO = {
     locality: 'Москва',
     region: 'Московская область',
     country: 'Россия',
+    // ЧТЗ SEO P1 2.3: полный адрес для LocalBusiness (Google Maps, панель знаний Яндекса)
+    streetAddress: 'КП «Гжельские узоры», Раменский муниципальный округ',
+    postalCode: '140155',
   },
   geo: {
     latitude: 55.7558,
@@ -34,8 +37,10 @@ export const BUSINESS_INFO = {
     closes: '18:00',
   },
   priceRange: '₽₽',
+  // ЧТЗ SEO P1 2.2: NAP-консистентность — Яндекс.Карты + Авито (ссылка с проекта)
   sameAs: [
     'https://yandex.ru/maps/org/154197841574/',
+    'https://www.avito.ru',
   ],
   areaServedCities: [
     'Москва',
@@ -336,12 +341,15 @@ export const SITEMAP_CONFIG = {
     { path: '/', priority: 1.0, changefreq: 'weekly' as const },
     { path: '/services', priority: 0.8, changefreq: 'monthly' as const },
     { path: '/calculator', priority: 0.9, changefreq: 'weekly' as const },
+    // ЧТЗ SEO P0 1.2: страница существовала, но отсутствовала в sitemap
+    { path: '/calculator/gates', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/calculator/fence', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/calculator/canopy', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/portfolio', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/contacts', priority: 0.9, changefreq: 'monthly' as const },
     { path: '/blog', priority: 0.7, changefreq: 'weekly' as const },
-    { path: '/about', priority: 0.6, changefreq: 'monthly' as const },
+    // ЧТЗ SEO P2 3.3: E-E-A-T-сигнал (реквизиты) — приоритет повышен с 0.6
+    { path: '/about', priority: 0.7, changefreq: 'monthly' as const },
     { path: '/faq', priority: 0.5, changefreq: 'monthly' as const },
     { path: '/rekvizity', priority: 0.3, changefreq: 'yearly' as const },
   ],

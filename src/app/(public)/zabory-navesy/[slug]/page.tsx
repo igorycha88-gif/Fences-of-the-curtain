@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import logger from '@/lib/logger';
+import { portfolioHref } from '@/lib/seo/portfolioUrl';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
@@ -98,6 +99,7 @@ export default async function GeoPage({ params }: GeoPageProps) {
 
   let portfolioItems: {
     id: string;
+    slug: string | null;
     title: string;
     category: string;
     images: unknown;
@@ -106,7 +108,7 @@ export default async function GeoPage({ params }: GeoPageProps) {
   try {
     portfolioItems = await prisma.portfolioItem.findMany({
       where: { active: true },
-      select: { id: true, title: true, category: true, images: true },
+      select: { id: true, slug: true, title: true, category: true, images: true },
       orderBy: { updatedAt: 'desc' },
       take: 6,
     });
@@ -127,7 +129,7 @@ function CityPage({
   portfolioItems,
 }: {
   city: GeoCity;
-  portfolioItems: { id: string; title: string; category: string; images: unknown }[];
+  portfolioItems: { id: string; slug: string | null; title: string; category: string; images: unknown }[];
 }) {
   const faq = generateCityFaq(city);
   const prices = generateCityPriceTable(city);
@@ -403,7 +405,7 @@ function CityPage({
                 {portfolioItems.map((item) => (
                   <Link
                     key={item.id}
-                    href={`/portfolio/${item.id}`}
+                    href={portfolioHref(item)}
                     className="card-modern p-4 hover-lift group"
                   >
                     <h3 className="font-semibold group-hover:text-primary transition-colors">

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { prisma } from '@/lib/prisma';
 import logger from '@/lib/logger';
 import { normalizeImageUrl } from '@/lib/utils/imageUrl';
+import { portfolioHref } from '@/lib/seo/portfolioUrl';
 
 /**
  * Фото-блок «Евроштакетник шахматкой с планкой» (ЧТЗ v6 TASK-ZN-2):
@@ -22,6 +23,7 @@ const SEO_ALT_PREFIX = 'Забор из евроштакетника шахма�
 
 interface PortfolioPhoto {
   id: string;
+  slug: string | null;
   title: string;
   url: string;
 }
@@ -46,7 +48,7 @@ export default async function EvroshtaketnikPhotos() {
           { title: { contains: 'Евроштакет' } },
         ],
       },
-      select: { id: true, title: true, images: true },
+      select: { id: true, slug: true, title: true, images: true },
       orderBy: { sortOrder: 'asc' },
       take: 5,
     });
@@ -54,7 +56,7 @@ export default async function EvroshtaketnikPhotos() {
     photos = evroshtaketnikItems
       .map((item) => {
         const url = firstImageUrl(item.images);
-        return url ? { id: item.id, title: item.title, url } : null;
+        return url ? { id: item.id, slug: item.slug, title: item.title, url } : null;
       })
       .filter((item): item is PortfolioPhoto => item !== null);
 
@@ -70,7 +72,7 @@ export default async function EvroshtaketnikPhotos() {
             ],
           },
         },
-        select: { id: true, title: true, images: true },
+        select: { id: true, slug: true, title: true, images: true },
         orderBy: { sortOrder: 'asc' },
         take: 5 - photos.length,
       });
@@ -79,7 +81,7 @@ export default async function EvroshtaketnikPhotos() {
         fenceItems
           .map((item) => {
             const url = firstImageUrl(item.images);
-            return url ? { id: item.id, title: item.title, url } : null;
+            return url ? { id: item.id, slug: item.slug, title: item.title, url } : null;
           })
           .filter((item): item is PortfolioPhoto => item !== null)
       );
@@ -123,7 +125,7 @@ export default async function EvroshtaketnikPhotos() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {photos.map((photo, index) => (
             <figure key={photo.id} className="card-modern overflow-hidden hover-lift">
-              <Link href={`/portfolio/${photo.id}`} className="block group">
+              <Link href={portfolioHref(photo)} className="block group">
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <Image
                     src={photo.url}

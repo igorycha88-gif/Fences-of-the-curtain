@@ -1,26 +1,44 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { ImageOff, ChevronLeft, ChevronRight, Phone } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
-import { getThumbnailUrl, normalizeImageUrl } from '@/lib/utils/imageUrl';
+import { isLegacyPortfolioId, portfolioHref } from '@/lib/seo/portfolioUrl';
+import { buildPortfolioImageAlt } from '@/lib/seo/portfolioAlt';
 import PortfolioGalleryClient from './PortfolioGalleryClient';
 import PhoneLinkButton from './PhoneLinkButton';
 
 export const revalidate = 3600;
 
+/**
+ * ЧТЗ SEO P1 2.5: детальная страница портфолио по slug-URL.
+ * Старые UUID/cuid-URL (/portfolio/cm...) получают 308-редирект на slug-URL.
+ */
 export default async function PortfolioDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
 
-  const item = await prisma.portfolioItem.findUnique({
-    where: { id },
-  });
+  let item;
+  if (isLegacyPortfolioId(slug)) {
+    item = await prisma.portfolioItem.findUnique({
+      where: { id: slug },
+    });
+    if (!item) {
+      notFound();
+    }
+    // 308 на slug-URL; элемент без slug (до бэкфилла) рендерим как есть
+    if (item.slug) {
+      permanentRedirect(portfolioHref(item));
+    }
+  } else {
+    item = await prisma.portfolioItem.findUnique({
+      where: { slug },
+    });
+  }
 
   if (!item || !item.active) {
     notFound();
@@ -29,6 +47,7 @@ export default async function PortfolioDetailPage({
   const images = (item.images as string[]) || [];
   const categoryLabel = item.category === 'fence' ? 'Забор' : item.category === 'canopy' ? 'Навес' : 'Гараж';
   const categoryHref = item.category === 'fence' ? 'fence' : item.category === 'canopy' ? 'canopy' : null;
+  const altBase = buildPortfolioImageAlt(item);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -44,7 +63,7 @@ export default async function PortfolioDetailPage({
 
         <div className="max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-10">
-            <PortfolioGalleryClient images={images} title={item.title} />
+            <PortfolioGalleryClient images={images} altBase={altBase} />
 
             <div>
               <div className="mb-4">

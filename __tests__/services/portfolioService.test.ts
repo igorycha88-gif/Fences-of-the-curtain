@@ -128,6 +128,69 @@ describe('PortfolioService', () => {
         })
       );
     });
+
+    it('should generate unique slug from title (ЧТЗ SEO P1 2.5)', async () => {
+      (prisma.portfolioItem.aggregate as any).mockResolvedValue({ _max: { sortOrder: 1 } });
+      (prisma.portfolioItem.findUnique as any).mockResolvedValue(null);
+      (prisma.portfolioItem.create as any).mockResolvedValue({ id: '1', slug: 'zabor-iz-profnastila' });
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      await portfolioService.create(
+        { title: 'Забор из профнастила', category: 'fence', images: ['/x.jpg'], showCost: false, active: true },
+        'user1'
+      );
+
+      expect(prisma.portfolioItem.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ slug: 'zabor-iz-profnastila' }),
+        })
+      );
+    });
+
+    it('should append numeric suffix on slug collision', async () => {
+      (prisma.portfolioItem.aggregate as any).mockResolvedValue({ _max: { sortOrder: 1 } });
+      (prisma.portfolioItem.findUnique as any)
+        .mockResolvedValueOnce({ id: 'existing', slug: 'zabor-iz-profnastila' })
+        .mockResolvedValueOnce(null);
+      (prisma.portfolioItem.create as any).mockResolvedValue({ id: '2', slug: 'zabor-iz-profnastila-2' });
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      await portfolioService.create(
+        { title: 'Забор из профнастила', category: 'fence', images: ['/x.jpg'], showCost: false, active: true },
+        'user1'
+      );
+
+      expect(prisma.portfolioItem.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ slug: 'zabor-iz-profnastila-2' }),
+        })
+      );
+    });
+
+    it('should respect explicitly provided slug', async () => {
+      (prisma.portfolioItem.aggregate as any).mockResolvedValue({ _max: { sortOrder: 1 } });
+      (prisma.portfolioItem.findUnique as any).mockResolvedValue(null);
+      (prisma.portfolioItem.create as any).mockResolvedValue({ id: '1', slug: 'custom-slug' });
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      await portfolioService.create(
+        {
+          title: 'Забор из профнастила',
+          category: 'fence',
+          images: ['/x.jpg'],
+          slug: 'custom-slug',
+          showCost: false,
+          active: true,
+        },
+        'user1'
+      );
+
+      expect(prisma.portfolioItem.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ slug: 'custom-slug' }),
+        })
+      );
+    });
   });
 
   describe('toggleActive', () => {
@@ -166,6 +229,39 @@ describe('PortfolioService', () => {
       await expect(
         portfolioService.update('nonexistent', { title: 'New' }, 'user1')
       ).rejects.toThrow('Элемент портфолио не найден');
+    });
+
+    it('should NOT regenerate slug when not explicitly passed (URL stability, ЧТЗ SEO P1 2.5)', async () => {
+      const oldItem = { id: '1', title: 'Old', slug: 'old-slug', images: [] };
+      const newItem = { id: '1', title: 'New', slug: 'old-slug', images: [] };
+
+      (prisma.portfolioItem.findUnique as any).mockResolvedValue(oldItem);
+      (prisma.portfolioItem.update as any).mockResolvedValue(newItem);
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      await portfolioService.update('1', { title: 'New' }, 'user1');
+
+      const callData = (prisma.portfolioItem.update as any).mock.calls[0][0].data;
+      expect(callData.slug).toBeUndefined();
+    });
+
+    it('should regenerate unique slug when explicitly changed', async () => {
+      const oldItem = { id: '1', title: 'Old', slug: 'old-slug', images: [] };
+      const newItem = { id: '1', title: 'New', slug: 'new-slug', images: [] };
+
+      (prisma.portfolioItem.findUnique as any)
+        .mockResolvedValueOnce(oldItem)
+        .mockResolvedValueOnce(null);
+      (prisma.portfolioItem.update as any).mockResolvedValue(newItem);
+      (prisma.auditLog.create as any).mockResolvedValue({});
+
+      await portfolioService.update('1', { title: 'New', slug: 'new-slug' }, 'user1');
+
+      expect(prisma.portfolioItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ slug: 'new-slug' }),
+        })
+      );
     });
   });
 

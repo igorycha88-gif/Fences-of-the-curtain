@@ -7,6 +7,19 @@ export const portfolioInputSchema = z.object({
   category: z.enum(['fence', 'canopy', 'garage'], {
     errorMap: () => ({ message: 'Выберите категорию' }),
   }),
+  // ЧТЗ SEO P1 2.5: ЧПУ-URL портфолио. Если не передан — генерируется из названия
+  slug: z.string()
+    .min(2, 'Минимум 2 символа')
+    .max(80, 'Максимум 80 символов')
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Только латиница, цифры и дефисы')
+    .optional(),
+  // ЧТЗ SEO P2 3.1: контекст для alt-текстов изображений
+  fenceType: z.string()
+    .max(100, 'Максимум 100 символов')
+    .optional(),
+  city: z.string()
+    .max(100, 'Максимум 100 символов')
+    .optional(),
   type: z.string()
     .max(100, 'Максимум 100 символов')
     .optional(),

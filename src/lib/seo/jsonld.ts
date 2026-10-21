@@ -51,6 +51,8 @@ export function generateOrganizationJsonLd(): JsonLdOrganization {
     taxID: LEGAL_REQUISITES.inn,
     address: {
       '@type': 'PostalAddress',
+      streetAddress: BUSINESS_INFO.address.streetAddress,
+      postalCode: BUSINESS_INFO.address.postalCode,
       addressLocality: BUSINESS_INFO.address.locality,
       addressRegion: BUSINESS_INFO.address.region,
       addressCountry: BUSINESS_INFO.address.country,
@@ -107,6 +109,12 @@ export function generateWebSiteJsonLd(): JsonLdWebSite {
     '@type': 'WebSite',
     name: SEO_CONFIG.SITE_NAME,
     url: SEO_CONFIG.BASE_URL,
+    // ЧТЗ SEO P1 2.1: Sitelinks Searchbox (Яндекс «Поиск по сайту»)
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${SEO_CONFIG.BASE_URL}/services?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
   };
 }
 
@@ -232,7 +240,9 @@ export function generateArticleJsonLd(title: string, description: string, url: s
     description,
     url: `${SEO_CONFIG.BASE_URL}${url}`,
     image: image ? `${SEO_CONFIG.BASE_URL}${image}` : undefined,
-    datePublished: datePublished || new Date().toISOString(),
+    // ЧТЗ SEO P1 2.4: честный freshness-сигнал — без даты-заглушки new Date().
+    // Статические лендинги обязаны передавать дату первой публикации явно.
+    datePublished: datePublished || undefined,
     // AEO (ai-seo): freshness-сигнал для ИИ-движков, взвешивающих свежесть контента
     dateModified: dateModified || undefined,
     author: {

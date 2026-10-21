@@ -6,6 +6,7 @@ import {
   generateWebApplicationJsonLd,
   generateBreadcrumbJsonLd,
   generateContactPageJsonLd,
+  generateArticleJsonLd,
 } from '../src/lib/seo/jsonld';
 import { SEO_CONFIG } from '../src/lib/seo/constants';
 
@@ -45,6 +46,22 @@ describe('JSON-LD Generators', () => {
       expect(result.address).toHaveProperty('addressCountry');
     });
 
+    it('should have full postal address (ЧТЗ SEO P1 2.3)', () => {
+      const result = generateOrganizationJsonLd();
+
+      expect(result.address?.streetAddress).toBe('КП «Гжельские узоры», Раменский муниципальный округ');
+      expect(result.address?.postalCode).toBe('140155');
+    });
+
+    it('should have sameAs with Yandex Maps and Avito (ЧТЗ SEO P1 2.2)', () => {
+      const result = generateOrganizationJsonLd();
+
+      expect(result.sameAs).toBeDefined();
+      expect(result.sameAs?.length).toBeGreaterThanOrEqual(2);
+      expect(result.sameAs).toContain('https://yandex.ru/maps/org/154197841574/');
+      expect(result.sameAs).toContain('https://www.avito.ru');
+    });
+
     it('should have valid opening hours', () => {
       const result = generateOrganizationJsonLd();
 
@@ -67,10 +84,15 @@ describe('JSON-LD Generators', () => {
       expect(result.url).toBe('https://zabor-i-naves.ru');
     });
 
-    it('should not have SearchAction until search is implemented', () => {
+    it('should include SearchAction for Yandex Sitelinks Searchbox (ЧТЗ SEO P1 2.1)', () => {
       const result = generateWebSiteJsonLd();
 
-      expect(result.potentialAction).toBeUndefined();
+      expect(result.potentialAction).toBeDefined();
+      expect(result.potentialAction?.['@type']).toBe('SearchAction');
+      expect(result.potentialAction?.target).toBe(
+        'https://zabor-i-naves.ru/services?q={search_term_string}'
+      );
+      expect(result.potentialAction?.['query-input']).toBe('required name=search_term_string');
     });
   });
 
@@ -196,8 +218,7 @@ describe('JSON-LD Generators', () => {
     });
   });
 
-  describe('generateContactPageJsonLd', () => {
-    it('should generate valid ContactPage schema', () => {
+  describe('generateContactPageJsonLd', () => {    it('should generate valid ContactPage schema', () => {
       const result = generateContactPageJsonLd();
 
       expect(result['@context']).toBe('https://schema.org');
@@ -218,6 +239,26 @@ describe('JSON-LD Generators', () => {
       const result = generateContactPageJsonLd();
 
       expect(result.description).toBe('Свяжитесь с нами для консультации и расчёта стоимости');
+    });
+  });
+
+  describe('generateArticleJsonLd (ЧТЗ SEO P1 2.4)', () => {
+    it('should NOT invent datePublished when not provided', () => {
+      const result = generateArticleJsonLd('T', 'D', '/x') as Record<string, any>;
+
+      expect(result.datePublished).toBeUndefined();
+    });
+
+    it('should keep explicit datePublished', () => {
+      const result = generateArticleJsonLd('T', 'D', '/x', undefined, '2026-09-06') as Record<string, any>;
+
+      expect(result.datePublished).toBe('2026-09-06');
+    });
+
+    it('should reference existing logo.png in publisher logo', () => {
+      const result = generateArticleJsonLd('T', 'D', '/x') as Record<string, any>;
+
+      expect(result.publisher.logo.url).toBe('https://zabor-i-naves.ru/logo.png');
     });
   });
 });
