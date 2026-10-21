@@ -110,6 +110,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // ЧТЗ_SEO_Смета_на_Забор: посадочная «Смета на забор»
+  const smetaNaZaborPage: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/smeta-na-zabor`,
+      lastModified: contentLastModified,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+  ];
+
   // ЧТЗ_SEO_расширение_Wordstat: посадочные по кластерам Wordstat
   const seoLandingPagesWordstat: MetadataRoute.Sitemap = [
     {
@@ -200,6 +210,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...zaborNaSotkiPage,
     ...seoLandingPagesV5,
     ...garazhiSendvichPage,
+    ...smetaNaZaborPage,
     ...seoLandingPagesWordstat,
     ...blogPages,
     ...portfolioPages,
