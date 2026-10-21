@@ -403,6 +403,7 @@ npm run build               # Production сборка
 | 🧪 Тестировщик | `SKILL_TESTER.md` | Тестирование, глубокая проверка кода, баг-репорты |
 | 🚀 DevOps | `SKILL_DEVOPS.md` | Деплой, Docker, healthcheck, откаты |
 | 🚀 DevOps (Prod) | `SKILL_DEVOPS_PROD.md` | Продакшн-деплой, Blue-Green, откаты на VPS |
+| 📕 SEO (обязателен при SEO-задачах) | `.opencode/skills/seo-development/SKILL.md` | Правила по 4 книгам: метатеги, контент, гео, sitemap, JSON-LD, скорость. Загружать при ЛЮБОЙ SEO-задаче |
 
 ---
 
