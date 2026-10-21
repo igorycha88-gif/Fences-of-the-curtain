@@ -13,7 +13,7 @@ import {
   generateFaqPageJsonLd,
 } from '@/lib/seo/jsonld';
 import { generatePageMetadata } from '@/lib/seo/metadata';
-import { PAGE_METADATA } from '@/lib/seo/constants';
+import { PAGE_METADATA, SEO_CONFIG } from '@/lib/seo/constants';
 import { Calculator, ArrowRight, Phone } from 'lucide-react';
 
 export const revalidate = 86400;
@@ -91,7 +91,10 @@ export default function ZaborNaSotkiPage() {
   const articleJsonLd = generateArticleJsonLd(
     'Сколько стоит забор на участок: расчёт для 6–20 соток',
     'Таблица цен под ключ по соткам: периметр участка, профнастил, евроштакетник, рабица. Формула расчёта периметра и калькулятор.',
-    '/calc/zabor-na-sotki'
+    '/calc/zabor-na-sotki',
+    undefined,
+    undefined,
+    SEO_CONFIG.CONTENT_LAST_UPDATED
   );
 
   const faqJsonLd = generateFaqPageJsonLd(SOTKI_FAQ);
@@ -110,6 +113,10 @@ export default function ZaborNaSotkiPage() {
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
                 Сколько стоит забор на участок: расчёт по соткам
               </h1>
+              {/* AEO: freshness-сигнал — видимая дата обновления */}
+              <p className="text-sm text-muted-foreground mb-2">
+                Обновлено: октябрь 2026
+              </p>
               <p className="text-lg text-muted-foreground mb-6">
                 Люди думают участками, а заборы продаются метрами. Здесь — готовый расчёт:
                 сколько погонных метров в 6, 8, 10, 12, 15 и 20 сотках и сколько стоит

@@ -12,7 +12,7 @@ import {
   generateFaqPageJsonLd,
 } from '@/lib/seo/jsonld';
 import { generatePageMetadata } from '@/lib/seo/metadata';
-import { PAGE_METADATA } from '@/lib/seo/constants';
+import { PAGE_METADATA, SEO_CONFIG } from '@/lib/seo/constants';
 import {
   SHEST_SOTOK_PROPORTIONS,
   PRICE_ROWS,
@@ -50,7 +50,8 @@ export default function ZaborNa6SotkahArticle() {
     'Полный гид по забору на 6 сотках: периметр при разных пропорциях, цены под ключ по материалам, поэтапный монтаж за 1 день, частые вопросы.',
     '/blog/zabor-na-6-sotkah',
     undefined,
-    '2026-09-15T00:00:00+03:00'
+    '2026-09-15T00:00:00+03:00',
+    SEO_CONFIG.CONTENT_LAST_UPDATED
   );
 
   const faqJsonLd = generateFaqPageJsonLd(HUB_FAQ);
@@ -71,6 +72,10 @@ export default function ZaborNa6SotkahArticle() {
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
                 Забор на 6 сотках: полный гид 2026
               </h1>
+              {/* AEO: freshness-сигнал — видимая дата обновления */}
+              <p className="text-sm text-muted-foreground mb-2">
+                Обновлено: октябрь 2026
+              </p>
               <p className="text-lg text-muted-foreground mb-6">
                 Шесть соток — самый частый размер дачного участка в МО. Здесь собрано всё:
                 сколько это метров забора при разных пропорциях, сколько стоит под ключ по

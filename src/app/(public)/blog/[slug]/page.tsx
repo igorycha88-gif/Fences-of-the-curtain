@@ -86,7 +86,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           post.excerpt || '',
           `/blog/${slug}`,
           post.coverImage || undefined,
-          post.createdAt?.toISOString()
+          post.createdAt?.toISOString(),
+          post.updatedAt?.toISOString()
         ),
       ]} />
       <Header />
@@ -122,13 +123,35 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               {post.title}
             </h1>
 
-            <time className="text-sm text-muted-foreground block mb-8">
-              {new Date(post.createdAt).toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </time>
+            {/* AEO (ai-seo): freshness-сигнал — видимая дата обновления для ИИ-движков */}
+            <div className="mb-8 space-y-1">
+              <time
+                className="text-sm text-muted-foreground block"
+                dateTime={post.createdAt?.toISOString()}
+              >
+                {new Date(post.createdAt).toLocaleDateString('ru-RU', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </time>
+              {post.updatedAt &&
+                new Date(post.updatedAt).getTime() -
+                  new Date(post.createdAt).getTime() >
+                  24 * 60 * 60 * 1000 && (
+                  <time
+                    className="text-sm text-muted-foreground block"
+                    dateTime={post.updatedAt.toISOString()}
+                  >
+                    Обновлено:{' '}
+                    {new Date(post.updatedAt).toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </time>
+                )}
+            </div>
 
             <div className="prose prose-lg max-w-none mb-12">
               {Array.isArray(content) &&

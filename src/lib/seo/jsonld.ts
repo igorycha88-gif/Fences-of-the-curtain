@@ -224,7 +224,7 @@ export function generateFaqPageJsonLd(items: { question: string; answer: string 
   };
 }
 
-export function generateArticleJsonLd(title: string, description: string, url: string, image?: string, datePublished?: string) {
+export function generateArticleJsonLd(title: string, description: string, url: string, image?: string, datePublished?: string, dateModified?: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -233,6 +233,8 @@ export function generateArticleJsonLd(title: string, description: string, url: s
     url: `${SEO_CONFIG.BASE_URL}${url}`,
     image: image ? `${SEO_CONFIG.BASE_URL}${image}` : undefined,
     datePublished: datePublished || new Date().toISOString(),
+    // AEO (ai-seo): freshness-сигнал для ИИ-движков, взвешивающих свежесть контента
+    dateModified: dateModified || undefined,
     author: {
       '@type': 'Organization',
       name: SEO_CONFIG.SITE_NAME,
