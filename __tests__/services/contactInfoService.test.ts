@@ -86,7 +86,7 @@ describe('contactInfoService (ЧТЗ: Контакты SSR)', () => {
     );
     expect(logger.info).toHaveBeenCalledWith(
       'Contact info loaded',
-      expect.objectContaining({ operation: 'getContactInfo', hasData: true })
+      expect.objectContaining({ operation: 'getContactInfo', hasData: true, source: 'db' })
     );
   });
 

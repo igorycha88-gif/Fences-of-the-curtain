@@ -101,4 +101,30 @@ describe('ContactInfoProvider (ЧТЗ: Контакты SSR)', () => {
     expect(screen.getByTestId('address')).toHaveTextContent('г. Москва, ул. Строителей, д. 5');
     expect(screen.getByTestId('email')).toHaveTextContent('zabori-naves@yandex.ru');
   });
+
+  it('fetch с hasData=false не затирает серверные данные (мерж)', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      json: async () => ({
+        address: '',
+        phone: '',
+        email: '',
+        workHours: { monFri: '', sat: '', sun: '' },
+        hasData: false,
+        message: 'Данные не указаны',
+      }),
+    });
+
+    render(
+      <ContactInfoProvider initialData={INITIAL_DATA}>
+        <ContactConsumer />
+      </ContactInfoProvider>
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    expect(screen.getByTestId('address')).toHaveTextContent('г. Москва, ул. Строителей, д. 5');
+    expect(screen.getByTestId('phone')).toHaveTextContent('+74993901595');
+  });
 });

@@ -118,7 +118,7 @@ export async function getContactInfo(): Promise<ContactInfoResponse> {
       module: 'contactInfoService',
       operation,
       hasData,
-      cached: true,
+      source: 'db',
     });
     return responseData;
   } catch (error) {
