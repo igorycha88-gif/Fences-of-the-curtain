@@ -11,6 +11,8 @@ import MessengerWidget from '@/components/layout/MessengerWidget';
 import { generateOrganizationJsonLd, generateWebSiteJsonLd, generateSiteNavigationJsonLd } from '@/lib/seo/jsonld';
 import { SEO_CONFIG } from '@/lib/seo/constants';
 import { recordTiming } from '@/lib/http-metrics';
+import { getContactInfo } from '@/services/contact/contactInfoService';
+import type { ContactInfoResponse } from '@/services/contact/contactInfoService';
 import './globals.css';
 
 const GTAG_ID = 'G-N4KVS3N0B1';
@@ -91,12 +93,23 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const headersList = headers();
+
+  let contactInfoInitialData: ContactInfoResponse | undefined;
+  try {
+    const contactInfo = await getContactInfo();
+    if (contactInfo.hasData) {
+      contactInfoInitialData = contactInfo;
+    }
+  } catch {
+    contactInfoInitialData = undefined;
+  }
+
   const requestStart = headersList.get('x-request-start');
   const requestPath = headersList.get('x-request-path');
 
@@ -128,7 +141,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <SessionProvider>
-          <ContactInfoProvider>
+          <ContactInfoProvider initialData={contactInfoInitialData}>
             <CookieConsentProvider>
               {children}
               <MessengerWidget />

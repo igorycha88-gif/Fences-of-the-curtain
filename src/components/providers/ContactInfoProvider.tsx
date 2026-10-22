@@ -1,18 +1,9 @@
 'use client';
 
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import type { ContactInfoResponse } from '@/services/contact/contactInfoService';
 
-interface ContactInfoData {
-  address: string;
-  phone: string;
-  email: string;
-  workHours: {
-    monFri: string;
-    sat: string;
-    sun: string;
-  };
-  hasData: boolean;
-}
+type ContactInfoData = ContactInfoResponse;
 
 const DEFAULT_CONTACT: ContactInfoData = {
   address: '',
@@ -28,8 +19,16 @@ export function useContactInfo() {
   return useContext(ContactInfoContext);
 }
 
-export default function ContactInfoProvider({ children }: { children: ReactNode }) {
-  const [contactInfo, setContactInfo] = useState<ContactInfoData>(DEFAULT_CONTACT);
+export default function ContactInfoProvider({
+  children,
+  initialData,
+}: {
+  children: ReactNode;
+  initialData?: ContactInfoData;
+}) {
+  const [contactInfo, setContactInfo] = useState<ContactInfoData>(
+    () => initialData ?? DEFAULT_CONTACT
+  );
 
   useEffect(() => {
     const controller = new AbortController();
