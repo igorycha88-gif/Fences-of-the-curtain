@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-10-22
+
+### Добавлено
+- feat(metrika): смена счётчика Яндекс.Метрики 108488683 → 113732868 — дефолтные значения NEXT_PUBLIC_YANDEX_METRIKA_ID в build-аргах прод-образа и CI; .env (dev и VPS) обновляются вне git (ced7c24)
+- feat(contacts): SSR контактных данных — серверная выборка contactInfoService (Prisma + Redis-кэш TTL 300) в root layout, контакты видны краулерам без JS; +3 тест-файла (995ff18)
+- feat(seo): техаудит P0/P1/P2 — logo 600×60, SearchAction в WebSite JSON-LD, sameAs+Авито, полный адрес в Organization, честный datePublished, slug-URL портфолио с 308-редиректами со старых cuid/UUID, alt-шаблон, приоритет /about; +20 автотестов (6f7277e)
+- feat(seo): посадочная «Смета на забор» /smeta-na-zabor — структура сметы по долям, примеры 3 материала × 6/10/15 соток, чек-лист сметы, LeadForm, FAQ 6 + JSON-LD; +12 автотестов (e00a0bc)
+- feat(seo): AEO-фиксы — llms.txt, ceny.md (машиночитаемый прайс), политика AI-ботов в robots.ts по группам, dateModified в Article JSON-LD, видимая дата «Обновлено» на статьях; +9 автотестов (e441d6a)
+- feat(skills): seo-development — обязательный скилл SEO-разработки по 4 книгам: 10 железных правил, чек-листы, JSON-LD матрица, AI-SEO/AEO (07e4b7c)
+
+### Исправлено
+- fix(contacts): честное логирование DB-пути contactInfoService — флаг cached:true заменён на source:'db'; +тест мержа при fetch hasData=false, покрытие провайдера 41%→100% (2818a1b)
+
 ## [1.22.1] - 2026-10-20
 
 ### Исправлено
