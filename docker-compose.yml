@@ -10,12 +10,9 @@ services:
     container_name: fences-app
     restart: unless-stopped
     network_mode: host
-    # Явный DNS провайдера: Google DNS (fallback Docker) заблокирован с VPS,
-    # из-за чего DNS-резолв внутри контейнера занимал 10+ сек и ломал
-    # геолокацию города по IP (ipLookupService, см. ЧТЗ_Фикс_Геолокация)
-    dns:
-      - 46.254.23.138
-      - 46.254.22.138
+    # DNS не задаём: network_mode: host наследует хостовый /etc/resolv.conf
+    # (systemd-resolved → публичные резолверы). Резолверы хостера 46.254.x
+    # деградировали 23.10–02.11.2026 и ломали геолокацию (см. ЧТЗ_Фикс_Геолокация).
     environment:
       - NODE_ENV=production
       - PORT=3001

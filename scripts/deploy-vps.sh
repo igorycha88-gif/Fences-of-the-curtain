@@ -29,11 +29,13 @@ IMAGE_TAG="${1:-latest}"
 COMMIT_SHA="${2:-unknown}"
 DEPLOY_REASON="${3:-Automated deploy}"
 
-# Явный DNS провайдера: Docker подставляет fallback 8.8.8.8/8.8.4.4 (хост на
-# systemd-resolved), а Google DNS заблокирован с VPS — DNS-резолв в контейнере
-# занимает 10+ сек, из-за чего ломается геолокация города (ipLookupService).
-# Проверено: с DNS провайдера fetch ip-api.com из контейнера = ~200мс.
-DNS_ARGS="--dns 46.254.23.138 --dns 46.254.22.138"
+# DNS: не задаём --dns принудительно. Контейнеры в network_mode: host наследуют
+# хостовый /etc/resolv.conf (127.0.0.53 → systemd-resolved → публичные
+# резолверы 1.1.1.1/8.8.8.8/77.88.8.8). Резолверы хостера 46.254.22.138/23.138
+# деградировали 23.10–02.11.2026 (резолв 5–40с/ETIMEOUT) и ломали геолокацию
+# (ЧТЗ_Фикс_Геолокация_Город_Пользователя). Наследование проверено на проде.
+PULL_ATTEMPTS=3
+PULL_RETRY_DELAY=5
 
 mkdir -p "$LOG_DIR" "$APP_DIR/backups"
 DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
@@ -193,14 +195,30 @@ PULL_START=$(date +%s)
 
 if echo "$GHCR_IMAGE" | grep -q "ghcr.io"; then
     log "  Pulling: $GHCR_IMAGE"
-    docker pull "$GHCR_IMAGE" 2>&1 | tail -3 || {
-        log "  WARN: GHCR pull failed, trying local build..."
+    PULL_OK=0
+    for attempt in $(seq 1 $PULL_ATTEMPTS); do
+        if docker pull "$GHCR_IMAGE" 2>&1 | tail -3; then
+            if docker image inspect "$GHCR_IMAGE" >/dev/null 2>&1; then
+                PULL_OK=1
+                break
+            fi
+        fi
+        log "  WARN: GHCR pull attempt ${attempt}/${PULL_ATTEMPTS} failed (hoster network flakiness)"
+        [ "$attempt" -lt "$PULL_ATTEMPTS" ] && sleep $PULL_RETRY_DELAY
+    done
+    if [ "$PULL_OK" -ne 1 ]; then
+        log "  WARN: GHCR pull failed after ${PULL_ATTEMPTS} attempts, trying local build..."
         cd "$APP_DIR"
         git fetch origin
         git reset --hard "origin/master2"
-        docker compose -f docker-compose.yml build --no-cache app 2>&1 | tail -5
-        GHCR_IMAGE="fences-of-the-curtain-app:latest"
-    }
+        # GITHUB_REPOSITORY приходит из CI с uppercase (Fences-of-the-curtain) —
+        # Docker-теги обязаны быть lowercase. Пробрасываем явно нижний регистр
+        # и нужный тег, чтобы compose собрал ровно $GHCR_IMAGE.
+        GITHUB_REPOSITORY="${GHCR_REPO}" IMAGE_TAG="${IMAGE_TAG}" \
+            docker compose -f docker-compose.yml build --no-cache app 2>&1 | tail -5
+        docker image inspect "$GHCR_IMAGE" >/dev/null 2>&1 || \
+            fatal "Local build finished but image $GHCR_IMAGE not found"
+    fi
 else
     log "  Using local image: $GHCR_IMAGE"
 fi
@@ -217,7 +235,6 @@ deploy_direct() {
     docker run -d \
         --name fences-app \
         --network host \
-        $DNS_ARGS \
         --restart unless-stopped \
         --env-file "$APP_DIR/.env" \
         -e PORT=${BLUE_PORT} \
@@ -240,7 +257,6 @@ deploy_blue_green() {
     docker run -d \
         --name fences-app-green \
         --network host \
-        $DNS_ARGS \
         --restart no \
         --env-file "$APP_DIR/.env" \
         -e PORT=${GREEN_PORT} \
@@ -273,7 +289,6 @@ deploy_blue_green() {
     docker run -d \
         --name fences-app \
         --network host \
-        $DNS_ARGS \
         --restart unless-stopped \
         --env-file "$APP_DIR/.env" \
         -e PORT=${BLUE_PORT} \
@@ -348,7 +363,6 @@ if [ "$SMOKE_FAIL" -gt 0 ]; then
         docker run -d \
             --name fences-app \
             --network host \
-            $DNS_ARGS \
             --restart unless-stopped \
             --env-file "$APP_DIR/.env" \
             -e PORT=${BLUE_PORT} \
