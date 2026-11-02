@@ -22,7 +22,10 @@ BLUE_PORT=3001
 GREEN_PORT=3003
 NGINX_UPSTREAM_FILE="/etc/nginx/conf.d/fences-upstream.conf"
 LOG_DIR="/var/log/fences-deploy"
-HEALTH_TIMEOUT=180
+# 300s: холодный старт двух контейнеров одновременно (GREEN + новый на BLUE-порту)
+# под нагрузкой VPS 4ГБ занимал >180s (инцидент v1.23.2: entrypoint «Database
+# not ready» не успевал за 180s, deploy валился на шаге 5f).
+HEALTH_TIMEOUT=300
 HEALTH_INTERVAL=5
 SMOKE_TIMEOUT=30
 IMAGE_TAG="${1:-latest}"
@@ -250,6 +253,9 @@ deploy_direct() {
 
     wait_for_health "$BLUE_PORT" "fences-app"
     switch_nginx "$BLUE_PORT"
+    # После direct-деплоя мог остаться GREEN с прошлого неудачного blue-green
+    # (инцидент v1.23.2: nginx был на 3003) — убираем, чтобы не занимал порт/RAM.
+    docker rm -f fences-app-green 2>/dev/null || true
 }
 
 deploy_blue_green() {
@@ -303,14 +309,26 @@ deploy_blue_green() {
         "$GHCR_IMAGE"
 
     # 5g. Wait for new container to be healthy (GREEN still serving)
-    # Note: app needs ~90s on this VPS for Prisma client init + Redis connect,
-    # so we use 180s (HEALTH_TIMEOUT) instead of the previous 90s which caused
-    # false-negative healthcheck failures (incident 2026-08-29 v1.18.1 deploy).
+    # Note: app needs ~90s on this VPS for Prisma client init + Redis connect;
+    # при холодном старте двух контейнеров — до ~200s (HEALTH_TIMEOUT=300).
     if ! wait_for_health "$BLUE_PORT" "fences-app"; then
-        log "  WARN: New container on ${BLUE_PORT} failed, nginx stays on GREEN (port ${GREEN_PORT})"
+        log "  WARN: New container on ${BLUE_PORT} failed on first try — one retry (GREEN still serving)"
         docker rm -f fences-app 2>/dev/null || true
-        # Leave nginx pointing to GREEN which is still running
-        fatal "New container failed — GREEN still serving on ${GREEN_PORT}"
+        docker run -d \
+            --name fences-app \
+            --network host \
+            --restart unless-stopped \
+            --env-file "$APP_DIR/.env" \
+            -e PORT=${BLUE_PORT} \
+            -e NODE_ENV=production \
+            -v /var/www/uploads:/app/public/uploads \
+            "$GHCR_IMAGE"
+        if ! wait_for_health "$BLUE_PORT" "fences-app"; then
+            log "  WARN: Retry failed, nginx stays on GREEN (port ${GREEN_PORT})"
+            docker rm -f fences-app 2>/dev/null || true
+            # Leave nginx pointing to GREEN which is still running
+            fatal "New container failed — GREEN still serving on ${GREEN_PORT}"
+        fi
     fi
 
     # 5h. Switch nginx to BLUE port (new version ready)
