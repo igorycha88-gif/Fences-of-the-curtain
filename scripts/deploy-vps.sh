@@ -34,8 +34,8 @@ DEPLOY_REASON="${3:-Automated deploy}"
 # резолверы 1.1.1.1/8.8.8.8/77.88.8.8). Резолверы хостера 46.254.22.138/23.138
 # деградировали 23.10–02.11.2026 (резолв 5–40с/ETIMEOUT) и ломали геолокацию
 # (ЧТЗ_Фикс_Геолокация_Город_Пользователя). Наследование проверено на проде.
-PULL_ATTEMPTS=3
-PULL_RETRY_DELAY=5
+PULL_ATTEMPTS=5
+PULL_RETRY_DELAY=10
 
 mkdir -p "$LOG_DIR" "$APP_DIR/backups"
 DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
@@ -114,8 +114,12 @@ DEPLOY_START=$(date +%s)
 cd "$APP_DIR" || fatal "App dir not found: $APP_DIR"
 
 GHCR_REGISTRY="ghcr.io"
-GHCR_REPO="${GITHUB_REPOSITORY:-igor/Fences-of-the-curtain}"
-GHCR_IMAGE="${GHCR_REGISTRY}/${GHCR_REPO,,}/app:${IMAGE_TAG}"
+GHCR_REPO="${GITHUB_REPOSITORY:-igor/fences-of-the-curtain}"
+# Docker-теги обязаны быть lowercase; GITHUB_REPOSITORY из CI содержит
+# uppercase (Fences-of-the-curtain) — нормализуем один раз здесь и дальше
+# используем везде (pull, compose build, run).
+GHCR_REPO="${GHCR_REPO,,}"
+GHCR_IMAGE="${GHCR_REGISTRY}/${GHCR_REPO}/app:${IMAGE_TAG}"
 
 log "============================================"
 log "BLUE-GREEN DEPLOY STARTED"

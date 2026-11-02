@@ -144,6 +144,11 @@ jobs:
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin 2>/dev/null || true
 
+            # Обновляем чекаут ДО запуска скрипта: иначе на VPS выполняется
+            # версия deploy-vps.sh с прошлого деплоя и фиксы скрипта не
+            # применяются (инцидент v1.23.2: pull-ретраи/lowercase не сработали).
+            git fetch origin master2
+            git reset --hard origin/master2
             if [ -f scripts/deploy-vps.sh ]; then
                 bash scripts/deploy-vps.sh "${{ needs.docker.outputs.image_tag }}" "${{ github.sha }}" "${{ inputs.reason || 'Push to master2' }}"
             else
