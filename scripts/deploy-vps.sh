@@ -197,7 +197,9 @@ fi
 log "── Step 4: Pull Docker image ──"
 PULL_START=$(date +%s)
 
-if echo "$GHCR_IMAGE" | grep -q "ghcr.io"; then
+if docker image inspect "$GHCR_IMAGE" >/dev/null 2>&1; then
+    log "  Image already present locally (transferred via CI scp or previous run) — skipping pull"
+elif echo "$GHCR_IMAGE" | grep -q "ghcr.io"; then
     log "  Pulling: $GHCR_IMAGE"
     PULL_OK=0
     for attempt in $(seq 1 $PULL_ATTEMPTS); do
