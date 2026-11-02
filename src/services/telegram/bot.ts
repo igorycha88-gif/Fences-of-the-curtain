@@ -1,41 +1,101 @@
 import { getTelegramDispatcher } from '@/lib/telegram-proxy';
+import logger from '@/lib/logger';
+
+const TELEGRAM_MAX_ATTEMPTS = 3;
+const TELEGRAM_REQUEST_TIMEOUT_MS = 8000;
+const TELEGRAM_RETRY_BASE_DELAY_MS = 1000;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRetryableFailure(networkError: boolean, status?: number): boolean {
+  if (networkError) return true;
+  const statusCode = status;
+  return statusCode === 429 || (typeof statusCode === 'number' && statusCode >= 500);
+}
 
 export async function sendTelegramMessage(message: string): Promise<boolean> {
-  try {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
 
-    if (!botToken || !chatId || botToken === 'your-bot-token' || chatId === 'your-chat-id') {
-      console.warn('Telegram credentials not configured');
-      return false;
-    }
-
-    const dispatcher = getTelegramDispatcher();
-
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML',
-      }),
-      ...(dispatcher ? { dispatcher } : {}),
+  if (!botToken || !chatId || botToken === 'your-bot-token' || chatId === 'your-chat-id') {
+    logger.warn('Telegram credentials not configured', {
+      module: 'telegram/bot',
+      operation: 'sendTelegramMessage',
     });
-
-    if (response.ok) {
-      console.log('Telegram message sent');
-      return true;
-    } else {
-      console.error('Telegram error:', await response.text());
-      return false;
-    }
-  } catch (error) {
-    console.error('Telegram send error:', error);
     return false;
   }
+
+  const dispatcher = getTelegramDispatcher();
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= TELEGRAM_MAX_ATTEMPTS; attempt++) {
+    const startedAt = Date.now();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TELEGRAM_REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML',
+        }),
+        signal: controller.signal,
+        ...(dispatcher ? { dispatcher } : {}),
+      });
+
+      if (response.ok) {
+        logger.info('Telegram message sent', {
+          module: 'telegram/bot',
+          operation: 'sendTelegramMessage',
+          attempt,
+          durationMs: Date.now() - startedAt,
+        });
+        return true;
+      }
+
+      const responseText = await response.text();
+      logger.error('Telegram API error', {
+        module: 'telegram/bot',
+        operation: 'sendTelegramMessage',
+        attempt,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+        response: responseText.slice(0, 500),
+      });
+
+      if (!isRetryableFailure(false, response.status)) {
+        return false;
+      }
+    } catch (error) {
+      lastError = error;
+      logger.error('Telegram send attempt failed', {
+        module: 'telegram/bot',
+        operation: 'sendTelegramMessage',
+        attempt,
+        durationMs: Date.now() - startedAt,
+        error,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (attempt < TELEGRAM_MAX_ATTEMPTS) {
+      await sleep(TELEGRAM_RETRY_BASE_DELAY_MS * (attempt === 1 ? 1 : 3));
+    }
+  }
+
+  logger.error('Telegram send failed after all attempts', {
+    module: 'telegram/bot',
+    operation: 'sendTelegramMessage',
+    attempts: TELEGRAM_MAX_ATTEMPTS,
+    error: lastError,
+  });
+  return false;
 }
 
 export function sendOrderNotification(order: any) {
