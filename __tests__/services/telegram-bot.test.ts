@@ -121,4 +121,91 @@ describe('telegram/bot sendTelegramMessage (ЧТЗ_Телеграм_Ретраи
     expect(body.text).toContain('Иван &lt;b&gt;');
     expect(body.text).not.toContain('Иван <b>');
   });
+
+  describe('getOrderTypeLabel / sendOrderNotification: корректный тип заявки (ЧТЗ_Телеграм_Тип_Заявки)', () => {
+    const sendAndGetType = async (order: Record<string, unknown>): Promise<string> => {
+      fetchMock.mockImplementation(ok);
+      await sendOrderNotification({ id: 'abcdef123456', calculatedCost: 0, createdAt: '2026-11-03T05:54:39Z', ...order });
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const match = body.text.match(/Тип:<\/b> (.+)/);
+      return match ? match[1].trim() : '';
+    };
+
+    it('serviceType=fence → Забор', async () => {
+      expect(await sendAndGetType({ serviceType: 'fence', parameters: {} })).toBe('Забор');
+    });
+
+    it('serviceType=canopy → Навес', async () => {
+      expect(await sendAndGetType({ serviceType: 'canopy', parameters: {} })).toBe('Навес');
+    });
+
+    it('serviceType=gates → Ворота', async () => {
+      expect(await sendAndGetType({ serviceType: 'gates', parameters: {} })).toBe('Ворота');
+    });
+
+    it('serviceType=garage → Гараж', async () => {
+      expect(await sendAndGetType({ serviceType: 'garage', parameters: {} })).toBe('Гараж');
+    });
+
+    it('INDIVIDUAL_CALCULATION + fenceParameters (реальный кейс cmw09wjda) → Индивидуальный расчёт (забор), Евроштакетник', async () => {
+      expect(
+        await sendAndGetType({
+          serviceType: 'INDIVIDUAL_CALCULATION',
+          parameters: { fenceTypeId: 'cmmkk3wl5', fenceTypeName: 'Евроштакетник', height: 2, length: 30 },
+        })
+      ).toBe('Индивидуальный расчёт (забор), Евроштакетник');
+    });
+
+    it('INDIVIDUAL_CALCULATION + fenceTypeId без имени → Индивидуальный расчёт (забор)', async () => {
+      expect(
+        await sendAndGetType({ serviceType: 'INDIVIDUAL_CALCULATION', parameters: { fenceTypeId: 'x' } })
+      ).toBe('Индивидуальный расчёт (забор)');
+    });
+
+    it('INDIVIDUAL_CALCULATION + canopyParameters → Индивидуальный расчёт (навес)', async () => {
+      expect(
+        await sendAndGetType({ serviceType: 'INDIVIDUAL_CALCULATION', parameters: { canopyType: 'attached', purpose: 'car' } })
+      ).toBe('Индивидуальный расчёт (навес)');
+    });
+
+    it('INDIVIDUAL_CALCULATION + gateParameters (serviceType=gates в parameters) → Индивидуальный расчёт (ворота)', async () => {
+      expect(
+        await sendAndGetType({ serviceType: 'INDIVIDUAL_CALCULATION', parameters: { serviceType: 'gates', gates: [] } })
+      ).toBe('Индивидуальный расчёт (ворота)');
+    });
+
+    it('INDIVIDUAL_CALCULATION + garageParameters (serviceType=garage в parameters) → Индивидуальный расчёт (гараж)', async () => {
+      expect(
+        await sendAndGetType({ serviceType: 'INDIVIDUAL_CALCULATION', parameters: { serviceType: 'garage' } })
+      ).toBe('Индивидуальный расчёт (гараж)');
+    });
+
+    it('INDIVIDUAL_CALCULATION без распознаваемых параметров → Индивидуальный расчёт', async () => {
+      expect(await sendAndGetType({ serviceType: 'INDIVIDUAL_CALCULATION', parameters: { message: null } })).toBe(
+        'Индивидуальный расчёт'
+      );
+    });
+
+    it('INDIVIDUAL_CALCULATION + parameters=null → Индивидуальный расчёт', async () => {
+      expect(await sendAndGetType({ serviceType: 'INDIVIDUAL_CALCULATION', parameters: null })).toBe(
+        'Индивидуальный расчёт'
+      );
+    });
+
+    it('неизвестный serviceType → выводится как есть', async () => {
+      expect(await sendAndGetType({ serviceType: 'CUSTOM_X', parameters: {} })).toBe('CUSTOM_X');
+    });
+
+    it('serviceType отсутствует → Не указан', async () => {
+      expect(await sendAndGetType({ parameters: {} })).toBe('Не указан');
+    });
+
+    it('fenceTypeName экранируется в HTML', async () => {
+      const label = await sendAndGetType({
+        serviceType: 'INDIVIDUAL_CALCULATION',
+        parameters: { fenceTypeId: 'x', fenceTypeName: 'Рабица <premium>&Co' },
+      });
+      expect(label).toBe('Индивидуальный расчёт (забор), Рабица &lt;premium&gt;&amp;Co');
+    });
+  });
 });

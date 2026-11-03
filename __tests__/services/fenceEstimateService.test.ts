@@ -1186,7 +1186,14 @@ describe('fenceEstimateService — Сетка-рабица (без лаг)', () 
 
     const postsItem = result.items.find(item => item.category === 'posts');
     expect(postsItem).toBeDefined();
-    expect(postsItem!.nomenclatureId).toBe(meshPostTypeId);
+    // Выбор столба: первый подходящий forMesh-столб (сортировка length asc) из активных.
+    // В БД могут быть реальные сеточные столбы короче фикстуры (3.5 м), поэтому
+    // проверяем свойства выбранного столба, а не конкретный id фикстуры.
+    const selectedPost = await prisma.postType.findUnique({ where: { id: postsItem!.nomenclatureId } });
+    expect(selectedPost).not.toBeNull();
+    expect(selectedPost!.forMesh).toBe(true);
+    expect(selectedPost!.active).toBe(true);
+    expect(selectedPost!.length).toBeGreaterThanOrEqual((2.0 * 1000 + 1200) / 1000);
 
     const meshHardwareItem = result.items.find(item => item.nomenclatureId === meshHardwareId);
     expect(meshHardwareItem).toBeDefined();

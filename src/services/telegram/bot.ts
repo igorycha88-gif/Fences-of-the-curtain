@@ -98,11 +98,35 @@ export async function sendTelegramMessage(message: string): Promise<boolean> {
   return false;
 }
 
+export function getOrderTypeLabel(order: { serviceType?: string | null; parameters?: Record<string, unknown> | null }): string {
+  const serviceType = order?.serviceType ?? null;
+
+  if (serviceType === 'fence') return 'Забор';
+  if (serviceType === 'canopy') return 'Навес';
+  if (serviceType === 'gates') return 'Ворота';
+  if (serviceType === 'garage') return 'Гараж';
+
+  if (serviceType === 'INDIVIDUAL_CALCULATION') {
+    const params = order?.parameters ?? {};
+    if (params.serviceType === 'gates') return 'Индивидуальный расчёт (ворота)';
+    if (params.serviceType === 'garage') return 'Индивидуальный расчёт (гараж)';
+    if (params.canopyType !== undefined || params.purpose !== undefined) return 'Индивидуальный расчёт (навес)';
+    if (params.fenceTypeId !== undefined || params.fenceTypeName !== undefined) {
+      const fenceName = typeof params.fenceTypeName === 'string' && params.fenceTypeName ? params.fenceTypeName : null;
+      return fenceName ? `Индивидуальный расчёт (забор), ${fenceName}` : 'Индивидуальный расчёт (забор)';
+    }
+    return 'Индивидуальный расчёт';
+  }
+
+  return serviceType || 'Не указан';
+}
+
 export function sendOrderNotification(order: any) {
   const escapedName = (order.clientName || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const escapedPhone = (order.phone || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const escapedEmail = (order.email || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const orderId = String(order.id || '').slice(-6);
+  const escapedTypeLabel = getOrderTypeLabel(order).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const message = `
 🆕 <b>Новая заявка #${orderId}</b>
@@ -111,7 +135,7 @@ export function sendOrderNotification(order: any) {
 📞 <b>Телефон:</b> ${escapedPhone}
 ${escapedEmail ? `📧 <b>Email:</b> ${escapedEmail}` : ''}
 
-🏠 <b>Тип:</b> ${order.serviceType === 'fence' ? 'Забор' : 'Навес'}
+🏠 <b>Тип:</b> ${escapedTypeLabel}
 💰 <b>Стоимость:</b> ${Number(order.calculatedCost || 0).toLocaleString('ru-RU')} ₽
 📅 <b>Дата:</b> ${new Date(order.createdAt).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}
 

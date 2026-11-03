@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { calculatePanel3D } from '@/services/calculator/panel3DCalculator';
 import { calculateMountingHardware } from '@/services/calculator/mountingHardwareCalculator';
 import { workService } from '@/services/admin/workService';
+import { cache } from '@/lib/cache';
+import { CACHE_KEYS } from '@/lib/cache-keys';
 
 describe('Integration: Panel3D Calculator with Related Items', () => {
   let testPanel3dId: string;
@@ -85,6 +87,11 @@ describe('Integration: Panel3D Calculator with Related Items', () => {
         referenceId: testPanel3dId,
       },
     });
+
+    // Работы кешируются в Redis по (referenceType, referenceId) с TTL 300с.
+    // referenceId фиксирован ('test-panel3d-related-2000'), а workId каждый прогон новый —
+    // без инвалидации кеш вернёт работу предыдущего прогона.
+    await cache.del(CACHE_KEYS.WORKS_BY_REFERENCE('PANEL_3D', testPanel3dId));
   });
 
   afterAll(async () => {
@@ -107,6 +114,8 @@ describe('Integration: Panel3D Calculator with Related Items', () => {
     await prisma.panel3D.delete({
       where: { id: testPanel3dId },
     });
+
+    await cache.del(CACHE_KEYS.WORKS_BY_REFERENCE('PANEL_3D', testPanel3dId));
   });
 
   it('should calculate panel3D with mounting hardware', async () => {

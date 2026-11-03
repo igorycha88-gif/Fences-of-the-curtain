@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { cache } from '@/lib/cache';
 import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 
+// Справочные данные меняются в админке — route обязан быть динамическим.
+// Без этой опции Next.js запекает GET-ответ при сборке образа (req не используется),
+// и деактивация справочника не подействует до пересборки (инцидент 03.11: профиль
+// «Полукруглый (С-образный)» оставался в калькуляторе после active=false).
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const profileTypes = await cache.getOrSet(

@@ -4,6 +4,10 @@ import { cache } from '@/lib/cache';
 import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache-keys';
 import logger from '@/lib/logger';
 
+// Справочные данные меняются в админке — route обязан быть динамическим,
+// иначе Next.js запекает GET-ответ при сборке образа (см. picket-profile-types, инцидент 03.11).
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const coverings = await cache.getOrSet(

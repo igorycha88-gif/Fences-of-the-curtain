@@ -12,6 +12,18 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
+// Кеш должен быть замокан: реальный Redis переживает прогоны Jest, и
+// cache.getOrSet по ключу calculator:works:ref:PANEL_3D:panel3d1 возвращал
+// результат предыдущего прогона → prisma.work.findMany не вызывался (Number of calls: 0).
+// См. NOTE ниже про singleton-сервисы.
+jest.mock('@/lib/cache', () => ({
+  cache: {
+    getOrSet: jest.fn((_key: string, fn: () => Promise<unknown>) => fn()),
+    del: jest.fn().mockResolvedValue(undefined),
+    delPattern: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe('WorkService - getWorksForCalculatorByReference', () => {
   beforeEach(() => {
     (prisma.work.findMany as jest.Mock).mockReset();
