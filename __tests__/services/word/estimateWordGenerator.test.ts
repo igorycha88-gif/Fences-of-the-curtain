@@ -274,3 +274,174 @@ describe('estimateWordGenerator requisites', () => {
     infoSpy.mockRestore();
   });
 });
+
+describe('estimateWordGenerator fence params', () => {
+  const createPicketEstimateData = (): WordEstimateData => ({
+    orderId: 'clpicket000001',
+    clientName: 'Пикетов Пикет',
+    createdAt: '2026-11-03T10:00:00.000Z',
+    measurementAddress: null,
+    estimates: [
+      {
+        fenceTypeName: 'Евроштакетник',
+        length: 50,
+        height: 2,
+        lagRows: 2,
+        coatingLabel: 'Полимерное одностороннее',
+        picketMountingType: 'CHESS',
+        picketStep: 5,
+        picketProfileType: 'П-образный',
+        picketCoatingName: null,
+        meshCoating: null,
+        meshCellSize: null,
+        meshWireThickness: null,
+        automationName: null,
+        hasGate: false,
+        gateTypeLabel: null,
+        gateLength: null,
+        hasWicket: false,
+        wicketWidth: null,
+        materials: [
+          { name: 'Штакетник П-образный', unit: 'шт', quantity: 400, pricePerUnit: 120, totalPrice: 48000 },
+        ],
+        works: [
+          { name: 'Установка забора', unit: 'м.п.', quantity: 50, pricePerUnit: 700, totalPrice: 35000 },
+        ],
+        materialsTotal: 48000,
+        installationTotal: 35000,
+        grandTotal: 83000,
+      },
+    ],
+    totalMaterials: 48000,
+    totalInstallation: 35000,
+    grandTotal: 83000,
+  });
+
+  const createMeshEstimateData = (): WordEstimateData => ({
+    orderId: 'clmesh00000001',
+    clientName: 'Мешков Мешок',
+    createdAt: '2026-11-03T11:00:00.000Z',
+    measurementAddress: null,
+    estimates: [
+      {
+        fenceTypeName: 'Сетка-рабица',
+        length: 100,
+        height: 1.5,
+        lagRows: 0,
+        coatingLabel: '',
+        picketMountingType: null,
+        picketStep: null,
+        picketProfileType: null,
+        picketCoatingName: null,
+        meshCoating: 'Оцинковка',
+        meshCellSize: 50,
+        meshWireThickness: 2.5,
+        automationName: null,
+        hasGate: false,
+        gateTypeLabel: null,
+        gateLength: null,
+        hasWicket: false,
+        wicketWidth: null,
+        materials: [
+          { name: 'Сетка-рабица 50x2.5', unit: 'м.п.', quantity: 100, pricePerUnit: 210, totalPrice: 21000 },
+        ],
+        works: [
+          { name: 'Установка забора', unit: 'м.п.', quantity: 100, pricePerUnit: 350, totalPrice: 35000 },
+        ],
+        materialsTotal: 21000,
+        installationTotal: 35000,
+        grandTotal: 56000,
+      },
+    ],
+    totalMaterials: 21000,
+    totalInstallation: 35000,
+    grandTotal: 56000,
+  });
+
+  const createAutomationEstimateData = (): WordEstimateData => ({
+    orderId: 'clauto00000001',
+    clientName: 'Автоматов Автомат',
+    createdAt: '2026-11-03T12:00:00.000Z',
+    measurementAddress: null,
+    estimates: [
+      {
+        fenceTypeName: 'Профнастил',
+        length: 60,
+        height: 2,
+        lagRows: 2,
+        coatingLabel: 'Полимерное одностороннее',
+        picketMountingType: null,
+        picketStep: null,
+        picketProfileType: null,
+        picketCoatingName: null,
+        meshCoating: null,
+        meshCellSize: null,
+        meshWireThickness: null,
+        automationName: 'Привод Doorhan SLIDE 350',
+        hasGate: true,
+        gateTypeLabel: 'Откатные',
+        gateLength: 4000,
+        hasWicket: false,
+        wicketWidth: null,
+        materials: [
+          { name: 'Профлист С-8', unit: 'м²', quantity: 120, pricePerUnit: 450, totalPrice: 54000 },
+        ],
+        works: [
+          { name: 'Установка забора', unit: 'м.п.', quantity: 60, pricePerUnit: 800, totalPrice: 48000 },
+        ],
+        materialsTotal: 54000,
+        installationTotal: 48000,
+        grandTotal: 102000,
+      },
+    ],
+    totalMaterials: 54000,
+    totalInstallation: 48000,
+    grandTotal: 102000,
+  });
+
+  it('should render picket chess mounting type, step and profile', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createPicketEstimateData()));
+
+    expect(xml).toContain('Монтаж: В шахматном порядке');
+    expect(xml).toContain('Шаг: 5 см');
+    expect(xml).toContain('Профиль: П-образный');
+  });
+
+  it('should render single-side picket mounting type label', async () => {
+    const data = createPicketEstimateData();
+    data.estimates[0].picketMountingType = 'SINGLE';
+
+    const xml = await extractDocumentXml(await generateEstimateWord(data));
+
+    expect(xml).toContain('Монтаж: Односторонний');
+    expect(xml).toContain('Шаг: 5 см');
+  });
+
+  it('should render mesh coating, cell size and wire thickness instead of lags', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createMeshEstimateData()));
+
+    expect(xml).toContain('Покрытие сетки: Оцинковка');
+    expect(xml).toContain('Ячейка: 50 мм');
+    expect(xml).toContain('Пруток: 2.5 мм');
+
+    const lagsIndex = xml.indexOf('Лаги:');
+    expect(lagsIndex).toBe(-1);
+  });
+
+  it('should render automation name for gate', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createAutomationEstimateData()));
+
+    expect(xml).toContain('Автоматика: Привод Doorhan SLIDE 350');
+  });
+
+  it('should not render picket/mesh params for profnastil estimate (regression)', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createAutomationEstimateData()));
+
+    expect(xml).not.toContain('Монтаж: ');
+    expect(xml).not.toContain('Шаг: ');
+    expect(xml).not.toContain('Ячейка: ');
+    expect(xml).not.toContain('Пруток: ');
+    expect(xml).toContain('Лаги: 2');
+    expect(xml).toContain('Покрытие: Полимерное одностороннее');
+  });
+});

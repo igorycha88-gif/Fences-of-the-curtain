@@ -60,6 +60,18 @@ interface EstimateDetail {
   installationTotal: number;
   materialsTotal: number;
   grandTotal: number;
+  picketStep: number | null;
+  picketMountingType: string | null;
+  picketProfileType: string | null;
+  picketCoatingName: string | null;
+  picketNomenclatureName: string | null;
+  meshId: string | null;
+  meshNomenclatureName: string | null;
+  meshCoating: string | null;
+  meshCellSize: number | null;
+  meshWireThickness: number | null;
+  hasAutomation: boolean;
+  automationNomenclatureName: string | null;
   items: ExtendedEstimateItem[];
   ipAddress: string | null;
   userAgent: string | null;
@@ -78,6 +90,16 @@ const coatingLabels: Record<string, string> = {
   GALVANIZED: 'Оцинкованный',
   POLYMER_SINGLE: 'Односторонний полимер',
   POLYMER_DOUBLE: 'Двусторонний полимер',
+};
+
+const gateTypeLabels: Record<string, string> = {
+  SWING: 'Распашные',
+  SLIDING: 'Откатные',
+};
+
+const picketMountingTypeLabels: Record<string, string> = {
+  SINGLE: 'Односторонний',
+  CHESS: 'В шахматном порядке',
 };
 
 const categoryLabels: Record<string, string> = {
@@ -276,14 +298,87 @@ export default function EstimateDetailPage({ params }: { params: Promise<{ id: s
                 <label className="text-sm text-gray-500">Размер</label>
                 <p className="font-medium">{estimate.length}м × {estimate.height}м</p>
               </div>
-              <div>
-                <label className="text-sm text-gray-500">Лаги</label>
-                <p className="font-medium">{estimate.lagRows} ряда</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-500">Покрытие</label>
-                <p className="font-medium">{coatingLabels[estimate.coating] || estimate.coating}</p>
-              </div>
+              {(estimate.meshCoating || estimate.meshCellSize != null || estimate.meshWireThickness != null) ? (
+                <>
+                  <div>
+                    <label className="text-sm text-gray-500">Покрытие сетки</label>
+                    <p className="font-medium">{estimate.meshCoating || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Размер ячейки</label>
+                    <p className="font-medium">{estimate.meshCellSize != null ? `${estimate.meshCellSize} мм` : '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Толщина прутка</label>
+                    <p className="font-medium">{estimate.meshWireThickness != null ? `${estimate.meshWireThickness} мм` : '-'}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-sm text-gray-500">Лаги</label>
+                    <p className="font-medium">{estimate.lagRows} ряда</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Покрытие</label>
+                    <p className="font-medium">{coatingLabels[estimate.coating] || estimate.coating}</p>
+                  </div>
+                </>
+              )}
+              {(estimate.picketMountingType || estimate.picketStep != null || estimate.picketProfileType) && (
+                <div className="col-span-2 grid grid-cols-2 gap-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="col-span-2">
+                    <label className="text-sm text-primary font-semibold block mb-2">Параметры евроштакетника</label>
+                  </div>
+                  {estimate.picketProfileType && (
+                    <div>
+                      <label className="text-sm text-gray-500">Тип профиля</label>
+                      <p className="font-medium">{estimate.picketProfileType}</p>
+                    </div>
+                  )}
+                  {estimate.picketStep != null && (
+                    <div>
+                      <label className="text-sm text-gray-500">Шаг</label>
+                      <p className="font-medium">{estimate.picketStep} см</p>
+                    </div>
+                  )}
+                  {estimate.picketMountingType && (
+                    <div>
+                      <label className="text-sm text-gray-500">Тип монтажа</label>
+                      <p className="font-medium">
+                        {picketMountingTypeLabels[estimate.picketMountingType] || estimate.picketMountingType}
+                      </p>
+                    </div>
+                  )}
+                  {estimate.picketCoatingName && (
+                    <div>
+                      <label className="text-sm text-gray-500">Покрытие штакетника</label>
+                      <p className="font-medium">{estimate.picketCoatingName}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {estimate.hasGate && (
+                <div>
+                  <label className="text-sm text-gray-500">Ворота</label>
+                  <p className="font-medium">
+                    {estimate.gateType ? (gateTypeLabels[estimate.gateType] || estimate.gateType) : ''}
+                    {estimate.gateLength ? `, ${estimate.gateLength / 1000} м` : ''}
+                  </p>
+                </div>
+              )}
+              {estimate.hasWicket && (
+                <div>
+                  <label className="text-sm text-gray-500">Калитка</label>
+                  <p className="font-medium">{estimate.wicketWidth ? `${estimate.wicketWidth / 1000} м` : '-'}</p>
+                </div>
+              )}
+              {estimate.hasAutomation && (
+                <div>
+                  <label className="text-sm text-gray-500">Автоматика</label>
+                  <p className="font-medium">{estimate.automationNomenclatureName || '-'}</p>
+                </div>
+              )}
             </div>
           </div>
 

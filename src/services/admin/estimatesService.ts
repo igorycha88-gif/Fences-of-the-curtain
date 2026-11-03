@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getCityByIP } from './ipLookupService';
 import { createAuditLogAsync } from '@/lib/audit';
+import logger from '@/lib/logger';
 import {
   calculateExtendedItems,
   calculateSummary,
@@ -199,6 +200,18 @@ export class EstimatesService {
     installationTotal: number;
     materialsTotal: number;
     grandTotal: number;
+    picketStep: number | null;
+    picketMountingType: string | null;
+    picketProfileType: string | null;
+    picketCoatingName: string | null;
+    picketNomenclatureName: string | null;
+    meshId: string | null;
+    meshNomenclatureName: string | null;
+    meshCoating: string | null;
+    meshCellSize: number | null;
+    meshWireThickness: number | null;
+    hasAutomation: boolean;
+    automationNomenclatureName: string | null;
     ipAddress: string | null;
     userAgent: string | null;
     city: string | null;
@@ -221,6 +234,30 @@ export class EstimatesService {
 
     if (!estimate) {
       return null;
+    }
+
+    let meshParams: { coating: string; cellSize: number; wireThickness: number } | null = null;
+    if (estimate.meshId) {
+      try {
+        const mesh = await prisma.meshType.findUnique({
+          where: { id: estimate.meshId },
+          select: { coating: true, cellSize: true, wireThickness: true },
+        });
+        if (mesh) {
+          meshParams = mesh;
+        } else {
+          logger.warn('[estimatesService] Mesh not found for estimate', {
+            estimateId: id,
+            meshId: estimate.meshId,
+          });
+        }
+      } catch (error) {
+        logger.error('[estimatesService] Failed to fetch mesh params for estimate', {
+          error: error instanceof Error ? error.message : String(error),
+          estimateId: id,
+          meshId: estimate.meshId,
+        });
+      }
     }
 
     const baseItems: EstimateItem[] = estimate.items
@@ -252,6 +289,18 @@ export class EstimatesService {
       height: estimate.height,
       lagRows: estimate.lagRows,
       coating: estimate.coating,
+      picketStep: estimate.picketStep ?? null,
+      picketMountingType: estimate.picketMountingType ?? null,
+      picketProfileType: estimate.picketProfileType ?? null,
+      picketCoatingName: estimate.picketCoatingName ?? null,
+      picketNomenclatureName: estimate.picketNomenclatureName ?? null,
+      meshId: estimate.meshId ?? null,
+      meshNomenclatureName: estimate.meshNomenclatureName ?? null,
+      meshCoating: meshParams?.coating ?? null,
+      meshCellSize: meshParams?.cellSize ?? null,
+      meshWireThickness: meshParams?.wireThickness ?? null,
+      hasAutomation: estimate.hasAutomation ?? false,
+      automationNomenclatureName: estimate.automationNomenclatureName ?? null,
       hasGate: estimate.hasGate,
       gateType: estimate.gateType,
       gateLength: estimate.gateLength,

@@ -30,6 +30,14 @@ export interface WordEstimateSection {
   height: number;
   lagRows: number;
   coatingLabel: string;
+  picketMountingType?: 'SINGLE' | 'CHESS' | string | null;
+  picketStep?: number | null;
+  picketProfileType?: string | null;
+  picketCoatingName?: string | null;
+  meshCoating?: string | null;
+  meshCellSize?: number | null;
+  meshWireThickness?: number | null;
+  automationName?: string | null;
   hasGate: boolean;
   gateTypeLabel: string | null;
   gateLength: number | null;
@@ -189,6 +197,11 @@ function createSectionHeaderRow(text: string, color: string): TableRow {
   });
 }
 
+const PICKET_MOUNTING_TYPE_LABELS: Record<string, string> = {
+  SINGLE: 'Односторонний',
+  CHESS: 'В шахматном порядке',
+};
+
 function createEstimateSection(estimate: WordEstimateSection, index: number): Paragraph[] {
   const paragraphs: Paragraph[] = [];
 
@@ -210,17 +223,54 @@ function createEstimateSection(estimate: WordEstimateSection, index: number): Pa
     })
   );
 
+  const isMeshEstimate =
+    estimate.meshCoating != null || estimate.meshCellSize != null || estimate.meshWireThickness != null;
+  const isPicketEstimate =
+    estimate.picketMountingType != null || estimate.picketStep != null || estimate.picketProfileType != null;
+
   const params: string[] = [
     `Длина: ${estimate.length} м`,
     `Высота: ${estimate.height} м`,
-    `Покрытие: ${estimate.coatingLabel}`,
-    `Лаги: ${estimate.lagRows}`,
   ];
+
+  if (isMeshEstimate) {
+    if (estimate.meshCoating) {
+      params.push(`Покрытие сетки: ${estimate.meshCoating}`);
+    }
+    if (estimate.meshCellSize != null) {
+      params.push(`Ячейка: ${estimate.meshCellSize} мм`);
+    }
+    if (estimate.meshWireThickness != null) {
+      params.push(`Пруток: ${estimate.meshWireThickness} мм`);
+    }
+  } else {
+    params.push(`Покрытие: ${estimate.coatingLabel}`);
+    params.push(`Лаги: ${estimate.lagRows}`);
+  }
+
+  if (isPicketEstimate) {
+    if (estimate.picketProfileType) {
+      params.push(`Профиль: ${estimate.picketProfileType}`);
+    }
+    if (estimate.picketStep != null) {
+      params.push(`Шаг: ${estimate.picketStep} см`);
+    }
+    if (estimate.picketMountingType) {
+      params.push(`Монтаж: ${PICKET_MOUNTING_TYPE_LABELS[estimate.picketMountingType] || estimate.picketMountingType}`);
+    }
+    if (estimate.picketCoatingName) {
+      params.push(`Покрытие штакетника: ${estimate.picketCoatingName}`);
+    }
+  }
+
   if (estimate.hasGate && estimate.gateTypeLabel) {
     params.push(`Ворота: ${estimate.gateTypeLabel}${estimate.gateLength ? `, ${estimate.gateLength / 1000} м` : ''}`);
   }
   if (estimate.hasWicket && estimate.wicketWidth) {
     params.push(`Калитка: ${estimate.wicketWidth / 1000} м`);
+  }
+  if (estimate.automationName) {
+    params.push(`Автоматика: ${estimate.automationName}`);
   }
 
   paragraphs.push(

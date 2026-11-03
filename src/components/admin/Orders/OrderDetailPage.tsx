@@ -734,6 +734,15 @@ export function OrderDetailPage({ orderId }: OrderDetailPageProps) {
                 lagRows={(estimate || adminEstimate).lagRows}
                 coating={(estimate || adminEstimate).coating}
                 coatingLabel={(estimate || adminEstimate).coatingLabel}
+                picketMountingType={(estimate || adminEstimate).picketMountingType ?? null}
+                picketStep={(estimate || adminEstimate).picketStep ?? null}
+                picketProfileType={(estimate || adminEstimate).picketProfileType ?? null}
+                picketCoatingName={(estimate || adminEstimate).picketCoatingName ?? null}
+                meshCoating={(estimate || adminEstimate).meshCoating ?? null}
+                meshCellSize={(estimate || adminEstimate).meshCellSize ?? null}
+                meshWireThickness={(estimate || adminEstimate).meshWireThickness ?? null}
+                hasAutomation={(estimate || adminEstimate).hasAutomation ?? false}
+                automationNomenclatureName={(estimate || adminEstimate).automationNomenclatureName ?? null}
                 hasGate={(estimate || adminEstimate).hasGate}
                 gateType={(estimate || adminEstimate).gateType}
                 gateTypeLabel={(estimate || adminEstimate).gateTypeLabel}

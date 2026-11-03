@@ -9,6 +9,78 @@ import {
 } from '@/lib/validators/order';
 import { createAuditLogAsync } from '@/lib/audit';
 import { calculateExtendedItems, calculateSummary } from '@/lib/utils/marginCalculator';
+import logger from '@/lib/logger';
+
+interface MeshParams {
+  coating: string;
+  cellSize: number;
+  wireThickness: number;
+}
+
+async function getMeshParamsMap(meshIds: (string | null | undefined)[]): Promise<Map<string, MeshParams>> {
+  const map = new Map<string, MeshParams>();
+  const uniqueIds = [...new Set(meshIds.filter((id): id is string => !!id))];
+
+  if (uniqueIds.length === 0) {
+    return map;
+  }
+
+  try {
+    const meshes = await prisma.meshType.findMany({
+      where: { id: { in: uniqueIds } },
+      select: { id: true, coating: true, cellSize: true, wireThickness: true },
+    });
+
+    for (const mesh of meshes) {
+      map.set(mesh.id, {
+        coating: mesh.coating,
+        cellSize: mesh.cellSize,
+        wireThickness: mesh.wireThickness,
+      });
+    }
+  } catch (error) {
+    logger.error('[getOrderFull] Failed to fetch mesh params', {
+      error: error instanceof Error ? error.message : String(error),
+      meshIds: uniqueIds,
+    });
+  }
+
+  return map;
+}
+
+type FenceEstimateParamsSource = {
+  picketStep?: number | null;
+  picketMountingType?: string | null;
+  picketProfileType?: string | null;
+  picketCoatingName?: string | null;
+  picketNomenclatureName?: string | null;
+  meshId?: string | null;
+  meshNomenclatureName?: string | null;
+  hasAutomation?: boolean | null;
+  automationNomenclatureName?: string | null;
+};
+
+function buildFenceExtraParams(
+  est: FenceEstimateParamsSource,
+  meshParamsMap: Map<string, MeshParams>
+) {
+  const meshParams = est.meshId ? meshParamsMap.get(est.meshId) ?? null : null;
+
+  return {
+    picketStep: est.picketStep ?? null,
+    picketMountingType: est.picketMountingType ?? null,
+    picketProfileType: est.picketProfileType ?? null,
+    picketCoatingName: est.picketCoatingName ?? null,
+    picketNomenclatureName: est.picketNomenclatureName ?? null,
+    meshId: est.meshId ?? null,
+    meshNomenclatureName: est.meshNomenclatureName ?? null,
+    meshCoating: meshParams?.coating ?? null,
+    meshCellSize: meshParams?.cellSize ?? null,
+    meshWireThickness: meshParams?.wireThickness ?? null,
+    hasAutomation: est.hasAutomation ?? false,
+    automationNomenclatureName: est.automationNomenclatureName ?? null,
+  };
+}
 
 export class OrdersService {
   async getOrders(params: {
@@ -617,6 +689,16 @@ export class OrdersService {
 
     const statusHistory = (resolvedOrder.statusHistory as any[]) || [];
 
+    const meshParamsMap = await getMeshParamsMap([
+      resolvedOrder.estimate?.meshId,
+      resolvedOrder.adminEstimate?.meshId,
+      ...(resolvedOrder.multiEstimate?.estimates.map((e) => e.meshId) ?? []),
+    ]);
+    logger.info('[getOrderFull] Mesh params resolved', {
+      orderId: id,
+      meshCount: meshParamsMap.size,
+    });
+
     const formattedHistory = statusHistory.map((entry) => ({
       status: entry.status,
       statusLabel: STATUS_LABELS[entry.status as OrderStatus] || entry.status,
@@ -729,6 +811,7 @@ export class OrdersService {
         lagRows: resolvedOrder.estimate.lagRows,
         coating: resolvedOrder.estimate.coating,
         coatingLabel: COATING_LABELS[resolvedOrder.estimate.coating] || resolvedOrder.estimate.coating,
+        ...buildFenceExtraParams(resolvedOrder.estimate, meshParamsMap),
         hasGate: resolvedOrder.estimate.hasGate,
         gateType: resolvedOrder.estimate.gateType,
         gateTypeLabel: resolvedOrder.estimate.gateType
@@ -838,6 +921,7 @@ export class OrdersService {
         lagRows: resolvedOrder.adminEstimate.lagRows,
         coating: resolvedOrder.adminEstimate.coating,
         coatingLabel: COATING_LABELS[resolvedOrder.adminEstimate.coating] || resolvedOrder.adminEstimate.coating,
+        ...buildFenceExtraParams(resolvedOrder.adminEstimate, meshParamsMap),
         hasGate: resolvedOrder.adminEstimate.hasGate,
         gateType: resolvedOrder.adminEstimate.gateType,
         gateTypeLabel: resolvedOrder.adminEstimate.gateType
@@ -953,6 +1037,7 @@ export class OrdersService {
           lagRows: est.lagRows,
           coating: est.coating,
           coatingLabel: COATING_LABELS[est.coating] || est.coating,
+          ...buildFenceExtraParams(est, meshParamsMap),
           hasGate: est.hasGate,
           gateType: est.gateType,
           gateTypeLabel: est.gateType
@@ -999,6 +1084,10 @@ export class OrdersService {
 
         const correctionsMap = new Map(
           adminCorrections.map(c => [c.sourceEstimateId!, c])
+        );
+
+        const correctionMeshParamsMap = await getMeshParamsMap(
+          adminCorrections.map(c => c.meshId)
         );
 
         multiEstimates = await Promise.all(multiEstimates.map(async (est: any) => {
@@ -1061,6 +1150,7 @@ export class OrdersService {
               lagRows: correction.lagRows,
               coating: correction.coating,
               coatingLabel: COATING_LABELS[correction.coating] || correction.coating,
+              ...buildFenceExtraParams(correction, correctionMeshParamsMap),
               hasGate: correction.hasGate,
               gateType: correction.gateType,
               gateTypeLabel: correction.gateType

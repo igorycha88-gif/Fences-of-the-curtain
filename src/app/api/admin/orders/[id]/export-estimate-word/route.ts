@@ -137,12 +137,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             totalPrice: i.totalPrice,
           }));
 
+        const paramSource = correction || est;
+
         estimateSections.push({
           fenceTypeName: est.fenceType.name,
           length: est.length,
           height: est.height,
           lagRows: est.lagRows,
           coatingLabel: est.coatingLabel,
+          picketMountingType: paramSource.picketMountingType ?? null,
+          picketStep: paramSource.picketStep ?? null,
+          picketProfileType: paramSource.picketProfileType ?? null,
+          picketCoatingName: paramSource.picketCoatingName ?? null,
+          meshCoating: paramSource.meshCoating ?? null,
+          meshCellSize: paramSource.meshCellSize ?? null,
+          meshWireThickness: paramSource.meshWireThickness ?? null,
+          automationName: paramSource.hasAutomation ? paramSource.automationNomenclatureName : null,
           hasGate: est.hasGate,
           gateTypeLabel: est.gateTypeLabel,
           gateLength: est.gateLength,
@@ -211,6 +221,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         height: effective.height,
         lagRows: effective.lagRows,
         coatingLabel: effective.coatingLabel,
+        picketMountingType: (effective as any).picketMountingType ?? null,
+        picketStep: (effective as any).picketStep ?? null,
+        picketProfileType: (effective as any).picketProfileType ?? null,
+        picketCoatingName: (effective as any).picketCoatingName ?? null,
+        meshCoating: (effective as any).meshCoating ?? null,
+        meshCellSize: (effective as any).meshCellSize ?? null,
+        meshWireThickness: (effective as any).meshWireThickness ?? null,
+        automationName: (effective as any).hasAutomation ? (effective as any).automationNomenclatureName : null,
         hasGate: effective.hasGate,
         gateTypeLabel: effective.gateTypeLabel,
         gateLength: effective.gateLength,

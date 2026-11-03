@@ -1,6 +1,6 @@
 'use client';
 
-import { Ruler, Layers, Palette, DoorOpen, MapPin } from 'lucide-react';
+import { Ruler, Layers, Palette, DoorOpen, MapPin, Grid3X3, Bot } from 'lucide-react';
 
 interface FenceParametersProps {
   fenceType: {
@@ -13,6 +13,15 @@ interface FenceParametersProps {
   lagRows: number;
   coating: string;
   coatingLabel: string;
+  picketMountingType?: string | null;
+  picketStep?: number | null;
+  picketProfileType?: string | null;
+  picketCoatingName?: string | null;
+  meshCoating?: string | null;
+  meshCellSize?: number | null;
+  meshWireThickness?: number | null;
+  hasAutomation?: boolean | null;
+  automationNomenclatureName?: string | null;
   hasGate: boolean;
   gateType: string | null;
   gateTypeLabel: string | null;
@@ -24,6 +33,11 @@ interface FenceParametersProps {
   city: string | null;
 }
 
+const PICKET_MOUNTING_TYPE_LABELS: Record<string, string> = {
+  SINGLE: 'Односторонний',
+  CHESS: 'В шахматном порядке',
+};
+
 export function FenceParameters({
   fenceType,
   fenceTypeName,
@@ -31,6 +45,15 @@ export function FenceParameters({
   height,
   lagRows,
   coatingLabel,
+  picketMountingType,
+  picketStep,
+  picketProfileType,
+  picketCoatingName,
+  meshCoating,
+  meshCellSize,
+  meshWireThickness,
+  hasAutomation,
+  automationNomenclatureName,
   hasGate,
   gateTypeLabel,
   gateLength,
@@ -40,6 +63,9 @@ export function FenceParameters({
   wicketNomenclatureName,
   city,
 }: FenceParametersProps) {
+  const isMesh = meshCoating != null || meshCellSize != null || meshWireThickness != null;
+  const isPicket = picketMountingType != null || picketStep != null || picketProfileType != null;
+
   return (
     <div className="bg-white rounded-xl shadow-md border p-6">
       <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -67,22 +93,84 @@ export function FenceParameters({
           </div>
         </div>
 
-        {fenceType.name !== 'Сетка-рабица' && (
-          <div className="flex items-start gap-3">
-            <Layers className="w-4 h-4 text-gray-400 mt-0.5" />
+        {isMesh ? (
+          <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <Grid3X3 className="w-4 h-4 text-primary mt-0.5" />
             <div className="flex-1">
-              <label className="text-sm text-gray-500 block">Лаги</label>
-              <p className="font-medium text-gray-900">{lagRows} ряда</p>
+              <label className="text-sm text-primary block mb-1 font-semibold">Параметры сетки-рабицы</label>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs text-gray-500 block">Покрытие</label>
+                  <p className="font-medium text-gray-900 text-sm">{meshCoating || '-'}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block">Ячейка</label>
+                  <p className="font-medium text-gray-900 text-sm">{meshCellSize != null ? `${meshCellSize} мм` : '-'}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block">Пруток</label>
+                  <p className="font-medium text-gray-900 text-sm">{meshWireThickness != null ? `${meshWireThickness} мм` : '-'}</p>
+                </div>
+              </div>
             </div>
           </div>
+        ) : (
+          <>
+            {fenceType.name !== 'Сетка-рабица' && (
+              <div className="flex items-start gap-3">
+                <Layers className="w-4 h-4 text-gray-400 mt-0.5" />
+                <div className="flex-1">
+                  <label className="text-sm text-gray-500 block">Лаги</label>
+                  <p className="font-medium text-gray-900">{lagRows} ряда</p>
+                </div>
+              </div>
+            )}
+
+            {fenceTypeName !== 'Сетка-рабица' && (
+              <div className="flex items-start gap-3">
+                <Palette className="w-4 h-4 text-gray-400 mt-0.5" />
+                <div className="flex-1">
+                  <label className="text-sm text-gray-500 block">Покрытие</label>
+                  <p className="font-medium text-gray-900">{coatingLabel}</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
-        {fenceTypeName !== 'Сетка-рабица' && (
-          <div className="flex items-start gap-3">
-            <Palette className="w-4 h-4 text-gray-400 mt-0.5" />
+        {isPicket && (
+          <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <span className="text-lg leading-none mt-0.5">🪵</span>
             <div className="flex-1">
-              <label className="text-sm text-gray-500 block">Покрытие</label>
-              <p className="font-medium text-gray-900">{coatingLabel}</p>
+              <label className="text-sm text-primary block mb-1 font-semibold">Параметры евроштакетника</label>
+              <div className="grid grid-cols-3 gap-2">
+                {picketProfileType && (
+                  <div>
+                    <label className="text-xs text-gray-500 block">Профиль</label>
+                    <p className="font-medium text-gray-900 text-sm">{picketProfileType}</p>
+                  </div>
+                )}
+                {picketStep != null && (
+                  <div>
+                    <label className="text-xs text-gray-500 block">Шаг</label>
+                    <p className="font-medium text-gray-900 text-sm">{picketStep} см</p>
+                  </div>
+                )}
+                {picketMountingType && (
+                  <div>
+                    <label className="text-xs text-gray-500 block">Тип монтажа</label>
+                    <p className="font-medium text-gray-900 text-sm">
+                      {PICKET_MOUNTING_TYPE_LABELS[picketMountingType] || picketMountingType}
+                    </p>
+                  </div>
+                )}
+                {picketCoatingName && (
+                  <div>
+                    <label className="text-xs text-gray-500 block">Покрытие штакетника</label>
+                    <p className="font-medium text-gray-900 text-sm">{picketCoatingName}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -109,7 +197,7 @@ export function FenceParameters({
               <label className="text-sm text-blue-600 block">Ворота</label>
               <p className="font-medium text-blue-800">
                 {gateTypeLabel && `${gateTypeLabel} `}
-                {gateLength && `${gateLength} м`}
+                {gateLength != null && `${gateLength / 1000} м`}
                 {gateNomenclatureName && ` — ${gateNomenclatureName}`}
               </p>
             </div>
@@ -122,9 +210,19 @@ export function FenceParameters({
             <div className="flex-1">
               <label className="text-sm text-green-600 block">Калитка</label>
               <p className="font-medium text-green-800">
-                {wicketWidth && `${wicketWidth} м`}
+                {wicketWidth != null && `${wicketWidth / 1000} м`}
                 {wicketNomenclatureName && ` — ${wicketNomenclatureName}`}
               </p>
+            </div>
+          </div>
+        )}
+
+        {hasAutomation && (
+          <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+            <Bot className="w-4 h-4 text-purple-500 mt-0.5" />
+            <div className="flex-1">
+              <label className="text-sm text-purple-600 block">Автоматика ворот</label>
+              <p className="font-medium text-purple-800">{automationNomenclatureName || '-'}</p>
             </div>
           </div>
         )}
