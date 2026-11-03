@@ -13,6 +13,8 @@ import {
   PageBreak,
   ShadingType,
 } from 'docx';
+import { LEGAL_REQUISITES, BUSINESS_INFO } from '@/lib/seo/constants';
+import logger from '@/lib/logger';
 
 export interface WordEstimateItem {
   name: string;
@@ -416,14 +418,73 @@ function createSignatures(): Paragraph[] {
   return paragraphs;
 }
 
+function createRequisites(): Paragraph[] {
+  const paragraphs: Paragraph[] = [];
+
+  paragraphs.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Реквизиты подрядчика:',
+          bold: true,
+          size: 18,
+          font: 'Times New Roman',
+        }),
+      ],
+      spacing: { before: 400, after: 60 },
+    })
+  );
+
+  paragraphs.push(
+    new Paragraph({
+      children: [new TextRun({ text: LEGAL_REQUISITES.fullName, size: 18, font: 'Times New Roman' })],
+      spacing: { after: 40 },
+    })
+  );
+
+  paragraphs.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `ИНН: ${LEGAL_REQUISITES.inn} · ОГРНИП: ${LEGAL_REQUISITES.ogrnip}`,
+          size: 18,
+          font: 'Times New Roman',
+        }),
+      ],
+      spacing: { after: 40 },
+    })
+  );
+
+  paragraphs.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Тел.: ${BUSINESS_INFO.telephoneDisplay} · E-mail: ${BUSINESS_INFO.email}`,
+          size: 18,
+          font: 'Times New Roman',
+        }),
+      ],
+      spacing: { after: 0 },
+    })
+  );
+
+  return paragraphs;
+}
+
 export async function generateEstimateWord(data: WordEstimateData): Promise<Buffer> {
+  logger.info('Word estimate generation started', {
+    module: 'estimateWordGenerator',
+    orderId: data.orderId,
+    sections: data.estimates.length,
+  });
+
   const children: Paragraph[] = [];
 
   children.push(
     new Paragraph({
       children: [
         new TextRun({
-          text: 'ООО "Заборы и Навесы"',
+          text: LEGAL_REQUISITES.shortName,
           bold: true,
           size: 24,
           font: 'Times New Roman',
@@ -510,6 +571,7 @@ export async function generateEstimateWord(data: WordEstimateData): Promise<Buff
   }
 
   children.push(...createSignatures());
+  children.push(...createRequisites());
 
   const doc = new Document({
     sections: [
@@ -529,5 +591,13 @@ export async function generateEstimateWord(data: WordEstimateData): Promise<Buff
     ],
   });
 
-  return Buffer.from(await Packer.toBuffer(doc));
+  const buffer = Buffer.from(await Packer.toBuffer(doc));
+
+  logger.info('Word estimate generation finished', {
+    module: 'estimateWordGenerator',
+    orderId: data.orderId,
+    sizeBytes: buffer.length,
+  });
+
+  return buffer;
 }

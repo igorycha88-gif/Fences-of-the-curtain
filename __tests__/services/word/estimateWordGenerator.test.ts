@@ -1,5 +1,17 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
+import JSZip from 'jszip';
 import { generateEstimateWord, WordEstimateData } from '@/services/word/estimateWordGenerator';
+import { LEGAL_REQUISITES, BUSINESS_INFO } from '@/lib/seo/constants';
+import logger from '@/lib/logger';
+
+const extractDocumentXml = async (buffer: Buffer): Promise<string> => {
+  const zip = await JSZip.loadAsync(buffer);
+  const docFile = zip.file('word/document.xml');
+  if (!docFile) {
+    throw new Error('word/document.xml not found in docx');
+  }
+  return docFile.async('string');
+};
 
 const createSingleEstimateData = (): WordEstimateData => ({
   orderId: 'cltest12345678',
@@ -200,5 +212,65 @@ describe('estimateWordGenerator', () => {
     const multiBuffer = await generateEstimateWord(multiData);
 
     expect(multiBuffer.length).toBeGreaterThan(singleBuffer.length);
+  });
+});
+
+describe('estimateWordGenerator requisites', () => {
+  it('should render contractor short name in header instead of ООО', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createSingleEstimateData()));
+
+    expect(xml).toContain(LEGAL_REQUISITES.shortName);
+    expect(xml).not.toContain('ООО');
+  });
+
+  it('should include full requisites block after signatures (single estimate)', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createSingleEstimateData()));
+
+    expect(xml).toContain('Реквизиты подрядчика');
+    expect(xml).toContain(LEGAL_REQUISITES.fullName);
+    expect(xml).toContain(`ИНН: ${LEGAL_REQUISITES.inn}`);
+    expect(xml).toContain(`ОГРНИП: ${LEGAL_REQUISITES.ogrnip}`);
+    expect(xml).toContain(`Тел.: ${BUSINESS_INFO.telephoneDisplay}`);
+    expect(xml).toContain(`E-mail: ${BUSINESS_INFO.email}`);
+
+    const signaturesPos = xml.indexOf('Подрядчик:');
+    const requisitesPos = xml.indexOf('Реквизиты подрядчика');
+    expect(signaturesPos).toBeGreaterThan(-1);
+    expect(requisitesPos).toBeGreaterThan(signaturesPos);
+  });
+
+  it('should include requisites block for multi-estimate too', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createMultiEstimateData()));
+
+    expect(xml).toContain(LEGAL_REQUISITES.shortName);
+    expect(xml).toContain(`ИНН: ${LEGAL_REQUISITES.inn}`);
+    expect(xml).toContain(`ОГРНИП: ${LEGAL_REQUISITES.ogrnip}`);
+  });
+
+  it('should not include bank details and legal address (short requisites set)', async () => {
+    const xml = await extractDocumentXml(await generateEstimateWord(createSingleEstimateData()));
+
+    expect(xml).not.toContain(LEGAL_REQUISITES.bank.bik);
+    expect(xml).not.toContain(LEGAL_REQUISITES.bank.checkingAccount);
+    expect(xml).not.toContain(LEGAL_REQUISITES.bank.correspondentAccount);
+    expect(xml).not.toContain(LEGAL_REQUISITES.bank.name);
+    expect(xml).not.toContain(LEGAL_REQUISITES.legalAddress);
+  });
+
+  it('should log generation start and finish', async () => {
+    const infoSpy = jest.spyOn(logger, 'info');
+
+    await generateEstimateWord(createSingleEstimateData());
+
+    expect(infoSpy).toHaveBeenCalledWith(
+      'Word estimate generation started',
+      expect.objectContaining({ module: 'estimateWordGenerator', orderId: 'cltest12345678' })
+    );
+    expect(infoSpy).toHaveBeenCalledWith(
+      'Word estimate generation finished',
+      expect.objectContaining({ module: 'estimateWordGenerator', orderId: 'cltest12345678' })
+    );
+
+    infoSpy.mockRestore();
   });
 });
