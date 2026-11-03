@@ -3,7 +3,8 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { User } from '@prisma/client';
 import { compare } from '@/lib/password';
-import { checkRateLimit } from './rate-limit';
+import { checkRateLimit, resetRateLimit, maskEmail } from './rate-limit';
+import logger from './logger';
 
 const PLACEHOLDER_VALUES = [
   'your-super-secret-key-change-in-production',
@@ -75,8 +76,10 @@ function getAuthOptions(): NextAuthOptions {
             password: { label: 'Password', type: 'password' },
           },
           async authorize(credentials, req) {
+            const authLogger = logger.withContext({ module: 'auth', operation: 'authorize' });
+
             if (!credentials?.email || !credentials?.password) {
-              console.log('[AUTH] Missing credentials');
+              authLogger.warn('[AUTH] Missing credentials');
               return null;
             }
 
@@ -85,39 +88,66 @@ function getAuthOptions(): NextAuthOptions {
             try {
               allowed = await checkRateLimit(ip, credentials.email);
             } catch (rateLimitError) {
-              console.error(
-                '[AUTH] Rate limit check failed, allowing login attempt. Error:',
-                rateLimitError instanceof Error ? rateLimitError.message : 'Unknown error'
-              );
+              authLogger.error('[AUTH] Rate limit check failed, allowing login attempt', {
+                ip,
+                email: maskEmail(credentials.email),
+                error: rateLimitError instanceof Error ? rateLimitError.message : 'Unknown error',
+              });
               allowed = true;
             }
 
             if (!allowed) {
-              console.log('[AUTH] Rate limit exceeded');
+              authLogger.warn('[AUTH] Rate limit exceeded', {
+                ip,
+                email: maskEmail(credentials.email),
+              });
               return null;
             }
 
-            console.log('[AUTH] Login attempt: user lookup');
+            authLogger.info('[AUTH] Login attempt: user lookup', {
+              ip,
+              email: maskEmail(credentials.email),
+            });
 
             const user = await prisma.user.findUnique({
               where: { email: credentials.email },
             });
 
             if (!user || !user.active) {
-              console.log('[AUTH] User not found or inactive');
+              authLogger.warn('[AUTH] User not found or inactive', {
+                ip,
+                email: maskEmail(credentials.email),
+              });
               return null;
             }
 
             const passwordMatch = await compare(credentials.password, user.password);
 
-            console.log('[AUTH] Password verification: completed');
+            authLogger.info('[AUTH] Password verification: completed');
 
             if (!passwordMatch) {
-              console.log('[AUTH] Invalid password');
+              authLogger.warn('[AUTH] Invalid password', {
+                ip,
+                email: maskEmail(credentials.email),
+              });
               return null;
             }
 
-            console.log('[AUTH] User authorized: success');
+            try {
+              await resetRateLimit(ip, credentials.email);
+            } catch (resetError) {
+              authLogger.error('[AUTH] Failed to reset rate limit after successful login', {
+                ip,
+                email: maskEmail(credentials.email),
+                error: resetError instanceof Error ? resetError.message : 'Unknown error',
+              });
+            }
+
+            authLogger.info('[AUTH] User authorized: success', {
+              ip,
+              email: maskEmail(credentials.email),
+              userId: user.id,
+            });
 
             return {
               id: user.id,
@@ -133,7 +163,11 @@ function getAuthOptions(): NextAuthOptions {
           if (user) {
             token.id = user.id;
             token.role = user.role;
-            console.log('[AUTH JWT] Token created, role:', user.role);
+            logger.info('[AUTH JWT] Token created', {
+              module: 'auth',
+              operation: 'jwt',
+              role: user.role,
+            });
           }
           return token;
         },
@@ -141,7 +175,11 @@ function getAuthOptions(): NextAuthOptions {
           if (session.user && token) {
             session.user.id = token.id as string;
             session.user.role = token.role as string;
-            console.log('[AUTH SESSION] Session created, role:', session.user.role);
+            logger.info('[AUTH SESSION] Session created', {
+              module: 'auth',
+              operation: 'session',
+              role: session.user.role,
+            });
           }
           return session;
         },

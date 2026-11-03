@@ -2,6 +2,31 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import logger from '@/lib/logger';
+
+async function getBlockedMessage(email: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/auth/login-status?email=${encodeURIComponent(email)}`);
+    if (!res.ok) {
+      return null;
+    }
+    const status = await res.json();
+    if (status?.blocked && status.resetAt) {
+      const minutes = Math.max(
+        1,
+        Math.ceil((new Date(status.resetAt).getTime() - Date.now()) / 60000)
+      );
+      return `Слишком много попыток входа. Попробуйте через ${minutes} мин.`;
+    }
+  } catch (error) {
+    logger.error('[ADMIN LOGIN] Failed to check login status', {
+      module: 'admin/login',
+      operation: 'getBlockedMessage',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+  return null;
+}
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +40,7 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      console.log('[ADMIN LOGIN] Attempting to sign in');
+      logger.info('[ADMIN LOGIN] Attempting to sign in', { module: 'admin/login' });
 
       const result = await signIn('credentials', {
         email,
@@ -23,32 +48,47 @@ export default function AdminLoginPage() {
         redirect: false,
       });
 
-      console.log('[ADMIN LOGIN] Sign in result:', result);
-
       if (result?.error) {
-        console.error('[ADMIN LOGIN] Sign in error:', result.error);
-        setError('Неверный email или пароль');
+        logger.warn('[ADMIN LOGIN] Sign in error', {
+          module: 'admin/login',
+          error: result.error,
+        });
+        const blockedMessage = await getBlockedMessage(email);
+        setError(blockedMessage ?? 'Неверный email или пароль');
         setLoading(false);
         return;
       }
 
-      console.log('[ADMIN LOGIN] Sign in successful, waiting for session...');
+      logger.info('[ADMIN LOGIN] Sign in successful, waiting for session...', {
+        module: 'admin/login',
+      });
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const sessionCheckResponse = await fetch('/api/auth/me');
-      console.log('[ADMIN LOGIN] Session check response status:', sessionCheckResponse.status);
+      logger.info('[ADMIN LOGIN] Session check response status', {
+        module: 'admin/login',
+        status: sessionCheckResponse.status,
+      });
 
       if (sessionCheckResponse.ok) {
-        console.log('[ADMIN LOGIN] Session confirmed, redirecting to dashboard');
+        logger.info('[ADMIN LOGIN] Session confirmed, redirecting to dashboard', {
+          module: 'admin/login',
+        });
         window.location.href = '/admin/dashboard';
       } else {
-        console.error('[ADMIN LOGIN] Session not available after sign in');
+        logger.error('[ADMIN LOGIN] Session not available after sign in', {
+          module: 'admin/login',
+          status: sessionCheckResponse.status,
+        });
         setError('Ошибка авторизации. Попробуйте снова.');
         setLoading(false);
       }
     } catch (error) {
-      console.error('[ADMIN LOGIN] Unexpected error:', error);
+      logger.error('[ADMIN LOGIN] Unexpected error', {
+        module: 'admin/login',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       setError('Ошибка входа');
       setLoading(false);
     }

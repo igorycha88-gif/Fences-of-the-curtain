@@ -155,16 +155,46 @@ describe('Auth Rate Limiting', () => {
     });
 
     it('should log blocked attempts', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
       mockRedis.get.mockResolvedValue('5');
 
       await checkRateLimit('192.168.1.100', 'admin@example.com');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('[RATE LIMIT] Blocked:')
       );
 
-      consoleSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('should set TTL only on first attempt (fixed window, K-2)', async () => {
+      mockRedis.get.mockResolvedValue(null);
+      mockRedis.incr.mockResolvedValue(1);
+
+      await checkRateLimit('192.168.1.100', 'admin@example.com');
+
+      const firstMulti = mockRedis.multi.mock.results[0].value;
+      expect(firstMulti.incr).toHaveBeenCalled();
+      expect(firstMulti.expire).toHaveBeenCalledTimes(1);
+
+      mockRedis.get.mockResolvedValue('2');
+      mockRedis.incr.mockResolvedValue(3);
+
+      await checkRateLimit('192.168.1.100', 'admin@example.com');
+
+      expect(mockRedis.multi).toHaveBeenCalledTimes(2);
+      const secondMulti = mockRedis.multi.mock.results[1].value;
+      expect(secondMulti.incr).toHaveBeenCalled();
+      expect(secondMulti.expire).not.toHaveBeenCalled();
+    });
+
+    it('should not increment counter when already blocked', async () => {
+      mockRedis.get.mockResolvedValue('5');
+
+      const result = await checkRateLimit('192.168.1.100', 'admin@example.com');
+
+      expect(result).toBe(false);
+      expect(mockRedis.multi).not.toHaveBeenCalled();
     });
 
     it('should use auth config (15 min window)', async () => {

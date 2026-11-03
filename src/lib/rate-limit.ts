@@ -1,7 +1,8 @@
 import { redis } from './redis';
 import { prisma } from './prisma';
+import logger from './logger';
 
-export type EndpointType = 'auth' | 'orders';
+export type EndpointType = 'auth' | 'orders' | 'login-status';
 
 export function shouldFailOpen(): boolean {
   return process.env.NODE_ENV !== 'production';
@@ -29,11 +30,12 @@ export interface RateLimitResultExtended {
 const DEFAULT_CONFIGS: Record<EndpointType, RateLimitConfig> = {
   auth: { maxAttempts: 5, windowMs: 900000, keyPrefix: 'rate_limit:auth' },
   orders: { maxAttempts: 5, windowMs: 600000, keyPrefix: 'rate_limit:orders' },
+  'login-status': { maxAttempts: 30, windowMs: 300000, keyPrefix: 'rate_limit:login-status' },
 };
 
 const DEFAULT_CONFIG = DEFAULT_CONFIGS.auth;
 
-function maskEmail(email: string): string {
+export function maskEmail(email: string): string {
   const [localPart, domain] = email.split('@');
   if (!domain || localPart.length <= 1) {
     return '***@***';
@@ -72,7 +74,11 @@ export async function getConfig(endpointType: EndpointType = 'auth'): Promise<Ra
       return config;
     }
   } catch (error) {
-    console.error('[RATE LIMIT] Error fetching config from database:', error);
+    logger.error('[RATE LIMIT] Error fetching config from database', {
+      module: 'rate-limit',
+      operation: 'getConfig',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 
   return DEFAULT_CONFIGS[endpointType];
@@ -87,31 +93,47 @@ export async function checkRateLimit(ip: string, email: string): Promise<boolean
     const attempts = currentAttempts ? parseInt(currentAttempts, 10) : 0;
 
     if (attempts >= config.maxAttempts) {
-      console.log(
-        `[RATE LIMIT] Blocked: IP=${ip}, Email=${maskEmail(email)}, Attempts=${attempts + 1}`
-      );
+      logger.warn('[RATE LIMIT] Blocked: too many attempts', {
+        module: 'rate-limit',
+        operation: 'checkRateLimit',
+        ip,
+        email: maskEmail(email),
+        attempts: attempts + 1,
+        maxAttempts: config.maxAttempts,
+      });
       return false;
     }
 
     const multi = redis.multi();
     multi.incr(key);
-    multi.expire(key, Math.floor(config.windowMs / 1000));
+    if (attempts === 0) {
+      multi.expire(key, Math.floor(config.windowMs / 1000));
+    }
     await multi.exec();
 
     return true;
   } catch (error) {
     if (shouldFailOpen()) {
-      console.error(
-        '[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy). ' +
-        `This allows authentication to continue but should be monitored. ` +
-        `IP=${ip}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      logger.error(
+        '[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy)',
+        {
+          module: 'rate-limit',
+          operation: 'checkRateLimit',
+          ip,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
       );
       return true;
     }
-    
-    console.error(
-      '[RATE LIMIT] Redis unavailable, blocking request (fail-close policy). ' +
-      `IP=${ip}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+
+    logger.error(
+      '[RATE LIMIT] Redis unavailable, blocking request (fail-close policy)',
+      {
+        module: 'rate-limit',
+        operation: 'checkRateLimit',
+        ip,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     );
     throw new Error('Rate limiting unavailable - Redis connection failed');
   }
@@ -123,7 +145,12 @@ export async function resetRateLimit(ip: string, email: string): Promise<void> {
     const key = `${config.keyPrefix}:${ip}:${email}`;
     await redis.del(key);
   } catch (error) {
-    console.error('[RATE LIMIT] Error resetting rate limit:', error);
+    logger.error('[RATE LIMIT] Error resetting rate limit', {
+      module: 'rate-limit',
+      operation: 'resetRateLimit',
+      ip,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 }
 
@@ -139,11 +166,18 @@ export async function updateConfig(
 
     configCacheMap.delete('auth');
 
-    console.log(
-      `[RATE LIMIT] Config updated: maxAttempts=${maxAttempts}, windowMs=${windowMs}`
-    );
+    logger.info('[RATE LIMIT] Config updated', {
+      module: 'rate-limit',
+      operation: 'updateConfig',
+      maxAttempts,
+      windowMs,
+    });
   } catch (error) {
-    console.error('[RATE LIMIT] Error updating config:', error);
+    logger.error('[RATE LIMIT] Error updating config', {
+      module: 'rate-limit',
+      operation: 'updateConfig',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw error;
   }
 }
@@ -168,7 +202,12 @@ export async function getRateLimitStatus(
     };
   } catch (error) {
     if (shouldFailOpen()) {
-      console.error('[RATE LIMIT] Error getting rate limit status (fail-open policy):', error);
+      logger.error('[RATE LIMIT] Error getting rate limit status (fail-open policy)', {
+        module: 'rate-limit',
+        operation: 'getRateLimitStatus',
+        ip,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       return {
         allowed: true,
         attempts: 0,
@@ -176,7 +215,12 @@ export async function getRateLimitStatus(
       };
     }
 
-    console.error('[RATE LIMIT] Error getting rate limit status (fail-close policy):', error);
+    logger.error('[RATE LIMIT] Error getting rate limit status (fail-close policy)', {
+      module: 'rate-limit',
+      operation: 'getRateLimitStatus',
+      ip,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw new Error('Rate limiting unavailable - Redis connection failed');
   }
 }
@@ -201,17 +245,27 @@ export async function applyRateLimitByEndpoint(
     const remaining = Math.max(0, config.maxAttempts - attempts);
 
     if (!allowed) {
-      console.log(
-        `[RATE LIMIT] Blocked: IP=${ip}, EndpointType=${endpointType}, Attempts=${attempts}`
-      );
+      logger.warn('[RATE LIMIT] Blocked: too many requests', {
+        module: 'rate-limit',
+        operation: 'applyRateLimitByEndpoint',
+        ip,
+        endpointType,
+        attempts,
+      });
     }
 
     return { allowed, attempts, remaining, resetAt };
   } catch (error) {
     if (shouldFailOpen()) {
-      console.error(
-        `[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy). ` +
-        `IP=${ip}, EndpointType=${endpointType}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      logger.error(
+        '[RATE LIMIT] Redis unavailable, skipping rate limit (fail-open policy)',
+        {
+          module: 'rate-limit',
+          operation: 'applyRateLimitByEndpoint',
+          ip,
+          endpointType,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
       );
       return {
         allowed: true,
@@ -221,9 +275,15 @@ export async function applyRateLimitByEndpoint(
       };
     }
 
-    console.error(
-      `[RATE LIMIT] Redis unavailable, blocking request (fail-close policy). ` +
-      `IP=${ip}, EndpointType=${endpointType}, Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    logger.error(
+      '[RATE LIMIT] Redis unavailable, blocking request (fail-close policy)',
+      {
+        module: 'rate-limit',
+        operation: 'applyRateLimitByEndpoint',
+        ip,
+        endpointType,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     );
     throw new Error('Rate limiting unavailable - Redis connection failed');
   }
