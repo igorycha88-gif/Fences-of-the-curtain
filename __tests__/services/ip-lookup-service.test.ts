@@ -15,12 +15,18 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/lib/geo-proxy', () => ({
+  getGeoDispatcher: jest.fn().mockReturnValue(undefined),
+}));
+
 import { redis } from '@/lib/redis';
 import logger from '@/lib/logger';
+import { getGeoDispatcher } from '@/lib/geo-proxy';
 import { getCityByIP } from '@/services/admin/ipLookupService';
 
 const mockRedis = redis as any;
 const mockLogger = logger as any;
+const mockGetGeoDispatcher = getGeoDispatcher as jest.Mock;
 
 const ok = (body: unknown) =>
   Promise.resolve({ ok: true, json: () => Promise.resolve(body) } as Response);
@@ -40,6 +46,7 @@ describe('ipLookupService (ЧТЗ_Фикс_Геолокация_Город_По�
     global.fetch = fetchMock as any;
     mockRedis.get.mockResolvedValue(null);
     mockRedis.setex.mockResolvedValue('OK');
+    mockGetGeoDispatcher.mockReturnValue(undefined);
   });
 
   describe('валидация IP', () => {
@@ -213,6 +220,47 @@ describe('ipLookupService (ЧТЗ_Фикс_Геолокация_Город_По�
 
       expect(timeoutSpy).toHaveBeenCalledWith(6000);
       timeoutSpy.mockRestore();
+    });
+  });
+
+  describe('Direct-IP dispatcher (ЧТЗ_Фикс_Геолокация_DNS_контейнера_2026-11-10)', () => {
+    it('передаёт dispatcher в fetch, когда Direct-IP включён (env)', async () => {
+      const dispatcher = { dispatch: jest.fn() };
+      mockGetGeoDispatcher.mockReturnValue(dispatcher);
+      fetchMock.mockImplementation(() =>
+        ok({ status: 'success', city: 'Москва', regionName: 'Москва', country: 'Russia' })
+      );
+
+      await expect(getCityByIP('8.8.8.8')).resolves.toBe('Москва, Москва');
+
+      expect(fetchMock.mock.calls[0][1]).toMatchObject({ dispatcher });
+    });
+
+    it('без Direct-IP fetch идёт без dispatcher (прежнее поведение)', async () => {
+      mockGetGeoDispatcher.mockReturnValue(undefined);
+      fetchMock.mockImplementation(() =>
+        ok({ status: 'success', city: 'Москва', regionName: 'Москва', country: 'Russia' })
+      );
+
+      await expect(getCityByIP('8.8.8.8')).resolves.toBe('Москва, Москва');
+
+      expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.anything());
+      expect(fetchMock.mock.calls[0][1]).not.toHaveProperty('dispatcher');
+    });
+
+    it('DNS-деградация: домен недоступен, но Direct-IP dispatcher подставлен — запрос идёт тем же URL', async () => {
+      const dispatcher = { dispatch: jest.fn() };
+      mockGetGeoDispatcher.mockReturnValue(dispatcher);
+      fetchMock.mockImplementation((url: string) =>
+        url.startsWith(IP_API_URL)
+          ? ok({ status: 'success', city: 'Балашиха', regionName: 'Moscow Oblast', country: 'Russia' })
+          : Promise.reject(new Error('unused'))
+      );
+
+      await expect(getCityByIP('8.8.8.8')).resolves.toBe('Балашиха, Moscow Oblast');
+
+      expect(fetchMock.mock.calls[0][0]).toContain('http://ip-api.com/json/8.8.8.8');
+      expect(mockGetGeoDispatcher).toHaveBeenCalled();
     });
   });
 

@@ -10,9 +10,13 @@ services:
     container_name: fences-app
     restart: unless-stopped
     network_mode: host
-    # DNS не задаём: network_mode: host наследует хостовый /etc/resolv.conf
-    # (systemd-resolved → публичные резолверы). Резолверы хостера 46.254.x
-    # деградировали 23.10–02.11.2026 и ломали геолокацию (см. ЧТЗ_Фикс_Геолокация).
+    # Явные DNS: Docker не наследует хостовый systemd-resolved (127.0.0.53),
+    # а подставляет дефолтные 8.8.8.8/8.8.4.4 — они заблокированы сетью
+    # хостера с 04.11.2026 (ETIMEOUT, см. ЧТЗ_Фикс_Геолокация_DNS_контейнера_2026-11-10).
+    # Яндекс-DNS проверены из контейнера: 19-27 мс.
+    dns:
+      - 77.88.8.8
+      - 77.88.8.1
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -33,6 +37,8 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
       - TELEGRAM_PROXY_URL=${TELEGRAM_PROXY_URL:-}
       - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
+      - IPAPI_DIRECT_IP=${IPAPI_DIRECT_IP:-}
+      - IPWHO_DIRECT_IP=${IPWHO_DIRECT_IP:-}
       - NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${NEXT_PUBLIC_RECAPTCHA_SITE_KEY:-}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY:-}
       - NEXT_PUBLIC_YANDEX_METRIKA_ID=${NEXT_PUBLIC_YANDEX_METRIKA_ID:-}

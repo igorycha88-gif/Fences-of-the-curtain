@@ -32,11 +32,12 @@ IMAGE_TAG="${1:-latest}"
 COMMIT_SHA="${2:-unknown}"
 DEPLOY_REASON="${3:-Automated deploy}"
 
-# DNS: не задаём --dns принудительно. Контейнеры в network_mode: host наследуют
-# хостовый /etc/resolv.conf (127.0.0.53 → systemd-resolved → публичные
-# резолверы 1.1.1.1/8.8.8.8/77.88.8.8). Резолверы хостера 46.254.22.138/23.138
-# деградировали 23.10–02.11.2026 (резолв 5–40с/ETIMEOUT) и ломали геолокацию
-# (ЧТЗ_Фикс_Геолокация_Город_Пользователя). Наследование проверено на проде.
+# DNS: Яндекс-резолверы ЯВНО (проверены из контейнера: 19-27 мс). Docker НЕ
+# наследует хостовый systemd-resolved (127.0.0.53) для контейнеров — подставляет
+# дефолтные 8.8.8.8/8.8.4.4, а они заблокированы сетью хостера с 04.11.2026
+# (ETIMEOUT из контейнера; ЧТЗ_Фикс_Геолокация_DNS_контейнера_2026-11-10).
+# 1.1.1.1 тоже недоступен. 77.88.8.8/77.88.8.1 — рабочие.
+DNS_ARGS="--dns 77.88.8.8 --dns 77.88.8.1"
 PULL_ATTEMPTS=5
 PULL_RETRY_DELAY=10
 
@@ -244,6 +245,7 @@ deploy_direct() {
     docker run -d \
         --name fences-app \
         --network host \
+        $DNS_ARGS \
         --restart unless-stopped \
         --env-file "$APP_DIR/.env" \
         -e PORT=${BLUE_PORT} \
@@ -269,6 +271,7 @@ deploy_blue_green() {
     docker run -d \
         --name fences-app-green \
         --network host \
+        $DNS_ARGS \
         --restart no \
         --env-file "$APP_DIR/.env" \
         -e PORT=${GREEN_PORT} \
@@ -301,6 +304,7 @@ deploy_blue_green() {
     docker run -d \
         --name fences-app \
         --network host \
+        $DNS_ARGS \
         --restart unless-stopped \
         --env-file "$APP_DIR/.env" \
         -e PORT=${BLUE_PORT} \
@@ -317,6 +321,8 @@ deploy_blue_green() {
         docker run -d \
             --name fences-app \
             --network host \
+            $DNS_ARGS \
+        $DNS_ARGS \
             --restart unless-stopped \
             --env-file "$APP_DIR/.env" \
             -e PORT=${BLUE_PORT} \
@@ -387,6 +393,8 @@ if [ "$SMOKE_FAIL" -gt 0 ]; then
         docker run -d \
             --name fences-app \
             --network host \
+            $DNS_ARGS \
+        $DNS_ARGS \
             --restart unless-stopped \
             --env-file "$APP_DIR/.env" \
             -e PORT=${BLUE_PORT} \

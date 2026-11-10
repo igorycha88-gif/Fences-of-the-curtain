@@ -1,5 +1,6 @@
 import { redis } from '@/lib/redis';
 import logger from '@/lib/logger';
+import { getGeoDispatcher } from '@/lib/geo-proxy';
 
 const CACHE_TTL = 86400;
 const REQUEST_TIMEOUT_MS = 6000;
@@ -82,9 +83,14 @@ async function fetchFromProvider(provider: GeoProvider, ip: string): Promise<str
   for (let attempt = 1; attempt <= ATTEMPTS_PER_PROVIDER; attempt++) {
     const startedAt = Date.now();
     try {
-      const response = await fetch(provider.url(ip), {
+      const init: RequestInit & { dispatcher?: unknown } = {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
+      };
+      const dispatcher = getGeoDispatcher();
+      if (dispatcher) {
+        init.dispatcher = dispatcher;
+      }
+      const response = await fetch(provider.url(ip), init as RequestInit);
 
       if (!response.ok) {
         logger.error('IP lookup provider HTTP error', {

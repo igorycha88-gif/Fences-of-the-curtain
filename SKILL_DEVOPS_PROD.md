@@ -290,6 +290,8 @@ ssh root@37.143.13.196 "docker pull ghcr.io/<owner>/fences-of-the-curtain/app:sh
 ssh root@37.143.13.196 'docker run -d \
   --name fences-app-green \
   --network host \
+  --dns 77.88.8.8 \
+  --dns 77.88.8.1 \
   --restart no \
   --env-file /root/Fences-of-the-curtain/.env \
   -e PORT=3003 \
@@ -323,6 +325,8 @@ ssh root@37.143.13.196 'docker stop fences-app && docker rm fences-app'
 ssh root@37.143.13.196 'docker run -d \
   --name fences-app \
   --network host \
+  --dns 77.88.8.8 \
+  --dns 77.88.8.1 \
   --restart unless-stopped \
   --env-file /root/Fences-of-the-curtain/.env \
   -e PORT=3001 \
@@ -359,7 +363,7 @@ nginx -t && nginx -s reload'
 ssh root@37.143.13.196 'docker rm -f fences-app-green 2>/dev/null'
 
 # Если BLUE не работает — запустить предыдущий образ
-ssh root@37.143.13.196 "docker run -d --name fences-app --network host --restart unless-stopped \
+ssh root@37.143.13.196 "docker run -d --name fences-app --network host --dns 77.88.8.8 --dns 77.88.8.1 --restart unless-stopped \
   --env-file /root/Fences-of-the-curtain/.env \
   -e PORT=3001 -e NODE_ENV=production \
   -v /var/www/uploads:/app/public/uploads \
