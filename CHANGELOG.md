@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.23.4] - 2026-11-15
+
+### Исправлено
+- fix(seo): canonical детальных страниц портфолио — generateMetadata лежала в metadata.tsx (игнорируется App Router), все ~7 детальных страниц наследовали title/canonical каталога /portfolio → Google считал их дублями и не индексировал (GSC Coverage 2026-11-15); generateMetadata перенесена в [slug]/page.tsx без изменения поведения (двойной lookup slug/legacy-id, fallback title/description, ogImage, canonical), мёртвый metadata.tsx удалён; +11 автотестов (875bad8)
+
 ## [1.23.3] - 2026-11-10
 
 ### Исправлено
