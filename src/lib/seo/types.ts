@@ -52,15 +52,10 @@ export interface JsonLdOrganization {
 }
 
 export interface JsonLdWebSite {
-  '@context': 'https://schema.org';
+  '@context': string;
   '@type': 'WebSite';
   name: string;
   url: string;
-  potentialAction?: {
-    '@type': 'SearchAction';
-    target: string;
-    'query-input': string;
-  };
 }
 
 export interface JsonLdService {

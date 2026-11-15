@@ -109,12 +109,8 @@ export function generateWebSiteJsonLd(): JsonLdWebSite {
     '@type': 'WebSite',
     name: SEO_CONFIG.SITE_NAME,
     url: SEO_CONFIG.BASE_URL,
-    // ЧТЗ SEO P1 2.1: Sitelinks Searchbox (Яндекс «Поиск по сайту»)
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${SEO_CONFIG.BASE_URL}/services?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
+    // ЧТЗ Фикс GSC Canonical: SearchAction удалён — поиска по q на /services нет,
+    // Google сканировал шаблонный URL /services?q={search_term_string} (GSC «Вариант страницы с тегом canonical»).
   };
 }
 

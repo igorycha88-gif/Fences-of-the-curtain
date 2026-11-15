@@ -84,15 +84,12 @@ describe('JSON-LD Generators', () => {
       expect(result.url).toBe('https://zabor-i-naves.ru');
     });
 
-    it('should include SearchAction for Yandex Sitelinks Searchbox (ЧТЗ SEO P1 2.1)', () => {
-      const result = generateWebSiteJsonLd();
+    it('should NOT include SearchAction (ЧТЗ Фикс GSC Canonical: поиска по q нет, шаблонный URL сканировал Google)', () => {
+      const result = generateWebSiteJsonLd() as unknown as Record<string, unknown>;
 
-      expect(result.potentialAction).toBeDefined();
-      expect(result.potentialAction?.['@type']).toBe('SearchAction');
-      expect(result.potentialAction?.target).toBe(
-        'https://zabor-i-naves.ru/services?q={search_term_string}'
-      );
-      expect(result.potentialAction?.['query-input']).toBe('required name=search_term_string');
+      expect(result.potentialAction).toBeUndefined();
+      expect(JSON.stringify(result)).not.toContain('search_term_string');
+      expect(JSON.stringify(result)).not.toContain('SearchAction');
     });
   });
 
