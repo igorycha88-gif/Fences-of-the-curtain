@@ -1,15 +1,65 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
+import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Breadcrumbs from '@/components/seo/Breadcrumbs';
+import { generatePageMetadata } from '@/lib/seo/metadata';
 import { isLegacyPortfolioId, portfolioHref } from '@/lib/seo/portfolioUrl';
 import { buildPortfolioImageAlt } from '@/lib/seo/portfolioAlt';
 import PortfolioGalleryClient from './PortfolioGalleryClient';
 import PhoneLinkButton from './PhoneLinkButton';
 
 export const revalidate = 3600;
+
+/**
+ * ЧТЗ Фикс Canonical Портфолио GSC: generateMetadata обязана жить в page.tsx —
+ * Next.js App Router читает метаданные только из page.tsx/layout.tsx.
+ * Раньше функция лежала в отдельном metadata.tsx (мёртвый код): детальные
+ * страницы наследовали title/canonical каталога /portfolio → Google считал их
+ * дублями и не индексировал (GSC: «Вариант страницы с тегом canonical»).
+ * ЧТЗ SEO P1 2.5: двойной lookup — slug-URL и legacy cuid-URL (canonical ведёт на slug).
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  const item = await prisma.portfolioItem.findUnique({
+    where: { slug },
+    select: { id: true, slug: true, title: true, description: true, images: true, active: true },
+  });
+
+  const resolved =
+    item ??
+    (await prisma.portfolioItem.findUnique({
+      where: { id: slug },
+      select: { id: true, slug: true, title: true, description: true, images: true, active: true },
+    }));
+
+  if (!resolved || !resolved.active) {
+    return generatePageMetadata({
+      title: 'Проект не найден',
+      description: 'Запрашиваемый проект не найден',
+      path: '/portfolio',
+    });
+  }
+
+  const images = (resolved.images as string[]) || [];
+  const firstImage = images[0];
+
+  return generatePageMetadata({
+    title: `${resolved.title} — Заборы и Навесы`,
+    description:
+      resolved.description ||
+      `Проект «${resolved.title}» — пример нашей работы. Заборы и Навесы в Москве и МО.`,
+    path: portfolioHref(resolved),
+    ogImage: firstImage || undefined,
+  });
+}
 
 /**
  * ЧТЗ SEO P1 2.5: детальная страница портфолио по slug-URL.
